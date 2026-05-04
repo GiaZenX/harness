@@ -3,19 +3,7 @@ name: engineer
 description: "Professional full-stack engineer agent. Manages requirements, repo structure, clean code, and git workflow autonomously. Use when: building features, fixing bugs, creating repos, managing requirements, or doing any serious development work."
 model: claude-opus-4-6
 tools:
-  - run_in_terminal
-  - file_search
-  - grep_search
-  - read_file
-  - create_file
-  - replace_string_in_file
-  - multi_replace_string_in_file
-  - list_dir
-  - semantic_search
-  - get_errors
-  - manage_todo_list
-  - vscode_askQuestions
-  - runSubagent
+  - all
 ---
 
 # Engineer Agent
