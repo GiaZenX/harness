@@ -22,7 +22,7 @@ done
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_SRC="$REPO_ROOT/skills"
 AGENTS_SRC="$REPO_ROOT/agents"
-INSTRUCTIONS_FILE="$REPO_ROOT/copilot-instructions.md"
+INSTRUCTIONS_FILE="$REPO_ROOT/project-memory.instructions.md"
 
 CLAUDE_SKILLS="$HOME/.claude/skills"
 COPILOT_SKILLS="$HOME/.copilot/skills"
@@ -69,18 +69,18 @@ install_agents() {
 
 install_instructions() {
     if [[ ! -e "$INSTRUCTIONS_FILE" ]]; then
-        echo "  [warn] copilot-instructions.md not found in repo"
+        echo "  [warn] project-memory.instructions.md not found in repo"
         return
     fi
 
     mkdir -p "$VSCODE_PROMPTS"
-    target_file="$VSCODE_PROMPTS/copilot-instructions.md"
+    target_file="$VSCODE_PROMPTS/project-memory.instructions.md"
     if [[ -e "$target_file" && $FORCE -eq 0 ]]; then
-        echo "  [skip] instructions: copilot-instructions.md (already exists, use --force to overwrite)"
+        echo "  [skip] instructions: project-memory.instructions.md (already exists, use --force to overwrite)"
         return
     fi
     cp "$INSTRUCTIONS_FILE" "$target_file"
-    echo "  [ok]   instructions: copilot-instructions.md"
+    echo "  [ok]   instructions: project-memory.instructions.md"
 }
 
 echo "Installing agent-skills..."

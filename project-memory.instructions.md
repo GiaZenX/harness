@@ -1,3 +1,6 @@
+---
+applyTo: "**"
+---
 # Copilot Standard Agent – Project Memory System
 
 ## Core Principle
