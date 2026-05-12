@@ -1,6 +1,7 @@
 ---
 name: engineer
 description: "Professional full-stack engineer agent. Manages requirements, repo structure, clean code, and git workflow autonomously. Use when: building features, fixing bugs, creating repos, managing requirements, or doing any serious development work."
+model: Claude Sonnet 4.6 (copilot)
 ---
 
 # Engineer Agent

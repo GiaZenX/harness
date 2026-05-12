@@ -16,7 +16,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = $PSScriptRoot
 $skillsSrc = Join-Path $repoRoot "skills"
 $agentsSrc = Join-Path $repoRoot "agents"
-$instructionsFile = Join-Path $repoRoot "copilot-instructions.md"
+$instructionsFile = Join-Path $repoRoot "project-memory.instructions.md"
 
 $claudeSkills = Join-Path $env:USERPROFILE ".claude\skills"
 $copilotSkills = Join-Path $env:USERPROFILE ".copilot\skills"
@@ -59,7 +59,7 @@ function Install-Agents {
 
 function Install-Instructions {
     if (-not (Test-Path $instructionsFile)) {
-        Write-Host "  [warn] copilot-instructions.md not found in repo" -ForegroundColor Yellow
+        Write-Host "  [warn] project-memory.instructions.md not found in repo" -ForegroundColor Yellow
         return
     }
 
@@ -67,13 +67,13 @@ function Install-Instructions {
         New-Item -ItemType Directory -Path $vscodePrompts -Force | Out-Null
     }
 
-    $dest = Join-Path $vscodePrompts "copilot-instructions.md"
+    $dest = Join-Path $vscodePrompts "project-memory.instructions.md"
     if ((Test-Path $dest) -and -not $Force) {
-        Write-Host "  [skip] instructions: copilot-instructions.md (already exists, use -Force to overwrite)" -ForegroundColor Yellow
+        Write-Host "  [skip] instructions: project-memory.instructions.md (already exists, use -Force to overwrite)" -ForegroundColor Yellow
         return
     }
     Copy-Item -Path $instructionsFile -Destination $dest -Force
-    Write-Host "  [ok]   instructions: copilot-instructions.md" -ForegroundColor Green
+    Write-Host "  [ok]   instructions: project-memory.instructions.md" -ForegroundColor Green
 }
 
 Write-Host "Installing agent-skills..." -ForegroundColor Cyan
