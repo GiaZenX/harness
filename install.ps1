@@ -16,6 +16,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = $PSScriptRoot
 $skillsSrc = Join-Path $repoRoot "skills"
 $agentsSrc = Join-Path $repoRoot "agents"
+$instructionsFile = Join-Path $repoRoot "copilot-instructions.md"
 
 $claudeSkills = Join-Path $env:USERPROFILE ".claude\skills"
 $copilotSkills = Join-Path $env:USERPROFILE ".copilot\skills"
@@ -56,6 +57,25 @@ function Install-Agents {
     }
 }
 
+function Install-Instructions {
+    if (-not (Test-Path $instructionsFile)) {
+        Write-Host "  [warn] copilot-instructions.md not found in repo" -ForegroundColor Yellow
+        return
+    }
+
+    if (-not (Test-Path $vscodePrompts)) {
+        New-Item -ItemType Directory -Path $vscodePrompts -Force | Out-Null
+    }
+
+    $dest = Join-Path $vscodePrompts "copilot-instructions.md"
+    if ((Test-Path $dest) -and -not $Force) {
+        Write-Host "  [skip] instructions: copilot-instructions.md (already exists, use -Force to overwrite)" -ForegroundColor Yellow
+        return
+    }
+    Copy-Item -Path $instructionsFile -Destination $dest -Force
+    Write-Host "  [ok]   instructions: copilot-instructions.md" -ForegroundColor Green
+}
+
 Write-Host "Installing agent-skills..." -ForegroundColor Cyan
 
 if ($Target -eq "both" -or $Target -eq "claude") {
@@ -67,8 +87,9 @@ if ($Target -eq "both" -or $Target -eq "copilot") {
     Write-Host "`n-> GitHub Copilot ($copilotSkills)"
     Install-Skills -Destination $copilotSkills -Label "copilot"
 
-    Write-Host "`n-> VS Code Custom Agents ($vscodePrompts)"
+    Write-Host "`n-> VS Code Custom Agents & Instructions ($vscodePrompts)"
     Install-Agents
+    Install-Instructions
 }
 
 Write-Host "`nDone. Restart VS Code to pick up new skills/agents." -ForegroundColor Cyan

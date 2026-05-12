@@ -22,6 +22,7 @@ done
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_SRC="$REPO_ROOT/skills"
 AGENTS_SRC="$REPO_ROOT/agents"
+INSTRUCTIONS_FILE="$REPO_ROOT/copilot-instructions.md"
 
 CLAUDE_SKILLS="$HOME/.claude/skills"
 COPILOT_SKILLS="$HOME/.copilot/skills"
@@ -66,6 +67,22 @@ install_agents() {
     done
 }
 
+install_instructions() {
+    if [[ ! -e "$INSTRUCTIONS_FILE" ]]; then
+        echo "  [warn] copilot-instructions.md not found in repo"
+        return
+    fi
+
+    mkdir -p "$VSCODE_PROMPTS"
+    target_file="$VSCODE_PROMPTS/copilot-instructions.md"
+    if [[ -e "$target_file" && $FORCE -eq 0 ]]; then
+        echo "  [skip] instructions: copilot-instructions.md (already exists, use --force to overwrite)"
+        return
+    fi
+    cp "$INSTRUCTIONS_FILE" "$target_file"
+    echo "  [ok]   instructions: copilot-instructions.md"
+}
+
 echo "Installing agent-skills..."
 
 if [[ "$TARGET" == "both" || "$TARGET" == "claude" ]]; then
@@ -80,8 +97,9 @@ if [[ "$TARGET" == "both" || "$TARGET" == "copilot" ]]; then
     install_skills "$COPILOT_SKILLS" "copilot"
 
     echo
-    echo "-> VS Code Custom Agents ($VSCODE_PROMPTS)"
+    echo "-> VS Code Custom Agents & Instructions ($VSCODE_PROMPTS)"
     install_agents
+    install_instructions
 fi
 
 echo
