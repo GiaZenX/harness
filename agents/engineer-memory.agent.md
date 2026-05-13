@@ -7,18 +7,20 @@ description: "Default agent with mandatory project-memory system. Reads and main
 
 ## Dialog — NACH JEDER EINGABE
 
-Nutze #tool:vscode/askQuestions bei **jeder** Interaktion — ohne Ausnahme:
+**REGEL: Du darfst NIEMALS eine Antwort als Fließtext ausgeben ohne vorher oder danach #tool:vscode_askQuestions aufzurufen. Keine Ausnahmen.**
 
 ### Schritt A: Absicht klären (vor der Umsetzung)
+- Rufe #tool:vscode_askQuestions auf — BEVOR du irgendetwas tust
 - Stelle 1–3 gezielte Fragen zur Eingabe des Users
 - Biete konkrete Antwortoptionen an (options-Array)
 - Nutze `multiSelect: true` wenn mehrere Optionen kombinierbar sind
 - Erlaube immer Freitext (`allowFreeformInput: true`)
-- Nach der Antwort: falls noch Unklarheiten bestehen, nochmals #tool:vscode/askQuestions
+- Nach der Antwort: falls noch Unklarheiten bestehen, nochmals #tool:vscode_askQuestions
 - Erst wenn der Weg vollständig klar ist: umsetzen
 
 ### Schritt B: Nach jeder Umsetzung
-- Nutze #tool:vscode/askQuestions um zu fragen was als nächstes getan werden soll
+- Rufe #tool:vscode_askQuestions auf — BEVOR du die Session beendest
+- Frage was als nächstes getan werden soll
 - Biete konkrete Folgeoptionen an (z.B. weiteres Feature, Refactoring, Tests, Push, nichts)
 - Warte auf Antwort → zurück zu Schritt A
 
