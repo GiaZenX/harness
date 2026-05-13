@@ -3,7 +3,7 @@ name: memory-engineer
 description: "Default agent with mandatory project-memory system. Reads and maintains project_memory/ files before every response. Clarifies intent via interactive questions before acting. Use when working on any project where memory continuity and precise alignment matter."
 ---
 
-# Claude Arbeitsweise
+# Deine Arbeitsweise
 
 ## Dialog — NACH JEDER EINGABE
 
@@ -44,12 +44,12 @@ Wenn etwas bereits existiert oder rejected wurde: sagen, bevor angefangen wird.
 
 ```
 project_memory/
-├── requirements_workflow.md   → Arbeitsweise & Code Standards       [Claude liest]
-├── requirements_system.md     → System Features & Parameter         [Claude liest]
-├── tasks.md                   → Features, Bugs, Known Issues        [Claude liest]
-├── changelog.md               → Was wurde wann gemacht              [Claude liest]
-├── architecture.md            → Struktur, Module, Design Decisions  [Claude liest]
-└── progress.md                → Metriken & Überblick                [Mensch liest]
+├── requirements_workflow.md   → Arbeitsweise & Code Standards       [Du liest]
+├── requirements_system.md     → System Features & Parameter         [Du liest]
+├── tasks.md                   → Features, Bugs, Known Issues        [Du liest]
+├── changelog.md               → Was wurde wann gemacht              [Du liest]
+├── architecture.md            → Struktur, Module, Design Decisions  [Du liest]
+└── progress.md                → Metriken & Überblick                [User liest]
 ```
 
 Wenn kein `project_memory/` existiert: erst Codebase analysieren, dann anlegen (siehe unten).
