@@ -19,8 +19,10 @@ $agentsSrc = Join-Path $repoRoot "agents"
 $instructionsFile = Join-Path $repoRoot "project-memory.instructions.md"
 
 $claudeSkills = Join-Path $env:USERPROFILE ".claude\skills"
+$claudeGlobal = Join-Path $env:USERPROFILE ".claude"
 $copilotSkills = Join-Path $env:USERPROFILE ".copilot\skills"
 $vscodePrompts = Join-Path $env:APPDATA "Code\User\prompts"
+$claudeMdSrc  = Join-Path $repoRoot "CLAUDE.md"
 
 function Install-Skills {
     param([string]$Destination, [string]$Label)
@@ -81,6 +83,19 @@ Write-Host "Installing agent-skills..." -ForegroundColor Cyan
 if ($Target -eq "both" -or $Target -eq "claude") {
     Write-Host "`n-> Claude Code ($claudeSkills)"
     Install-Skills -Destination $claudeSkills -Label "claude"
+
+    # Install CLAUDE.md (global instructions)
+    if (Test-Path $claudeMdSrc) {
+        $claudeMdDest = Join-Path $claudeGlobal "CLAUDE.md"
+        if ((Test-Path $claudeMdDest) -and -not $Force) {
+            Write-Host "  [skip] CLAUDE.md (already exists, use -Force to overwrite)" -ForegroundColor Yellow
+        } else {
+            [System.IO.File]::WriteAllText($claudeMdDest, (Get-Content $claudeMdSrc -Raw -Encoding UTF8), [System.Text.UTF8Encoding]::new($false))
+            Write-Host "  [ok]   CLAUDE.md -> $claudeMdDest" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "  [warn] CLAUDE.md not found in repo root" -ForegroundColor Yellow
+    }
 }
 
 if ($Target -eq "both" -or $Target -eq "copilot") {

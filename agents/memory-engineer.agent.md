@@ -1,5 +1,5 @@
 ---
-name: engineer-memory
+name: memory-engineer
 description: "Default agent with mandatory project-memory system. Reads and maintains project_memory/ files before every response. Clarifies intent via interactive questions before acting. Use when working on any project where memory continuity and precise alignment matter."
 ---
 

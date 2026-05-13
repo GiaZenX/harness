@@ -24,7 +24,9 @@ SKILLS_SRC="$REPO_ROOT/skills"
 AGENTS_SRC="$REPO_ROOT/agents"
 INSTRUCTIONS_FILE="$REPO_ROOT/project-memory.instructions.md"
 
+CLAUDE_GLOBAL="$HOME/.claude"
 CLAUDE_SKILLS="$HOME/.claude/skills"
+CLAUDE_MD_SRC="$REPO_ROOT/CLAUDE.md"
 COPILOT_SKILLS="$HOME/.copilot/skills"
 
 # VS Code user prompts location differs per OS
@@ -83,12 +85,29 @@ install_instructions() {
     echo "  [ok]   instructions: project-memory.instructions.md"
 }
 
+install_claude_md() {
+    if [[ ! -e "$CLAUDE_MD_SRC" ]]; then
+        echo "  [warn] CLAUDE.md not found in repo root"
+        return
+    fi
+
+    mkdir -p "$CLAUDE_GLOBAL"
+    target_file="$CLAUDE_GLOBAL/CLAUDE.md"
+    if [[ -e "$target_file" && $FORCE -eq 0 ]]; then
+        echo "  [skip] CLAUDE.md (already exists, use --force to overwrite)"
+        return
+    fi
+    cp "$CLAUDE_MD_SRC" "$target_file"
+    echo "  [ok]   CLAUDE.md -> $target_file"
+}
+
 echo "Installing agent-skills..."
 
 if [[ "$TARGET" == "both" || "$TARGET" == "claude" ]]; then
     echo
     echo "-> Claude Code ($CLAUDE_SKILLS)"
     install_skills "$CLAUDE_SKILLS" "claude"
+    install_claude_md
 fi
 
 if [[ "$TARGET" == "both" || "$TARGET" == "copilot" ]]; then
