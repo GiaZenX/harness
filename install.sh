@@ -4,7 +4,7 @@
 #   ./install.sh                  # Install for both Claude Code and Copilot
 #   ./install.sh --target claude  # Only Claude Code
 #   ./install.sh --target copilot # Only Copilot
-#   ./install.sh --force          # Overwrite existing skills/agents
+#   ./install.sh --force          # Overwrite existing files
 
 set -euo pipefail
 
@@ -21,12 +21,11 @@ done
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_SRC="$REPO_ROOT/skills"
-AGENTS_SRC="$REPO_ROOT/agents"
-INSTRUCTIONS_FILE="$REPO_ROOT/project-memory.instructions.md"
+CLAUDE_SRC="$REPO_ROOT/claude-code"
+COPILOT_SRC="$REPO_ROOT/github-copilot"
 
 CLAUDE_GLOBAL="$HOME/.claude"
 CLAUDE_SKILLS="$HOME/.claude/skills"
-CLAUDE_MD_SRC="$REPO_ROOT/CLAUDE.md"
 COPILOT_SKILLS="$HOME/.copilot/skills"
 
 # VS Code user prompts location differs per OS
@@ -40,13 +39,11 @@ install_skills() {
     local dest="$1"
     local label="$2"
     mkdir -p "$dest"
-
     for skill in "$SKILLS_SRC"/*/; do
         name="$(basename "$skill")"
         target_dir="$dest/$name"
         if [[ -e "$target_dir" && $FORCE -eq 0 ]]; then
-            echo "  [skip] $label : $name (already exists, use --force to overwrite)"
-            continue
+            echo "  [skip] $label : $name"; continue
         fi
         rm -rf "$target_dir"
         cp -R "$skill" "$target_dir"
@@ -54,71 +51,42 @@ install_skills() {
     done
 }
 
-install_agents() {
-    mkdir -p "$VSCODE_PROMPTS"
-    for agent in "$AGENTS_SRC"/*.agent.md; do
-        [[ -e "$agent" ]] || continue
-        name="$(basename "$agent")"
-        target_file="$VSCODE_PROMPTS/$name"
-        if [[ -e "$target_file" && $FORCE -eq 0 ]]; then
-            echo "  [skip] agent : $name (already exists, use --force to overwrite)"
-            continue
-        fi
-        cp "$agent" "$target_file"
-        echo "  [ok]   agent : $name"
-    done
-}
-
-install_instructions() {
-    if [[ ! -e "$INSTRUCTIONS_FILE" ]]; then
-        echo "  [warn] project-memory.instructions.md not found in repo"
-        return
+install_file() {
+    local src="$1"
+    local dest="$2"
+    local label="$3"
+    if [[ ! -e "$src" ]]; then echo "  [warn] not found: $src"; return; fi
+    if [[ -e "$dest" && $FORCE -eq 0 ]]; then
+        echo "  [skip] $label (use --force to overwrite)"; return
     fi
-
-    mkdir -p "$VSCODE_PROMPTS"
-    target_file="$VSCODE_PROMPTS/project-memory.instructions.md"
-    if [[ -e "$target_file" && $FORCE -eq 0 ]]; then
-        echo "  [skip] instructions: project-memory.instructions.md (already exists, use --force to overwrite)"
-        return
-    fi
-    cp "$INSTRUCTIONS_FILE" "$target_file"
-    echo "  [ok]   instructions: project-memory.instructions.md"
-}
-
-install_claude_md() {
-    if [[ ! -e "$CLAUDE_MD_SRC" ]]; then
-        echo "  [warn] CLAUDE.md not found in repo root"
-        return
-    fi
-
-    mkdir -p "$CLAUDE_GLOBAL"
-    target_file="$CLAUDE_GLOBAL/CLAUDE.md"
-    if [[ -e "$target_file" && $FORCE -eq 0 ]]; then
-        echo "  [skip] CLAUDE.md (already exists, use --force to overwrite)"
-        return
-    fi
-    cp "$CLAUDE_MD_SRC" "$target_file"
-    echo "  [ok]   CLAUDE.md -> $target_file"
+    mkdir -p "$(dirname "$dest")"
+    cp "$src" "$dest"
+    echo "  [ok]   $label"
 }
 
 echo "Installing agent-skills..."
 
 if [[ "$TARGET" == "both" || "$TARGET" == "claude" ]]; then
     echo
-    echo "-> Claude Code ($CLAUDE_SKILLS)"
-    install_skills "$CLAUDE_SKILLS" "claude"
-    install_claude_md
+    echo "-> Claude Code"
+    install_skills "$CLAUDE_SKILLS" "skill"
+    install_file "$CLAUDE_SRC/CLAUDE.md" "$CLAUDE_GLOBAL/CLAUDE.md" "CLAUDE.md -> ~/.claude/CLAUDE.md"
 fi
 
 if [[ "$TARGET" == "both" || "$TARGET" == "copilot" ]]; then
     echo
-    echo "-> GitHub Copilot ($COPILOT_SKILLS)"
-    install_skills "$COPILOT_SKILLS" "copilot"
-
-    echo
-    echo "-> VS Code Custom Agents & Instructions ($VSCODE_PROMPTS)"
-    install_agents
-    install_instructions
+    echo "-> GitHub Copilot"
+    install_skills "$COPILOT_SKILLS" "skill"
+    for f in "$COPILOT_SRC"/*.agent.md; do
+        [[ -e "$f" ]] || continue
+        name="$(basename "$f")"
+        install_file "$f" "$VSCODE_PROMPTS/$name" "agent: $name"
+    done
+    for f in "$COPILOT_SRC"/*.instructions.md; do
+        [[ -e "$f" ]] || continue
+        name="$(basename "$f")"
+        install_file "$f" "$VSCODE_PROMPTS/$name" "instructions: $name"
+    done
 fi
 
 echo

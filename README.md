@@ -66,6 +66,23 @@ Beide Tools sind identisch konfiguriert:
 
 ---
 
+## Repo-Struktur
+
+```
+agent-skills/
+├── skills/                              ← gemeinsame Skills (Claude + Copilot)
+├── claude-code/
+│   └── CLAUDE.md                        ← globale Anweisungen für Claude Code
+├── github-copilot/
+│   ├── project-memory.instructions.md  ← auto-geladen in Copilot (applyTo: **)
+│   ├── engineer.agent.md               ← Full-Stack Engineer Agent
+│   └── memory-engineer.agent.md        ← Agent mit Dialog-Loop + project_memory/
+├── install.ps1                          ← Windows Installer
+└── install.sh                           ← macOS/Linux Installer
+```
+
+---
+
 ## Custom Agents
 
 ### `memory-engineer` — Hauptagent mit Gedächtnis
