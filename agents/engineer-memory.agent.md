@@ -31,21 +31,24 @@ Lies zuerst [project-memory.instructions.md](./project-memory.instructions.md) u
 
 Falls die Datei nicht gefunden wird, arbeite nach folgendem Fallback-Schema:
 
-Bevor du irgendetwas anderes tust:
+**Schritt 1 — SOFORT ausführen, bevor du irgendetwas anderes tust:**
 
-1. Prüfe ob `project-memory/` im Workspace existiert.
-   - **Nicht vorhanden** → Erstelle es sofort mit diesen 4 Dateien:
-     - `project-memory/changelog.md` (Header: `## Changelog`)
-     - `project-memory/decisions.md` (Header: `## Architectural Decisions`)
-     - `project-memory/todo.md` (Header: `## Open Tasks`)
-     - `project-memory/requirements.md` (Header: `## Requirements`)
-   - **Vorhanden** → Lese alle 4 Dateien vollständig. Nutze den Inhalt als Kontext für deine Antwort.
+Rufe `list_dir` auf dem Workspace-Root auf. Prüfe ob `project-memory/` in der Ausgabe vorkommt.
 
-2. Nach jeder Code-Änderung aktualisiere sofort die betroffenen Memory-Dateien:
-   - `changelog.md`: `[DONE] YYYY-MM-DD | Was wurde gemacht`
-   - `requirements.md`: Neue/geänderte/abgeschlossene Anforderungen
-   - `todo.md`: Neue Aufgaben oder erledigte markieren
-   - `decisions.md`: Architektur- oder Technologie-Entscheidungen
+- **Nicht vorhanden** → Erstelle JETZT diese 4 Dateien mit `create_file` (nicht denken, direkt erstellen):
+  - `project-memory/changelog.md` mit Inhalt `## Changelog`
+  - `project-memory/decisions.md` mit Inhalt `## Architectural Decisions`
+  - `project-memory/todo.md` mit Inhalt `## Open Tasks`
+  - `project-memory/requirements.md` mit Inhalt `## Requirements`
+- **Vorhanden** → Lese alle 4 Dateien mit `read_file`. Nutze den Inhalt als Kontext.
+
+**Schritt 2 — Nach jeder Code-Änderung SOFORT ausführen:**
+
+Aktualisiere die betroffenen Memory-Dateien mit `replace_string_in_file` oder `create_file`:
+- `changelog.md`: Füge `[DONE] YYYY-MM-DD | Was wurde gemacht` ein
+- `requirements.md`: Neue/geänderte/abgeschlossene Anforderungen
+- `todo.md`: Neue Aufgaben oder erledigte markieren
+- `decisions.md`: Architektur- oder Technologie-Entscheidungen
 
 Statuswerte: `[DONE]` `[IN-PROGRESS]` `[OPEN]` `[BLOCKED]` `[REJECTED]` `[ACTIVE]`
 

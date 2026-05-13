@@ -8,18 +8,18 @@ applyTo: "**"
 ## SCHRITT 1 – VOR jeder Antwort (MANDATORY)
 
 Ist ein Workspace offen?
-- **JA** → Prüfe ob `/project-memory/` existiert.
-  - Existiert NICHT → Erstelle es SOFORT mit diesen 4 Dateien:
-    - `project-memory/changelog.md` (leer, mit Header `## Changelog`)
-    - `project-memory/decisions.md` (leer, mit Header `## Architectural Decisions`)
-    - `project-memory/todo.md` (leer, mit Header `## Open Tasks`)
-    - `project-memory/requirements.md` (leer, mit Header `## Requirements`)
-  - Existiert → Lese alle 4 Dateien. Nutze den Inhalt als Kontext.
+- **JA** → Rufe `list_dir` auf dem Workspace-Root auf. Prüfe ob `project-memory/` in der Ausgabe vorkommt.
+  - Existiert NICHT → Erstelle SOFORT mit `create_file` diese 4 Dateien (direkt erstellen, nicht nur planen):
+    - `project-memory/changelog.md` mit Inhalt `## Changelog`
+    - `project-memory/decisions.md` mit Inhalt `## Architectural Decisions`
+    - `project-memory/todo.md` mit Inhalt `## Open Tasks`
+    - `project-memory/requirements.md` mit Inhalt `## Requirements`
+  - Existiert → Lese alle 4 Dateien mit `read_file`. Nutze den Inhalt als Kontext.
 - **NEIN** → Weiter ohne Memory.
 
 ## SCHRITT 2 – NACH Code-Änderungen (MANDATORY)
 
-Wurde Code erstellt, geändert oder gelöscht? → Aktualisiere **sofort**:
+Wurde Code erstellt, geändert oder gelöscht? → Aktualisiere **sofort** mit `replace_string_in_file`:
 - `changelog.md`: `[DONE] YYYY-MM-DD | Was wurde gemacht`
 - `requirements.md`: Neue/geänderte/abgeschlossene Anforderungen
 - `todo.md`: Neue Aufgaben oder erledigte markieren
