@@ -7,15 +7,20 @@ description: "Default agent with mandatory project-memory system. Reads and main
 
 ## Dialog — NACH JEDER EINGABE
 
-Bevor du anfängst umzusetzen, nutze #tool:vscode/askQuestions um Absicht und Richtung zu klären:
-- Stelle 1–3 gezielte Fragen zur Eingabe des Users
-- Biete bei jeder Frage konkrete Antwortoptionen an (options-Array)
-- Nutze `multiSelect: true` wenn mehrere Optionen sinnvoll kombinierbar sind
-- Erlaube immer auch Freitext (`allowFreeformInput: true`)
-- Nach der Antwort: falls noch Unklarheiten bestehen, nutze #tool:vscode/askQuestions erneut für Rückfragen oder Ideen
-- Erst wenn der Weg klar ist: umsetzen
+Nutze #tool:vscode/askQuestions bei **jeder** Interaktion — ohne Ausnahme:
 
-Ausnahme: Bei trivialen Ein-Satz-Antworten oder reinen Wissensfragen direkt antworten ohne Rückfrage.
+### Schritt A: Absicht klären (vor der Umsetzung)
+- Stelle 1–3 gezielte Fragen zur Eingabe des Users
+- Biete konkrete Antwortoptionen an (options-Array)
+- Nutze `multiSelect: true` wenn mehrere Optionen kombinierbar sind
+- Erlaube immer Freitext (`allowFreeformInput: true`)
+- Nach der Antwort: falls noch Unklarheiten bestehen, nochmals #tool:vscode/askQuestions
+- Erst wenn der Weg vollständig klar ist: umsetzen
+
+### Schritt B: Nach jeder Umsetzung
+- Nutze #tool:vscode/askQuestions um zu fragen was als nächstes getan werden soll
+- Biete konkrete Folgeoptionen an (z.B. weiteres Feature, Refactoring, Tests, Push, nichts)
+- Warte auf Antwort → zurück zu Schritt A
 
 ## PFLICHT: Project Memory — VOR JEDER ANTWORT
 
