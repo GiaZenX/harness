@@ -87,25 +87,17 @@ agent-skills/
 
 ### `memory-engineer` — Hauptagent mit Gedächtnis
 
+### `memory-engineer` — Hauptagent mit Gedächtnis
+
 **Aufruf:** `@memory-engineer` oder Agent-Dropdown → memory-engineer
 
 Mandatory Dialog-Loop + vollständiges Projekt-Memory-System:
 
 - **Dialog vor Umsetzung:** Fragt immer zuerst per `askQuestions` — nie sofort implementieren
-- **project_memory/ System:** Liest und pflegt `project_memory/` (requirements, tasks, changelog, architecture, progress) bei jedem Prompt
-- **Codebase-Onboarding:** Bei neuen Repos: analysieren → Zusammenfassung vorlegen → bestätigen → anlegen
-- **REQ/TSK-Format:** Anforderungen mit `REQ-XXXX` / `TSK-XXXX`, Status `PROPOSED → VALIDATED → IN PROGRESS → DONE-VALIDATED`
+- **project_memory/ System:** Liest und pflegt `project_memory/` bei jedem Prompt
+- **Arbeits-Loop:** Lesen → Fragen → Plan zeigen → Bestätigung → Memory speichern → Code → Memory aktualisieren
+- **REQ/TSK-Format:** `REQ-XXXX` / `TSK-XXXX`, Status `PROPOSED → VALIDATED → IN PROGRESS → DONE-VALIDATED`
 - **Bug-Workflow:** Jeder Bug bekommt ein Requirement + Test
-- **Neue Regeln:** Direkt in `requirements_workflow.md` / `requirements_system.md`
-
-### `engineer` — Full-Stack Engineer ohne Dialog-Loop
-
-**Aufruf:** `@engineer <dein Prompt>`
-
-- **Repo-Management:** Legt fehlendes Repo automatisch an
-- **Requirement-Tracking:** Liest und pflegt `ProjectRequirements.md`
-- **Git-Workflow:** Committet automatisch; pusht nur auf explizite Anfrage
-- **Clean Code:** Selbstdokumentierend, keine Kommentare, modularer Aufbau
 
 ---
 
@@ -117,40 +109,40 @@ Skills werden im Chat per `/<skill-name>` aufgerufen oder vom Agent automatisch 
 
 | Skill | Aufruf | Was es macht |
 |---|---|---|
-| **diagnose** | `/diagnose` oder "debug this" | Disziplinierte Bug-Diagnose: Reproduzieren → Minimieren → Hypothese → Instrumentieren → Fixen → Regressionstest |
+| **debug** | `/debug` | Disziplinierte Bug-Diagnose: Reproduzieren → Minimieren → Hypothese → Instrumentieren → Fixen → Regressionstest |
 | **tdd** | `/tdd` | Test-Driven Development mit Red-Green-Refactor-Loop |
-| **grill-with-docs** | `/grill-with-docs` | Stresstest deines Plans gegen die Domain-Sprache; aktualisiert `CONTEXT.md` und ADRs inline |
-| **improve-codebase-architecture** | `/improve-codebase-architecture` | Findet Refactoring-Chancen; konsolidiert eng gekoppelte Module |
-| **to-prd** | `/to-prd` | Wandelt aktuellen Konversationskontext in ein PRD und legt Issue an |
-| **to-issues** | `/to-issues` | Zerlegt Plan/PRD in unabhängige GitHub-Issues (Vertical Slices) |
+| **review-plan** | `/review-plan` | Stresstest deines Plans gegen die Domain-Sprache; aktualisiert CONTEXT.md und ADRs |
+| **refactor** | `/refactor` | Findet Refactoring-Chancen; konsolidiert eng gekoppelte Module |
+| **plan-to-prd** | `/plan-to-prd` | Wandelt aktuellen Konversationskontext in ein PRD |
+| **plan-to-issues** | `/plan-to-issues` | Zerlegt Plan/PRD in unabhängige GitHub-Issues (Vertical Slices) |
 | **triage** | `/triage` | Issue-Triage durch Rollen-State-Machine |
-| **zoom-out** | `/zoom-out` | Agent erklärt Code im Kontext des Gesamtsystems |
-| **setup-matt-pocock-skills** | `/setup-matt-pocock-skills` | **Einmal pro Repo:** konfiguriert Issue-Tracker, Triage-Labels, Domain-Doc-Layout |
+| **explain** | `/explain` | Erklärt Code im Kontext des Gesamtsystems |
+| **setup-repo** | `/setup-repo` | Einmal pro Repo: konfiguriert Issue-Tracker, Triage-Labels, Domain-Doc-Layout |
 
 ### Productivity
 
 | Skill | Aufruf | Was es macht |
 |---|---|---|
-| **grill-me** | `/grill-me` | Interviewt dich gnadenlos zu Plan/Design bis alle Entscheidungen geklärt sind |
-| **caveman** | `/caveman` | Ultra-komprimierter Kommunikationsmodus, spart ~75% Tokens |
-| **write-a-skill** | `/write-a-skill` | Hilft dir, eigene neue Skills zu erstellen |
+| **interview** | `/interview` | Befragt dich intensiv zu Plan/Design mit Polls — bis alle Entscheidungen geklärt sind |
+| **compact** | `/compact` | Ultra-komprimierter Kommunikationsmodus, spart ~75% Tokens |
+| **new-skill** | `/new-skill` | Hilft dir, eigene neue Skills zu erstellen |
 
 ### Misc
 
 | Skill | Aufruf | Was es macht |
 |---|---|---|
-| **setup-pre-commit** | `/setup-pre-commit` | Husky Pre-Commit-Hooks mit Prettier, Type-Checking, Tests |
-| **git-guardrails-claude-code** | `/git-guardrails-claude-code` | Nur Claude Code: blockiert gefährliche Git-Befehle (`push`, `reset --hard`, etc.) |
+| **pre-commit** | `/pre-commit` | Husky Pre-Commit-Hooks mit Prettier, Type-Checking, Tests |
+| **git-safety** | `/git-safety` | Nur Claude Code: blockiert gefährliche Git-Befehle (`push`, `reset --hard`, etc.) |
 
 ---
 
 ## Empfohlener Workflow
 
-1. **Pro Repo einmal:** `/setup-matt-pocock-skills`
-2. **Vor jeder Änderung:** `/grill-me` oder `/grill-with-docs`
-3. **Implementierung:** `@engineer <task>` oder `/tdd`
-4. **Bei Bugs:** `/diagnose`
-5. **Regelmäßig:** `/improve-codebase-architecture`
+1. **Pro Repo einmal:** `/setup-repo`
+2. **Vor jeder Änderung:** `/interview` oder `/review-plan`
+3. **Implementierung:** `@memory-engineer <task>` oder `/tdd`
+4. **Bei Bugs:** `/debug`
+5. **Regelmäßig:** `/refactor`
 
 ---
 
