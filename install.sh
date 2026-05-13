@@ -87,6 +87,12 @@ if [[ "$TARGET" == "both" || "$TARGET" == "copilot" ]]; then
         name="$(basename "$f")"
         install_file "$f" "$VSCODE_PROMPTS/$name" "instructions: $name"
     done
+    # Copilot memory-tool user-preferences
+    case "$(uname -s)" in
+        Darwin) COPILOT_MEMORY="$HOME/Library/Application Support/Code/User/globalStorage/github.copilot-chat/memory-tool/memories" ;;
+        Linux)  COPILOT_MEMORY="$HOME/.config/Code/User/globalStorage/github.copilot-chat/memory-tool/memories" ;;
+    esac
+    install_file "$COPILOT_SRC/user-preferences.md" "$COPILOT_MEMORY/user-preferences.md" "user-preferences.md -> Copilot memory"
 fi
 
 echo

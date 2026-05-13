@@ -66,6 +66,9 @@ if ($Target -eq "both" -or $Target -eq "copilot") {
     Get-ChildItem -Path $copilotSrc -Filter "*.instructions.md" | ForEach-Object {
         Install-File -Src $_.FullName -Dest (Join-Path $vscodePrompts $_.Name) -Label "instructions: $($_.Name)"
     }
+    # Copilot memory-tool user-preferences
+    $copilotMemory = Join-Path $env:APPDATA "Code\User\globalStorage\github.copilot-chat\memory-tool\memories"
+    Install-File -Src (Join-Path $copilotSrc "user-preferences.md") -Dest (Join-Path $copilotMemory "user-preferences.md") -Label "user-preferences.md -> Copilot memory"
 }
 
 Write-Host "`nDone. Restart VS Code to pick up new skills/agents." -ForegroundColor Cyan
