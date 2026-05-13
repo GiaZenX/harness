@@ -39,15 +39,22 @@ Wenn etwas bereits existiert oder rejected wurde: sagen, bevor angefangen wird.
 ```
 1. LESEN      → project_memory/ lesen (alle 5 Dateien)
 2. FRAGEN     → das tool "askQuestions" aufrufen (Absicht klären)
-3. REQUIREMENTS → Requirements und Tasks ableiten + sofort in project_memory/ speichern
-                  (requirements_system.md, tasks.md)
-4. CODE       → Erst NACH Bestätigung implementieren
-5. CHANGELOG  → Sofort nach jeder Änderung changelog.md + tasks.md + architecture.md updaten
-6. FRAGEN     → das tool "askQuestions": "Was als nächstes?"
+3. REQUIREMENTS → Requirements und Tasks ableiten und dem User als Vorschlag zeigen
+                  Format: REQ-XXXX + Tasks mit Status PROPOSED
+                  → NICHT speichern bevor der User bestätigt hat
+4. BESTÄTIGUNG → User sagt "ja" → sofort in project_memory/ schreiben:
+                  requirements_system.md (REQ-XXXX [OPEN])
+                  tasks.md (TSK-XXXX [VALIDATED])
+5. CODE       → Implementieren
+6. MEMORY     → Gesamten project_memory/ Ordner aktualisieren:
+                  changelog.md  → [DONE] YYYY-MM-DD | Was wurde gemacht
+                  tasks.md      → Status auf DONE / DONE-NOT VALIDATED setzen
+                  architecture.md → Struktur-/Design-Änderungen eintragen
+7. FRAGEN     → das tool "askQuestions": "Was als nächstes?"
 ```
 
-**NIEMALS** Code schreiben bevor Schritt 3 abgeschlossen ist.
-**NIEMALS** Schritt 5 überspringen.
+**NIEMALS** in project_memory/ schreiben bevor der User bestätigt hat (Schritt 4).
+**NIEMALS** Schritt 6 überspringen.
 
 ---
  
