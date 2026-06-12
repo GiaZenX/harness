@@ -1,243 +1,145 @@
-# Deine Arbeitsweise
+# Working Method
 
-## Dialog — NACH JEDER EINGABE
+> Always respond to the user in **German**. These instructions are written in English; your replies are not.
 
-**REGEL: Vor JEDEM AskUserQuestions-Aufruf MUSS Fließtext stehen, der den Kontext, den Plan oder die Frage erklärt. AskUserQuestions darf niemals ohne vorangehenden Fließtext aufgerufen werden. Keine Ausnahmen.**
+## 1. Dialog Rule (every turn)
 
-### Schritt A: Absicht klären (vor der Umsetzung)
-- Schreibe zuerst 1–2 Sätze Kontext (was wurde verstanden, was ist unklar)
-- Rufe dann AskUserQuestions auf — BEVOR du irgendetwas tust
-- Stelle 1–3 gezielte Fragen zur Eingabe des Users
-- Biete konkrete Antwortoptionen an (options-Array)
-- Nutze `multiSelect: true` wenn mehrere Optionen kombinierbar sind
-- Erlaube immer Freitext (`allowFreeformInput: true`)
-- Nach der Antwort: falls noch Unklarheiten bestehen, nochmals AskUserQuestions
-- Erst wenn der Weg vollständig klar ist: umsetzen
+**RULE: Every `AskUserQuestions` call MUST be preceded by prose explaining the context, the plan, or the question. Never call `AskUserQuestions` without preceding prose. No exceptions.**
 
-### Schritt B: Nach jeder Umsetzung
-- Schreibe zuerst eine kurze Zusammenfassung was gemacht wurde
-- Rufe dann AskUserQuestions auf — unmittelbar danach
-- Jede Antwort die eine Zusammenfassung, ein Commit oder "Done" enthält MUSS mit AskUserQuestions enden
-- Frage was als nächstes getan werden soll
-- Biete konkrete Folgeoptionen an (z.B. weiteres Feature, Refactoring, Tests, Push, nichts)
-- Warte auf Antwort → zurück zu Schritt A
+**Before acting (clarify intent):**
+- Write 1-2 sentences of context (what you understood, what is unclear).
+- Then call `AskUserQuestions` with 1-3 targeted questions.
+- Offer concrete options (`options`), use `multiSelect: true` when combinable, always allow free text (`allowFreeformInput: true`).
+- Repeat until the path is fully clear. Only then implement.
 
----
+**After acting:**
+- Write a short summary of what was done.
+- Then call `AskUserQuestions` asking what to do next, with concrete follow-up options.
 
-# Pflicht: project_memory/ zuerst
- 
-Vor jeder Aktion lies:
-- `project_memory/requirements_workflow.md` – Wie wir arbeiten
-- `project_memory/requirements_system.md` – Was das System tun soll
-- `project_memory/tasks.md` – Features, Bugs, Known Issues
-- `project_memory/changelog.md` – Was wurde zuletzt gemacht
-- `project_memory/architecture.md` – Wie ist der Code strukturiert
-Wenn etwas bereits existiert oder rejected wurde: sagen, bevor angefangen wird.
+## 2. Read project_memory/ first
 
----
+Before any action, read all six files:
+- `requirements_workflow.md` - how we work
+- `requirements_system.md` - what the system must do
+- `tasks.md` - features, bugs, known issues
+- `changelog.md` - what was done recently
+- `architecture.md` - how the code is structured
+- `progress.md` - metrics & overview
 
-## Arbeits-Loop (IMMER einhalten)
+If something already exists or was rejected: say so before starting.
+If no `project_memory/` exists, see section 10 (Onboarding).
 
-```
-1. LESEN      → project_memory/ lesen (alle 5 Dateien)
-2. FRAGEN     → AskUserQuestions aufrufen (Absicht klären)
-3. VORGEHEN   → Plan als Text ausgeben (BEVOR AskUserQuestions):
-                  "Ich hätte folgendes vorgesehen – passt das?
-                  REQ-XXXX: [Ziel]
-                  (TSK-XXXX) [Task] [PROPOSED]
-                  (TSK-XXXX) [Task] [PROPOSED]"
-                  → Dann AskUserQuestions: "Passt das so?"
-                  → NICHT in project_memory/ schreiben vor Bestätigung
-4. BESTÄTIGUNG → User sagt "ja" → sofort in project_memory/ schreiben:
-                  requirements_system.md (REQ-XXXX [OPEN])
-                  tasks.md (TSK-XXXX [VALIDATED])
-5. CODE       → Implementieren
-6. MEMORY     → Gesamten project_memory/ Ordner aktualisieren (PFLICHT, nie überspringen):
-                  changelog.md  → str_replace: [DONE] YYYY-MM-DD | Was wurde gemacht
-                  tasks.md      → str_replace: Status auf DONE / DONE-NOT VALIDATED
-                  architecture.md → str_replace: Struktur-/Design-Änderungen
-7. FRAGEN     → AskUserQuestions: "Was als nächstes?"
-```
+## 3. Work Loop (always follow)
 
-**NIEMALS** in project_memory/ schreiben bevor der User bestätigt hat (Schritt 4).
-**NIEMALS** Schritt 6 überspringen — sofort nach dem Code ausführen, kein Fließtext dazwischen.
+1. **READ** -> read all six `project_memory/` files
+2. **ASK** -> call `AskUserQuestions` to clarify intent
+3. **PROPOSE** -> output the plan as prose using the REQ/TSK format (section 6) BEFORE calling `AskUserQuestions` ("Does this fit?"); do NOT write to `project_memory/` yet
+4. **CONFIRM** -> on user "yes", immediately write: `requirements_system.md` (REQ-XXXX [OPEN]) and `tasks.md` (TSK-XXXX [VALIDATED])
+5. **CODE** -> implement
+6. **MEMORY** -> update the whole `project_memory/` folder (mandatory, never skip):
+   - `changelog.md` -> add `[DONE] YYYY-MM-DD | what was done`
+   - `tasks.md` -> set status to DONE / DONE-NOT VALIDATED
+   - `architecture.md` -> structure/design changes (if touched)
+   - `requirements_system.md` -> new/changed requirements (if touched)
+   - `requirements_workflow.md` -> workflow rules/preferences (if the user expressed any)
+   - `progress.md` -> refresh metrics (see section 4)
+7. **ASK** -> call `AskUserQuestions` ("What next?")
 
----
- 
-## project_memory/ Struktur (jedes Projekt, immer)
- 
+**NEVER** write to `project_memory/` before the user confirms (step 4).
+**NEVER** skip step 6 - run it right after the code, with no prose in between.
+
+## 4. progress.md - content
+
+`progress.md` is the user-facing overview. Refresh it in step 6 after every task. Keep it short:
+- Requirements: open X / done Y / rejected Z
+- Tasks: open / in progress / done
+- Last update: YYYY-MM-DD
+- One-line status of the project
+
+## 5. project_memory/ structure (every project, always)
+
 ```
 project_memory/
-├── requirements_workflow.md   → Arbeitsweise & Code Standards       [Du liest]
-├── requirements_system.md     → System Features & Parameter         [Du liest]
-├── tasks.md                   → Features, Bugs, Known Issues        [Du liest]
-├── changelog.md               → Was wurde wann gemacht              [Du liest]
-├── architecture.md            → Struktur, Module, Design Decisions  [Du liest]
-└── progress.md                → Metriken & Überblick                [User liest]
+- requirements_workflow.md   -> working method & code standards
+- requirements_system.md     -> system features & parameters
+- tasks.md                   -> features, bugs, known issues
+- changelog.md               -> what was done when
+- architecture.md            -> structure, modules, design decisions
+- progress.md                -> metrics & overview (user-facing)
 ```
- 
-Wenn kein `project_memory/` existiert: erst Codebase analysieren, dann anlegen (siehe unten).
- 
----
- 
-## Einstieg in eine bestehende Codebase
- 
-Wenn kein `project_memory/` existiert und das Repo bereits Code enthält, nie sofort anfassen.
-Stattdessen: erst verstehen, dann dokumentieren, dann erst arbeiten.
- 
-### Phase 1 – Codebase lesen
- 
-Folgende Fragen durch Lesen des Repos beantworten:
-- Was macht dieses Projekt? (README, main entry point, config)
-- Welche Verzeichnisstruktur und Module gibt es?
-- Welche Dependencies werden genutzt?
-- Gibt es Tests? Wie viele, welche Art?
-- Gibt es offensichtliche Probleme, toten Code, Inkonsistenzen?
-### Phase 2 – Zusammenfassung dem User vorlegen
- 
-Bevor irgendetwas in project_memory/ geschrieben wird:
- 
+
+## 6. REQ/TSK format (canonical - referenced everywhere)
+
+When the user states any requirement (vague or concrete), never implement immediately. Derive requirements + tasks and ask back in this format:
+
 ```
-Ich habe die Codebase analysiert. Bitte korrigiere was nicht stimmt:
- 
-Was das Projekt macht:
-[1-3 Sätze]
- 
-Aktuelle Struktur:
-[Verzeichnisübersicht mit kurzer Beschreibung pro Ordner]
- 
-Tech Stack:
-[Sprache, Frameworks, wichtige Libraries]
- 
-Zustand:
-- Tests: [vorhanden / keine / lückenhaft]
-- Dokumentation: [vorhanden / keine]
-- Offensichtliche Probleme: [Liste oder "keine gefunden"]
- 
-Was noch unklar ist:
-- [Frage 1]
-- [Frage 2]
- 
-Stimmt das soweit? Dann lege ich project_memory/ an.
-```
- 
-### Phase 3 – project_memory/ anlegen
- 
-Erst nach Bestätigung des Users, befüllt mit dem was aus der Analyse bekannt ist:
-- `architecture.md` → IST-Zustand dokumentieren, nicht Idealzustand
-- `requirements_system.md` → nur was eindeutig erkennbar ist, Rest als `UNCLEAR`
-- `tasks.md` → offensichtliche Bugs oder Tech Debt als Known Issues
-- `changelog.md` → erster Eintrag: "Onboarding – Codebase analysiert [DATUM]"
-- `requirements_workflow.md` → leer bis User Regeln definiert
-### Phase 4 – Normal arbeiten
- 
-Ab hier gilt der normale Workflow. Änderungen an der bestehenden Architektur werden als Requirements behandelt, nicht still vorgenommen.
- 
----
- 
-## Anforderungen ableiten & bestätigen lassen
- 
-Wenn der User eine vage oder konkrete Anforderung stellt, nie sofort implementieren.
-Stattdessen Requirements + Tasks ableiten und Rückfrage stellen:
- 
-**Format der Rückfrage:**
-```
-Ich hätte folgendes vorgesehen – passt das?
- 
-Requirement (REQ-XXXX): [Klar formuliertes Ziel auf hoher Ebene]
- 
+Ich haette folgendes vorgesehen - passt das?
+
+Requirement (REQ-XXXX): [clear high-level goal]
+
 Tasks:
-  (TSK-XXXX) [Task Beschreibung] [STATUS]
-  (TSK-XXXX) [Task Beschreibung] [STATUS]
-  (TSK-XXXX) [Task Beschreibung] [STATUS]
+  (TSK-XXXX) [task description] [STATUS]
+  (TSK-XXXX) [task description] [STATUS]
 ```
- 
-Erst nach Bestätigung des Users wird implementiert.
-Das Requirement bleibt offen bis der User explizit zufrieden ist.
-Ist er nicht zufrieden, werden neue Tasks unter demselben Requirement ergänzt.
- 
----
- 
-## Status-Definitionen
- 
-### Requirement Status
-| Status | Bedeutung |
-|--------|-----------|
-| `OPEN` | Ziel noch nicht erreicht, Tasks laufen |
-| `DONE` | User hat bestätigt dass das Ziel erreicht ist |
-| `REJECTED` | User hat das Requirement verworfen |
- 
-### Task Status
-| Status | Bedeutung |
-|--------|-----------|
-| `PROPOSED` | Vorgeschlagen, wartet auf User-Bestätigung |
-| `VALIDATED` | User hat den Task bestätigt, noch nicht gestartet |
-| `IN PROGRESS` | Wird gerade umgesetzt |
-| `DONE` | Technisch fertig, wartet auf User-Validierung |
-| `DONE-VALIDATED` | Fertig + vom User abgenommen |
-| `DONE-NOT VALIDATED` | Fertig aber User noch nicht befragt |
-| `REJECTED` | Wird nicht umgesetzt |
- 
----
- 
-## Requirement bleibt offen bis User zufrieden ist
- 
-Wenn der User nach der Umsetzung sagt "es ist immer noch nicht gut genug":
-- Requirement Status bleibt `OPEN`
-- Neue Tasks werden darunter ergänzt
-- Wieder Rückfrage mit dem vollen Bild:
-```
-Requirement (REQ-XXXX): [Ziel] [OPEN]
- 
-Tasks:
-  (TSK-XXXX) [Task] [DONE-VALIDATED]
-  (TSK-XXXX) [Task] [DONE-VALIDATED]
-  (TSK-XXXX) [Task] [DONE-NOT VALIDATED]
-  (TSK-XXXX) [Neuer Task] [PROPOSED]
-  (TSK-XXXX) [Neuer Task] [PROPOSED]
- 
-Passt das so?
-```
- 
----
- 
-## Bugs behandeln
- 
-Wenn ein Bug gemeldet wird oder auffällt, gleiche Rückfrage wie bei Features:
- 
-```
-Ich hätte folgendes vorgesehen – passt das?
- 
-Requirement (REQ-XXXX) [BUG]: [Klare Beschreibung was falsch läuft]
-Reproduzierbar: [Ja/Nein – wie?]
- 
-Tasks:
-  (TSK-XXXX) Fehler reproduzieren & Root Cause finden [PROPOSED]
-  (TSK-XXXX) Fix implementieren [PROPOSED]
-  (TSK-XXXX) Test schreiben der diesen Bug abdeckt [PROPOSED]
-```
- 
-Jeder Bug bekommt einen Test der ihn abdeckt – damit er nie wieder unbemerkt auftritt.
-Bug-Requirement bleibt `OPEN` bis der User bestätigt dass es behoben ist.
- 
-Wenn ein Bug bekannt ist aber bewusst zurückgestellt wird:
-→ In `tasks.md` unter "KNOWN ISSUES" mit Workaround eintragen, kein Requirement anlegen.
- 
----
- 
-## Neue Regeln vom User
- 
-Arbeitsregel (z.B. "immer unit tests") → `requirements_workflow.md`
-System-Anforderung (z.B. "dark mode", "5 statt 3 strategien") → `requirements_system.md`
- 
-Beide gelten ab sofort ohne Wiederholung.
- 
----
- 
-## Nach jedem Task
- 
-- `tasks.md` updaten (PFLICHT)
-- `changelog.md` eintragen (PFLICHT)
-- `requirements_system.md` updaten: alle neuen oder geänderten Anforderungen eintragen (PFLICHT wenn Requirements berührt wurden)
-- `architecture.md` updaten: alle Struktur- und Design-Änderungen eintragen (PFLICHT wenn Architektur berührt wurde)
-- `requirements_workflow.md` updaten: alle Arbeitsweisen-Wünsche oder -Regeln eintragen (PFLICHT wenn der User eine Präferenz oder Regel zur Arbeitsweise geäußert hat)
+
+Only implement after the user confirms. The requirement stays OPEN until the user is explicitly satisfied.
+
+## 7. Requirement stays open until the user is satisfied
+
+If the user says "still not good enough" after implementation:
+- Keep the requirement `OPEN`
+- Add new tasks under the same requirement
+- Ask again with the full picture (REQ/TSK format, section 6), showing existing task states plus new `[PROPOSED]` tasks.
+
+## 8. Handling bugs
+
+Same ask-back as features (REQ/TSK format, section 6), with:
+- `Requirement (REQ-XXXX) [BUG]: [what is wrong]` and `Reproducible: [yes/no - how?]`
+- Standard tasks: reproduce & find root cause / implement fix / write a test covering the bug
+
+Every bug gets a test so it can never reappear unnoticed. The bug requirement stays `OPEN` until the user confirms it is fixed. If a bug is known but deliberately deferred: record it in `tasks.md` under "KNOWN ISSUES" with a workaround - no requirement.
+
+## 9. New rules from the user
+
+- Working rule (e.g. "always write unit tests") -> `requirements_workflow.md`
+- System requirement (e.g. "dark mode", "5 instead of 3 strategies") -> `requirements_system.md`
+
+Both apply from then on without repetition.
+
+## 10. Onboarding an existing codebase
+
+If no `project_memory/` exists and the repo already contains code, never touch it first. Understand -> document -> then work.
+
+**Phase 1 - Read the codebase:** what the project does, structure/modules, dependencies, tests, obvious problems/dead code/inconsistencies.
+
+**Phase 2 - Present a summary to the user** (what it does, current structure, tech stack, state of tests/docs/problems, open questions), then ask: "Stimmt das soweit? Dann lege ich project_memory/ an."
+
+**Phase 3 - Create project_memory/** (only after confirmation), filled with what the analysis revealed:
+- `architecture.md` -> document the actual state, not the ideal
+- `requirements_system.md` -> only what is clearly recognizable, rest as `UNCLEAR`
+- `tasks.md` -> obvious bugs or tech debt as known issues
+- `changelog.md` -> first entry: "Onboarding - codebase analyzed [DATE]"
+- `requirements_workflow.md` -> empty until the user defines rules
+- `progress.md` -> initial metrics snapshot
+
+**Phase 4 - Work normally.** From here the normal loop applies. Changes to the existing architecture are treated as requirements, not made silently.
+
+## 11. Status definitions
+
+### Requirement status
+| Status | Meaning |
+|--------|---------|
+| `OPEN` | goal not yet reached, tasks running |
+| `DONE` | user confirmed the goal is reached |
+| `REJECTED` | user discarded the requirement |
+
+### Task status
+| Status | Meaning |
+|--------|---------|
+| `PROPOSED` | proposed, awaiting user confirmation |
+| `VALIDATED` | user confirmed, not yet started |
+| `IN PROGRESS` | being implemented |
+| `DONE` | technically done, awaiting user validation |
+| `DONE-VALIDATED` | done + accepted by user |
+| `DONE-NOT VALIDATED` | done but user not yet asked |
+| `REJECTED` | will not be implemented |
