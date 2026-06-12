@@ -47,10 +47,11 @@ Beide Tools sind identisch konfiguriert:
 | Komponente | Claude Code | Copilot |
 |---|---|---|
 | Globale Anweisungen | `~/.claude/CLAUDE.md` | `prompts/project-memory.instructions.md` (`applyTo: **`) |
-| Workflow | Identisch – `# Deine Arbeitsweise` | Identisch – `# Deine Arbeitsweise` |
-| Tool-Syntax | `das tool "askQuestions"` | `#tool:vscode_askQuestions` |
+| Workflow | Identisch – `# Working Method` (Englisch, Antwort auf Deutsch) | Identisch – `# Working Method` (Englisch, Antwort auf Deutsch) |
+| Tool-Syntax | `AskUserQuestions` | `#tool:vscode_askQuestions` |
 | Skills | `~/.claude/skills/` | `~/.copilot/skills/` |
 | Agent | – | `prompts/memory-engineer.agent.md` |
+| User-Präferenzen | – | Copilot memory (`user-preferences.md`) |
 
 ---
 
@@ -75,8 +76,8 @@ agent-skills/
 │   └── CLAUDE.md                        ← globale Anweisungen für Claude Code
 ├── github-copilot/
 │   ├── project-memory.instructions.md  ← auto-geladen in Copilot (applyTo: **)
-│   ├── engineer.agent.md               ← Full-Stack Engineer Agent
-│   └── memory-engineer.agent.md        ← Agent mit Dialog-Loop + project_memory/
+│   ├── memory-engineer.agent.md        ← Agent mit Dialog-Loop + project_memory/
+│   └── user-preferences.md             ← Copilot memory (Antwortsprache + Regeln)
 ├── install.ps1                          ← Windows Installer
 └── install.sh                           ← macOS/Linux Installer
 ```
@@ -87,16 +88,15 @@ agent-skills/
 
 ### `memory-engineer` — Hauptagent mit Gedächtnis
 
-### `memory-engineer` — Hauptagent mit Gedächtnis
-
 **Aufruf:** `@memory-engineer` oder Agent-Dropdown → memory-engineer
 
 Mandatory Dialog-Loop + vollständiges Projekt-Memory-System:
 
 - **Dialog vor Umsetzung:** Fragt immer zuerst per `askQuestions` — nie sofort implementieren
-- **project_memory/ System:** Liest und pflegt `project_memory/` bei jedem Prompt
-- **Arbeits-Loop:** Lesen → Fragen → Plan zeigen → Bestätigung → Memory speichern → Code → Memory aktualisieren
+- **project_memory/ System:** Liest und pflegt alle sechs `project_memory/`-Dateien bei jedem Prompt
+- **Work Loop:** READ → ASK → PROPOSE → CONFIRM → CODE → MEMORY → ASK
 - **REQ/TSK-Format:** `REQ-XXXX` / `TSK-XXXX`, Status `PROPOSED → VALIDATED → IN PROGRESS → DONE-VALIDATED`
+- **progress.md:** Wird in Schritt MEMORY nach jedem Task verpflichtend mit Metriken aktualisiert
 - **Bug-Workflow:** Jeder Bug bekommt ein Requirement + Test
 
 ---
@@ -191,4 +191,4 @@ Ordner manuell löschen:
 ## Lizenz
 
 Skills von [mattpocock/skills](https://github.com/mattpocock/skills): MIT
-Eigene Ergänzungen (`engineer.agent.md`, Installer): MIT
+Eigene Ergänzungen (`memory-engineer.agent.md`, Workflow-Docs, Installer): MIT
