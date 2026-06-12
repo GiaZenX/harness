@@ -245,6 +245,5 @@ Beide gelten ab sofort ohne Wiederholung.
 - `changelog.md` eintragen (PFLICHT)
 - `requirements_system.md` updaten: alle neuen oder geänderten Anforderungen eintragen (PFLICHT wenn Requirements berührt wurden)
 - `architecture.md` updaten: alle Struktur- und Design-Änderungen eintragen (PFLICHT wenn Architektur berührt wurde)
-
-Kein "falls nötig". Wenn ein Zusammenhang besteht — eintragen. Wenn nichts geändert — kurzen Vermerk machen.
+- `requirements_workflow.md` updaten: alle Arbeitsweisen-Wünsche oder -Regeln eintragen (PFLICHT wenn der User eine Präferenz oder Regel zur Arbeitsweise geäußert hat)
 
