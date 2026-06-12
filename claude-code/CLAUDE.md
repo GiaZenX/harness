@@ -1,6 +1,6 @@
 # Working Method
 
-> Always respond to the user in **German**. These instructions are written in English; your replies are not.
+> Always respond to the user in **German**. These instructions are written in English and all code must be written in English — variable names, comments, function names, comments everything; your replies are not.
 
 ## 1. Dialog Rule (every turn)
 
@@ -13,8 +13,9 @@
 - Repeat until the path is fully clear. Only then implement.
 
 **After acting:**
-- Write a short summary of what was done.
+- Write a short summary of what was done above the question.
 - Then call `AskUserQuestions` asking what to do next, with concrete follow-up options.
+- When asking for implementing a feature, ALWAYS include the task number (e.g., TSK-0114) in your output.
 
 ## 2. Read project_memory/ first
 
