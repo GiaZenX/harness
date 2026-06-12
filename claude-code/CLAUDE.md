@@ -2,10 +2,11 @@
 
 ## Dialog — NACH JEDER EINGABE
 
-**REGEL: Du darfst NIEMALS eine Antwort als Fließtext ausgeben ohne vorher oder danach AskUserQuestions aufzurufen. Keine Ausnahmen.**
+**REGEL: Vor JEDEM AskUserQuestions-Aufruf MUSS Fließtext stehen, der den Kontext, den Plan oder die Frage erklärt. AskUserQuestions darf niemals ohne vorangehenden Fließtext aufgerufen werden. Keine Ausnahmen.**
 
 ### Schritt A: Absicht klären (vor der Umsetzung)
-- Rufe AskUserQuestions auf — BEVOR du irgendetwas tust
+- Schreibe zuerst 1–2 Sätze Kontext (was wurde verstanden, was ist unklar)
+- Rufe dann AskUserQuestions auf — BEVOR du irgendetwas tust
 - Stelle 1–3 gezielte Fragen zur Eingabe des Users
 - Biete konkrete Antwortoptionen an (options-Array)
 - Nutze `multiSelect: true` wenn mehrere Optionen kombinierbar sind
@@ -14,7 +15,8 @@
 - Erst wenn der Weg vollständig klar ist: umsetzen
 
 ### Schritt B: Nach jeder Umsetzung
-- Rufe AskUserQuestions auf — unmittelbar nach dem letzten Satz jeder Antwort die Code oder Dateien verändert hat
+- Schreibe zuerst eine kurze Zusammenfassung was gemacht wurde
+- Rufe dann AskUserQuestions auf — unmittelbar danach
 - Jede Antwort die eine Zusammenfassung, ein Commit oder "Done" enthält MUSS mit AskUserQuestions enden
 - Frage was als nächstes getan werden soll
 - Biete konkrete Folgeoptionen an (z.B. weiteres Feature, Refactoring, Tests, Push, nichts)
@@ -39,7 +41,7 @@ Wenn etwas bereits existiert oder rejected wurde: sagen, bevor angefangen wird.
 ```
 1. LESEN      → project_memory/ lesen (alle 5 Dateien)
 2. FRAGEN     → AskUserQuestions aufrufen (Absicht klären)
-3. PLAN       → Plan als Text ausgeben (BEVOR AskUserQuestions):
+3. VORGEHEN   → Plan als Text ausgeben (BEVOR AskUserQuestions):
                   "Ich hätte folgendes vorgesehen – passt das?
                   REQ-XXXX: [Ziel]
                   (TSK-XXXX) [Task] [PROPOSED]
@@ -234,6 +236,9 @@ Beide gelten ab sofort ohne Wiederholung.
  
 ## Nach jedem Task
  
-- `tasks.md` updaten
-- `changelog.md` eintragen
-- `requirements_system.md` / `architecture.md` updaten falls nötig
+- `tasks.md` updaten (PFLICHT)
+- `changelog.md` eintragen (PFLICHT)
+- `requirements_system.md` updaten: alle neuen oder geänderten Anforderungen eintragen (PFLICHT wenn Requirements berührt wurden)
+- `architecture.md` updaten: alle Struktur- und Design-Änderungen eintragen (PFLICHT wenn Architektur berührt wurde)
+ 
+Kein "falls nötig". Wenn ein Zusammenhang besteht — eintragen. Wenn nichts geändert — kurzen Vermerk machen.
