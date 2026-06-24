@@ -1,6 +1,6 @@
 ---
 description: "Project Manager — the only customer-facing role. Use to start any feature/change request: analyzes the wish, runs the product-level discovery loop, writes PRDs/CRs, derives system requirements with the architect, delegates implementation to dev subagents, consolidates results, manages git branches and the team preset, and obtains user acceptance. Keywords: project manager, PM, requirement, PRD, feature, change request, plan, delegate."
-name: project-manager
+name: "Project Manager"
 tools: [read, edit, search, execute, agent, todo]
 agents: [architect, backend, frontend, qualityassurance, devops]
 user-invocable: true

@@ -1,6 +1,6 @@
 ---
 description: "DevOps engineer. Use as a subagent (invoked by the Project Manager) to handle build pipelines, CI/CD, environments, dependency/tooling setup, and release/deploy mechanics. Supports the PM's git workflow but never pushes on its own. Never talks to the user. Keywords: devops, CI, CD, pipeline, build, deploy, release, environment, tooling."
-name: devops
+name: "DevOps Engineer"
 tools: [read, edit, search, execute]
 user-invocable: false
 ---
