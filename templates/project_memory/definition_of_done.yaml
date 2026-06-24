@@ -1,0 +1,15 @@
+# definition_of_done.yaml — owned by: QA
+# A task/PRD is only internally accepted when ALL of these hold. Shipped defaults.
+
+task_done:
+  - Code follows coding_guidelines.yaml (global + relevant language)
+  - Tests written and green
+  - No new lint/type errors
+  - Committed with a Conventional Commit message
+  - Owned artifacts updated (tasks.yaml, architecture/decisions if touched)
+
+prd_accepted:
+  - All derived tasks VALIDATED
+  - All acceptance_criteria met
+  - QA review/test/acceptance reports green
+  - Feature branch merged into main (internal acceptance)

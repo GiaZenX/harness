@@ -1,0 +1,23 @@
+# coding_guidelines.yaml — owned by: Architect · enforced by: QA
+# Hard boundaries. A violation MUST block internal acceptance.
+# Append-only: each rule is written once and stays. If a missing hard rule is
+# noticed during work, whoever notices MUST flag it and the Architect appends it.
+# The set only grows, never shrinks, and is not rewritten.
+
+# Always applies, language-agnostic (shipped defaults):
+global:
+  - All code, comments and names in English
+  - Tests are mandatory
+  - No secrets in code
+  - Small, focused functions; no dead or commented-out code
+  - Error handling only at boundaries
+  - Security: follow OWASP Top 10
+  - Conventional Commits (feat/fix/test/refactor/docs)
+
+# Per-language rules. Starts EMPTY. The Architect adds a block the first time a
+# language is actually used in the project. Example shape:
+#   typescript:
+#     - "strict: true; no any"
+#   python:
+#     - "type hints everywhere; ruff as linter"
+languages: {}

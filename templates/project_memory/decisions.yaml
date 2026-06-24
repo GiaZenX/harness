@@ -1,0 +1,13 @@
+# decisions.yaml — owned by: Architect
+# Architecture Decision Records.
+# Status: PROPOSED -> ACCEPTED -> SUPERSEDED
+#
+# Schema:
+#   ADR-XXXX:
+#     title: <decision>
+#     context: <why this came up>
+#     decision: <what was decided>
+#     consequences: <trade-offs, risks>
+#     status: PROPOSED
+
+decisions: {}

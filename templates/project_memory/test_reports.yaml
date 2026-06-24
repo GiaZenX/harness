@@ -1,0 +1,11 @@
+# test_reports.yaml — owned by: QA
+# Test execution results. A failed test report blocks internal acceptance and
+# increments the related task's qa_failures.
+#
+# Schema:
+#   TST-XXXX:
+#     task: TSK-XXXX
+#     result: pass | fail
+#     failed_cases: [ ... ]
+
+test_reports: {}

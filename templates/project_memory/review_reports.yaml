@@ -1,0 +1,10 @@
+# review_reports.yaml — owned by: QA
+# Code review results per task. A failed review blocks internal acceptance.
+#
+# Schema:
+#   REV-XXXX:
+#     task: TSK-XXXX
+#     result: pass | fail
+#     findings: [ ... ]          # required if fail
+
+review_reports: {}

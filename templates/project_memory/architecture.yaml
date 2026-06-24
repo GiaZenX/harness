@@ -1,0 +1,12 @@
+# architecture.yaml — owned by: Architect
+# Components, structure, data flow. MUST stay up to date — never stale.
+#
+# Schema:
+#   components:
+#     <name>:
+#       responsibility: <what it does>
+#       depends_on: [ <other components> ]
+#   data_flow: <short description or diagram reference>
+
+components: {}
+data_flow: ""

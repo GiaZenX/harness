@@ -1,0 +1,18 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Python / tooling artifacts
+.venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+
+# Throwaway E2E sandbox
+.e2e-sandbox/
+
+# Logs
+*.log

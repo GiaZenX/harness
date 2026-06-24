@@ -1,0 +1,20 @@
+# tasks.yaml — owned by: Backend / Frontend (each writes its own tasks)
+# Derived from system requirements. A commit MUST follow every completed task.
+# Status: TODO -> IN_PROGRESS -> DONE -> VALIDATED / REJECTED
+#
+# Schema:
+#   TSK-XXXX:
+#     derives_from: SR-XXXX
+#     owner: backend | frontend | architect | qa | devops
+#     title: <task>
+#     status: TODO
+#     qa_failures: 0                  # increments on QA fail; 2 triggers escalation proposal
+#     created: YYYY-MM-DD              # start date, set when created (TODO)
+#     started: ""                     # set when moved to IN_PROGRESS
+#     completed: ""                   # end date, set when DONE / VALIDATED
+#     git:
+#       committed: false
+#       pushed: false
+#       commit_hash: ""
+
+tasks: {}

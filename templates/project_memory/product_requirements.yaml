@@ -1,0 +1,16 @@
+# product_requirements.yaml — owned by: PM
+# Functional, customer-visible requirements. The user NEVER writes these directly.
+# Status: PROPOSED -> APPROVED -> DONE -> TESTED -> ACCEPTED / REJECTED
+#
+# Schema:
+#   PRD-XXXX:
+#     title: <short functional goal>
+#     description: <plain language>
+#     acceptance_criteria: [ ... ]
+#     status: PROPOSED
+#     complete: false            # true only when discovery is finished
+#     branch: feat/PRD-XXXX-...  # set in SYSTEM_PLANNING
+#     created: YYYY-MM-DD        # start date, set when first written (PROPOSED)
+#     closed: ""                 # end date, set when ACCEPTED / REJECTED
+
+requirements: {}

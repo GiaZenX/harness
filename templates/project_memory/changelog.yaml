@@ -1,0 +1,9 @@
+# changelog.yaml — owned by: PM
+# Append-only history of what was done when.
+#
+# Schema:
+#   - date: YYYY-MM-DD
+#     entry: <what was done>
+#     refs: [PRD-XXXX, TSK-XXXX, CR-XXXX]
+
+changelog: []

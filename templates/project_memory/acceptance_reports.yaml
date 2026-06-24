@@ -1,0 +1,11 @@
+# acceptance_reports.yaml — owned by: QA
+# Checks each PRD's acceptance_criteria before internal acceptance + merge.
+#
+# Schema:
+#   ACC-XXXX:
+#     prd: PRD-XXXX
+#     criteria_met: [ ... ]
+#     criteria_missing: [ ... ]
+#     result: pass | fail
+
+acceptance_reports: {}

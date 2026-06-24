@@ -1,0 +1,17 @@
+# change_requests.yaml — owned by: PM
+# A change to an EXISTING requirement is never silent. The PM opens a CR, runs an
+# impact analysis (via subagents), gets user approval, then applies the change.
+# Status: PROPOSED -> WAITING_APPROVAL -> APPROVED -> APPLIED / REJECTED
+#
+# Schema:
+#   CR-XXXX:
+#     affects: [PRD-XXXX]
+#     description: <what should change>
+#     affected_requirements: [SR-XXXX]   # filled by impact analysis
+#     affected_tasks: [TSK-XXXX]
+#     effort: low | medium | high
+#     status: PROPOSED
+#     created: YYYY-MM-DD                # start date, set when opened (PROPOSED)
+#     applied: ""                        # end date, set when APPLIED
+
+change_requests: {}

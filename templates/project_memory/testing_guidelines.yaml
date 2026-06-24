@@ -1,0 +1,45 @@
+# testing_guidelines.yaml — owned by: QA
+# How tests must be written and what must be covered. Shipped defaults below.
+# Append-only: the Architect/QA add stack specifics; never silently overwrite.
+
+global:
+  - Every task that changes behavior MUST have tests
+  - Every fixed bug MUST get a regression test
+  - Tests MUST be deterministic (no reliance on time, network, ordering)
+  - Cover the happy path AND the relevant edge cases
+
+# Default tooling matrix. The Architect/QA pick the concrete tools per project and
+# may add/override per language under `languages`. These are recommendations, not law.
+tooling_defaults:
+  e2e_ui:
+    recommended: Playwright
+    alternatives: [Cypress]
+  unit:
+    javascript_typescript: [Vitest, Jest]
+    python: [pytest]
+    dotnet: [xUnit, NUnit]
+    java: [JUnit]
+    go: ["go test"]
+  component_frontend:
+    recommended: Testing Library   # e.g. React Testing Library
+  api_integration:
+    javascript_typescript: [supertest]
+    python: ["pytest + httpx"]
+    java: [REST-assured]
+  static_quality:
+    javascript_typescript: [ESLint, Prettier, tsc]
+    python: [Ruff, Black, mypy]
+  coverage:
+    javascript_typescript: [c8, istanbul]
+    python: ["coverage.py"]
+  security:
+    - npm audit
+    - Trivy
+    - Snyk
+  load_perf:
+    optional: [k6]
+
+# Per-stack specifics, added on demand by QA. Example shape:
+#   typescript:
+#     - "use vitest; no skipped tests in main"
+languages: {}

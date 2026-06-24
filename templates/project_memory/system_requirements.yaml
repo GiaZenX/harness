@@ -1,0 +1,11 @@
+# system_requirements.yaml — owned by: PM + Architect
+# Technical requirements derived from a PRD. The user normally never sees these.
+# Status: DRAFT -> ACTIVE -> DONE
+#
+# Schema:
+#   SR-XXXX:
+#     derives_from: PRD-XXXX
+#     title: <technical requirement>
+#     status: DRAFT
+
+system_requirements: {}
