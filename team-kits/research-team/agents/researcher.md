@@ -10,8 +10,12 @@ adds the Researcher-specific role.
 ## Hard boundaries
 
 - You NEVER talk to the user. You are invoked by the PM as a subagent and report back in YAML.
-- If the user addresses you **directly** (not via the PM), you MUST NOT write or edit code/artifacts.
-  Briefly explain that changes run through the `project-manager` and point the user there.
+- If the user addresses you **directly**, you MUST NOT write or edit code/artifacts. Briefly explain
+  that all work runs through the PM (the main/foreground agent), then stop.
+- **You are stateless** — you have NO memory of previous runs. FIRST read the `project_memory/*.yaml`
+  and files named in the PM's work order; never assume prior context.
+- **No ad-hoc files.** Write ONLY `tasks.yaml`, `results.yaml` (raw), and analysis `src/**`/`tests/**`.
+  NEVER create summary/report/result docs — put findings into the correct YAML.
 - You MUST NOT change the experiment design, hypotheses, methodology, or the Research Question. If the
   design is unclear or a guideline is missing, you MUST flag it back to the PM (who routes it to the
   methodologist).

@@ -3,20 +3,19 @@
 Userwide-installable skills, a global **constitution**, and a **multi-agent role model** for
 **GitHub Copilot** and **Claude Code** in VS Code.
 
-Instead of a single assistant, this repo simulates a small software team: you are the **customer**,
-a **Project Manager (PM)** is your only point of contact, and below it specialized dev roles
-(Architect, Backend, Frontend, QA, DevOps, Technical Writer) work as subagents. No matter which tool
+Instead of a single assistant, this repo simulates a small software team: you are the **customer**, the
+**main agent becomes your Project Manager (PM)** — your only point of contact — and specialized dev roles
+(Architect, Backend, Frontend, QA, DevOps) work below it as **stateless subagents**. No matter which tool
 you code with, the AI behaves identically.
 
 **Two-tier entry.** A user-wide **global gate** (`CLAUDE.md` / `COPILOT.instructions.md`) drives the
-default agent: on your first build/change wish it asks *structured or free*, classifies the effort via
-the **team registry**, **installs the matching team kit locally into the repository** (`./.claude/agents/`
-+ a local `./CLAUDE.md`), and routes all further work through that repo's `project-manager`. A persistent
-guard re-routes to the PM on every later session, so a forgotten agent selection can't lead to
-unstructured edits. An optional **`group-leader`** agent does the same routing explicitly if you prefer to
-invoke it. Because the team lives in the repo, each project can run its own models (per-project `model:`
-frontmatter) without touching anything global. If you don't want the process, you choose *free* and work
-without bookkeeping.
+default agent: on your first build/change wish it asks *structured or free*, classifies the effort via the
+**team registry**, and **installs the matching team kit locally into the repository** (`./.claude/agents/`,
+a local `./CLAUDE.md`, and enforcement hooks). From then on the **main agent itself acts as the PM**,
+governed by that local `./CLAUDE.md` — there is **no separate PM subagent** to bypass or forget, and the PM
+keeps the full conversation as its memory. The local constitution carries a marker; whenever it is present,
+the global gate **hands over to it completely** (every session). An optional **`group-leader`** agent can do
+the install explicitly. If you don't want the process, you choose *free* and work without bookkeeping.
 
 Two kits ship today: **`dev-team`** (software/product engineering) and **`research-team`** (research +
 experiments with an FZulG R&D-tax-credit documentation layer). The registry maps your intent to the right
@@ -115,12 +114,14 @@ agents-and-skills/
 │   ├── registry.yaml                    ← intent → kit routing (single source of truth)
 │   ├── scaffold_team.ps1 / .sh          ← installs a kit into the current repo
 │   ├── dev-team/
-│   │   ├── agents/                      ← 7 roles (project-manager, architect, …)
-│   │   ├── constitution/CLAUDE.md       ← local constitution copied to ./CLAUDE.md
+│   │   ├── agents/                      ← 5 specialist subagents (architect, backend, …); PM = main agent
+│   │   ├── constitution/CLAUDE.md       ← local constitution → ./CLAUDE.md (carries team marker)
+│   │   ├── hooks/ + settings/           ← enforcement hooks → ./.claude/ on scaffold
 │   │   └── templates/project_memory/    ← YAML artifact templates
 │   └── research-team/
-│       ├── agents/                      ← 8 roles (project-manager, methodologist, …, report-writer)
-│       ├── constitution/CLAUDE.md       ← local research constitution
+│       ├── agents/                      ← 6 specialist subagents (methodologist, …, report-writer)
+│       ├── constitution/CLAUDE.md       ← local research constitution (carries team marker)
+│       ├── hooks/ + settings/           ← enforcement hooks
 │       └── templates/project_memory/    ← research artifacts + report template + bundled KaTeX
 ├── install.ps1                          ← Windows installer
 └── install.sh                           ← macOS/Linux installer
@@ -136,34 +137,35 @@ agents-and-skills/
 2. **Auto-init:** on *structured*, the default agent classifies your intent via `team-kits/registry.yaml`
    and runs the scaffold script itself — no agent to remember. (You may instead invoke the optional
    `group-leader` agent explicitly.)
-3. **Local install:** the kit's agents are copied to `./.claude/agents/` and its constitution to
-   `./CLAUDE.md`. Both VS Code and Claude Code read these. `project_memory/` is **not** created yet.
-4. **Route to the local `project-manager`.** On Copilot you pick `project-manager` in the dropdown (it
-   stays active); on Claude Code the default agent delegates structured requests to the `project-manager`
-   subagent (discovery questions are relayed). The PM then runs its **startup gate** (creates
-   `project_memory/` from the kit templates, proposes team preset + per-role models, you confirm, models
-   are synced into the local agents' frontmatter) and only then begins the phase model.
+3. **Local install:** the kit's specialist agents are copied to `./.claude/agents/`, its constitution to
+   `./CLAUDE.md` (with a team **marker**), and its enforcement **hooks** to `./.claude/`. `project_memory/`
+   is **not** created yet.
+4. **The main agent becomes the PM.** Because `./CLAUDE.md` now carries the marker, the global gate **hands
+   over**: the same foreground agent you're talking to *is* the PM — full conversation memory, no relay, no
+   second identity to bypass. It runs the **startup gate** (creates `project_memory/` from the kit
+   templates, proposes preset + specialist models, you confirm, syncs the specialists' frontmatter), then
+   begins the phase model. The PM maintains `project_memory/` itself and delegates only implementation to
+   the stateless specialists.
 
 ---
 
 ## Multi-agent role model
 
-The workflow lives in each kit's **constitution** (`CLAUDE.md` / `COPILOT.instructions.md`) and is
-executed by role agents. The PM is the entry point and the only interface to the user; the other roles
-work as subagents and return YAML. The roles below are the **`dev-team`** (7 roles); the
-**`research-team`** mirrors the same machinery with 8 research roles (see below).
+The workflow lives in each kit's **constitution** (`CLAUDE.md`) and is executed by the **main agent acting
+as PM** plus stateless specialist subagents. The PM is the only interface to the user, holds the
+conversation as memory, maintains `project_memory/` itself, and delegates only implementation; specialists
+return YAML. Roles below are the **`dev-team`**; the **`research-team`** mirrors the same machinery.
 
 ### Roles (dev-team)
 
 | Role | File | Job | Talks to user |
 |---|---|---|---|
-| **Project Manager** | `project-manager` | Requirements (PRD/CR), delegation, merge, user acceptance | **Yes (only one)** |
+| **Project Manager** | _main agent_ (foreground, via `./CLAUDE.md`) | Requirements (PRD/CR), `project_memory/` bookkeeping, delegation, merge, user acceptance | **Yes (only one)** |
 | **Software Architect** | `software-architect` | System requirements, architecture, ADRs, coding guidelines | No |
 | **Backend Developer** | `backend-developer` | Server-side tasks, tests, commits | No |
 | **Frontend Developer** | `frontend-developer` | UI tasks, tests, commits | No |
 | **Quality Engineer** | `quality-engineer` | Review, tests, Definition of Done, merge gate | No |
 | **DevOps Engineer** | `devops-engineer` | CI/CD, pipelines, environments, release | No |
-| **Technical Writer** | `technical-writer` | PRDs/CRs, progress, changelog, docs, dashboard (on the PM's instruction) | No |
 
 ### Roles (research-team)
 
@@ -173,14 +175,13 @@ the only customer-facing role.
 
 | Role | File | Job |
 |---|---|---|
-| **Research Lead** | `project-manager` | RQs/PAs, delegation, merge, user acceptance (only one talking to the user) |
+| **Research Lead (PM)** | _main agent_ (foreground, via `./CLAUDE.md`) | RQs/PAs, `project_memory/` + **FZulG** bookkeeping, delegation, merge, user acceptance |
 | **Methodologist** | `methodologist` | Hypotheses, experiment designs, MDRs, research guidelines, FZulG criteria |
 | **Researcher** | `researcher` | Runs experiments, collects raw data, analysis code |
 | **Data Analyst** | `data-analyst` | Statistics, effect sizes, visualization, interpretation |
 | **Reviewer** | `reviewer` | Reproducibility + validity gate, peer review, merge gate |
 | **Research Engineer** | `research-engineer` | Data pipelines, environments, dataset versioning |
 | **Report Writer** | `report-writer` | Per-experiment HTML reports with offline LaTeX (KaTeX), fixed template |
-| **Technical Writer** | `technical-writer` | RQs/PAs, progress, changelog, **FZulG documentation**, dashboard |
 
 ### Phase model
 
@@ -196,26 +197,36 @@ the only customer-facing role.
 
 ### Artifacts (`project_memory/`)
 
-Structured YAML files in the repo. Each role writes only its own area (no overwriting). The Technical
-Writer creates `project_memory/` on the first run from the globally installed templates (on the PM's
-instruction).
+Structured YAML files in the repo — the **single source of truth**. Each role writes only its own area
+(no overwriting); the **PM** creates `project_memory/` on the first run from the kit templates and owns the
+requirement/progress bookkeeping itself. **No ad-hoc status/summary/report files** are allowed — findings
+go into the predefined YAML (this is also enforced by a hook, see below).
 
-A user-facing **dashboard** (`progress.dashboard.html`) is generated, never hand-edited: the Technical
-Writer (on the PM's instruction) runs
-`generate_dashboard.py`, which reads the PRD/task/CR YAML files, rebuilds the dashboard from a static
-shell, archives the previous version under `dashboard_history/`, and lists what changed since the last
-run. Bars expand to reveal the items behind each status (id, title, owner, origin, start/end dates).
-Running the generator needs PyYAML (`pip install pyyaml`); the generated HTML is dependency-free and
-opens by double-click.
+A user-facing **dashboard** (`progress.dashboard.html`) is generated, never hand-edited: the **PM** runs
+`generate_dashboard.py`, which reads the requirement/task/CR YAML files, rebuilds the dashboard from a
+static shell, archives the previous version under `dashboard_history/`, and lists what changed since the
+last run. Bars expand to reveal the items behind each status (id, title, owner, origin, start/end dates).
+Running the generator needs PyYAML (`pip install pyyaml`); the generated HTML is dependency-free and opens
+by double-click.
 
 ### Git, presets & models
 
 - **Branch per PRD** (`feat/PRD-xxx-…`), merge after internal QA, **push only on user confirmation**,
   no force-push, no work on a dirty tree.
 - **Team preset** (`solo` | `duo` | `team`) chosen once per project; escalation is user-gated only.
-- **Models** start on `haiku`; controlled per repo via `project_config.yaml`. Upgrades only after a
-  user OK (triggers: 2× QA fail or dissatisfaction). The agent files themselves are model-neutral —
-  nothing global is ever rewritten.
+- **Models:** the **PM runs on your session model** (`/model`); the **specialists** start on `haiku`,
+  controlled per repo via `project_config.yaml` (the PM syncs each specialist's `model:` frontmatter).
+  Upgrades only after a user OK (triggers: 2× QA fail or dissatisfaction).
+
+### Enforcement (hooks)
+
+Because instructions alone get skipped, each kit ships a small **deterministic** layer (Claude Code hooks
+in `./.claude/settings.json` + `./.claude/hooks/`, installed by the scaffold):
+
+- **No ad-hoc files** — blocks writing files outside the allowlist (`project_memory/**`, `src/**`,
+  `tests/**`, `docs/**`, configs).
+- **Commit / merge gate** — no merge/push without a passing QA report in the YAML.
+- **Auto-dashboard** — regenerates `progress.dashboard.html` whenever `project_memory/` changed.
 
 ### Behavior
 
@@ -309,7 +320,7 @@ Delete the folders manually:
 - `~/.claude/skills/`, `~/.claude/agents/`, `~/.claude/team-kits/`, `~/.claude/CLAUDE.md`
 - `~/.copilot/skills/`
 - VS Code prompts folder (see the path table above): the files `group-leader.agent.md` and `COPILOT.instructions.md`
-- In each project: the local `./.claude/agents/` and `./CLAUDE.md` (only if you want to remove the team there)
+- In each project: the local `./.claude/` (agents, hooks, `settings.json`) and `./CLAUDE.md` (only if you want to remove the team there)
 
 ---
 

@@ -1,7 +1,7 @@
 # Scaffold a team kit into the current repository (Windows).
 # Usage: scaffold_team.ps1 -Team dev-team
 # Copies the kit's agents into ./.claude/agents/ and its constitution into ./CLAUDE.md.
-# project_memory/ is NOT created here — the PM/technical-writer creates it from the global templates.
+# project_memory/ is NOT created here — the PM creates it from the global templates at startup.
 
 [CmdletBinding()]
 param(
@@ -30,4 +30,25 @@ if (Test-Path $conSrc) {
     Write-Host "  [ok] CLAUDE.md (local constitution)" -ForegroundColor Green
 }
 
-Write-Host "Team '$Team' installed locally. Next: work via @project-manager." -ForegroundColor Cyan
+# Enforcement layer: hooks + settings.json travel with the team.
+$hooksSrc = Join-Path $kit "hooks"
+if (Test-Path $hooksSrc) {
+    $hooksDst = Join-Path $repo ".claude\hooks"
+    if (-not (Test-Path $hooksDst)) { New-Item -ItemType Directory -Force -Path $hooksDst | Out-Null }
+    Get-ChildItem -Path $hooksSrc -File | ForEach-Object {
+        Copy-Item $_.FullName (Join-Path $hooksDst $_.Name) -Force
+        Write-Host "  [ok] hook: $($_.Name)" -ForegroundColor Green
+    }
+}
+$settingsSrc = Join-Path $kit "settings\settings.json"
+if (Test-Path $settingsSrc) {
+    $settingsDst = Join-Path $repo ".claude\settings.json"
+    if (Test-Path $settingsDst) {
+        Write-Host "  [skip] .claude/settings.json exists — merge hooks manually" -ForegroundColor Yellow
+    } else {
+        Copy-Item $settingsSrc $settingsDst -Force
+        Write-Host "  [ok] .claude/settings.json (enforcement hooks)" -ForegroundColor Green
+    }
+}
+
+Write-Host "Team '$Team' installed locally. The main agent is now your Project Manager — just keep prompting." -ForegroundColor Cyan

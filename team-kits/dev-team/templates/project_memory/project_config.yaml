@@ -1,18 +1,22 @@
 # project_config.yaml — owned by: PM
 # Created once at project init. Defines team preset, repo mode and the model map.
-# The preset and any model change MUST be user-confirmed (see constitution §10).
+# The preset and any model change MUST be user-confirmed (see constitution §11).
 
 project:
   name: ""                  # set at init
   preset: solo              # solo | duo | team
   repo_mode: greenfield     # greenfield | onboarded
 
-# Model ladder: haiku < sonnet < opus. All roles start on haiku.
+# Model ladder: haiku < sonnet < opus. Specialists start on haiku.
 # Up-/down-scaling ONLY on user confirmation. NEVER silent, NEVER automatic.
+#
+# The PM is the FOREGROUND agent and runs on the SESSION model (set by the user via /model);
+# it is intentionally NOT listed here. The keys below are the specialist SUBAGENTS — keys match
+# the agent file/`name:` in ./.claude/agents/. The PM rewrites each agent's `model:` frontmatter
+# to match this map (and verifies it) before delegating.
 model_map:
-  pm: haiku
-  architect: haiku
-  backend: haiku
-  frontend: haiku
-  qa: haiku
-  devops: haiku
+  software-architect: haiku
+  backend-developer: haiku
+  frontend-developer: haiku
+  quality-engineer: haiku
+  devops-engineer: haiku

@@ -7,6 +7,10 @@
 # The scaffold scripts (team-kits/scaffold_team.{ps1,sh}) install a kit by its `key`:
 #   scaffold_team.ps1 -Team <key>   /   scaffold_team.sh <key>
 # A kit is installable only if `status: available`.
+#
+# `lead: foreground` means: the PM is NOT a subagent. The main/foreground agent BECOMES the PM
+# by following the installed local ./CLAUDE.md. `roles` lists the specialist SUBAGENTS only
+# (the files under the kit's agents/, copied to ./.claude/agents/).
 
 version: 1
 
@@ -14,12 +18,10 @@ teams:
   - key: dev-team
     title: Development Team
     status: available
-    # The lead role is always named `project-manager` (uniform detection + handoff),
-    # but each kit ships its own kit-specific project-manager.md.
-    lead: project-manager
+    lead: foreground          # the main agent acts as PM via ./CLAUDE.md (no project-manager subagent)
     summary: >
       Software / product engineering: apps, APIs, tooling, libraries, build work.
-      Runs the PRD -> SRD -> Task hierarchy with 7 roles.
+      Runs the PRD -> SRD -> Task hierarchy: foreground PM + 5 specialist subagents.
     intents:
       - software
       - app
@@ -35,23 +37,21 @@ teams:
       - feature
       - bugfix
       - refactoring
-    roles:
-      - project-manager
+    roles:                     # specialist subagents (./.claude/agents/)
       - software-architect
       - backend-developer
       - frontend-developer
       - quality-engineer
       - devops-engineer
-      - technical-writer
 
   - key: research-team
     title: Research Team
     status: available
-    lead: project-manager
+    lead: foreground          # the main agent acts as PM/Research Lead via ./CLAUDE.md
     summary: >
       Research / experimentation with an FZulG (German R&D tax credit) documentation layer.
-      Runs the Research-Question -> Hypothesis/Experiment -> Task hierarchy with 8 roles,
-      and produces per-experiment LaTeX reports plus fundable documentation.
+      Runs the Research-Question -> Hypothesis/Experiment -> Task hierarchy: foreground PM +
+      6 specialist subagents, producing per-experiment LaTeX reports plus fundable documentation.
     intents:
       - research
       - experiment
@@ -64,6 +64,13 @@ teams:
       - fzulg
       - r&d
       - rnd
+    roles:                     # specialist subagents (./.claude/agents/)
+      - methodologist
+      - researcher
+      - data-analyst
+      - reviewer
+      - research-engineer
+      - report-writer
 
 # Routing rule for the reader (gate / group-leader):
 #   1. Classify the user's wish against each team's `intents` (substring/keyword match).
