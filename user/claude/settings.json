@@ -1,5 +1,5 @@
 {
-  "_comment": "agents-and-skills USER (~/.claude) defaults. The installer MERGES these into your ~/.claude/settings.json: top-level keys overwrite, but `permissions.allow`/`deny` are UNIONED with yours and other permission sub-keys (e.g. defaultMode) are preserved. The previous file is backed up under ~/.claude/backups/.",
+  "_comment": "agents-and-skills USER (~/.claude) defaults. The installer MERGES these into your ~/.claude/settings.json: top-level keys overwrite, `permissions.allow`/`deny` are UNIONED with yours, and any permission sub-key we ship (e.g. defaultMode) is set/overwritten. defaultMode is bypassPermissions so prompts are skipped; deny rules and PreToolUse hooks still apply. The previous file is backed up under ~/.claude/backups/.",
   "statusLine": {
     "type": "command",
     "command": "python ~/.claude/statusline.py",
@@ -25,6 +25,7 @@
       "Bash(pnpm *)",
       "Bash(yarn *)",
       "Bash(node *)",
+      "Bash(docker *)",
       "Bash(python *)",
       "Bash(python3 *)",
       "Bash(pip *)",
@@ -46,6 +47,7 @@
       "PowerShell(git *)",
       "PowerShell(npm *)",
       "PowerShell(node *)",
+      "PowerShell(docker *)",
       "PowerShell(python *)",
       "PowerShell(pip *)",
       "PowerShell(pytest *)",
@@ -58,6 +60,7 @@
       "Read(**/secrets/**)",
       "Read(**/*.key)",
       "Read(**/*.pem)"
-    ]
+    ],
+    "defaultMode": "bypassPermissions"
   }
 }
