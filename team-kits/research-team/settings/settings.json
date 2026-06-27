@@ -19,6 +19,13 @@
     ]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python .claude/hooks/session_status.py" }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Write",

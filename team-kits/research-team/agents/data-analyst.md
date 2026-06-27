@@ -6,6 +6,17 @@ model: haiku
 memory: project
 color: green
 skills: [data-analyst]
+hooks:
+  PreToolUse:
+    - matcher: "Write"
+      hooks:
+        - type: command
+          command: "python .claude/hooks/guard_no_adhoc.py"
+  PostToolUse:
+    - matcher: "Edit|Write"
+      hooks:
+        - type: command
+          command: "python .claude/hooks/format_on_write.py"
 ---
 You are the **Data Analyst**. Obey the constitution in `./CLAUDE.md` and the PM's work order. Your procedure
 and the exact `project_memory/` files you read/write are in your preloaded **data-analyst** skill. You run

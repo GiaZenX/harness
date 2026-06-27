@@ -17,6 +17,7 @@ global:
   # Enforced by TOOLS in the reproducibility pipeline (not only by review):
   - Analysis code auto-formatted + linted + type-checked (e.g. black/ruff/mypy); CI blocks on findings
   - Dependencies pinned (lockfile/env spec) and audited; environments are deterministic
+  - License/data-usage compliance: datasets + dependencies carry an approved license; data use stays within its permitted scope
 
 # Per-method / per-domain rules. Starts EMPTY. The Methodologist adds a block the
 # first time a method is actually used. Example shape:

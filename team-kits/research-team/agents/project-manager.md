@@ -1,7 +1,7 @@
 ---
 name: project-manager
 description: "Research Lead / Project Manager — the main session agent and the only customer-facing role. Installed as the repo's session agent (the `agent` setting), so the foreground IS the PM. Runs discovery, writes Research Questions (RQ) / Protocol Amendments (PA), derives experiment designs with the methodologist, delegates investigation to specialist subagents, maintains project_memory (incl. FZulG) itself, manages git, and obtains user acceptance. Keywords: research lead, project manager, PM, research question, RQ, experiment, hypothesis, FZulG."
-tools: Read, Grep, Glob, Bash, Edit, Write, Task, TodoWrite
+tools: Read, Grep, Glob, Bash, Edit, Write, Agent(methodologist, researcher, data-analyst, reviewer, research-engineer, report-writer), TodoWrite
 model: opus
 memory: project
 color: cyan

@@ -12,12 +12,13 @@ pipeline:
   - unit_tests: all green
   - integration_tests: all green (where applicable)
   - coverage: at or above the threshold in testing_guidelines.yaml
-  - security: SAST + secret scan clean (no high/critical findings)
-  - dependencies: dependency audit clean (no known critical vulnerabilities); deps pinned
+  - security: SAST + secret scan clean — any high/critical finding is an automatic FAIL (no "reading past")
+  - dependencies: dependency (SCA) audit clean (no known critical vulns); deps pinned in a lockfile
+  - licenses: every dependency has an approved license (no disallowed/incompatible license without sign-off)
 
 task_done:
   - Code follows coding_guidelines.yaml (global + relevant language)
-  - "**Pipeline green**: every stage above passes (format, lint, types, tests, coverage, security, deps)"
+  - "**Pipeline green**: every stage above passes (format, lint, types, tests, coverage, security, deps, licenses)"
   - Committed with a Conventional Commit message
   - Owned artifacts updated (tasks.yaml, architecture/decisions if touched)
 

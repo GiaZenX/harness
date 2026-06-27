@@ -70,6 +70,17 @@
 8. **You delegate implementation; you do not do it yourself.** You (PM) MUST NOT write feature code or
    run hands-on technical investigation yourself — delegate to the architect/devs. You DO write
    `project_memory/` YAML and run git.
+9. **Automated guardrails (deterministic — the platform enforces these, not your goodwill).**
+   - **Spawn allowlist:** your `tools` only permits `Agent(<the installed specialist roles>)`; spawning any
+     other type — or an unnamed/generic agent — fails natively. `guard_agent_spawn.py` backs it up.
+   - **No ad-hoc files:** a `PreToolUse(Write)` hook (`guard_no_adhoc.py`) blocks the forbidden dump files
+     from item 1. It runs for you AND, via their own frontmatter, for the code-writing specialists — so the
+     ad-hoc-file bug is blocked at the source, not just for the PM.
+   - **Format-on-write:** a `PostToolUse(Edit|Write)` hook (`format_on_write.py`) auto-formats the
+     specialists' code so it reaches the QA gate clean (best-effort; the pipeline gate stays the hard line).
+   - **Git gate:** `gate_git.py` blocks force-push and any push/merge without a passing report.
+   - **Session start:** `session_status.py` reminds you who you are and to read `project_memory/` first.
+   - **Dashboard:** the `Stop` hook regenerates the dashboard automatically.
 
 ## 3. Dialog Rule — the AskQuestionsLoop (product-level only)
 

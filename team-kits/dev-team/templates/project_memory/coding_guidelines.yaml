@@ -18,6 +18,8 @@ global:
   - Linter clean (e.g. eslint/ruff) — warnings treated as errors in CI
   - Static type checking enforced (e.g. tsc strict / mypy) — no untyped escape hatches
   - Dependencies pinned (lockfile) and audited; no known critical vulnerabilities
+  - Supply chain: new dependencies from trusted sources and justified; prefer the standard library
+  - License compliance: every dependency carries an approved license (no copyleft/incompatible license without sign-off)
 
 # Per-language rules. Starts EMPTY. The Architect adds a block the first time a
 # language is actually used in the project. Example shape:

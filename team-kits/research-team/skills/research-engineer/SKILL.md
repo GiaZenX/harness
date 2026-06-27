@@ -15,7 +15,8 @@ The repo's env/pipeline config, `experiment_designs.yaml` (so the environment ma
 1. **Set up the reproducibility pipeline at project start** (CI + a local run) so quality is enforced by
    **tools**, not by review. Stages (all must pass — see `validity_criteria.yaml`):
    **format → lint → type-check → analysis-code tests → clean re-run reproduces the numbers →
-   dependency audit → data-provenance check**. Pick tools for the stack (black/ruff/mypy, pytest, pip-audit).
+   dependency (SCA) audit + license check → secret/PII scan → data-provenance check**. Pick tools for the
+   stack (black/ruff/mypy, pytest, pip-audit for SCA, gitleaks for secrets/PII, pip-licenses for licenses).
 2. Provide **reproducible compute environments** (pinned dependencies, recorded versions) so experiments
    rerun identically; build/maintain data pipelines with **dataset versioning + provenance**.
 3. Automate experiment execution where it improves reproducibility; ensure runs are logged + re-runnable.

@@ -12,12 +12,14 @@ pipeline:
   - tests: analysis-code tests green
   - reproduce: a clean re-run from recorded seeds/versions yields the same numbers
   - dependencies: pinned (lockfile/env spec) and audited
+  - secrets: secret + PII scan clean (no credentials or personal data committed)
+  - licenses: datasets + dependencies carry approved licenses; data used within its permitted scope
   - data_provenance: raw data + versions + seeds referenced
 
 task_valid:
   - Procedure followed the EXP design and research_guidelines.yaml
   - Analysis matches the pre-registered analysis plan
-  - "**Pipeline green**: every stage above passes (format, lint, types, tests, reproduce, deps, provenance)"
+  - "**Pipeline green**: every stage above passes (format, lint, types, tests, reproduce, deps, secrets, licenses, provenance)"
   - Statistical assumptions checked; effect sizes + uncertainty reported
   - Conclusions are supported by the data (no overstatement)
   - Committed with a Conventional Commit message

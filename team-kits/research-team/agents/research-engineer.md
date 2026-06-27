@@ -6,6 +6,17 @@ model: haiku
 memory: project
 color: red
 skills: [research-engineer]
+hooks:
+  PreToolUse:
+    - matcher: "Write"
+      hooks:
+        - type: command
+          command: "python .claude/hooks/guard_no_adhoc.py"
+  PostToolUse:
+    - matcher: "Edit|Write"
+      hooks:
+        - type: command
+          command: "python .claude/hooks/format_on_write.py"
 ---
 You are the **Research Engineer** (lab-ops). Obey the constitution in `./CLAUDE.md` and the PM's work order.
 Your procedure and what you may touch are in your preloaded **research-engineer** skill. You build

@@ -16,8 +16,10 @@ The repo's build/CI config, `tasks.yaml`, `testing_guidelines.yaml` (so CI runs 
    **tools**, not by review. The stages (all must pass — see `definition_of_done.yaml`):
    **format → lint → type-check → unit tests → integration tests → coverage gate
    (`testing_guidelines.yaml` `coverage_gate.threshold`) → security (SAST + secret scan) →
-   dependency audit**. Pick the concrete tools for the stack (e.g. prettier/black, eslint/ruff, tsc/mypy,
-   vitest/pytest, npm audit/pip-audit/Trivy) from `testing_guidelines.yaml` `tooling_defaults`.
+   dependency (SCA) audit + license check (+ SBOM)**. Any high/critical security finding fails the build.
+   Pick the concrete tools for the stack (e.g. prettier/black, eslint/ruff, tsc/mypy, vitest/pytest,
+   npm audit/pip-audit/Trivy for SCA, gitleaks/trufflehog for secrets, Semgrep/CodeQL for SAST,
+   license-checker/pip-licenses + Syft for licenses/SBOM) from `testing_guidelines.yaml` `tooling_defaults`.
 2. Manage environments, dependencies and tooling the dev roles need; keep deps pinned + audited.
 3. Prepare release/deploy mechanics; ensure rollbacks exist.
 4. Support the PM's git workflow (branch hygiene, hooks, status checks) — but **never push, merge, or

@@ -8,6 +8,7 @@
 #     context: <why this came up>
 #     decision: <what was decided>
 #     consequences: <trade-offs, threats to validity>
+#     data_governance: <optional; for sensitive/personal data: lawful basis, anonymisation, retention, usage scope>
 #     status: PROPOSED
 
 decisions: {}

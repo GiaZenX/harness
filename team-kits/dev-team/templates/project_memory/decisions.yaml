@@ -8,6 +8,7 @@
 #     context: <why this came up>
 #     decision: <what was decided>
 #     consequences: <trade-offs, risks>
+#     threat_model: <optional; for security-relevant decisions: threats + mitigations, STRIDE-style>
 #     status: PROPOSED
 
 decisions: {}
