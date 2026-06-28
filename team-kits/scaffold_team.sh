@@ -67,4 +67,18 @@ if [ -f "$KIT/settings/settings.json" ]; then
   echo "  [ok] .claude/settings.json (session agent + enforcement hooks)"
 fi
 
+# Repo-level quality templates (scripts/quality.py, CI, pre-commit, requirements-dev) -- copy-if-absent
+# so DevOps can customise them without a re-scaffold clobbering changes. The merge gate runs quality.py.
+if [ -d "$KIT/templates/repo" ]; then
+  while IFS= read -r rel; do
+    rel="${rel#./}"
+    dst="$REPO/$rel"
+    if [ ! -e "$dst" ]; then
+      mkdir -p "$(dirname "$dst")"
+      cp "$KIT/templates/repo/$rel" "$dst"
+      echo "  [ok] repo: $rel"
+    fi
+  done < <(cd "$KIT/templates/repo" && find . -type f)
+fi
+
 echo "Team '$TEAM' installed locally. RESTART the session (close/reopen, or start a new session in this folder) -- the new agents and the 'agent: project-manager' setting only load at session start. After the restart, just type 'weiter': this repo then runs directly as your Project Manager and picks up any draft plan in project_memory/."

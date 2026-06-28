@@ -86,6 +86,5 @@ would keep the project cleaner and that they can switch any time.
 
 ## Two-tier model (reference)
 
-global entry initializer (this file: route + install) → installs the team locally → **the foreground
-agent becomes the PM** governed by the local `./CLAUDE.md`. The optional `group-leader` agent can do the
-install explicitly, then sends you back to the main agent (which then acts as the PM).
+global entry initializer (this file: discovery + draft + route + install) → installs the team locally →
+**the foreground agent becomes the PM** governed by the local `./CLAUDE.md`, picking up the draft plan.

@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+"""
+PreToolUse(Bash) — run the REAL quality pipeline before merge/push and block if it is red.
+
+This is the deterministic teeth behind the Definition of Done. Instead of trusting a `result: pass`
+string in a YAML, it executes `scripts/quality.py` (ruff/mypy/pytest+coverage, eslint/tsc/tests, secret/
+dep scan) and blocks the merge/push on a non-zero exit. A missing pipeline is itself a block — the
+pipeline MUST exist. Give this hook a generous `timeout` in settings.json (it runs tests).
+
+Only fires on `git push`/`git merge`, only when real work exists (a PRD). Hook-execution errors (could
+not even launch) -> exit 0 (never brick the repo on infra trouble); a RED pipeline -> exit 2.
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _root import find_repo_root
+import _audit
+
+
+def block(why):
+    _audit.record("gate_pipeline", why)
+    sys.stderr.write("[team-kit gate] Blocked merge/push: %s\n" % why)
+    sys.exit(2)
+
+
+def read(path):
+    try:
+        with open(path, encoding="utf-8", errors="ignore") as fh:
+            return fh.read()
+    except Exception:
+        return ""
+
+
+def main():
+    try:
+        data = json.load(sys.stdin)
+    except Exception:
+        sys.exit(0)
+    if data.get("tool_name") != "Bash":
+        sys.exit(0)
+    low = ((data.get("tool_input") or {}).get("command") or "").lower()
+    if "git push" not in low and "git merge" not in low:
+        sys.exit(0)
+
+    root = find_repo_root(data.get("cwd"))
+    pm = os.path.join(root, "project_memory")
+    if not os.path.isdir(pm):
+        sys.exit(0)
+    if not re.search(r"\n\s*(PRD|RQ)-\d", read(os.path.join(pm, "product_requirements.yaml"))
+                     + read(os.path.join(pm, "research_questions.yaml"))):
+        sys.exit(0)  # no real work yet
+
+    runner = os.path.join(root, "scripts", "quality.py")
+    if not os.path.isfile(runner):
+        block("no quality pipeline found (scripts/quality.py). DevOps must install it before merging — "
+              "the merge gate runs the real linters/type-checkers/tests, it does not trust a report.")
+
+    try:
+        p = subprocess.run([sys.executable, runner], cwd=root,
+                           capture_output=True, text=True, timeout=1800)
+    except Exception:
+        sys.exit(0)  # could not execute -> do not brick the repo
+    if p.returncode != 0:
+        tail = "\n".join((p.stdout or "").splitlines()[-25:])
+        block("the quality pipeline is RED (scripts/quality.py). Fix it before merging:\n" + tail)
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

@@ -84,6 +84,10 @@
    - **Format-on-write:** a `PostToolUse(Edit|Write)` hook (`format_on_write.py`) auto-formats the
      specialists' code so it reaches the QA gate clean (best-effort; the pipeline gate stays the hard line).
    - **Git gate:** `gate_git.py` blocks force-push and any push/merge without a passing report.
+   - **Pipeline gate (real teeth):** `gate_pipeline.py` actually RUNS `scripts/quality.py`
+     (ruff/mypy/pytest+coverage, eslint/tsc/tests, secret/dep scan) before merge/push and blocks on a red
+     pipeline — it does NOT trust a `result: pass` string. A missing pipeline is itself a block; DevOps owns
+     and tunes `scripts/quality.py` + the shipped CI/pre-commit.
    - **PM scope guard:** `guard_pm_scope.py` (`PreToolUse(Edit|Write)`, runs for YOU/the PM only) blocks the
      PM from writing `src/**`, `tests/**`, `frontend/**` — code goes to specialists, QA gates it. You may
      write `project_memory/**`, `.claude/**`, and PRD-mandated `docs/**`.

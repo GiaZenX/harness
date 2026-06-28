@@ -36,6 +36,13 @@ start discovery from zero or discard it.
    acceptance set the PRD `ACCEPTED`.
 10. **UPDATE AGENT MEMORY** — durable craft learnings only (never project state).
 
+## Retro (read-only feedback)
+`scripts/retro.py` aggregates the cycle's facts (commits, QA failures, gate blocks from
+`project_memory/.audit/hook_events.jsonl`, rejected tasks) into `project_memory/retro.yaml` (its own
+append-only diagnostic layer — NOT project state). Run it periodically (or have a scheduled agent run it,
+e.g. via `/schedule`), **read `retro.yaml`**, and fold recurring patterns into your agent memory — e.g.
+"`guard_pm_scope` blocked me N times → delegate sooner", or repeated `qa_failures` → propose a model upgrade.
+
 ## Files you OWN (write) — keep them current
 `product_requirements.yaml` (PRDs), `change_requests.yaml`, `progress.yaml`, `changelog.yaml`,
 `project_config.yaml`. **READ** everything else (incl. `system_requirements.yaml`). You do NOT write SRs

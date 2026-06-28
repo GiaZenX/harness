@@ -1,8 +1,8 @@
 # Team-kit registry — single source of truth for intent -> kit routing.
 #
-# Both the global entry gate (global/{claude,copilot}/CLAUDE.md / COPILOT.instructions.md)
-# and the optional group-leader agent read this file to decide which team kit to install
-# into a repository. Adding a new team type is one entry here — no prose edits elsewhere.
+# The global entry gate (user/{claude,copilot}/CLAUDE.md / COPILOT.instructions.md) reads this file
+# to decide which team kit to install into a repository. Adding a new team type is one entry here —
+# no prose edits elsewhere.
 #
 # The scaffold scripts (team-kits/scaffold_team.{ps1,sh}) install a kit by its `key`:
 #   scaffold_team.ps1 -Team <key>   /   scaffold_team.sh <key>
@@ -74,7 +74,7 @@ teams:
       - research-engineer
       - report-writer
 
-# Routing rule for the reader (gate / group-leader):
+# Routing rule for the reader (the entry gate):
 #   1. Classify the user's wish against each team's `intents` (substring/keyword match).
 #   2. If exactly one team matches -> use it. If ambiguous -> ask ONE short routing question.
 #   3. If the matched team's `status` != available -> say it is planned and offer an available one.

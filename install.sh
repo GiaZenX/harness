@@ -106,6 +106,8 @@ if [[ "$TARGET" == "both" || "$TARGET" == "claude" ]]; then
     echo
     echo "-> Claude Code"
     remove_old_skills "$CLAUDE_SKILLS"
+    # group-leader was removed (the plan-first entry gate replaces it) — clean up any stale install.
+    [[ -f "$CLAUDE_AGENTS/group-leader.md" ]] && rm -f "$CLAUDE_AGENTS/group-leader.md" && echo "  [ok]   removed old group-leader agent"
     install_file "$USER_CLAUDE_SRC/CLAUDE.md" "$CLAUDE_GLOBAL/CLAUDE.md" "CLAUDE.md -> ~/.claude/CLAUDE.md"
     install_file "$USER_CLAUDE_SRC/statusline.py" "$CLAUDE_GLOBAL/statusline.py" "statusline.py -> ~/.claude/statusline.py"
     if [[ -d "$USER_CLAUDE_SRC/agents" ]]; then
@@ -126,6 +128,7 @@ if [[ "$TARGET" == "both" || "$TARGET" == "copilot" ]]; then
     echo
     echo "-> GitHub Copilot"
     remove_old_skills "$COPILOT_SKILLS"
+    [[ -f "$VSCODE_PROMPTS/group-leader.agent.md" ]] && rm -f "$VSCODE_PROMPTS/group-leader.agent.md" && echo "  [ok]   removed old group-leader prompt"
     for f in "$USER_COPILOT_SRC"/*.instructions.md; do
         [[ -e "$f" ]] || continue
         install_file "$f" "$VSCODE_PROMPTS/$(basename "$f")" "instructions: $(basename "$f")"

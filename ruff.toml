@@ -1,0 +1,7 @@
+# Lint config for the agents-and-skills repo's own shipped Python.
+[lint]
+# The enforcement hooks must insert their directory on sys.path BEFORE importing the
+# co-located helpers (_root, _audit), so module-level imports after sys.path.insert are
+# intentional in hooks. Scope the E402 exception to hooks only.
+[lint.per-file-ignores]
+"team-kits/*/hooks/*.py" = ["E402"]

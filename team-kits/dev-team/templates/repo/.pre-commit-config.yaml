@@ -1,0 +1,16 @@
+# Pre-commit hooks: fast, local, per-commit feedback (the full pipeline runs in CI + the merge gate).
+# Setup (DevOps, once): pip install pre-commit && pre-commit install
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff          # lint
+        args: [--fix]
+      - id: ruff-format   # format
+  - repo: local
+    hooks:
+      - id: no-secrets-quick
+        name: quick secret check (.env never committed)
+        entry: bash -c 'git diff --cached --name-only | grep -E "(^|/)\.env($|\.)" && echo "do not commit .env" && exit 1 || exit 0'
+        language: system
+        pass_filenames: false

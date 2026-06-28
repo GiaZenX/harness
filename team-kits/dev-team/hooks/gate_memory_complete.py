@@ -19,6 +19,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _root import find_repo_root
+import _audit
 
 EMPTY_VALUE_RE = re.compile(r":\s*(\{\}|\[\]|\"\"|''|null|~)?\s*$")
 INLINE_SCALAR_RE = re.compile(r":\s+\S")
@@ -48,6 +49,7 @@ def is_unfilled(text):
 
 
 def block(files):
+    _audit.record("gate_memory_complete", ", ".join(files))
     sys.stderr.write(
         "[team-kit gate] Blocked merge/push: these required project_memory files are still empty/templates:\n"
         "  %s\n"

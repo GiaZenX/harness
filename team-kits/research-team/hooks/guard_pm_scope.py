@@ -16,6 +16,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _root import find_repo_root
+import _audit
 
 ALLOW_TOP = {"project_memory", ".claude", "plans", "docs"}
 BLOCK_TOP = {"src", "tests", "test", "frontend", "backend", "lib", "server",
@@ -25,6 +26,7 @@ CODE_EXT = {".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java", ".c",
 
 
 def block(rel):
+    _audit.record("guard_pm_scope", rel)
     sys.stderr.write(
         "[team-kit guard] PM blocked from writing '%s'.\n"
         "You are the Project Manager — you do NOT write production code (src/**, tests/**, "

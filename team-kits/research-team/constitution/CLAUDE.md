@@ -80,6 +80,10 @@ This kit adds an FZulG (German R&D tax credit) documentation layer on top of a r
      specialists' analysis code so it reaches the validation gate clean (best-effort; the pipeline gate
      stays the hard line).
    - **Git gate:** `gate_git.py` blocks force-push and any push/merge without a passing report.
+   - **Pipeline gate (real teeth):** `gate_pipeline.py` actually RUNS `scripts/quality.py`
+     (lint/types/tests+coverage on analysis code, secret/dep scan) before merge/push and blocks on a red
+     pipeline — it does NOT trust a recorded string. A missing pipeline is itself a block; the
+     Research-Engineer owns and tunes `scripts/quality.py` + the shipped CI/pre-commit.
    - **PM scope guard:** `guard_pm_scope.py` (`PreToolUse(Edit|Write)`, runs for YOU/the PM only) blocks the
      PM from writing analysis code (`src/**`, `tests/**`) — that goes to specialists. You may write
      `project_memory/**`, `.claude/**`, and report assets.

@@ -18,9 +18,11 @@ import glob
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _root import find_repo_root
+import _audit
 
 
 def block(why):
+    _audit.record("gate_git", why)
     sys.stderr.write("[team-kit gate] Blocked: %s\n" % why)
     sys.exit(2)
 
@@ -45,8 +47,8 @@ def main():
     if "git push" not in low and "git merge" not in low:
         sys.exit(0)
 
-    # force-push: always forbidden
-    if "git push" in low and re.search(r"--force(-with-lease)?|(^|\s)-f(\s|$)", low):
+    # force-push: always forbidden (flags AND the `+refspec` form, e.g. `git push origin +main`)
+    if "git push" in low and re.search(r"--force(-with-lease)?|(^|\s)-f(\s|$)|\s\+[\w./-]+(:|\s|$)", low):
         block("force-push is forbidden by the team constitution.")
 
     cwd = find_repo_root(data.get("cwd"))

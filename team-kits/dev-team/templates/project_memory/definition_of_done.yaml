@@ -5,6 +5,8 @@
 
 # The quality pipeline (the DevOps role sets it up at project start; runs in CI + locally).
 # Every stage must pass for a task to be DONE. Adapt the tools to the stack (see testing_guidelines).
+# This is ENFORCED, not trusted: the merge gate `gate_pipeline.py` actually runs `scripts/quality.py`
+# (the runner) and blocks the merge on a red result — a self-reported "result: pass" does not suffice.
 pipeline:
   - format: code auto-formatted (e.g. prettier / black) — no diff
   - lint: linter clean (e.g. eslint / ruff) — no errors

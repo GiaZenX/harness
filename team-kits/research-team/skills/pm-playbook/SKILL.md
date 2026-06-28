@@ -32,6 +32,12 @@ If the install session left a **DRAFT** plan (a DRAFT `research_questions.yaml` 
    a recommended option with a reason** — never a neutral menu. On user acceptance set the RQ `ACCEPTED`.
 10. **UPDATE AGENT MEMORY** — craft learnings only.
 
+## Retro (read-only feedback)
+`scripts/retro.py` aggregates the cycle's facts (commits, validation failures, gate blocks from
+`project_memory/.audit/hook_events.jsonl`, rejected tasks) into `project_memory/retro.yaml` (its own
+append-only diagnostic layer — NOT project state). Run it periodically (or via a scheduled agent), read
+`retro.yaml`, and fold recurring patterns into your agent memory.
+
 ## Files you OWN (write)
 `research_questions.yaml` (RQs), `protocol_amendments.yaml`, `progress.yaml`, `changelog.yaml`,
 `project_config.yaml`, `fzulg_documentation.yaml` (from the methodologist's assessment + your effort/cost

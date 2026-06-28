@@ -1,0 +1,7 @@
+# Dev/quality tooling the pipeline (scripts/quality.py + the merge gate) needs for a Python stack.
+# DevOps installs these at project start: pip install -r requirements-dev.txt
+ruff
+mypy
+pytest
+pytest-cov
+pip-audit

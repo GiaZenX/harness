@@ -98,6 +98,9 @@ if (Test-Path $teamKitsSrc) {
 if ($Target -eq "both" -or $Target -eq "claude") {
     Write-Host "`n-> Claude Code"
     Remove-OldSkills -Destination $claudeSkills
+    # group-leader was removed (the plan-first entry gate replaces it) — clean up any stale install.
+    $glOld = Join-Path $claudeAgents "group-leader.md"
+    if (Test-Path $glOld) { Remove-Item $glOld -Force; Write-Host "  [ok]   removed old group-leader agent" -ForegroundColor Yellow }
     Install-File -Src (Join-Path $userClaudeSrc "CLAUDE.md") -Dest (Join-Path $claudeGlobal "CLAUDE.md") -Label "CLAUDE.md -> ~/.claude/CLAUDE.md"
     Install-File -Src (Join-Path $userClaudeSrc "statusline.py") -Dest (Join-Path $claudeGlobal "statusline.py") -Label "statusline.py -> ~/.claude/statusline.py"
     $claudeAgentsSrc = Join-Path $userClaudeSrc "agents"
@@ -120,6 +123,8 @@ if ($Target -eq "both" -or $Target -eq "claude") {
 if ($Target -eq "both" -or $Target -eq "copilot") {
     Write-Host "`n-> GitHub Copilot"
     Remove-OldSkills -Destination $copilotSkills
+    $glCop = Join-Path $vscodePrompts "group-leader.agent.md"
+    if (Test-Path $glCop) { Remove-Item $glCop -Force; Write-Host "  [ok]   removed old group-leader prompt" -ForegroundColor Yellow }
     Get-ChildItem -Path $userCopilotSrc -Filter "*.instructions.md" | ForEach-Object {
         Install-File -Src $_.FullName -Dest (Join-Path $vscodePrompts $_.Name) -Label "instructions: $($_.Name)"
     }

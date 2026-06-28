@@ -74,4 +74,20 @@ if (Test-Path $settingsSrc) {
     Write-Host "  [ok] .claude/settings.json (session agent + enforcement hooks)" -ForegroundColor Green
 }
 
+# Repo-level quality templates (scripts/quality.py, CI, pre-commit, requirements-dev) -- copy-if-absent
+# so DevOps can customise them without a re-scaffold clobbering changes. The merge gate runs quality.py.
+$repoTplSrc = Join-Path $kit "templates\repo"
+if (Test-Path $repoTplSrc) {
+    Get-ChildItem -Path $repoTplSrc -Recurse -File -Force | ForEach-Object {
+        $rel = $_.FullName.Substring($repoTplSrc.Length).TrimStart('\', '/')
+        $dst = Join-Path $repo $rel
+        if (-not (Test-Path $dst)) {
+            $dstDir = Split-Path $dst
+            if ($dstDir -and -not (Test-Path $dstDir)) { New-Item -ItemType Directory -Force -Path $dstDir | Out-Null }
+            Copy-Item $_.FullName $dst -Force
+            Write-Host "  [ok] repo: $rel" -ForegroundColor Green
+        }
+    }
+}
+
 Write-Host "Team '$Team' installed locally. RESTART the session (close/reopen, or start a new session in this folder) -- the new agents and the 'agent: project-manager' setting only load at session start. After the restart, just type 'weiter': this repo then runs directly as your Project Manager and picks up any draft plan in project_memory/." -ForegroundColor Cyan

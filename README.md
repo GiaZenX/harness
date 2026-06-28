@@ -14,8 +14,8 @@ default agent: on your first build/change wish it asks *structured or free*, cla
 a local `./CLAUDE.md`, and enforcement hooks). From then on the **main agent itself acts as the PM**,
 governed by that local `./CLAUDE.md` — there is **no separate PM subagent** to bypass or forget, and the PM
 keeps the full conversation as its memory. The local constitution carries a marker; whenever it is present,
-the entry gate **hands over to it completely** (every session). An optional **`group-leader`** agent can do
-the install explicitly. If you don't want the process, you choose *free* and work without bookkeeping.
+the entry gate **hands over to it completely** (every session). If you don't want the process, you choose
+*free* and work without bookkeeping.
 
 Two kits ship today: **`dev-team`** (software/product engineering) and **`research-team`** (research +
 experiments with an FZulG R&D-tax-credit documentation layer). The registry maps your intent to the right
@@ -68,7 +68,6 @@ mode — no matter what you code with, the AI behaves the same:
 | Component | Claude Code | Copilot |
 |---|---|---|
 | User entry gate | `~/.claude/CLAUDE.md` | `prompts/COPILOT.instructions.md` (`applyTo: **`) |
-| Optional entry agent | `~/.claude/agents/group-leader.md` | `prompts/group-leader.agent.md` |
 | Team kit staging | `~/.claude/team-kits/<team>/` | `~/.claude/team-kits/<team>/` (shared) |
 | Project team (per repo) | `./.claude/agents/*.md` + `./CLAUDE.md` + `./.claude/settings.json` | same files |
 | Role skills (per repo) | `./.claude/skills/<role>/` | same |
@@ -87,8 +86,6 @@ Code Copilot and Claude Code read — one copy serves both ecosystems.
 |---|---|
 | User entry gate (Claude Code) | `~/.claude/CLAUDE.md` |
 | User entry gate (Copilot, VS Code) | `<vscode prompts>/COPILOT.instructions.md` (`applyTo: "**"`) |
-| Optional entry agent (Claude Code) | `~/.claude/agents/group-leader.md` |
-| Optional entry agent (Copilot, VS Code) | `<vscode prompts>/group-leader.agent.md` |
 | Team kit staging (shared) | `~/.claude/team-kits/<team>/` (agents, constitution, templates) + scaffold scripts |
 | Project team (per repo, created on demand) | `./.claude/agents/*.md` + `./.claude/skills/` + `./CLAUDE.md` + `./.claude/settings.json` |
 | Claude Code skills | `~/.claude/skills/<skill>/` |
@@ -105,11 +102,9 @@ agents-and-skills/
 │   ├── claude/
 │   │   ├── CLAUDE.md                    ← user entry gate (Claude Code)
 │   │   ├── settings.json                ← user defaults merged into ~/.claude/settings.json
-│   │   ├── statusline.py                ← status line (model · context · cost · branch)
-│   │   └── agents/group-leader.md       ← optional entry agent (Claude Code)
+│   │   └── statusline.py                ← status line (model · context · cost · branch)
 │   ├── copilot/
-│   │   ├── COPILOT.instructions.md      ← user entry gate (applyTo: **)
-│   │   └── agents/group-leader.agent.md ← optional entry agent (Copilot)
+│   │   └── COPILOT.instructions.md      ← user entry gate (applyTo: **)
 │   └── merge_settings.py                ← installer helper: merge keys, preserve personal settings
 ├── team-kits/
 │   ├── registry.yaml                    ← intent → kit routing (single source of truth)
@@ -139,7 +134,7 @@ agents-and-skills/
 2. **Auto-init (discovery first):** on *structured*, the default agent classifies your intent via
    `team-kits/registry.yaml`, then **interviews you and drafts a plan** (product-level questions + a
    recommended team) **before** installing — it writes that plan as a DRAFT into `project_memory/`. Only
-   then does it run the scaffold script. (You may instead invoke the optional `group-leader` agent.)
+   then does it run the scaffold script.
 3. **Local install:** the kit's specialist agents are copied to `./.claude/agents/`, its constitution to
    `./CLAUDE.md` (with a team **marker**), and its enforcement **hooks + settings** to `./.claude/`. The
    first session then asks you to **restart**; from the next session the PM picks up the DRAFT plan.
@@ -350,7 +345,7 @@ git pull
 Delete the folders manually:
 - `~/.claude/skills/`, `~/.claude/agents/`, `~/.claude/team-kits/`, `~/.claude/CLAUDE.md`
 - `~/.copilot/skills/`
-- VS Code prompts folder (see the path table above): the files `group-leader.agent.md` and `COPILOT.instructions.md`
+- VS Code prompts folder (see the path table above): the file `COPILOT.instructions.md`
 - In each project: the local `./.claude/` (agents, hooks, `settings.json`) and `./CLAUDE.md` (only if you want to remove the team there)
 
 ---

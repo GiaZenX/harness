@@ -18,6 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _root import find_repo_root
+import _audit
 
 CODE_RE = re.compile(r"\.(py|ts|tsx|js|jsx|vue|svelte)$", re.IGNORECASE)
 PY_TEST_RE = re.compile(r"(^test_.*\.py$)|(.*_test\.py$)", re.IGNORECASE)
@@ -25,6 +26,7 @@ JS_TEST_RE = re.compile(r"\.(test|spec)\.(t|j)sx?$", re.IGNORECASE)
 
 
 def block(why):
+    _audit.record("gate_test_coverage", why)
     sys.stderr.write(
         "[team-kit gate] Blocked merge/push: %s\n"
         "Every source area must be tested on its own (the per-area coverage rule, constitution "
