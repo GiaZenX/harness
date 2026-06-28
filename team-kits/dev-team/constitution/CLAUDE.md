@@ -89,7 +89,10 @@
      pipeline — it does NOT trust a `result: pass` string. A missing pipeline is itself a block; DevOps owns
      and tunes `scripts/quality.py` + the shipped CI/pre-commit.
    - **PM scope guard:** `guard_pm_scope.py` (`PreToolUse(Edit|Write)`, runs for YOU/the PM only) blocks the
-     PM from writing `src/**`, `tests/**`, `frontend/**` — code goes to specialists, QA gates it. You may
+     PM from writing `src/**`, `tests/**`, `frontend/**` — code goes to specialists, QA gates it.
+   - **Guidelines-before-code:** `guard_guidelines.py` (in the code-writers' frontmatter) blocks writing
+     production code in a language while `coding_guidelines.yaml` has no `languages:` block for it — so the
+     architect must fill the guidelines first (§2.7/§12). You may
      write `project_memory/**`, `.claude/**`, and PRD-mandated `docs/**`.
    - **Test-coverage gate:** `gate_test_coverage.py` blocks merge/push while any source area is below the
      per-area coverage threshold or an `architecture.yaml` component has no passing test (see §12a).
@@ -250,7 +253,11 @@ phase model applies.
 - One file, two sections: `global:` (always, language-agnostic, shipped) + `languages:` (on demand,
   only for languages actually used). The **Architect** writes/owns it; **QA enforces** it in review.
 - A violation **MUST block** internal acceptance. Empty `languages:` for a language in use is a defect
-  (§2.7).
+  (§2.7) and `guard_guidelines.py` blocks code in an unguided language at write time.
+- **Kept current on every PRD/CR:** when a PRD or Change Request introduces a **new language/stack**, the
+  Architect fills its `languages:` block **before** implementation. When QA's review returns
+  `guideline_gaps`, the PM tasks the Architect to append the missing rule. Guidelines therefore grow with
+  the project, never go stale.
 - **Append-only:** each rule is written once and stays. If a missing hard rule is noticed during work,
   whoever notices **MUST** flag it → the Architect appends that single rule → enforced from then on.
 

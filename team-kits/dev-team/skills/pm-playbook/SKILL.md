@@ -29,7 +29,9 @@ start discovery from zero or discard it.
 6. **DELEGATE** — spawn `backend-developer`/`frontend-developer` by exact role with a YAML work order naming
    the SRs + files to read. They create tasks (`derives_from: SR-…`), implement, commit.
 7. **GATE** — trigger `quality-engineer`. No merge without a PASS in `review_reports`+`test_reports`+
-   `acceptance_reports` (+ the coverage/completeness gates green). On PASS, set the PRD `TESTED` and merge.
+   `acceptance_reports` (+ the coverage/completeness gates green). If QA returns `guideline_gaps`, task the
+   `software-architect` to append the missing rule(s) to `coding_guidelines.yaml` before accepting. On PASS,
+   set the PRD `TESTED` and merge.
 8. **BOOKKEEPING** — update your owned files + commit. The dashboard regenerates automatically (Stop hook).
 9. **REPORT + ASK** — what was done + your ideas, then `AskUserQuestion` "what next?" (options + free text,
    include IDs). **Always name a recommended option with a reason** — never a neutral menu. On user

@@ -239,6 +239,10 @@ Because instructions alone get skipped, each kit ships a small **deterministic**
   specialist roles may be spawned.
 - **PM stays out of code** (`guard_pm_scope`) — blocks the PM (main agent) from writing `src/**`, `tests/**`,
   `frontend/**`; code goes to specialists, QA gates it.
+- **Guidelines before code** (`guard_guidelines`) — blocks a code-writer from writing a language before its
+  `coding_guidelines.yaml` `languages:` block exists, so the architect fills the rules first.
+- **Real pipeline at merge** (`gate_pipeline`) — runs `scripts/quality.py` (lint/types/tests+coverage,
+  secret/dep scan) and blocks on a red or missing pipeline; a self-reported "pass" does not suffice.
 - **Commit / merge gate** (`gate_git`) — always blocks force-push; blocks push/merge without a passing QA
   report in the YAML.
 - **Per-area test gate** (`gate_test_coverage`, dev-team) — blocks merge while any source area (e.g.
