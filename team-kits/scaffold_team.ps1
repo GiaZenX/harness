@@ -78,7 +78,7 @@ if (Test-Path $settingsSrc) {
 # so DevOps can customise them without a re-scaffold clobbering changes. The merge gate runs quality.py.
 $repoTplSrc = Join-Path $kit "templates\repo"
 if (Test-Path $repoTplSrc) {
-    Get-ChildItem -Path $repoTplSrc -Recurse -File -Force | ForEach-Object {
+    Get-ChildItem -Path $repoTplSrc -Recurse -File -Force | Where-Object { $_.FullName -notmatch '__pycache__' } | ForEach-Object {
         $rel = $_.FullName.Substring($repoTplSrc.Length).TrimStart('\', '/')
         $dst = Join-Path $repo $rel
         if (-not (Test-Path $dst)) {

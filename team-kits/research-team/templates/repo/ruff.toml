@@ -1,0 +1,9 @@
+# Project lint baseline so the merge-gate's `ruff check` is predictable (DevOps tunes this).
+# Keep it real but not pedantic: errors + pyflakes + import sorting.
+line-length = 120
+
+[lint]
+select = ["E", "F", "I"]   # pycodestyle errors, pyflakes (unused/undefined), isort
+
+[lint.per-file-ignores]
+"tests/**" = ["E501"]      # long lines in test data are fine

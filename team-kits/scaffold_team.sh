@@ -78,7 +78,7 @@ if [ -d "$KIT/templates/repo" ]; then
       cp "$KIT/templates/repo/$rel" "$dst"
       echo "  [ok] repo: $rel"
     fi
-  done < <(cd "$KIT/templates/repo" && find . -type f)
+  done < <(cd "$KIT/templates/repo" && find . -type f -not -path '*/__pycache__/*')
 fi
 
 echo "Team '$TEAM' installed locally. RESTART the session (close/reopen, or start a new session in this folder) -- the new agents and the 'agent: project-manager' setting only load at session start. After the restart, just type 'weiter': this repo then runs directly as your Project Manager and picks up any draft plan in project_memory/."

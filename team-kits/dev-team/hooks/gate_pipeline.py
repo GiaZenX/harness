@@ -60,10 +60,15 @@ def main():
               "the merge gate runs the real linters/type-checkers/tests, it does not trust a report.")
 
     try:
+        # subprocess limit is BELOW the hook's settings.json timeout, so we time out first and can BLOCK
+        # rather than letting Claude Code kill a slow hook (a killed hook would NOT block — a silent pass).
         p = subprocess.run([sys.executable, runner], cwd=root,
-                           capture_output=True, text=True, timeout=1800)
+                           capture_output=True, text=True, timeout=1500)
+    except subprocess.TimeoutExpired:
+        block("the quality pipeline did not finish within the time limit — speed up the test suite or "
+              "merge a smaller change. A non-completing pipeline cannot be certified green.")
     except Exception:
-        sys.exit(0)  # could not execute -> do not brick the repo
+        sys.exit(0)  # could not even launch (e.g. no python) -> do not brick the repo on infra trouble
     if p.returncode != 0:
         tail = "\n".join((p.stdout or "").splitlines()[-25:])
         block("the quality pipeline is RED (scripts/quality.py). Fix it before merging:\n" + tail)
