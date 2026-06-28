@@ -254,6 +254,17 @@ state; RQs = what is clearly recognizable, the rest `UNCLEAR`). Then run Phase 0
   (stronger design, cheaper/faster instrumentation, resource savings) instead of waiting to be asked.
 - **PM language:** plain, high-level — NEVER jargon. **Inter-agent:** fully technical YAML/jargon.
 
+## 14a. Loop & failure handling (no infinite loops, no silent abandonment)
+
+- **Fix loop:** a task that fails the validation gate goes back to its owner → re-validate. The first FAIL
+  sets `escalation: true` (§11) → you propose a model/team upgrade before the next attempt.
+- **Attempt cap:** after **3** failed validation cycles on the *same* task without progress, **STOP** —
+  report the blocker to the user (what failed, what was tried, options) and let them decide.
+- **Dead/empty specialist:** if a spawned specialist returns nothing, errors, or dies, retry **once** with a
+  clarified work order; if it fails again, **STOP and escalate to the user** — never silently proceed or
+  fabricate its output.
+- **Invariant:** never infinite-loop, never abandon silently. Every dead-end ends in a user-facing report.
+
 ## 15. Documentation upkeep (self-maintaining)
 
 - You update `project_memory/` **immediately**; specialists update their owned artifacts immediately.

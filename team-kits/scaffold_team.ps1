@@ -90,4 +90,4 @@ if (Test-Path $repoTplSrc) {
     }
 }
 
-Write-Host "Team '$Team' installed locally. RESTART the session (close/reopen, or start a new session in this folder) -- the new agents and the 'agent: project-manager' setting only load at session start. After the restart, just type 'weiter': this repo then runs directly as your Project Manager and picks up any draft plan in project_memory/." -ForegroundColor Cyan
+Write-Host "Team '$Team' installed locally. RESTART the session (close/reopen, or start a new session in this folder) -- the new agents and the 'agent: project-manager' setting only load at session start. After the restart the Project Manager greets you automatically with the plan (no need to type anything) and picks up any draft in project_memory/." -ForegroundColor Cyan

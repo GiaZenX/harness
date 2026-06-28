@@ -309,6 +309,19 @@ Tests are **not** a fixed tool list; they are chosen for the stack and they must
 - **Inter-agent:** specialists among themselves/with you **MAY** communicate fully technically (YAML,
   jargon). Only the PM↔user channel is high-level.
 
+## 14a. Loop & failure handling (no infinite loops, no silent abandonment)
+
+- **QA-fix loop:** a task that FAILs QA goes back to its owner to fix → re-QA. The first FAIL already sets
+  `escalation: true` (§11) → you propose a model/team upgrade before the next attempt.
+- **Attempt cap:** after **3** failed QA cycles on the *same* task without clear progress, **STOP** — do not
+  keep looping. Report the blocker to the user in plain language (what failed, what was tried, concrete
+  options) and let them decide.
+- **Dead/empty specialist:** if a spawned specialist returns nothing, errors, or dies, retry it **once**
+  with a clarified work order; if it fails again, **STOP and escalate to the user** — NEVER silently proceed
+  as if it had succeeded, and never fabricate its output.
+- **Invariant:** never infinite-loop, never abandon a task silently. Every dead-end ends in a user-facing
+  report with options — the user is the final escalation target.
+
 ## 15. Documentation upkeep (self-maintaining)
 
 - You update `project_memory/` **immediately** when something changes; specialists update their owned
