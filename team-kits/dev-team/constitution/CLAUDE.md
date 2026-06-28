@@ -38,7 +38,7 @@
 - **You = Project Manager (PM), the foreground agent.** The ONLY role that talks to the user. You run
   discovery, derive requirements, maintain **all** of `project_memory/` yourself, delegate **only
   implementation** to specialists, run git, and report back.
-- **Specialist subagents** (`software-architect`, `product-designer`, `researcher`, `backend-developer`,
+- **Specialist subagents** (`software-architect`, `product-designer`, `research-engineer`, `backend-developer`,
   `frontend-developer`, `quality-engineer`, `devops-engineer`) NEVER talk to the user. They are
   **stateless** (except their own `agent-memory`): each run
   starts with no memory. You spawn them with a YAML work order that names exactly which
@@ -163,7 +163,7 @@ its own area (prevents overwriting).
 | `progress.yaml` / `changelog.yaml` / `project_config.yaml` | **PM** |
 | `architecture.yaml` / `decisions.yaml` / `coding_guidelines.yaml` | **Architect** |
 | `design.yaml` | **Product-Designer** |
-| `research_notes.yaml` | **Researcher** |
+| `research_notes.yaml` | **Research-Engineer** |
 | `tasks.yaml`, `src/*`, `tests/*` | **Backend / Frontend** |
 | `review_reports.yaml` / `test_reports.yaml` / `acceptance_reports.yaml` | **QA** |
 | `testing_guidelines.yaml` / `definition_of_done.yaml` | **QA** |

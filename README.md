@@ -111,7 +111,7 @@ agents-and-skills/
 │   ├── scaffold_team.ps1 / .sh          ← installs a kit into the current repo (backs up first)
 │   ├── dev-team/
 │   │   ├── agents/                      ← project-manager (session agent) + 7 specialist subagents
-│   │   ├── skills/                      ← one role skill per agent (pm-playbook, software-architect, …)
+│   │   ├── skills/                      ← one role skill per agent (project-manager, software-architect, …)
 │   │   ├── constitution/CLAUDE.md       ← project constitution → ./CLAUDE.md (carries team marker)
 │   │   ├── hooks/ + settings/           ← deterministic enforcement hooks + .claude/settings.json (agent, model, …)
 │   │   └── templates/project_memory/    ← YAML artifact templates
@@ -140,7 +140,7 @@ agents-and-skills/
    first session then asks you to **restart**; from the next session the PM picks up the DRAFT plan.
 4. **The main agent becomes the PM.** The kit's `.claude/settings.json` sets `agent: project-manager`, so the
    repo's main session agent **is** the PM (`model: opus`, persistent `memory: project`, a preloaded
-   `pm-playbook` skill) — one identity, no relay, nothing to bypass. (The first session right after install is
+   `project-manager` skill) — one identity, no relay, nothing to bypass. (The first session right after install is
    bridged in-session by the `./CLAUDE.md` marker handover; the `agent` setting takes over from the next
    session.) The PM runs the **startup gate** (creates `project_memory/` from the kit templates, proposes
    preset + specialist models, you confirm, syncs the specialists' frontmatter), then begins the phase model.
@@ -162,7 +162,7 @@ return YAML. Roles below are the **`dev-team`**; the **`research-team`** mirrors
 | **Project Manager** | `project-manager` (the repo's session agent — `agent` setting; opus + memory) | Requirements (PRD/CR), `project_memory/` bookkeeping, delegation, merge, user acceptance | **Yes (only one)** |
 | **Software Architect** | `software-architect` | System requirements, architecture, ADRs, coding guidelines, test strategy | No |
 | **Product Designer** | `product-designer` | UI/UX: screens, flows, design system, accessibility (UI-bearing PRDs) — `design.yaml` | No |
-| **Researcher** | `researcher` | Web-enabled investigation of libs/datasheets/APIs; cited facts — `research_notes.yaml` | No |
+| **Research Engineer** | `research-engineer` | Web-enabled investigation of libs/datasheets/APIs; cited facts — `research_notes.yaml` | No |
 | **Backend Developer** | `backend-developer` | Server-side tasks, tests, commits | No |
 | **Frontend Developer** | `frontend-developer` | UI tasks, tests, commits | No |
 | **Quality Engineer** | `quality-engineer` | Review, tests (sole owner of test completeness), Definition of Done, merge gate | No |
@@ -300,10 +300,10 @@ Role instructions live in three tiers, each loaded where it's needed — no dupl
 | **Agent body** (short) | who the agent is, who it obeys, its core duty | the agent's system prompt |
 | **Role skill** (`skills: [<role>]`) | *how* it works + which `project_memory/` files it reads/writes | preloaded into the agent |
 
-Each team kit ships **one role skill per agent** (incl. the PM's `pm-playbook`) under
+Each team kit ships **one role skill per agent** (incl. the PM's `project-manager`) under
 `team-kits/<kit>/skills/`. The scaffold installs them into the repo's `./.claude/skills/`, and each agent
 preloads its own via `skills:` frontmatter. There are **no global skills** — everything is scoped to the
-team repo and invocable with `/<role>` (e.g. `/pm-playbook`).
+team repo and invocable with `/<role>` (e.g. `/project-manager`).
 
 **Coverage guarantee:** every `project_memory/*.yaml` has a write-owner named in a role skill (a few are
 partitioned co-owners: `tasks`, `results`, `tests/`), so no artifact is ever left unmaintained. The

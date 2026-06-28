@@ -1,5 +1,5 @@
 ---
-name: pm-playbook
+name: project-manager
 description: >
   The research-team Project Manager / Research Lead's operating procedure: the per-cycle work
   loop, the project_memory files the PM owns (incl. FZulG), the validation merge gate, status

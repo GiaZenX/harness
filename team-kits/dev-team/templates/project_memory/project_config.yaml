@@ -19,7 +19,7 @@ project:
 model_map:
   software-architect: sonnet
   product-designer: sonnet
-  researcher: sonnet
+  research-engineer: sonnet
   backend-developer: sonnet
   frontend-developer: sonnet
   quality-engineer: sonnet

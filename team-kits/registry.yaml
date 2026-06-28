@@ -40,7 +40,7 @@ teams:
     roles:                     # specialist subagents (./.claude/agents/)
       - software-architect
       - product-designer
-      - researcher
+      - research-engineer
       - backend-developer
       - frontend-developer
       - quality-engineer
