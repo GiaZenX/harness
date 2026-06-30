@@ -46,7 +46,7 @@ fi
 if [ -d "$KIT/hooks" ]; then
   mkdir -p "$REPO/.claude/hooks"
   for f in "$KIT"/hooks/*; do
-    [ -e "$f" ] || continue
+    [ -f "$f" ] || continue   # skip directories like __pycache__ (cp -f would error + mislead)
     cp -f "$f" "$REPO/.claude/hooks/$(basename "$f")"
     echo "  [ok] hook: $(basename "$f")"
   done
