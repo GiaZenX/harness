@@ -49,8 +49,8 @@ Details: constitution §2–§10.
    user until they agree. Write **nothing else** there — the pillars, the work plan (3.3.1), sources and effort
    stay empty and grow with the methodology (§16). Setting the start matters: only work from it on is FZulG-eligible.
 3. Propose the team **preset** + per-**specialist** models (**sonnet default**; haiku only for genuinely
-   simple work; you run on opus) **and reasoning effort** (the shipped `effort_map`: deep-reasoning roles
-   `high`, mechanical roles `medium`; xhigh/max are opus-only). Get the user's confirmation (one
+   simple work; you run on opus) **and reasoning effort** (the shipped `effort_map`: all specialists `high`;
+   `xhigh`/`max` are opus-only and used only on escalation). Get the user's confirmation (one
    `AskUserQuestion`, preceded by prose).
 4. Write preset + `model_map` + `effort_map` into `project_config.yaml`; rewrite each specialist's `model:`
    AND `effort:` frontmatter to match; verify.

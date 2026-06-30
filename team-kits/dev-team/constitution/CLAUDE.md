@@ -272,12 +272,14 @@ phase model applies.
   match (touch only the `model:`/`effort:` lines). Verify `model:` == `model_map` before delegating.
 - **Reasoning effort (`effort_map`):** each role also carries an `effort:` (`low|medium|high|xhigh|max`),
   synced from `effort_map` exactly like `model:` (rewrite each specialist's `effort:` line; verify before
-  delegating). Defaults: most roles `high`, the mechanical role(s) `medium`. On **sonnet, `high` is the
-  ceiling — `xhigh`/`max` are OPUS-ONLY** (they fall back on sonnet). The **PM runs `high`** via its own
-  frontmatter (not in `effort_map`). **Effort escalation** rides the same trigger as the model escalation
-  (first QA FAIL / user dissatisfaction): propose a one-step bump (sonnet `medium`→`high`; opus
-  `high`→`xhigh`→`max`), user-confirmed only — NEVER silent. (`max` = deepest, uncapped tokens, session-only;
-  `xhigh` persists.) Resync the `effort:` line on any change.
+  delegating). Default: **ALL specialists run `high`**; on **sonnet, `high` is the ceiling — `xhigh`/`max` are
+  OPUS-ONLY** (they fall back on sonnet). The **PM runs `high`** too via its own frontmatter (not in
+  `effort_map`). **Escalation = one combined ladder** (model + effort together), same trigger as before (first
+  QA FAIL / user dissatisfaction), USER-confirmed only, NEVER silent: a stuck role goes
+  **`sonnet-high → opus-high → opus-max`** (`xhigh` = optional gentler middle: deep + persistent + capped).
+  Deep effort pays off most for the **architect** (hard design), **reviewer/QA** (subtle correctness), or **a
+  dev stuck on a hard bug** — never as a baseline. (`max` = deepest, uncapped tokens, session-only; `xhigh`
+  persists.) Resync the `effort:` line on any change.
 - **Escalation triggers:** a task fails QA **once** (the first FAIL already sets `escalation: true`), OR the
   **user reports dissatisfaction**. You then **MUST propose** a specialist upgrade (role + target, temporary
   or permanent in `model_map`); applied only after user OK.

@@ -227,12 +227,13 @@ state; RQs = what is clearly recognizable, the rest `UNCLEAR`). Then run Phase 0
   source of truth but only takes effect once **you** rewrite each specialist's `model:` line in
   `./.claude/agents/*.md` to match. Verify before delegating.
 - **Reasoning effort (`effort_map`):** each role also carries an `effort:` (`low|medium|high|xhigh|max`),
-  synced from `effort_map` exactly like `model:`. Defaults: deep-reasoning roles `high`, mechanical roles
-  (research-engineer, report-writer) `medium`. On **sonnet, `high` is the ceiling — `xhigh`/`max` are
-  OPUS-ONLY**. The **PM runs `high`** via its own frontmatter (not in `effort_map`). **Effort escalation**
-  rides the same trigger as the model escalation: propose a one-step bump (sonnet `medium`→`high`; opus
-  `high`→`xhigh`→`max`), user-confirmed only — NEVER silent. (`max` = uncapped tokens, session-only; `xhigh`
-  persists.) Resync the `effort:` line on any change.
+  synced from `effort_map` exactly like `model:`. Default: **ALL specialists run `high`**; on **sonnet, `high`
+  is the ceiling — `xhigh`/`max` are OPUS-ONLY**. The **PM runs `high`** too via its own frontmatter (not in
+  `effort_map`). **Escalation = one combined ladder** (model + effort together), same trigger as before,
+  USER-confirmed only, NEVER silent: a stuck role goes **`sonnet-high → opus-high → opus-max`** (`xhigh` =
+  optional gentler middle). Deep effort pays off most for the **methodologist** (hard design/stats),
+  **reviewer** (subtle validity), or **a stuck analysis** — never as a baseline. (`max` = uncapped tokens,
+  session-only; `xhigh` persists.) Resync the `effort:` line on any change.
 - **Escalation triggers:** validation fails **once**, OR the **user reports dissatisfaction** → you
   **MUST propose** a specialist upgrade; applied only after user OK.
 - **Foundation guard:** flag early when a task exceeds the current model.

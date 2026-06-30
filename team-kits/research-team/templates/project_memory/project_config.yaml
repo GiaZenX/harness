@@ -28,16 +28,16 @@ model_map:
   report-writer: sonnet
 
 # Reasoning effort per specialist (low | medium | high | xhigh | max). Like model_map, the PM rewrites each
-# specialist's `effort:` frontmatter to match this and verifies before delegating. DEFAULTS: the deep-reasoning
-# roles (methodologist, researcher, data-analyst, reviewer) run `high` (on sonnet, `high` is the ceiling —
-# xhigh/max are OPUS-ONLY); the mechanical roles (research-engineer lab-ops, report-writer) run `medium` to
-# save cost/latency. The PM (opus, session agent) runs `high` — set in its own agent frontmatter, NOT here.
-# Escalation: a stuck role may go up a step (sonnet medium->high; opus high->xhigh->max), USER-confirmed only,
-# same as the model escalation (§11). NEVER silent up-scaling.
+# specialist's `effort:` frontmatter to match this and verifies before delegating. DEFAULT: ALL specialists run
+# `high` — on sonnet, `high` is the ceiling (xhigh/max are OPUS-ONLY). The PM (opus, session agent) runs `high`
+# too, set in its own frontmatter (NOT here). ESCALATION (a stuck role, USER-confirmed, same trigger as the
+# model escalation, §11): one combined ladder `sonnet-high -> opus-high -> opus-max` (xhigh = optional gentler
+# middle: deep + persistent + capped). xhigh/max pay off most for the methodologist, reviewer, or a stuck
+# analysis — never as a baseline. NEVER silent up-scaling.
 effort_map:
   methodologist: high
   researcher: high
   data-analyst: high
   reviewer: high
-  research-engineer: medium
-  report-writer: medium
+  research-engineer: high
+  report-writer: high

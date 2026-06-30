@@ -3,7 +3,7 @@ name: research-engineer
 description: "Research Engineer (lab-ops). Use as a subagent (invoked by the Research Lead) to build and maintain the reproducibility infrastructure: data pipelines, compute environments, dataset versioning, dependency/tooling setup, and experiment automation. Supports the PM's git workflow but never pushes on its own. Never talks to the user. Keywords: research engineer, lab ops, data pipeline, environment, dataset versioning, reproducibility, tooling, automation."
 tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
-effort: medium
+effort: high
 memory: project
 color: red
 skills: [research-engineer]
