@@ -20,8 +20,12 @@ start discovery from zero or discard it.
 1. **READ** `project_memory/` (incl. any DRAFT plan) + consult your agent memory
    (`.claude/agent-memory/project-manager/MEMORY.md`).
 2. **ASK** product questions only (`AskUserQuestion`, prose first). Never technical ones → architect.
-3. **PROPOSE** — read `product_requirements.yaml` first (no duplicates), then write the PRD (or a Change
-   Request) as `PROPOSED` (refine the DRAFT PRD if one exists).
+   When the user asks for **NEW capabilities** beyond the current PRDs, capture each as a user-story
+   **Feature Request** in `feature_requests.yaml` (FR-xxxx, MoSCoW priority) rather than silently widening a PRD.
+3. **PROPOSE** — read `product_requirements.yaml` first (no duplicates), then write the PRD as a **user story**
+   (As-a/I-want/So-that) with Given/When/Then acceptance criteria, status `PROPOSED` (refine the DRAFT PRD if
+   one exists). **Triaging the backlog:** when an FR is accepted, convert it into a new PRD and set the FR's
+   `becomes: PRD-xxxx`. A change to an already-APPROVED PRD goes through a Change Request, not an edit.
 4. **APPROVE** — get the user's go → set the PRD `APPROVED`.
 5. **PLAN** — hand the approved PRD to `software-architect` to derive SRs; create branch `feat/PRD-xxx`.
    When the team is genuinely uncertain about a library/datasheet/API, task `research-engineer` (cited
@@ -52,8 +56,16 @@ append-only diagnostic layer — NOT project state). Run it periodically (or hav
 e.g. via `/schedule`), **read `retro.yaml`**, and fold recurring patterns into your agent memory — e.g.
 "`guard_pm_scope` blocked me N times → delegate sooner", or repeated `qa_failures` → propose a model upgrade.
 
+## Defects (bugs)
+A bug found **during** development/QA stays in the QA loop (the task's `qa_failures`) — no `bugs.yaml` entry.
+A bug found **after** acceptance, or any **regression**, gets a `bugs.yaml` `BUG-xxxx` (severity + repro +
+expected/actual + `violates: PRD/SR`), a `fix/BUG-xxxx` branch, and a **mandatory regression test** (fails
+before the fix, passes after — QA verifies before you set it `VERIFIED`). A bug is NOT a user story and NOT a
+CR; it is a defect against approved behaviour (constitution §7).
+
 ## Files you OWN (write) — keep them current
-`product_requirements.yaml` (PRDs), `change_requests.yaml`, `progress.yaml`, `changelog.yaml`,
+`product_requirements.yaml` (PRDs), `feature_requests.yaml` (the FR backlog), `change_requests.yaml`,
+`bugs.yaml` (defect log), `progress.yaml` (incl. the optional `milestones:` roadmap), `changelog.yaml`,
 `project_config.yaml`. **READ** everything else (incl. `system_requirements.yaml`). You do NOT write SRs
 (architect), tasks (devs), reports (QA), or production code.
 

@@ -58,6 +58,9 @@ PA_STATUS_MAP = {
     "REJECTED": "rejected",
 }
 
+# Statuses that count a research question as "delivered" for roadmap progress.
+DONE_STATUSES = {"validated", "accepted", "done", "applied"}
+
 
 def load_yaml(name):
     """Load a sibling YAML file, returning {} on missing/empty/invalid."""
@@ -142,6 +145,31 @@ def build_protocol_amendments():
         })
     items.sort(key=lambda x: x["id"])
     return items
+
+
+def build_milestones(items_by_id):
+    """Roadmap view: each milestone groups research-question ids; progress = delivered / total."""
+    raw = load_yaml("progress.yaml").get("milestones") or []
+    out = []
+    for ms in raw:
+        ms = ms or {}
+        ids = [str(i) for i in (ms.get("items") or [])]
+        members, done = [], 0
+        for iid in ids:
+            it = items_by_id.get(iid)
+            st = it["status"] if it else ""
+            if st in DONE_STATUSES:
+                done += 1
+            members.append({"id": iid, "status": st, "title": it["title"] if it else ""})
+        out.append({
+            "id": as_str(ms.get("id")),
+            "title": as_str(ms.get("title")),
+            "target": as_str(ms.get("target")),
+            "total": len(ids),
+            "done": done,
+            "items": members,
+        })
+    return out
 
 
 def strip_internal(items):
@@ -230,6 +258,9 @@ def main():
     prior = load_state()
     changes = compute_changes(all_items, prior)
 
+    items_by_id = {it["id"]: it for it in research_questions}
+    roadmap = build_milestones(items_by_id)
+
     progress = load_yaml("progress.yaml")
     status_text = as_str(progress.get("status"))
     today = datetime.date.today().isoformat()
@@ -240,6 +271,7 @@ def main():
         "research_questions": {"order": RQ_ORDER, "items": strip_internal(research_questions)},
         "tasks": {"order": TASK_ORDER, "items": strip_internal(tasks)},
         "protocol_amendments": {"order": PA_ORDER, "items": strip_internal(protocol_amendments)},
+        "roadmap": roadmap,
         "changes": changes,
     }
 
@@ -256,8 +288,8 @@ def main():
         json.dump(snapshot, fh, indent=2, ensure_ascii=False)
 
     sys.stdout.write(
-        "Dashboard generated: %s (%d research questions, %d tasks, %d PAs, %d changes)\n"
-        % (OUTPUT, len(research_questions), len(tasks), len(protocol_amendments), len(changes))
+        "Dashboard generated: %s (%d research questions, %d tasks, %d PAs, %d milestones, %d changes)\n"
+        % (OUTPUT, len(research_questions), len(tasks), len(protocol_amendments), len(roadmap), len(changes))
     )
 
 

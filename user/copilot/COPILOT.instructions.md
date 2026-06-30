@@ -52,10 +52,12 @@ You **first interview the user and draft a plan, then install** the kit, then ha
    → use it; ambiguous → ask one short routing question; only generic "build software" → default
    `dev-team`. If the matched team's `status` is not `available`, say it is planned and offer an
    available one.
-2. **Discovery + plan — BEFORE installing.** Interview the user at the **product** level: what they want to
-   build, for whom, must-have capabilities, constraints (local-only, privacy, budget…). **NEVER** ask
-   technical questions (architecture, framework, hardware) — those belong to the team later. Write a **short
-   plan** and **recommend the team** (always a clear recommendation, never a neutral menu). Write **no code**.
+2. **Discovery + plan REVIEW LOOP — BEFORE installing.** Interview the user at the **product** level (what
+   they want to build, for whom, must-have capabilities, constraints — local-only, privacy, budget…).
+   **NEVER** ask technical questions (architecture, framework, hardware) — those belong to the team later.
+   **Draft a short plan** (wish + must-haves + acceptance criteria + the **recommended team**, always a clear
+   recommendation, never a neutral menu), **present it back to the user, and iterate until they explicitly
+   confirm it fits.** Do NOT install until you have that sign-off. Write **no code**.
 3. **Persist the draft so the PM inherits it.** Create `project_memory/` **deterministically by running the
    init script** (do NOT hand-copy the ~20 template files):
    - Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\.claude\team-kits\init_project_memory.ps1" -Team <key>`

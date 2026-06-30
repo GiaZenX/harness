@@ -1,0 +1,30 @@
+# bugs.yaml — owned by: PM (triage + lifecycle) · verified by: QA
+# A DEFECT: APPROVED behaviour is violated (a regression, a production fault, a user-reported error).
+# Distinct from the other artifacts — different semantics, so a different type:
+#   * bug (BUG)            = approved behaviour is BROKEN  -> fix it; needs a regression test
+#   * feature_request (FR) = a NEW capability we don't have yet
+#   * change_request  (CR) = a deliberate CHANGE to approved scope
+# A bug found DURING development/QA (before acceptance) stays in the QA loop (the task's `qa_failures`) and
+# needs NO entry here. A bug found AFTER acceptance (or any regression) gets a BUG-XXXX entry, a
+# `fix/BUG-XXXX` branch, and a MANDATORY regression test that FAILS before the fix and PASSES after.
+# Status: OPEN -> IN_PROGRESS -> FIXED -> VERIFIED / WONTFIX / DUPLICATE
+#
+# Schema:
+#   BUG-XXXX:
+#     title: <short symptom>
+#     severity: low | medium | high | critical
+#     steps_to_reproduce: [ "...", "..." ]
+#     expected: <what should happen>
+#     actual: <what happens instead>
+#     violates: [PRD-XXXX | SR-XXXX]     # the approved behaviour it breaks
+#     status: OPEN
+#     fix_branch: fix/BUG-XXXX
+#     regression_test: ""                # the test id/path that now guards it (required before VERIFIED)
+#     created: YYYY-MM-DD
+#     closed: ""                         # set when VERIFIED / WONTFIX / DUPLICATE
+
+# No defects logged yet. Keep `applicable: false` until a post-acceptance bug/regression is reported;
+# bugs found during development are handled in the QA loop (task `qa_failures`), not here.
+applicable: false
+reason: "No post-acceptance defects reported yet; in-development bugs are handled in the QA loop (task qa_failures)."
+bugs: {}

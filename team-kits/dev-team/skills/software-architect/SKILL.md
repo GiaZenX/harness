@@ -39,18 +39,25 @@ You run as the **Architect**. The PM hands you an approved PRD. Procedure:
    toolchain + a justification of what is used vs. deliberately skipped in a `decisions.yaml` ADR, declare
    the stacks in `project_config.yaml` `stacks:` (the merge gate then enforces each — a declared stack with
    no checks FAILs), and have DevOps wire any domain-specific runner into `scripts/quality.py`.
-4. **ADRs** — record each significant decision in `decisions.yaml` (context, options, decision, consequences).
-5. **Coding guidelines** — maintain `coding_guidelines.yaml` (append-only). **Fill the `languages:` block
+4. **Packaging & deployment — decide HOW it ships (mandatory, never implicit).** Set `packaging.method` in
+   `architecture.yaml` (static-binary | container | wheel | npm | installer | service-image | none(library) | …),
+   with `targets` + `how_to_run`, and argue the choice in a `decisions.yaml` ADR (link it in `packaging.adr`).
+   Even "none / library only" is valid — but it MUST be stated. This is the deterministic guard against the
+   "Docker was forgotten" failure mode: `gate_packaging_decision.py` blocks the merge while `packaging.method`
+   is still TODO. (Pick the RIGHT method for the domain via step 3 — e.g. a CLI ships as a static binary, a
+   web service as a container image, a Python lib as a wheel.)
+5. **ADRs** — record each significant decision in `decisions.yaml` (context, options, decision, consequences).
+6. **Coding guidelines** — maintain `coding_guidelines.yaml` (append-only). **Fill the `languages:` block
    for a language BEFORE implementation in it begins** — empty guidelines for a used language is a defect
    (`guard_guidelines` blocks code in an unguided language). **Keep them current:** when a new PRD/CR adds a
    new language/stack, fill its block first; when the PM forwards a QA `guideline_gaps`, append that rule.
-6. **Threat model** — for security-relevant SRs (authentication, authorization, untrusted input, data
+7. **Threat model** — for security-relevant SRs (authentication, authorization, untrusted input, data
    handling, secrets, external integrations) record the threats + mitigations (STRIDE-style) in
    `decisions.yaml` so QA can verify them and DevOps can wire the matching pipeline checks.
-7. **Refactoring** — propose only on a real named cause; hand it to the PM, never refactor silently.
+8. **Refactoring** — propose only on a real named cause; hand it to the PM, never refactor silently.
 
 ## Files you WRITE (your owners)
-`system_requirements.yaml` (sole owner), `architecture.yaml` (incl. mermaid), `decisions.yaml`,
+`system_requirements.yaml` (sole owner), `architecture.yaml` (incl. mermaid + `packaging`), `decisions.yaml`,
 `coding_guidelines.yaml`. Write nothing else; never write PRDs or feature code.
 
 ## Output to the PM

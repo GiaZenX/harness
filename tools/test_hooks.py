@@ -215,3 +215,69 @@ def test_init_project_memory_copies_and_never_clobbers(tmp_path):
     r2 = subprocess.run(cmd, cwd=str(repo), capture_output=True, text=True, env=env, timeout=60)
     assert r2.returncode == 0, r2.stdout + r2.stderr
     assert a.read_text(encoding="utf-8") == "EDITED\n"
+
+
+# ---------------- gate_packaging_decision (the generalised "Docker was forgotten" guard) ----------------
+def test_packaging_gate_blocks_todo(prd_repo):
+    write(str(prd_repo / "project_memory" / "architecture.yaml"),
+          "components: {}\npackaging:\n  method: TODO\n  targets: []\n")
+    payload = {"tool_name": "Bash", "tool_input": {"command": "git merge feat/PRD-0001-x"}, "cwd": str(prd_repo)}
+    assert run_hook("gate_packaging_decision.py", payload, prd_repo) == 2
+
+
+def test_packaging_gate_allows_decided(prd_repo):
+    write(str(prd_repo / "project_memory" / "architecture.yaml"),
+          "components: {}\npackaging:\n  method: static-binary\n  targets: [linux, windows]\n")
+    payload = {"tool_name": "Bash", "tool_input": {"command": "git merge feat/PRD-0001-x"}, "cwd": str(prd_repo)}
+    assert run_hook("gate_packaging_decision.py", payload, prd_repo) == 0
+
+
+def test_packaging_gate_allows_explicit_none(prd_repo):
+    # "none (library only)" is a conscious decision and must pass — only TODO/absent blocks
+    write(str(prd_repo / "project_memory" / "architecture.yaml"),
+          "components: {}\npackaging:\n  method: none(library)\n")
+    payload = {"tool_name": "Bash", "tool_input": {"command": "git merge feat/PRD-0001-x"}, "cwd": str(prd_repo)}
+    assert run_hook("gate_packaging_decision.py", payload, prd_repo) == 0
+
+
+# ---------------- gate_memory_complete: optional FR backlog must not block ----------------
+def test_memory_complete_allows_empty_fr_backlog(prd_repo):
+    write(str(prd_repo / "project_memory" / "feature_requests.yaml"),
+          "applicable: false\nreason: no backlog yet\nfeature_requests: {}\n")
+    write(str(prd_repo / "project_memory" / "project_config.yaml"),
+          'project:\n  name: "Demo"\n  stacks: [python]\n')
+    payload = {"tool_name": "Bash", "tool_input": {"command": "git merge feat/PRD-0001-x"}, "cwd": str(prd_repo)}
+    assert run_hook("gate_memory_complete.py", payload, prd_repo) == 0
+
+
+# ---------------- dashboard generator: feature requests + roadmap land in the HTML ----------------
+def test_dashboard_renders_fr_and_roadmap(tmp_path):
+    try:
+        import yaml  # noqa: F401
+    except ImportError:
+        pytest.skip("pyyaml not available")
+    src = os.path.join(ROOT, "team-kits", "dev-team", "templates", "project_memory")
+    d = tmp_path / "pm"
+    d.mkdir()
+    shutil.copy(os.path.join(src, "generate_dashboard.py"), str(d / "generate_dashboard.py"))
+    shutil.copy(os.path.join(src, "progress.dashboard.template.html"), str(d / "progress.dashboard.template.html"))
+    write(str(d / "product_requirements.yaml"), "requirements:\n  PRD-0001:\n    title: t\n    status: ACCEPTED\n")
+    write(str(d / "feature_requests.yaml"), "feature_requests:\n  FR-0001:\n    title: f\n    status: PROPOSED\n")
+    write(str(d / "bugs.yaml"), "bugs:\n  BUG-0001:\n    title: crash\n    severity: high\n    status: OPEN\n")
+    write(str(d / "progress.yaml"),
+          "status: ok\nmilestones:\n  - id: M1\n    title: MVP\n    items: [PRD-0001, FR-0001]\n")
+    r = subprocess.run([sys.executable, str(d / "generate_dashboard.py")],
+                       capture_output=True, text=True, cwd=str(d), timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    html = (d / "progress.dashboard.html").read_text(encoding="utf-8")
+    assert "FR-0001" in html and "BUG-0001" in html and '"id": "M1"' in html
+    assert "1 FRs" in r.stdout and "1 bugs" in r.stdout and "1 milestones" in r.stdout
+
+
+def test_memory_complete_allows_empty_bug_log(prd_repo):
+    write(str(prd_repo / "project_memory" / "bugs.yaml"),
+          "applicable: false\nreason: no defects yet\nbugs: {}\n")
+    write(str(prd_repo / "project_memory" / "project_config.yaml"),
+          'project:\n  name: "Demo"\n  stacks: [python]\n')
+    payload = {"tool_name": "Bash", "tool_input": {"command": "git merge feat/PRD-0001-x"}, "cwd": str(prd_repo)}
+    assert run_hook("gate_memory_complete.py", payload, prd_repo) == 0

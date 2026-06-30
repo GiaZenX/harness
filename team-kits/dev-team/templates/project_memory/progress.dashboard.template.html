@@ -130,6 +130,21 @@
   .change .ttl { color: var(--muted); }
   .changes .none { color: var(--muted); font-style: italic; font-size: .85rem; }
 
+  /* Roadmap / milestones */
+  .roadmap-panel { margin-top: 16px; }
+  .milestone { border-top: 1px solid var(--line); padding: 12px 0; }
+  .milestone:first-child { border-top: none; }
+  .milestone .mhead { display: flex; align-items: baseline; gap: 10px; }
+  .milestone .mtitle { font-weight: 600; }
+  .milestone .mtarget { color: var(--muted); font-size: .8rem; }
+  .milestone .mcount { margin-left: auto; color: var(--muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
+  .milestone .track { background: var(--panel-2); border-radius: 999px; height: 10px; overflow: hidden; margin: 8px 0; }
+  .milestone .fill { height: 100%; border-radius: 999px; background: var(--good); transition: width .4s ease; min-width: 2px; }
+  .milestone .mitems { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .milestone .chip { font-size: .72rem; padding: 3px 8px; border-radius: 999px; background: var(--panel-2); color: var(--muted); }
+  .milestone .chip.delivered { color: var(--good); }
+  .milestone .none { color: var(--muted); font-style: italic; font-size: .85rem; }
+
   footer { margin-top: 28px; color: var(--muted); font-size: .75rem; }
 </style>
 </head>
@@ -177,6 +192,21 @@
     <h2>Change requests</h2>
     <div id="cr-bars"></div>
   </div>
+
+  <div class="panel">
+    <h2>Feature backlog</h2>
+    <div id="fr-bars"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Bugs</h2>
+    <div id="bug-bars"></div>
+  </div>
+</section>
+
+<section class="panel roadmap-panel" id="roadmap-panel" hidden>
+  <h2>Roadmap</h2>
+  <div id="roadmap"></div>
 </section>
 
 <footer>Self-contained dashboard &middot; no external resources &middot; generated from the project_memory YAML files. Do not edit by hand.</footer>
@@ -185,8 +215,9 @@
   Single source of truth. The generator replaces this whole block.
   Shape:
     status, last_update: header text
-    requirements/tasks/change_requests: { order: [..status keys..],
+    requirements/tasks/change_requests/feature_requests/bugs: { order: [..status keys..],
       items: [ { id, title, status, owner?, origin?, start?, end? } ] }
+    roadmap: [ { id, title, target?, total, done, items: [ { id, title, status } ] } ]
     changes: [ { kind: "new"|"changed", id, title, from?, to } ]
 -->
 <script type="application/json" id="dashboard-data">
@@ -196,6 +227,9 @@
   "requirements": { "order": ["proposed", "approved", "done", "tested", "accepted", "rejected"], "items": [] },
   "tasks": { "order": ["todo", "in_progress", "done", "validated", "rejected"], "items": [] },
   "change_requests": { "order": ["open", "applied", "rejected"], "items": [] },
+  "feature_requests": { "order": ["proposed", "triaged", "accepted", "deferred", "rejected"], "items": [] },
+  "bugs": { "order": ["open", "in_progress", "fixed", "verified", "wontfix"], "items": [] },
+  "roadmap": [],
   "changes": []
 }
 </script>
@@ -214,6 +248,9 @@
         requirements: { order: [], items: [] },
         tasks: { order: [], items: [] },
         change_requests: { order: [], items: [] },
+        feature_requests: { order: [], items: [] },
+        bugs: { order: [], items: [] },
+        roadmap: [],
         changes: [] };
     }
 
@@ -221,12 +258,16 @@
       proposed: "var(--todo)", approved: "var(--progress)", done: "var(--done)",
       tested: "var(--tested)", accepted: "var(--good)", rejected: "var(--bad)",
       todo: "var(--todo)", in_progress: "var(--progress)", validated: "var(--good)",
-      open: "var(--progress)", applied: "var(--good)"
+      open: "var(--progress)", applied: "var(--good)",
+      triaged: "var(--done)", deferred: "var(--todo)",
+      fixed: "var(--done)", verified: "var(--good)", wontfix: "var(--todo)"
     };
     var LABELS = {
       proposed: "Proposed", approved: "Approved", done: "Done", tested: "Tested",
       accepted: "Accepted", rejected: "Rejected", todo: "To do", in_progress: "In progress",
-      validated: "Validated", open: "Open", applied: "Applied"
+      validated: "Validated", open: "Open", applied: "Applied",
+      triaged: "Triaged", deferred: "Deferred",
+      fixed: "Fixed", verified: "Verified", wontfix: "Won't fix"
     };
 
     function countByStatus(section, key) {
@@ -350,6 +391,8 @@
         { label: "Requirements", value: totalItems(data.requirements) },
         { label: "Tasks", value: totalItems(data.tasks) },
         { label: "Accepted PRDs", value: countByStatus(data.requirements, "accepted") },
+        { label: "Backlog (FR)", value: totalItems(data.feature_requests) },
+        { label: "Open bugs", value: countByStatus(data.bugs, "open") + countByStatus(data.bugs, "in_progress") },
         { label: "Open CRs", value: countByStatus(data.change_requests, "open") }
       ];
       var host = document.getElementById("kpis");
@@ -447,6 +490,64 @@
       });
     }
 
+    function renderRoadmap() {
+      var panel = document.getElementById("roadmap-panel");
+      var host = document.getElementById("roadmap");
+      if (!panel || !host) { return; }
+      var milestones = data.roadmap || [];
+      if (milestones.length === 0) { panel.hidden = true; return; }
+      panel.hidden = false;
+      host.textContent = "";
+      var DELIVERED = ["done", "tested", "accepted", "applied", "validated"];
+      milestones.forEach(function (m) {
+        var total = m.total || 0, done = m.done || 0;
+        var pct = total === 0 ? 0 : Math.round((done / total) * 100);
+        var box = document.createElement("div");
+        box.className = "milestone";
+
+        var head = document.createElement("div");
+        head.className = "mhead";
+        var title = document.createElement("span");
+        title.className = "mtitle";
+        title.textContent = (m.id ? m.id + " \u2014 " : "") + (m.title || "");
+        head.appendChild(title);
+        if (m.target) {
+          var tgt = document.createElement("span");
+          tgt.className = "mtarget";
+          tgt.textContent = "target " + m.target;
+          head.appendChild(tgt);
+        }
+        var count = document.createElement("span");
+        count.className = "mcount";
+        count.textContent = done + " / " + total + " \u00b7 " + pct + "%";
+        head.appendChild(count);
+        box.appendChild(head);
+
+        var track = document.createElement("div");
+        track.className = "track";
+        var fill = document.createElement("div");
+        fill.className = "fill";
+        fill.style.width = pct + "%";
+        track.appendChild(fill);
+        box.appendChild(track);
+
+        var items = m.items || [];
+        if (items.length) {
+          var chips = document.createElement("div");
+          chips.className = "mitems";
+          items.forEach(function (it) {
+            var chip = document.createElement("span");
+            var delivered = DELIVERED.indexOf(it.status) !== -1;
+            chip.className = "chip" + (delivered ? " delivered" : "");
+            chip.textContent = it.id + (it.status ? " (" + it.status + ")" : "");
+            chips.appendChild(chip);
+          });
+          box.appendChild(chips);
+        }
+        host.appendChild(box);
+      });
+    }
+
     setText("status", data.status ? data.status : "\u2014");
     setText("last-update", data.last_update ? data.last_update : "\u2014");
     renderKpis();
@@ -455,6 +556,9 @@
     renderBars("req-bars", data.requirements);
     renderBars("task-bars", data.tasks);
     renderBars("cr-bars", data.change_requests);
+    renderBars("fr-bars", data.feature_requests);
+    renderBars("bug-bars", data.bugs);
+    renderRoadmap();
   })();
 </script>
 </body>

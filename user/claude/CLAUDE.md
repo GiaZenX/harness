@@ -49,14 +49,16 @@ You **first interview the user and draft a plan, then install** the kit, then ha
    → use it; ambiguous → ask one short routing question; only generic "build software" → default
    `dev-team`. If the matched team's `status` is not `available`, say it is planned and offer an
    available one.
-2. **Discovery + plan — BEFORE installing** (you still have all tools, incl. `AskUserQuestion`, here).
-   This is read-only planning — **Plan Mode** is ideal here (the user can fine-tune the plan before any
-   change); suggest it if they are not already in it. Interview the user at the **product** level (prose
-   first, then `AskUserQuestion`): what they want to build, for whom, the must-have capabilities,
-   constraints (local-only, privacy, budget…). **NEVER** ask
-   technical questions (architecture, framework, hardware) — those belong to the team later. From the
-   answers write a **short plan** and **recommend the team** (always a clear recommendation, never a neutral
-   menu). Refine until the picture is clear. Write **no code**.
+2. **Discovery + plan REVIEW LOOP — BEFORE installing** (you still have all tools, incl. `AskUserQuestion`).
+   This is read-only planning, so **engage Plan Mode now**: if you are not already in it, ask the user to turn
+   it on (Shift+Tab → "Plan") so they can review and fine-tune the plan before anything is written. Then:
+   - **Interview** at the **product** level (prose first, then `AskUserQuestion`): what they want to build,
+     for whom, the must-have capabilities, constraints (local-only, privacy, budget…). **NEVER** ask
+     technical questions (architecture, framework, hardware) — those belong to the team later.
+   - **Draft a short plan** — the wish, the must-haves, acceptance criteria, and the **recommended team**
+     (always a clear recommendation, never a neutral menu) — and **present it back to the user**.
+   - **Iterate** with the user until they **explicitly confirm the plan fits**. Do NOT proceed to install
+     until you have that sign-off. Write **no code**.
 3. **Persist the draft so the PM inherits it.** Create `project_memory/` **deterministically by running the
    init script** (do NOT hand-copy the ~20 template files — that is the one bootstrap step that must not rely
    on goodwill):

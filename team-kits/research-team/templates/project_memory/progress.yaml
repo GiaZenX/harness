@@ -21,5 +21,14 @@ metrics:
     open: 0
     applied: 0
 
+# Optional ROADMAP — group research questions (RQ ids) into milestones. The dashboard renders a
+# roadmap view and computes each milestone's progress from the status of its items. Leave empty
+# ([]) for a single-question effort; the PM fills it when the work spans several milestones.
+milestones: []
+#   - id: M1
+#     title: "Baseline established"
+#     target: 2026-07-15        # optional target date (YYYY-MM-DD)
+#     items: [RQ-0001, RQ-0002] # the research-question ids this milestone covers
+
 last_update: ""        # YYYY-MM-DD
 status: ""             # one-line project status

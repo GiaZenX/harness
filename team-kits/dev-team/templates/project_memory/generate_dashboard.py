@@ -48,6 +48,18 @@ STATE_FILE = os.path.join(HISTORY_DIR, ".dashboard_state.json")
 REQ_ORDER = ["proposed", "approved", "done", "tested", "accepted", "rejected"]
 TASK_ORDER = ["todo", "in_progress", "done", "validated", "rejected"]
 CR_ORDER = ["open", "applied", "rejected"]
+FR_ORDER = ["proposed", "triaged", "accepted", "deferred", "rejected"]
+BUG_ORDER = ["open", "in_progress", "fixed", "verified", "wontfix"]
+
+# Bug raw statuses map onto the defect buckets (DUPLICATE folds into the closed-without-fix bucket).
+BUG_STATUS_MAP = {
+    "OPEN": "open",
+    "IN_PROGRESS": "in_progress",
+    "FIXED": "fixed",
+    "VERIFIED": "verified",
+    "WONTFIX": "wontfix",
+    "DUPLICATE": "wontfix",
+}
 
 # Change requests collapse several raw statuses into the "open" bucket.
 CR_STATUS_MAP = {
@@ -57,6 +69,18 @@ CR_STATUS_MAP = {
     "APPLIED": "applied",
     "REJECTED": "rejected",
 }
+
+# Feature-request raw statuses map onto the backlog buckets.
+FR_STATUS_MAP = {
+    "PROPOSED": "proposed",
+    "TRIAGED": "triaged",
+    "ACCEPTED": "accepted",
+    "DEFERRED": "deferred",
+    "REJECTED": "rejected",
+}
+
+# Statuses that count a requirement / feature as "delivered" for roadmap progress.
+DONE_STATUSES = {"done", "tested", "accepted", "applied", "validated"}
 
 
 def load_yaml(name):
@@ -144,6 +168,73 @@ def build_change_requests():
     return items
 
 
+def build_feature_requests():
+    raw = load_yaml("feature_requests.yaml").get("feature_requests") or {}
+    items = []
+    for fid, body in raw.items():
+        body = body or {}
+        status = as_str(body.get("status")).upper()
+        canonical = FR_STATUS_MAP.get(status, "proposed")
+        items.append({
+            "id": fid,
+            "title": as_str(body.get("title")) or as_str(body.get("user_story")),
+            "status": canonical,
+            "raw_status": status or "PROPOSED",
+            "owner": as_str(body.get("priority")),          # MoSCoW priority shown as the "owner" chip
+            "origin": as_str(body.get("becomes")),          # the PRD it was triaged into, if any
+            "start": as_str(body.get("created")),
+            "end": as_str(body.get("closed")),
+        })
+    items.sort(key=lambda x: x["id"])
+    return items
+
+
+def build_bugs():
+    raw = load_yaml("bugs.yaml").get("bugs") or {}
+    items = []
+    for bid, body in raw.items():
+        body = body or {}
+        status = as_str(body.get("status")).upper()
+        canonical = BUG_STATUS_MAP.get(status, "open")
+        items.append({
+            "id": bid,
+            "title": as_str(body.get("title")),
+            "status": canonical,
+            "raw_status": status or "OPEN",
+            "owner": as_str(body.get("severity")),          # severity shown as the chip
+            "origin": join_list(body.get("violates")),      # the PRD/SR it breaks
+            "start": as_str(body.get("created")),
+            "end": as_str(body.get("closed")),
+        })
+    items.sort(key=lambda x: x["id"])
+    return items
+
+
+def build_milestones(items_by_id):
+    """Roadmap view: each milestone groups requirement/feature ids; progress = delivered / total."""
+    raw = load_yaml("progress.yaml").get("milestones") or []
+    out = []
+    for ms in raw:
+        ms = ms or {}
+        ids = [str(i) for i in (ms.get("items") or [])]
+        members, done = [], 0
+        for iid in ids:
+            it = items_by_id.get(iid)
+            st = it["status"] if it else ""
+            if st in DONE_STATUSES:
+                done += 1
+            members.append({"id": iid, "status": st, "title": it["title"] if it else ""})
+        out.append({
+            "id": as_str(ms.get("id")),
+            "title": as_str(ms.get("title")),
+            "target": as_str(ms.get("target")),
+            "total": len(ids),
+            "done": done,
+            "items": members,
+        })
+    return out
+
+
 def strip_internal(items):
     """Return items without the raw_status helper field (not needed in the UI)."""
     clean = []
@@ -225,10 +316,15 @@ def main():
     requirements = build_requirements()
     tasks = build_tasks()
     change_requests = build_change_requests()
-    all_items = requirements + tasks + change_requests
+    feature_requests = build_feature_requests()
+    bugs = build_bugs()
+    all_items = requirements + tasks + change_requests + feature_requests + bugs
 
     prior = load_state()
     changes = compute_changes(all_items, prior)
+
+    items_by_id = {it["id"]: it for it in (requirements + feature_requests)}
+    roadmap = build_milestones(items_by_id)
 
     progress = load_yaml("progress.yaml")
     status_text = as_str(progress.get("status"))
@@ -240,6 +336,9 @@ def main():
         "requirements": {"order": REQ_ORDER, "items": strip_internal(requirements)},
         "tasks": {"order": TASK_ORDER, "items": strip_internal(tasks)},
         "change_requests": {"order": CR_ORDER, "items": strip_internal(change_requests)},
+        "feature_requests": {"order": FR_ORDER, "items": strip_internal(feature_requests)},
+        "bugs": {"order": BUG_ORDER, "items": strip_internal(bugs)},
+        "roadmap": roadmap,
         "changes": changes,
     }
 
@@ -256,8 +355,10 @@ def main():
         json.dump(snapshot, fh, indent=2, ensure_ascii=False)
 
     sys.stdout.write(
-        "Dashboard generated: %s (%d requirements, %d tasks, %d CRs, %d changes)\n"
-        % (OUTPUT, len(requirements), len(tasks), len(change_requests), len(changes))
+        "Dashboard generated: %s (%d requirements, %d tasks, %d CRs, %d FRs, %d bugs, %d milestones, "
+        "%d changes)\n"
+        % (OUTPUT, len(requirements), len(tasks), len(change_requests),
+           len(feature_requests), len(bugs), len(roadmap), len(changes))
     )
 
 

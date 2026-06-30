@@ -130,6 +130,20 @@
   .change .ttl { color: var(--muted); }
   .changes .none { color: var(--muted); font-style: italic; font-size: .85rem; }
 
+  /* Roadmap / milestones */
+  .roadmap-panel { margin-top: 16px; }
+  .milestone { border-top: 1px solid var(--line); padding: 12px 0; }
+  .milestone:first-child { border-top: none; }
+  .milestone .mhead { display: flex; align-items: baseline; gap: 10px; }
+  .milestone .mtitle { font-weight: 600; }
+  .milestone .mtarget { color: var(--muted); font-size: .8rem; }
+  .milestone .mcount { margin-left: auto; color: var(--muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
+  .milestone .track { background: var(--panel-2); border-radius: 999px; height: 10px; overflow: hidden; margin: 8px 0; }
+  .milestone .fill { height: 100%; border-radius: 999px; background: var(--good); transition: width .4s ease; min-width: 2px; }
+  .milestone .mitems { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .milestone .chip { font-size: .72rem; padding: 3px 8px; border-radius: 999px; background: var(--panel-2); color: var(--muted); }
+  .milestone .chip.delivered { color: var(--good); }
+
   footer { margin-top: 28px; color: var(--muted); font-size: .75rem; }
 </style>
 </head>
@@ -179,6 +193,11 @@
   </div>
 </section>
 
+<section class="panel roadmap-panel" id="roadmap-panel" hidden>
+  <h2>Roadmap</h2>
+  <div id="roadmap"></div>
+</section>
+
 <footer>Self-contained dashboard &middot; no external resources &middot; generated from the project_memory YAML files. Do not edit by hand.</footer>
 
 <!--
@@ -187,6 +206,7 @@
     status, last_update: header text
     research_questions/tasks/protocol_amendments: { order: [..status keys..],
       items: [ { id, title, status, owner?, origin?, start?, end? } ] }
+    roadmap: [ { id, title, target?, total, done, items: [ { id, title, status } ] } ]
     changes: [ { kind: "new"|"changed", id, title, from?, to } ]
 -->
 <script type="application/json" id="dashboard-data">
@@ -196,6 +216,7 @@
   "research_questions": { "order": ["proposed", "approved", "investigated", "validated", "accepted", "rejected"], "items": [] },
   "tasks": { "order": ["todo", "in_progress", "done", "validated", "rejected"], "items": [] },
   "protocol_amendments": { "order": ["open", "applied", "rejected"], "items": [] },
+  "roadmap": [],
   "changes": []
 }
 </script>
@@ -210,7 +231,7 @@
       data = null;
     }
     if (!data) {
-      data = { status: "", last_update: "",
+      data = { status: "", last_update: "", roadmap: [],
         research_questions: { order: [], items: [] },
         tasks: { order: [], items: [] },
         protocol_amendments: { order: [], items: [] },
@@ -448,6 +469,64 @@
       });
     }
 
+    function renderRoadmap() {
+      var panel = document.getElementById("roadmap-panel");
+      var host = document.getElementById("roadmap");
+      if (!panel || !host) { return; }
+      var milestones = data.roadmap || [];
+      if (milestones.length === 0) { panel.hidden = true; return; }
+      panel.hidden = false;
+      host.textContent = "";
+      var DELIVERED = ["done", "tested", "accepted", "applied", "validated"];
+      milestones.forEach(function (m) {
+        var total = m.total || 0, done = m.done || 0;
+        var pct = total === 0 ? 0 : Math.round((done / total) * 100);
+        var box = document.createElement("div");
+        box.className = "milestone";
+
+        var head = document.createElement("div");
+        head.className = "mhead";
+        var title = document.createElement("span");
+        title.className = "mtitle";
+        title.textContent = (m.id ? m.id + " — " : "") + (m.title || "");
+        head.appendChild(title);
+        if (m.target) {
+          var tgt = document.createElement("span");
+          tgt.className = "mtarget";
+          tgt.textContent = "target " + m.target;
+          head.appendChild(tgt);
+        }
+        var count = document.createElement("span");
+        count.className = "mcount";
+        count.textContent = done + " / " + total + " · " + pct + "%";
+        head.appendChild(count);
+        box.appendChild(head);
+
+        var track = document.createElement("div");
+        track.className = "track";
+        var fill = document.createElement("div");
+        fill.className = "fill";
+        fill.style.width = pct + "%";
+        track.appendChild(fill);
+        box.appendChild(track);
+
+        var items = m.items || [];
+        if (items.length) {
+          var chips = document.createElement("div");
+          chips.className = "mitems";
+          items.forEach(function (it) {
+            var chip = document.createElement("span");
+            var delivered = DELIVERED.indexOf(it.status) !== -1;
+            chip.className = "chip" + (delivered ? " delivered" : "");
+            chip.textContent = it.id + (it.status ? " (" + it.status + ")" : "");
+            chips.appendChild(chip);
+          });
+          box.appendChild(chips);
+        }
+        host.appendChild(box);
+      });
+    }
+
     setText("status", data.status ? data.status : "—");
     setText("last-update", data.last_update ? data.last_update : "—");
     renderKpis();
@@ -456,6 +535,7 @@
     renderBars("rq-bars", data.research_questions);
     renderBars("task-bars", data.tasks);
     renderBars("pa-bars", data.protocol_amendments);
+    renderRoadmap();
   })();
 </script>
 </body>

@@ -1,0 +1,29 @@
+# feature_requests.yaml — owned by: PM
+# The product BACKLOG: requests for NEW functionality, written as user stories. This is
+# distinct from the other two requirement artifacts:
+#   * feature_request (FR) = a NEW capability the user wants (backlog item, user story)
+#   * change_request  (CR) = a change to an ALREADY-APPROVED requirement (see change_requests.yaml)
+#   * product_requirement (PRD) = an approved, scoped unit of delivery (the "north star")
+# An FR never becomes code directly: when ACCEPTED it is TRIAGED into a PRD (its `becomes`
+# field links to the resulting PRD-XXXX), so the full PRD -> SR -> TSK chain + all gates apply.
+# The first plan is captured as PRD(s); later wishes land here as FRs and are triaged over time.
+# Status: PROPOSED -> TRIAGED -> ACCEPTED (-> becomes a PRD) / REJECTED / DEFERRED
+#
+# Schema:
+#   FR-XXXX:
+#     title: <short capability name>
+#     user_story: "As a <role>, I want <capability>, so that <benefit>."
+#     rationale: <the problem it solves / why it matters>
+#     priority: must | should | could | wont      # MoSCoW
+#     status: PROPOSED
+#     becomes: ""           # PRD-XXXX once ACCEPTED + converted (the link to delivery)
+#     milestone: ""         # optional milestone id this FR belongs to (see progress.yaml `milestones`)
+#     created: YYYY-MM-DD
+#     closed: ""            # set when ACCEPTED(converted) / REJECTED
+
+# An empty backlog at init is fine — this artifact is OPTIONAL (a project may start from a
+# single PRD). Keep `applicable: false` until the user requests NEW capabilities beyond the
+# current PRD(s); then remove it and add FR-XXXX entries.
+applicable: false
+reason: "No feature backlog yet — the initial scope is captured directly as PRD(s). The PM opens FR-XXXX here when the user requests NEW capabilities beyond the current PRDs."
+feature_requests: {}

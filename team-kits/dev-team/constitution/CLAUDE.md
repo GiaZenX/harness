@@ -98,6 +98,10 @@
      per-area coverage threshold or an `architecture.yaml` component has no passing test (see §12a).
    - **Completeness gate:** `gate_memory_complete.py` blocks merge/push while a required `project_memory/`
      YAML is still empty/template (see §6a).
+   - **Packaging gate:** `gate_packaging_decision.py` blocks merge/push while `architecture.yaml`
+     `packaging.method` is still TODO — HOW the software ships must be a conscious decision (even "none /
+     library" is valid, but it must be stated). The deterministic guard against the "Docker was forgotten"
+     failure mode; the architect owns it (§6).
    - **Session start:** `session_status.py` reminds you who you are and to read `project_memory/` first.
    - **Dashboard:** the `Stop` hook regenerates the dashboard automatically.
    - **cwd-independent:** every hook resolves the repo root by walking up to `.claude/`/`project_memory/`/`.git`
@@ -116,12 +120,18 @@
 ## 4. Requirement hierarchy (4 levels)
 
 ```
-User Prompt → PRD (fachlich) → SRD (technisch) → Tasks
-                 │
-                 └── Change Request (only if the PRD already exists)
+Feature Request (backlog) ─triage→ PRD (fachlich) → SRD (technisch) → Tasks
+                                      │
+                                      └── Change Request (only if the PRD already exists)
 ```
 
-- **Product Requirement (PRD):** functional, customer-visible.
+- **Feature Request (FR):** a NEW capability the user wants, captured as a **user story** in
+  `feature_requests.yaml` (the backlog). It is never coded directly: when ACCEPTED you **triage** it into a
+  PRD (FR `becomes:` PRD-XXXX), so the full chain + gates apply. The backlog is optional.
+- **Product Requirement (PRD):** functional, customer-visible — an APPROVED, scoped unit of delivery (the
+  "north star"). Phrased as a user story with Given/When/Then acceptance criteria. Approved once, then NOT
+  rewritten — the plan is a guideline; evolution is FR (new) + CR (change).
+- **Change Request (CR):** a change to an ALREADY-APPROVED requirement (never silent — see §7).
 - **System Requirement (SR):** technical, internal — the user normally never sees these.
 - The user never creates requirements directly; you (PM) derive them.
 
@@ -158,7 +168,7 @@ its own area (prevents overwriting).
 
 | Artifact | Write owner |
 |---|---|
-| `product_requirements.yaml` / `change_requests.yaml` | **PM** |
+| `product_requirements.yaml` / `change_requests.yaml` / `feature_requests.yaml` / `bugs.yaml` | **PM** |
 | `system_requirements.yaml` | **Architect** (sole writer; PM derives via the architect) |
 | `progress.yaml` / `changelog.yaml` / `project_config.yaml` | **PM** |
 | `architecture.yaml` / `decisions.yaml` / `coding_guidelines.yaml` | **Architect** |
@@ -181,21 +191,34 @@ always free; writing is owner-only.
 At init the YAMLs are legitimately the shipped templates; some artifacts are genuinely **not applicable**
 for a given project. The rule is therefore: by **PRD acceptance/merge**, every *required* `project_memory/`
 YAML MUST hold real content — no empty file, no empty-container stub (`{}` / `[]` / `""`). An artifact that
-truly does not apply (e.g. `change_requests.yaml` with no change, `design.yaml` without a UI) MUST say so
-explicitly: `applicable: false` + a one-line `reason` — never silently empty. `gate_memory_complete.py`
-detects "still empty at merge" by content and blocks the merge/push.
+truly does not apply (e.g. `change_requests.yaml` with no change, `feature_requests.yaml` with no backlog,
+`bugs.yaml` with no defect, `design.yaml` without a UI) MUST say so explicitly: `applicable: false` + a
+one-line `reason` — never silently empty. `gate_memory_complete.py` detects "still empty at merge" by content
+and blocks the merge/push.
 
 `progress.dashboard.html` is generated, NEVER hand-edited: **you (PM)** run `generate_dashboard.py`,
 which reads the YAML artifacts, rebuilds the file from `progress.dashboard.template.html`, archives the
 previous version under `dashboard_history/`, and highlights what changed since the last run.
 
-## 7. Change Requests
+## 7. Feature Requests, Change Requests & Bugs
 
-If a requirement already exists, never change it silently. You create a Change Request, run an impact
-analysis (via specialist subagents), get user approval, then apply the change.
+Three ways the project evolves after the first plan — all explicit, never silent:
+
+- **Feature Request (FR) — NEW capability.** Capture the user's wish as a user story in
+  `feature_requests.yaml` (backlog), prioritise it (MoSCoW), and when the user accepts it, **triage it into a
+  new PRD** (set FR `becomes: PRD-XXXX`). New functionality always flows FR → PRD, never FR → code.
+- **Change Request (CR) — change to an APPROVED requirement.** Never edit an approved PRD silently: open a CR,
+  run an impact analysis (via specialist subagents), get user approval, then apply the change.
+- **Bug (BUG) — APPROVED behaviour is broken.** Not a new wish and not a deliberate change — a **defect**. A
+  bug found DURING development/QA stays in the QA loop (the task's `qa_failures`, no `bugs.yaml` entry). A bug
+  found AFTER acceptance (or any regression) gets a `bugs.yaml` entry, a `fix/BUG-xxxx` branch, and a
+  **mandatory regression test** that fails before the fix and passes after (QA verifies it). Bugs are NOT user
+  stories — they carry reproduction steps + expected/actual + severity.
 
 ```
+FR-007: { user_story: "As a collector, I want price alerts, so that …", status: PROPOSED → ACCEPTED, becomes: PRD-0004 }
 CR-003: { affects: [PRD-012], status: PROPOSED → WAITING_APPROVAL → APPROVED → APPLIED }
+BUG-002: { violates: [PRD-0001], severity: high, status: OPEN → FIXED → VERIFIED, fix_branch: fix/BUG-002 }
 ```
 
 ## 8. Git rules
@@ -210,8 +233,10 @@ CR-003: { affects: [PRD-012], status: PROPOSED → WAITING_APPROVAL → APPROVED
 
 | Artifact | Prefix | Status chain |
 |---|---|---|
+| Feature Request | `FR-` | PROPOSED → TRIAGED → ACCEPTED (→ becomes a PRD) / REJECTED / DEFERRED |
 | Product Requirement | `PRD-` | PROPOSED → APPROVED → DONE → TESTED → ACCEPTED / REJECTED |
 | Change Request | `CR-` | PROPOSED → WAITING_APPROVAL → APPROVED → APPLIED / REJECTED |
+| Bug | `BUG-` | OPEN → IN_PROGRESS → FIXED → VERIFIED / WONTFIX / DUPLICATE |
 | System Requirement | `SR-` | DRAFT → ACTIVE → DONE |
 | Task | `TSK-` | TODO → IN_PROGRESS → DONE → VALIDATED / REJECTED |
 | Architecture Decision | `ADR-` | PROPOSED → ACCEPTED → SUPERSEDED |

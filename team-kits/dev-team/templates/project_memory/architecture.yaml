@@ -22,3 +22,13 @@ data_flow: ""
 mermaid: |
   graph TD
     %% Architect: keep this component diagram in sync with `components` above.
+
+# How the software is BUILT and SHIPPED — a CONSCIOUS decision, never implicit. Even "none (library only)"
+# is a valid choice, but it MUST be stated. This is the deterministic guard against the "Docker was
+# forgotten" failure mode: the architect decides packaging/deployment up front and records the rationale as
+# an ADR in decisions.yaml. `gate_packaging_decision.py` blocks the merge while `method` is still TODO.
+packaging:
+  method: TODO        # static-binary | container | wheel | npm | installer | service-image | none(library) | ...
+  targets: []         # e.g. [linux, windows, macos], or the deployment environment for a service
+  how_to_run: ""      # how the user obtains and runs it (the build/install/deploy step)
+  adr: ""             # the ADR id in decisions.yaml that argues this choice (e.g. ADR-0007)

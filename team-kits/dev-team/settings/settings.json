@@ -45,6 +45,7 @@
           { "type": "command", "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/gate_git.py\"" },
           { "type": "command", "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/gate_test_coverage.py\"" },
           { "type": "command", "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/gate_memory_complete.py\"" },
+          { "type": "command", "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/gate_packaging_decision.py\"" },
           { "type": "command", "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/gate_pipeline.py\"", "timeout": 1800 }
         ]
       },

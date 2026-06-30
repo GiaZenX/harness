@@ -22,6 +22,10 @@ pipeline:
   - dependencies: SCA audit clean (pip-audit / npm audit) — no known high/critical vulns; deps pinned
   - sbom: an SBOM is produced (cyclonedx) as a build artifact
   - licenses: DevOps reviews the SBOM's licenses against the project's allow-list (MANUAL step — not gate-enforced)
+  - packaging: the build/ship method is a conscious decision — architecture.yaml `packaging.method` is set
+      (not TODO) and argued in an ADR; gate-enforced by gate_packaging_decision.py (even "none/library" is valid)
+  - bugfix_regression: a fix for a bugs.yaml BUG carries a regression test that FAILS pre-fix and PASSES
+      post-fix (QA-verified, recorded in test_reports.yaml) before the bug may be VERIFIED
   # WHAT IS TOOL-ENFORCED vs VERIFIED — be honest:
   #  * EXECUTED by scripts/quality.py (gate_pipeline at merge + CI): format, lint, types, unit tests,
   #    GLOBAL coverage>=threshold, SAST, SCA, secret scan (gitleaks: hard in CI / warn-only locally), SBOM.

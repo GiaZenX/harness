@@ -1,15 +1,27 @@
 # product_requirements.yaml — owned by: PM
-# Functional, customer-visible requirements. The user NEVER writes these directly.
+# Functional, customer-visible requirements — the approved "north star" units of delivery.
+# The user NEVER writes these directly. A PRD is APPROVED once and then NOT rewritten: new
+# capabilities arrive as feature_requests (FR) and are triaged into NEW PRDs; changes to an
+# approved PRD go through change_requests (CR). The plan is a guideline, not a living doc.
 # Status: PROPOSED -> APPROVED -> DONE -> TESTED -> ACCEPTED / REJECTED
+#
+# A USER-FACING PRD is phrased as a USER STORY (who + what + why). A purely technical/enabler PRD
+# (a migration, infra, observability — no direct user-visible behaviour) uses a clear goal instead;
+# forcing "As a developer I want…" onto it is an anti-pattern. EITHER way, every PRD carries objectively
+# testable Given/When/Then acceptance criteria. (Bugs are NOT PRDs — see bugs.yaml.)
 #
 # Schema:
 #   PRD-XXXX:
 #     title: <short functional goal>
+#     user_story: "As a <role>, I want <capability>, so that <benefit>."   # user-facing PRDs; omit for pure-technical ones
 #     description: <plain language>
-#     acceptance_criteria: [ ... ]
+#     acceptance_criteria:        # prefer Given/When/Then; each must be objectively testable
+#       - "Given <context>, when <action>, then <observable outcome>."
+#     origin: ""                 # FR-XXXX if this PRD was triaged from a feature request (else "")
 #     status: PROPOSED
 #     complete: false            # true only when discovery is finished
 #     branch: feat/PRD-XXXX-...  # set in SYSTEM_PLANNING
+#     milestone: ""              # optional milestone id (see progress.yaml `milestones`)
 #     created: YYYY-MM-DD        # start date, set when first written (PROPOSED)
 #     closed: ""                 # end date, set when ACCEPTED / REJECTED
 

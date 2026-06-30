@@ -20,5 +20,14 @@ metrics:
     open: 0
     applied: 0
 
+# Optional ROADMAP — group requirements (PRD / FR ids) into milestones. The dashboard renders a
+# roadmap view and computes each milestone's progress from the status of its items. Leave empty
+# ([]) for a single-deliverable project; the PM fills it when the work spans several milestones.
+milestones: []
+#   - id: M1
+#     title: "MVP"
+#     target: 2026-07-15            # optional target date (YYYY-MM-DD)
+#     items: [PRD-0001, FR-0002]    # the requirement / feature ids this milestone covers
+
 last_update: ""        # YYYY-MM-DD
 status: ""             # one-line project status

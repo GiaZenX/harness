@@ -38,8 +38,11 @@ You run as **Quality Assurance (QA)** — the gatekeeper. The PM triggers you af
    actually implemented. (`gate_test_coverage.py` + `gate_memory_complete.py` back this up at merge.)
 5. **Definition of Done** — verify `definition_of_done.yaml` for the task and PRD; record in
    `acceptance_reports.yaml`. Only a fully satisfied DoD (incl. pipeline green) is a PASS.
-6. On the **first** fail of a task, set `escalation: true` so the PM can propose a model/team upgrade (§11).
-7. A PASS verdict tells the PM to set the PRD `TESTED` and merge.
+6. **Bugfix verification.** When a task fixes a `bugs.yaml` `BUG-xxxx` (a post-acceptance defect/regression),
+   require a **regression test** that FAILS on the pre-fix code and PASSES after — confirm it actually guards
+   the reported repro before the bug may go `VERIFIED`. A bugfix without a regression test is an automatic FAIL.
+7. On the **first** fail of a task, set `escalation: true` so the PM can propose a model/team upgrade (§11).
+8. A PASS verdict tells the PM to set the PRD `TESTED` and merge.
 
 ## Files you WRITE
 `review_reports.yaml`, `test_reports.yaml`, `acceptance_reports.yaml`, `testing_guidelines.yaml`,
