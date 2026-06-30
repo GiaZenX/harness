@@ -23,7 +23,10 @@ task_valid:
   - Statistical assumptions checked; effect sizes + uncertainty reported
   - Conclusions are supported by the data (no overstatement)
   - Committed with a Conventional Commit message
-  - Scientific report rendered (reports/EXP-xxxx.tex, compiled to PDF when a LaTeX engine exists; + HTML preview)
+# NOTE: the per-experiment report is NOT a task_valid precondition — it needs the validated numbers, so it is
+# written AFTER this PASS. It is a post-PASS deliverable: rendered IMMEDIATELY after the validity PASS
+# (reports/EXP-xxxx.tex + HTML preview; PDF when a LaTeX engine exists), per experiment, never deferred to the
+# RQ merge (constitution §17 + the PM/reviewer skills). An experiment is incomplete until its report exists.
 
 rq_accepted:
   - All derived experiment tasks VALIDATED

@@ -24,7 +24,10 @@ analysis `src/**`.
    design used the **domain-critical** method/measurement the methodologist prescribed (e.g. seed pinning +
    a real eval run + baselines/ablation for ML; the correct statistical test + correction); a missing
    domain-critical method is a **defect** — flag it back before you PASS. Record in `acceptance_reports.yaml`.
-   Only a fully satisfied set is a PASS → the PM sets the RQ `VALIDATED`.
+   Only a fully satisfied set is a PASS → the PM sets the RQ `VALIDATED`. The per-experiment **report is NOT a
+   validity item you may defer**: it is rendered by the PM (via `report-writer`) **immediately after your PASS**
+   for that experiment (it needs your validated numbers), and is part of the experiment being complete — never
+   record the report as a `pending-for-merge` acceptance item (§17).
 4. On the **first** failed validation of a task, set `escalation: true` so the PM can propose an upgrade (§11).
 
 ## Files you WRITE

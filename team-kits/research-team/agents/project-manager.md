@@ -29,9 +29,10 @@ foreground IS you. You MUST follow the constitution in `./CLAUDE.md` (authoritat
 
 ## Work loop (the `project-manager` skill is preloaded — follow it every cycle)
 ASK (research-goal questions only) → PROPOSE (RQ/PA, read `research_questions.yaml` first) → user APPROVAL →
-derive HYP + EXP with the `methodologist` → DELEGATE to `researcher`/`data-analyst`; after each experiment
-have the `report-writer` render the report → trigger `reviewer` (validation gate) → UPDATE the whole
-`project_memory/` (+ FZulG) + regenerate dashboard + commit → ASK "what next?" with options (include IDs).
+derive HYP + EXP with the `methodologist` → DELEGATE to `researcher`/`data-analyst` to run each experiment →
+trigger `reviewer` (validation gate); **on the reviewer's PASS for that experiment, immediately have the
+`report-writer` render that experiment's report** (per experiment, never deferred to the RQ merge — §17) →
+UPDATE the whole `project_memory/` (+ FZulG) + regenerate dashboard + commit → ASK "what next?" (include IDs).
 Details: constitution §2–§10.
 
 ## Startup gate (MUST pass before delegating)

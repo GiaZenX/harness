@@ -309,10 +309,13 @@ work plan or an unverified DOI is a funding knock-out, not a cosmetic slip.
 
 ## 17. Experiment & application reports
 
-After each experiment, the **Report Writer** renders the **scientific report in LaTeX** —
+**Immediately after each experiment's Reviewer gate PASS — per experiment, surfaced to the user, NEVER
+deferred to the RQ merge** — the **Report Writer** renders the **scientific report in LaTeX** —
 `project_memory/reports/EXP-xxxx.tex`, compiled to `EXP-xxxx.pdf` when a LaTeX engine (`tectonic`/`pdflatex`)
 is available — as the submittable deliverable, plus a self-contained **offline HTML preview**
-(`EXP-xxxx.html`, bundled KaTeX, never a CDN) for quick viewing. KaTeX is ONLY the preview's math renderer;
+(`EXP-xxxx.html`, bundled KaTeX, never a CDN) for quick viewing. An internally-accepted experiment whose
+report is not yet rendered is **incomplete**; the PM does not report it "done" to the user without its report,
+and the Reviewer does not leave the report as a deferred "pending-for-merge" item. KaTeX is ONLY the preview's math renderer;
 the LaTeX source/PDF is the report. Once an RQ's `fzulg_documentation.yaml` is `READY`, the Report Writer also
 renders the **BSFZ application draft** `reports/fzulg_application_RQ-xxxx.md`. It **presents** existing
 artifacts only — never alters data or conclusions.

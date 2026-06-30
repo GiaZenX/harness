@@ -46,7 +46,8 @@ PyYAML (`pip install pyyaml`); the generated HTML itself has no dependencies and
 
 ## Experiment reports
 
-After each experiment the Report Writer renders the **scientific report in LaTeX** (`reports/EXP-xxxx.tex`,
+Immediately after each experiment's **Reviewer-gate PASS** (per experiment, never deferred to the RQ merge)
+the Report Writer renders the **scientific report in LaTeX** (`reports/EXP-xxxx.tex`,
 compiled to `EXP-xxxx.pdf` when a LaTeX engine is available) — the submittable deliverable — plus a
 self-contained **HTML preview** (`reports/EXP-xxxx.html`) whose formulas render **offline** via the bundled
 KaTeX in `reports/assets/` (no CDN). KaTeX is only the preview's math renderer; the LaTeX/PDF is the report.

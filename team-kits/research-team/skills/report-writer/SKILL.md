@@ -41,7 +41,8 @@ and the templates `project_memory/reports/scientific_report.template.tex` and
 ## Files you WRITE
 `project_memory/reports/EXP-*.tex` (+ compiled `EXP-*.pdf`), `project_memory/reports/EXP-*.html`, and
 `project_memory/reports/fzulg_application_RQ-*.md`. Nothing else; never edit the templates, the bundled
-assets, or any YAML.
+assets, or any YAML. If you genuinely need a render helper, keep it under `scripts/` (NEVER the repo root) —
+but prefer rendering the report directly without committing a separate generator script.
 
 ## Output to the PM
 YAML: `summary`, `exp_id`, `report_paths` (tex/pdf/html), `fzulg_draft_path`, `sections_filled`,
