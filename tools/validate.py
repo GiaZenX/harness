@@ -108,16 +108,17 @@ for cfg in glob.glob(ROOT + "/team-kits/*/templates/project_memory/project_confi
             fails.append("%s: %s has key '%s' with no matching agent" % (rel(cfg), mapname, stray))
         if lead in keys:
             fails.append("%s: %s must NOT list the session lead '%s'" % (rel(cfg), mapname, lead))
-        # each specialist's frontmatter field must equal the map value
-        for role in sorted(specialists & keys):
+        # each specialist MUST carry the field, and it must equal the map value
+        for role in sorted(specialists):
             ap = os.path.join(kit_dir, "agents", role + ".md")
             try:
                 afm = frontmatter(open(ap, encoding="utf-8").read()) or {}
             except Exception:
                 continue
-            got = afm.get(field)
-            if got is not None and str(got) != str(m[role]):
-                fails.append("%s: %s:%s != %s '%s' (%s)" % (rel(ap), field, got, mapname, m[role], role))
+            if field not in afm:
+                fails.append("%s: specialist missing '%s:' frontmatter" % (rel(ap), field))
+            elif role in keys and str(afm[field]) != str(m[role]):
+                fails.append("%s: %s:%s != %s '%s' (%s)" % (rel(ap), field, afm[field], mapname, m[role], role))
     # the session lead carries model: + effort: but is NOT in the maps
     lp = os.path.join(kit_dir, "agents", lead + ".md")
     if os.path.isfile(lp):
