@@ -3,6 +3,7 @@ name: data-analyst
 description: "Data Analyst. Use as a subagent (invoked by the Research Lead) to turn collected data into findings: statistical analysis, visualization, effect sizes, uncertainty, and interpretation against the hypotheses and analysis plan. Writes tests for analysis code and commits per task. Never talks to the user. Keywords: data analyst, statistics, analysis, visualization, effect size, interpretation, findings."
 tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
+effort: high
 memory: project
 color: green
 skills: [data-analyst]

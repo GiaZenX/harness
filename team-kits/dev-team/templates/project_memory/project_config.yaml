@@ -29,3 +29,18 @@ model_map:
   frontend-developer: sonnet
   quality-engineer: sonnet
   devops-engineer: sonnet
+
+# Reasoning effort per specialist (low | medium | high | xhigh | max). Like model_map, the PM rewrites each
+# specialist's `effort:` frontmatter to match this and verifies before delegating. DEFAULTS: deep-reasoning +
+# implementation roles run `high` (on sonnet, `high` is the ceiling — xhigh/max are OPUS-ONLY); the mechanical
+# role (devops) runs `medium` to save cost/latency. The PM (opus, session agent) runs `high` — set in its own
+# agent frontmatter, NOT here. Escalation: a stuck role may go up a step (sonnet medium->high; opus
+# high->xhigh->max), USER-confirmed only, same as the model escalation (§11). NEVER silent up-scaling.
+effort_map:
+  software-architect: high
+  product-designer: high
+  research-engineer: high
+  backend-developer: high
+  frontend-developer: high
+  quality-engineer: high
+  devops-engineer: medium

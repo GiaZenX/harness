@@ -3,6 +3,7 @@ name: frontend-developer
 description: "Frontend developer. Use as a subagent (invoked by the Project Manager) to implement client-side tasks: UI components, views, state, and integration with backend APIs. Works against the architect's system requirements and the coding guidelines, writes tests, and commits per task. Never talks to the user. Keywords: frontend, UI, component, view, client, state management, implement task."
 tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
+effort: high
 memory: project
 color: green
 skills: [frontend-developer]

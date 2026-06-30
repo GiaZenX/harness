@@ -3,6 +3,7 @@ name: researcher
 description: "Researcher / Experimenter. Use as a subagent (invoked by the Research Lead) to execute experiment tasks: run the procedure, collect data, implement analysis code/notebooks against the experiment design and research guidelines. Records raw data and commits per task. Never talks to the user. Keywords: researcher, experimenter, run experiment, collect data, analysis code, notebook, implement task."
 tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
+effort: high
 memory: project
 color: blue
 skills: [researcher]

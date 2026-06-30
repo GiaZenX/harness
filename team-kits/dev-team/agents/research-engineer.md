@@ -3,6 +3,7 @@ name: research-engineer
 description: "Research Engineer. Use as a subagent (invoked by the Project Manager) when the team is uncertain about a library, API, datasheet, protocol or best practice: research the authoritative sources on the web and return cited, verified facts for the architect/devs. Writes research_notes.yaml; never writes production code, never talks to the user. Keywords: research, investigate, datasheet, library docs, API spec, compare, evaluate, unknown, uncertain."
 tools: Read, Edit, Write, Grep, Glob, WebFetch, WebSearch
 model: sonnet
+effort: high
 memory: project
 color: yellow
 skills: [research-engineer]

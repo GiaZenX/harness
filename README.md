@@ -234,6 +234,11 @@ by double-click.
   real run), controlled per repo via `project_config.yaml` (the PM syncs each specialist's `model:`
   frontmatter — haiku only for simple roles, opus for the hardest). Dial the PM to `sonnet` if opus is too
   costly. Specialist upgrades only after a user OK (triggers: first QA fail or dissatisfaction).
+- **Reasoning effort:** each role also carries an `effort:` (`low|medium|high|xhigh|max`), set per repo via an
+  **`effort_map`** in `project_config.yaml` (the PM syncs each specialist's `effort:` frontmatter, same as
+  `model:`). Defaults: most roles `high`, mechanical roles (devops / report-writer) `medium`, the PM `high`.
+  On **sonnet `high` is the ceiling — `xhigh`/`max` are opus-only**. Effort escalates one step on the same
+  user-gated trigger as the model (sonnet `medium`→`high`; opus `high`→`xhigh`→`max`).
 
 ### Memory
 

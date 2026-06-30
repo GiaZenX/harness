@@ -31,8 +31,8 @@ This kit adds an FZulG (German R&D tax credit) documentation layer on top of a r
   first real start you MUST **read that draft, summarise it to the user, and refine/confirm it** — never
   restart discovery from zero or silently discard it.
 - **Hard gate:** do not spawn ANY specialist subagent before `project_config.yaml` exists with a
-  **user-confirmed** team preset AND the specialists' `model:` frontmatter is synced to `model_map`
-  (see §11). You enforce this in Phase 0.
+  **user-confirmed** team preset AND the specialists' `model:` + `effort:` frontmatter is synced to
+  `model_map` / `effort_map` (see §11). You enforce this in Phase 0.
 
 ## 1. Roles — who talks to whom
 
@@ -226,6 +226,13 @@ state; RQs = what is clearly recognizable, the rest `UNCLEAR`). Then run Phase 0
 - **Specialist model sync:** a specialist runs on the `model:` in its own frontmatter; `model_map` is the
   source of truth but only takes effect once **you** rewrite each specialist's `model:` line in
   `./.claude/agents/*.md` to match. Verify before delegating.
+- **Reasoning effort (`effort_map`):** each role also carries an `effort:` (`low|medium|high|xhigh|max`),
+  synced from `effort_map` exactly like `model:`. Defaults: deep-reasoning roles `high`, mechanical roles
+  (research-engineer, report-writer) `medium`. On **sonnet, `high` is the ceiling — `xhigh`/`max` are
+  OPUS-ONLY**. The **PM runs `high`** via its own frontmatter (not in `effort_map`). **Effort escalation**
+  rides the same trigger as the model escalation: propose a one-step bump (sonnet `medium`→`high`; opus
+  `high`→`xhigh`→`max`), user-confirmed only — NEVER silent. (`max` = uncapped tokens, session-only; `xhigh`
+  persists.) Resync the `effort:` line on any change.
 - **Escalation triggers:** validation fails **once**, OR the **user reports dissatisfaction** → you
   **MUST propose** a specialist upgrade; applied only after user OK.
 - **Foundation guard:** flag early when a task exceeds the current model.

@@ -82,6 +82,50 @@ for team in reg.get("teams", []):
         if not os.path.isfile(ROOT + "/team-kits/%s/agents/%s.md" % (kit, role)):
             fails.append("registry: %s role '%s' has no agent file" % (kit, role))
 
+# 7) model_map/effort_map <-> specialist agent frontmatter (catch tier drift in the shipped kit)
+for cfg in glob.glob(ROOT + "/team-kits/*/templates/project_memory/project_config.yaml"):
+    kit_dir = os.path.dirname(os.path.dirname(os.path.dirname(cfg)))   # -> team-kits/<kit>
+    try:
+        conf = yaml.safe_load(open(cfg, encoding="utf-8").read()) or {}
+    except Exception:
+        continue  # YAML parse already reported in step 2
+    lead = "project-manager"  # the session lead is excluded from the maps
+    sp = os.path.join(kit_dir, "settings", "settings.json")
+    if os.path.isfile(sp):
+        try:
+            lead = json.load(open(sp, encoding="utf-8")).get("agent") or lead
+        except Exception:
+            pass
+    specialists = {os.path.splitext(os.path.basename(a))[0]
+                   for a in glob.glob(os.path.join(kit_dir, "agents", "*.md"))} - {lead}
+    field_of = {"model_map": "model", "effort_map": "effort"}
+    for mapname, field in field_of.items():
+        m = conf.get(mapname) or {}
+        keys = set(m)
+        for missing in sorted(specialists - keys):
+            fails.append("%s: %s missing specialist '%s'" % (rel(cfg), mapname, missing))
+        for stray in sorted(keys - specialists):
+            fails.append("%s: %s has key '%s' with no matching agent" % (rel(cfg), mapname, stray))
+        if lead in keys:
+            fails.append("%s: %s must NOT list the session lead '%s'" % (rel(cfg), mapname, lead))
+        # each specialist's frontmatter field must equal the map value
+        for role in sorted(specialists & keys):
+            ap = os.path.join(kit_dir, "agents", role + ".md")
+            try:
+                afm = frontmatter(open(ap, encoding="utf-8").read()) or {}
+            except Exception:
+                continue
+            got = afm.get(field)
+            if got is not None and str(got) != str(m[role]):
+                fails.append("%s: %s:%s != %s '%s' (%s)" % (rel(ap), field, got, mapname, m[role], role))
+    # the session lead carries model: + effort: but is NOT in the maps
+    lp = os.path.join(kit_dir, "agents", lead + ".md")
+    if os.path.isfile(lp):
+        lfm = frontmatter(open(lp, encoding="utf-8").read()) or {}
+        for field in ("model", "effort"):
+            if field not in lfm:
+                fails.append("%s: session lead missing '%s:' frontmatter" % (rel(lp), field))
+
 if fails:
     print("VALIDATION FAILED (%d):" % len(fails))
     for f in fails:
