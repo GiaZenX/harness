@@ -10,6 +10,7 @@ Thumbs.db
 __pycache__/
 .mypy_cache/
 .pytest_cache/
+.ruff_cache/
 
 # Throwaway E2E sandbox
 .e2e-sandbox/

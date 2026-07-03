@@ -79,7 +79,8 @@ if [ -d "$KIT/templates/repo" ]; then
       cp "$KIT/templates/repo/$rel" "$dst"
       echo "  [ok] repo: $rel"
     fi
-  done < <(cd "$KIT/templates/repo" && find . -type f -not -path '*/__pycache__/*')
+  done < <(cd "$KIT/templates/repo" && find . -type f -not -path '*/__pycache__/*' \
+           -not -path '*/.ruff_cache/*' -not -path '*/.mypy_cache/*' -not -path '*/.pytest_cache/*')
 fi
 
 echo "Team '$TEAM' installed locally. RESTART the session (close/reopen, or start a new session in this folder) -- the new agents and the 'agent: project-manager' setting only load at session start. After the restart the Project Manager greets you automatically with the plan (no need to type anything) and picks up any draft in project_memory/."
