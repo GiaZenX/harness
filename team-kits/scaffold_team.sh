@@ -67,6 +67,11 @@ if [ -f "$KIT/settings/settings.json" ]; then
   cp -f "$KIT/settings/settings.json" "$REPO/.claude/settings.json"
   echo "  [ok] .claude/settings.json (session agent + enforcement hooks)"
 fi
+# Stamp the installed kit version (session_status compares it with the staged kit to flag updates).
+if [ -f "$KIT/VERSION" ]; then
+  cp -f "$KIT/VERSION" "$REPO/.claude/kit_version"
+  echo "  [ok] .claude/kit_version ($(head -n 1 "$KIT/VERSION"))"
+fi
 
 # Repo-level quality templates (scripts/quality.py, CI, pre-commit, requirements-dev) -- copy-if-absent
 # so DevOps can customise them without a re-scaffold clobbering changes. The merge gate runs quality.py.

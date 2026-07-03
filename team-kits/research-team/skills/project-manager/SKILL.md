@@ -47,6 +47,13 @@ If the install session left a **DRAFT** plan (a DRAFT `research_questions.yaml` 
    **RQ (PROPOSED)** or a **PA**, a maybe is noted as `DEFERRED`. On user acceptance set the RQ `ACCEPTED`.
 10. **UPDATE AGENT MEMORY** — craft learnings only.
 
+## Kit updates (session start flags a version mismatch)
+When `session_status` reports **KIT UPDATE AVAILABLE**, propose the update to the user in one sentence
+(harness files are replaced — with a backup; `project_memory/` content is **NEVER overwritten**; missing new
+templates are added copy-if-absent). On their OK run the platform's `scaffold_team` script and then
+`init_project_memory`, and ask for a **session restart**. NEVER hand-merge harness files, never skip the
+restart. Afterwards gates may require newly added fields in existing filled YAMLs — fill those small deltas.
+
 ## Retro (read-only feedback)
 `scripts/retro.py` aggregates the cycle's facts (commits, validation failures, gate blocks from
 `project_memory/.audit/hook_events.jsonl`, rejected tasks) into `project_memory/retro.yaml` (its own

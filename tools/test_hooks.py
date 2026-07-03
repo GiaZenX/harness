@@ -247,6 +247,54 @@ def test_quality_red_on_invalid_project_memory_yaml(tmp_path):
     assert run_quality(str(tmp_path)) == 1
 
 
+# ---------------- kit versioning: session_status flags updates; validate enforces bumps ----------------
+def _mk_kit_repo(tmp_path, local_version, staged_version):
+    home = tmp_path / "home"
+    write(str(home / ".claude" / "team-kits" / "dev-team" / "VERSION"), staged_version)
+    repo = tmp_path / "repo"
+    write(str(repo / "CLAUDE.md"), "<!-- agents-and-skills:team-kit dev-team -->\n# x\n")
+    if local_version is not None:
+        write(str(repo / ".claude" / "kit_version"), local_version)
+    return home, repo
+
+
+def _run_session_status(home, repo):
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(repo), HOME=str(home), USERPROFILE=str(home))
+    p = subprocess.run([sys.executable, os.path.join(HOOKS, "session_status.py")],
+                       input=json.dumps({"cwd": str(repo)}), capture_output=True, text=True,
+                       env=env, timeout=60)
+    return p.stdout
+
+
+def test_session_status_flags_kit_update(tmp_path):
+    home, repo = _mk_kit_repo(tmp_path, "version: 2026.07.01-1\ncontent: aaa\n",
+                              "version: 2026.07.03-1\ncontent: bbb\n")
+    out = _run_session_status(home, repo)
+    assert "KIT UPDATE AVAILABLE" in out and "2026.07.03-1" in out
+
+
+def test_session_status_quiet_when_current(tmp_path):
+    v = "version: 2026.07.03-1\ncontent: same\n"
+    home, repo = _mk_kit_repo(tmp_path, v, v)
+    out = _run_session_status(home, repo)
+    assert "KIT UPDATE AVAILABLE" not in out
+
+
+def test_validate_catches_unbumped_kit_change():
+    # append a comment to a kit file -> hash drifts -> validate must FAIL mentioning the bump tool
+    p = os.path.join(ROOT, "team-kits", "dev-team", "hooks", "_audit.py")
+    orig = open(p, encoding="utf-8").read()
+    try:
+        with open(p, "a", encoding="utf-8", newline="") as fh:
+            fh.write("\n# temp-test-drift\n")
+        r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "validate.py")],
+                           capture_output=True, text=True, timeout=120)
+        assert r.returncode == 1 and "VERSION not bumped" in r.stdout
+    finally:
+        with open(p, "w", encoding="utf-8", newline="") as fh:
+            fh.write(orig)
+
+
 # ---------------- gate_test_coverage + guard_guidelines for C/C++ (embedded) ----------------
 def test_coverage_blocks_cpp_without_tests(prd_repo):
     write(str(prd_repo / "src" / "main.cpp"), "int main(){return 0;}\n")

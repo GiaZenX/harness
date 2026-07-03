@@ -369,6 +369,12 @@ git pull
 ./install.sh --force
 ```
 
+Team kits are **versioned** (`team-kits/<kit>/VERSION`, content-hashed — `validate.py` fails if a kit changes
+without a bump). The scaffold stamps `./.claude/kit_version` into each project; at session start the
+`session_status` hook compares it with the staged kit and flags **KIT UPDATE AVAILABLE**. The PM then proposes
+the update (scaffold_team + init_project_memory — backup first, copy-if-absent, `project_memory/` content is
+never overwritten) and asks for a restart; newly required fields in existing YAMLs are requested by the gates.
+
 ---
 
 ## Uninstall

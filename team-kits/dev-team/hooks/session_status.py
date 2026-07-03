@@ -10,6 +10,7 @@ never fails on a fresh machine. Cannot block; emits additionalContext.
 import sys
 import os
 import json
+import re
 import subprocess
 
 
@@ -53,6 +54,33 @@ def main():
             "project_memory/ from the kit templates, confirm the team preset + per-specialist models, "
             "then proceed. Do not delegate before project_config.yaml exists."
         )
+
+    # kit-update detection: compare the repo's installed kit stamp with the staged kit version.
+    try:
+        kit = ""
+        cpath = os.path.join(cwd, "CLAUDE.md")
+        if os.path.isfile(cpath):
+            with open(cpath, encoding="utf-8", errors="ignore") as fh:
+                m = re.search(r"agents-and-skills:team-kit\s+([\w-]+)", fh.readline())
+            kit = m.group(1) if m else ""
+        if kit:
+            staged_p = os.path.join(os.path.expanduser("~"), ".claude", "team-kits", kit, "VERSION")
+            local_p = os.path.join(cwd, ".claude", "kit_version")
+            staged = open(staged_p, encoding="utf-8").read().strip() if os.path.isfile(staged_p) else ""
+            local = open(local_p, encoding="utf-8").read().strip() if os.path.isfile(local_p) else ""
+            if staged and staged != local:
+                lv = local.splitlines()[0].replace("version: ", "") if local else "no version stamp"
+                sv = staged.splitlines()[0].replace("version: ", "")
+                parts.append(
+                    "KIT UPDATE AVAILABLE: the staged '%s' kit (%s) differs from this repo's installed kit "
+                    "(%s) — usually a newer harness. Propose the update to the user; on their OK run the "
+                    "scaffold_team script and then init_project_memory (both safe: backup first, "
+                    "copy-if-absent — project_memory content is NEVER overwritten), then ask for a session "
+                    "restart. Never hand-merge harness files. After updating, gates may require newly added "
+                    "fields in existing YAMLs — fill those small deltas." % (kit, sv, lv)
+                )
+    except Exception:
+        pass
 
     out = {
         "hookSpecificOutput": {

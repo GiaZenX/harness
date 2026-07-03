@@ -74,6 +74,12 @@ if (Test-Path $settingsSrc) {
     Copy-Item $settingsSrc (Join-Path $repo ".claude\settings.json") -Force
     Write-Host "  [ok] .claude/settings.json (session agent + enforcement hooks)" -ForegroundColor Green
 }
+# Stamp the installed kit version (session_status compares it with the staged kit to flag updates).
+$verSrc = Join-Path $kit "VERSION"
+if (Test-Path $verSrc) {
+    Copy-Item $verSrc (Join-Path $repo ".claude\kit_version") -Force
+    Write-Host "  [ok] .claude/kit_version ($((Get-Content $verSrc -TotalCount 1)))" -ForegroundColor Green
+}
 
 # Repo-level quality templates (scripts/quality.py, CI, pre-commit, requirements-dev) -- copy-if-absent
 # so DevOps can customise them without a re-scaffold clobbering changes. The merge gate runs quality.py.

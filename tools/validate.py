@@ -127,6 +127,19 @@ for cfg in glob.glob(ROOT + "/team-kits/*/templates/project_memory/project_confi
             if field not in lfm:
                 fails.append("%s: session lead missing '%s:' frontmatter" % (rel(lp), field))
 
+# 8) kit VERSION stamps must match the kit content (forgetting a bump is a CI failure)
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+from bump_kit_version import kit_hash  # noqa: E402
+
+for kit in ("dev-team", "research-team"):
+    kit_dir = os.path.join(ROOT, "team-kits", kit)
+    vfile = os.path.join(kit_dir, "VERSION")
+    if not os.path.isfile(vfile):
+        fails.append("%s: missing team-kits/%s/VERSION — run python tools/bump_kit_version.py" % (kit, kit))
+        continue
+    if ("content: %s" % kit_hash(kit_dir)) not in open(vfile, encoding="utf-8").read():
+        fails.append("%s: kit files changed but VERSION not bumped — run python tools/bump_kit_version.py" % kit)
+
 if fails:
     print("VALIDATION FAILED (%d):" % len(fails))
     for f in fails:

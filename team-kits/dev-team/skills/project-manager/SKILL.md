@@ -101,6 +101,14 @@ bypassing a gate is never. And **syntax repairs inside another owner's artifact 
 the write-time YAML guard (`guard_yaml_valid`) hands them the exact error immediately; do not hot-fix their
 files (single-writer, §6).
 
+## Kit updates (session start flags a version mismatch)
+When `session_status` reports **KIT UPDATE AVAILABLE**, propose the update to the user in one sentence
+(harness files are replaced — with a backup; `project_memory/` content is **NEVER overwritten**; missing new
+templates are added copy-if-absent). On their OK run the platform's `scaffold_team` script and then
+`init_project_memory`, and ask for a **session restart**. NEVER hand-merge harness files, never skip the
+restart. Afterwards gates may require newly added fields in existing filled YAMLs — fill those small deltas;
+nothing filled is ever lost.
+
 ## Defects (bugs)
 A bug found **during** development/QA stays in the QA loop (the task's `qa_failures`) — no `bugs.yaml` entry.
 A bug found **after** acceptance, or any **regression**, gets a `bugs.yaml` `BUG-xxxx` (severity + repro +
