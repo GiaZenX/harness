@@ -35,6 +35,19 @@ function Test-ReparsePoint {
     }
 }
 
+function Get-FileSha256 {
+    param([string]$Path)
+    # .NET directly instead of Get-FileHash: the cmdlet resolves via PSModulePath auto-loading,
+    # which breaks when a pwsh parent (e.g. a CI runner or a pwsh terminal) hands its PS7 module
+    # path to this Windows-PowerShell child — a real run failed with CommandNotFoundException.
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $stream = [IO.File]::OpenRead($Path)
+        try { return ([BitConverter]::ToString($sha.ComputeHash($stream)) -replace '-', '') }
+        finally { $stream.Dispose() }
+    } finally { $sha.Dispose() }
+}
+
 function Assert-SafeRepoPath {
     param([string]$Path)
     $repoFull = [IO.Path]::GetFullPath($repo).TrimEnd('\', '/')
@@ -485,7 +498,7 @@ if (Test-Path $repoTplSrc) {
             if ($dstDir -and -not (Test-Path $dstDir)) { New-Item -ItemType Directory -Force -Path $dstDir | Out-Null }
             Copy-Item $_.FullName $dst -Force
             Write-Host "  [ok] repo: $rel" -ForegroundColor Green
-        } elseif ((Get-FileHash $dst -Algorithm SHA256).Hash -ne (Get-FileHash $_.FullName -Algorithm SHA256).Hash) {
+        } elseif ((Get-FileSha256 $dst) -ne (Get-FileSha256 $_.FullName)) {
             # copy-if-absent keeps the project's version — but say so, or a kit fix (e.g. quality.py)
             # silently never reaches existing projects while the update reads as "applied".
             Write-Host "  [kept] repo: $rel (differs from the kit template - review/merge manually)" -ForegroundColor Yellow

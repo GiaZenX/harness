@@ -5,7 +5,13 @@ repo's history for any agent CLI (Claude Code, Codex) and for humans. Full ratio
 in the referenced commit messages; project conventions live in the kits themselves. Newest first.
 Append an entry with every shipped round (same commit).
 
-## 2026-07-14 — Two-auditor cleanliness sweep after the parity round (kits 2026.07.14-9)
+## 2026-07-14 — Two-auditor cleanliness sweep after the parity round (kits 2026.07.14-10)
+(-9 -> -10 within the hour: the NEW ci-green rule immediately caught its first real bug — on
+GitHub's windows runner a pwsh parent hands its PS7 PSModulePath to the powershell-5.1 child, so
+`Get-FileHash` (module auto-load) failed with CommandNotFoundException inside
+init_project_memory.ps1/scaffold_team.ps1. That also hits real users invoking the scripts from a
+pwsh terminal. Fixed by hashing via .NET SHA256 directly (no module resolution); verified locally
+under a deliberately poisoned PSModulePath.)
 Two INDEPENDENT auditors swept repo + installed state + both live projects. Their unanimous green:
 staging/user files byte-identical to sources, both projects contract-clean on -8, the
 user/claude-vs-user/codex asymmetry is by design ($CODEX_HOME/config.toml is user-owned; everything

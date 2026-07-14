@@ -93,6 +93,19 @@ foreach ($relative in @(".claude\kit_update_pending.memory", ".claude\kit_update
 }
 if (-not (Test-Path $dst)) { New-Item -ItemType Directory -Force -Path $dst | Out-Null }
 
+function Get-FileSha256 {
+    param([string]$Path)
+    # .NET directly instead of Get-FileHash: the cmdlet resolves via PSModulePath auto-loading,
+    # which breaks when a pwsh parent (e.g. a CI runner or a pwsh terminal) hands its PS7 module
+    # path to this Windows-PowerShell child — a real run failed with CommandNotFoundException.
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $stream = [IO.File]::OpenRead($Path)
+        try { return ([BitConverter]::ToString($sha.ComputeHash($stream)) -replace '-', '') }
+        finally { $stream.Dispose() }
+    } finally { $sha.Dispose() }
+}
+
 $copied = 0; $kept = 0
 $keptTooling = @()
 $templateFiles | ForEach-Object {
@@ -103,7 +116,7 @@ $templateFiles | ForEach-Object {
         # TOOLING files (generator/templates/assets — NOT the user's filled YAML state) may lag behind a
         # newer kit: make that visible so the PM can propose the delta. Filled YAMLs always differ — silent.
         if ($rel -match '\.py$|\.template\.|\.tex$|^reports[\\/]assets[\\/]') {
-            if ((Get-FileHash $target -Algorithm SHA256).Hash -ne (Get-FileHash $_.FullName -Algorithm SHA256).Hash) {
+            if ((Get-FileSha256 $target) -ne (Get-FileSha256 $_.FullName)) {
                 Write-Host "  [kept] $rel (tooling differs from the kit template - review/merge manually)" -ForegroundColor Yellow
                 $keptTooling += ($rel -replace '\\', '/')
             }
