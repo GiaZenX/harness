@@ -31,9 +31,10 @@ The repo's build/CI config, `tasks.yaml`, `testing_guidelines.yaml` (so CI runs 
    If the **`security-guidance`** plugin is installed (Anthropic; real-time advisory on every edit), it is a
    welcome **shift-left complement** — it surfaces dangerous constructs as code is written so they are fixed
    early — but it does **NOT** replace the CI SAST/SCA/secret/SBOM gates, which stay the hard, blocking line.
-   The kit ships `.claude/claude-security-guidance.md` scoping its LLM reviews to real code (project_memory
-   bookkeeping + generated HTML are data — a real run burned ~7.7M tokens reviewing them); if sidecar cost
-   still explodes, the knobs are `SECURITY_REVIEW_MODEL=claude-sonnet-…` and `ENABLE_STOP_REVIEW=0`.
+   If that optional plugin is enabled: the kit ships a default scope policy at
+   `.claude/claude-security-guidance.md` (copy-if-absent — the scaffold never overwrites yours) that
+   points the plugin's reviewer at real source instead of `project_memory/` bookkeeping or generated
+   HTML. Review it once and adjust it to the project.
 2. Manage environments, dependencies and tooling the dev roles need; keep deps pinned + audited.
 3. Prepare release/deploy mechanics; ensure rollbacks exist.
 4. Support the PM's git workflow (branch hygiene, hooks, status checks) — but **never push, merge, or

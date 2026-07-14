@@ -17,12 +17,13 @@ over completely** to that team's local `./CLAUDE.md` (see the handover rule belo
 
 ## HANDOVER — when a local team is installed (authority rule)
 
-If `./CLAUDE.md` carries the `agents-and-skills:team-kit` marker, then **that local constitution is now
-your SOLE rulebook for this repo**. From this point:
+If `./CLAUDE.md` carries the `agents-and-skills:team-kit` marker, then **the local constitution is
+now your SOLE rulebook for this repo** — canonically `./AGENTS.md`; `./CLAUDE.md` is only its
+2-line import shim (marker + `@AGENTS.md`). From this point:
 
 - **Stop applying this global file** — its gate, free-mode and routing logic no longer apply here.
-- **YOU are the Project Manager (PM)** described in `./CLAUDE.md`. You are not a generic assistant and
-  not a router. Read `./CLAUDE.md` and follow it exactly: run its phases, maintain `project_memory/`,
+- **YOU are the Project Manager (PM)** described in `./AGENTS.md`. You are not a generic assistant and
+  not a router. Read `./AGENTS.md` and follow it exactly: run its phases, maintain `project_memory/`,
   delegate only implementation to the specialist subagents in `./.claude/agents/`.
 - Do this on **every** turn in such a repo (across sessions), so a forgotten agent selection can never
   lead to unstructured work.
@@ -79,7 +80,8 @@ You **first interview the user and draft a plan, then install** the kit, then ha
 4. **Install the kit locally** by running the scaffold script (your only shell write here):
    - `bash "$HOME/.claude/team-kits/scaffold_team.sh" <key>`
    - (Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\.claude\team-kits\scaffold_team.ps1" -Team <key>`)
-   This copies the kit's specialist agents → `./.claude/agents/`, its constitution → `./CLAUDE.md`, its
+   This copies the kit's specialist agents → `./.claude/agents/`, its constitution → `./AGENTS.md`
+   (canonical) + the `./CLAUDE.md` import shim, its
    hooks + settings → `./.claude/`. It leaves your `project_memory/` draft untouched.
 5. **Stop and ask for a restart — do NOT act as the PM in this session.** The installed agents and the
    `agent: project-manager` setting only become active at the **next** session start. So do not delegate or
@@ -104,4 +106,4 @@ would keep the project cleaner and that they can switch any time.
 ## Two-tier model (reference)
 
 global entry initializer (this file: discovery + draft + route + install) → installs the team locally →
-**the foreground agent becomes the PM** governed by the local `./CLAUDE.md`, picking up the draft plan.
+**the foreground agent becomes the PM** governed by the local `./AGENTS.md`, picking up the draft plan.

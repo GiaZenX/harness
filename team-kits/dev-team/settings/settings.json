@@ -1,4 +1,5 @@
 {
+  "_comment": "Claude Code registration of the shared, provider-neutral Python hooks (.claude/hooks/*.py speak every provider payload via _compat.py). The Codex counterpart (.codex/hooks.json + config.toml) is GENERATED from this file by team-kits/gen_provider_artifacts.py - never hand-maintained.",
   "agent": "project-manager",
   "model": "opus",
   "permissions": {

@@ -1,6 +1,6 @@
 # Team-kit registry — single source of truth for intent -> kit routing.
 #
-# The global entry gate (user/{claude,copilot}/CLAUDE.md / COPILOT.instructions.md) reads this file
+# The global entry gates (user/claude/CLAUDE.md and user/codex/AGENTS.md) read this file
 # to decide which team kit to install into a repository. Adding a new team type is one entry here —
 # no prose edits elsewhere.
 #
@@ -9,8 +9,9 @@
 # A kit is installable only if `status: available`.
 #
 # Presets are MECHANICAL: each kit ships a presets.yaml (preset -> installed specialist roles);
-# with a preset only those roles (+ the lead) are installed, so spawning any other role fails
-# natively. `presets:` below just NAMES them for the entry gate; the kit file is authoritative.
+# with a preset only those kit roles (+ the lead) are installed. Provider-native built-ins may still
+# exist (notably in Codex), but the generated team policy forbids selecting them. `presets:` below
+# just NAMES them for the entry gate; the kit file is authoritative.
 #
 # `lead: project-manager` is the kit's SESSION agent: the kit's .claude/settings.json sets
 # `agent: project-manager`, so the repo's main session IS the PM (not a spawnable subagent).

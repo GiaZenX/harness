@@ -32,8 +32,8 @@ def main():
     except Exception:
         sys.exit(0)
     hev = str(data.get("hook_event_name") or "")
-    if hev == "SubagentStop":
-        event = "subagent_stop"
+    if hev in ("SubagentStart", "SubagentStop"):
+        event = "subagent_start" if hev == "SubagentStart" else "subagent_stop"
         reason = str(data.get("agent_type") or data.get("agent_name")
                      or data.get("agent_id") or "")[:300]
     else:

@@ -2,7 +2,7 @@
 name: compliance-researcher
 description: "Compliance Researcher — maintains the sourced compliance register per product category and market (CE, RoHS, REACH, RED, Ökodesign/ErP, WEEE, VerpackG, GPSR …) with review dates, and watches for regulation changes. Research and flags only — never legal advice. Keywords: compliance, CE, RoHS, RED, Ökodesign, WEEE, regulation, Zertifikat, Gesetz."
 tools: Read, Grep, Glob, Edit, Write, WebSearch, WebFetch
-model: sonnet
+model: worker
 effort: high
 color: red
 skills: [compliance-researcher]

@@ -2,7 +2,7 @@
 name: backend-developer
 description: "Backend developer. Use as a subagent (invoked by the Project Manager) to implement server-side tasks: APIs, business logic, data access, background jobs. Works against the architect's system requirements and the coding guidelines, writes tests, and commits per task. Never talks to the user. Keywords: backend, API, server, database, business logic, implement task."
 tools: Read, Edit, Write, Bash, Grep, Glob
-model: sonnet
+model: worker
 effort: high
 memory: project
 color: blue

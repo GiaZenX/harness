@@ -1,9 +1,41 @@
 # Harness log
 
 One dated entry per hardening round: WHAT changed and WHY — the tool-neutral entry point into this
-repo's history for any agent CLI (Claude Code, Codex, Copilot) and for humans. Full rationale lives
+repo's history for any agent CLI (Claude Code, Codex) and for humans. Full rationale lives
 in the referenced commit messages; project conventions live in the kits themselves. Newest first.
 Append an entry with every shipped round (same commit).
+
+## 2026-07-14 — Codex-authored parity deepening, reviewed + hardened; Copilot removed (kits 2026.07.14-7)
+An OpenAI Codex (GPT-5.6 Sol) session reworked the provider layer for functional Claude/Codex
+parity (transactional scaffold with snapshot/rollback, ownership manifests + symlink/reparse
+guards, a runtime hook-bundle hash verifier inside every generated hook command, preset parsing
+moved from shell regex to Python/PyYAML, role-scoped specialist hooks, subagent-start auditing,
+fail-closed settings merge; left unstaged as kits -6). A three-agent review plus an
+official-source fact check (learn.chatgpt.com docs + the openai/codex source) confirmed the
+security claims AND the doubted event contracts (PostToolUse and SubagentStart EXIST; `agent_type`
+is a required payload field; exit-2 and `decision: block` are both documented), then this round
+fixed the regressions before shipping: the settings.local.json gate no longer blocks on
+`permissions`/`model` (it had locked every actively used project out of kit updates), a legacy
+project_config without `providers:` defaults to [claude, codex] instead of hard-failing (a PRESENT
+but invalid line stays fail-closed), install.ps1 no longer swallows merge failures, PS-5.1
+`2>$null` footguns removed, bash-3.2 empty-array expansion fixed (macOS), dangling reparse points
+detected, install.sh staging litter trapped, dead generator code removed, the unverified 0.138.0
+baseline replaced by the documented 0.131.0 hooks-GA+trust baseline, one wrong docs path fixed
+(`/docs/build-skills`). DECISIONS: (1) **Copilot support removed** — the kits target Claude Code +
+Codex only; installers clean up previously installed Copilot files, the generator rejects
+`copilot` with a migration hint but still recognizes and removes stale `.github` artifacts.
+(2) **providers default is BOTH** (`[claude, codex]`) everywhere, so a mid-project CLI switch
+needs no config edit. (3) **Source-format decision recorded:** the kit source stays Claude-native
+(the richest directly-executable format — rich-to-poor translation is deterministic; a neutral
+third format would execute nowhere and need two translation layers). Neutral SEMANTICS are
+enforced instead: tier aliases `lead`/`worker`/`light` are the ONLY model values in kit sources
+(validate-checked; scaffold resolves them per provider), the constitution source is
+`constitution/AGENTS.md`, kit settings.json is documented as the Claude REGISTRATION of the shared
+hooks, and a namespaced `codex:` frontmatter overlay is the sanctioned divergence valve for
+Codex-only TOML keys. TRIP-WIRE for revisiting a full neutral source format (standing watcher
+duty): overlays accumulate beyond scattered scalars, a third provider needs artifacts, or the
+.md-agent/@import contract breaks. Also: mattpocock references removed (the repo is fully
+self-authored today); repo renamed to GiaZenX/harness.
 
 ## 2026-07-14 — Multi-CLI parity + forensics defect round (kits 2026.07.14-4)
 The same harness now runs on Claude Code, Codex CLI (BETA) and GitHub Copilot (generated,

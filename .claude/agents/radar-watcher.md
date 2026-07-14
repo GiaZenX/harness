@@ -40,6 +40,13 @@ code, config, skills, hooks, or templates, and never run git write commands.
      `worker`/`light` should map to on the CLAUDE side, add an explicit tier-change PROPOSAL to the
      report (old -> new + evidence). You never edit the table yourself — re-tiering is always a
      user decision.
+   - **SOURCE-FORMAT DIVERGENCE (standing duty):** the kit SOURCE format is Claude-native (agents
+     .md frontmatter, settings.json hook registration) and the Codex layer is GENERATED from it.
+     Flag every Claude Code change that alters that source contract (frontmatter fields, hook
+     registration schema, @import semantics, tier/effort vocabulary) — the generator and the
+     CLAUDE.md shim depend on it. codex-watcher holds the mirror duty for the Codex side;
+     HARNESS_LOG 2026-07-14 records the trip-wire criteria for revisiting the neutral-source
+     decision.
 4. **Write the report** `radar/<today>-claude.md` (today's date, `YYYY-MM-DD`; the `-claude` suffix
    pairs it with codex-watcher's `-codex` report) using the shape in `radar/README.md`:
    per candidate — title, source URL + date, what it is, **why it helps THIS repo** (name the concrete

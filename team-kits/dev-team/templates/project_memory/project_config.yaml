@@ -15,12 +15,12 @@ project:
                             # no checks defined FAILs. Leaving it [TODO]/empty while code exists ALSO FAILs
                             # (no silent auto-detect) — so a critical tool can never be "forgotten".
 
-# Agent CLIs this repo is generated for: claude | codex | copilot. Adding codex/copilot makes the
-# next scaffold run generate that provider's artifacts (.codex/hooks.json + agents, .github/…)
-# from the installed kit state — single source, never hand-cloned. Claude is the reference
-# platform; Codex support is BETA, Copilot artifacts are generated but live-unverified (CI gates
-# stay the mandatory backstop there).
-providers: [claude]
+# Agent CLIs this repo is generated for: claude | codex. With codex listed, every scaffold run
+# generates the Codex artifacts (.codex/config.toml + hooks.json + agents, .agents/skills) from
+# the installed kit state — single source, never hand-cloned. BOTH by default so a mid-project
+# CLI switch needs no config edit. Claude is the reference platform; Codex support is BETA
+# (one-time project trust + /hooks trust required before its hooks enforce).
+providers: [claude, codex]
 
 # Model ladder: haiku < sonnet < opus. Specialists DEFAULT to sonnet (haiku failed the QA gate on
 # complex code in a real run). Use haiku only for genuinely simple roles; escalate to opus for the hardest.
@@ -34,19 +34,19 @@ providers: [claude]
 # the agent file/`name:` in ./.claude/agents/. The PM rewrites each agent's `model:` frontmatter
 # to match this map (and verifies it) before delegating.
 model_map:
-  software-architect: opus     # DEFAULT opus (research-validated): architecture errors cascade into every
+  software-architect: lead     # DEFAULT opus (research-validated): architecture errors cascade into every
                                # SR/task/test — the architect must deliver first time. Downgrade to sonnet
                                # only for genuinely simple projects (user-confirmed).
-  product-designer: opus       # DEFAULT opus: the frontend builds LITERALLY on the designer's mockups
+  product-designer: lead       # DEFAULT opus: the frontend builds LITERALLY on the designer's mockups
                                # (mockup-as-base); planning/design quality is half the rent. A real project
                                # had to escalate mid-run.
-  research-engineer: sonnet
-  backend-developer: sonnet    # Sonnet 5 matches Opus on most coding at lower cost (official positioning) —
-  frontend-developer: sonnet   # the right default for the token-heavy implementation path.
-  quality-engineer: opus       # DEFAULT opus (user decision): review/verdict quality over cost on the
+  research-engineer: worker
+  backend-developer: worker    # Sonnet 5 matches Opus on most coding at lower cost (official positioning) —
+  frontend-developer: worker   # the right default for the token-heavy implementation path.
+  quality-engineer: lead       # DEFAULT opus (user decision): review/verdict quality over cost on the
                                # longest token path — re-check with real numbers after a project week.
-  devops-engineer: sonnet
-  project-auditor: sonnet
+  devops-engineer: worker
+  project-auditor: worker
 
 # Reasoning effort per specialist (low | medium | high | xhigh | max). Like model_map, the scaffold stamps
 # each specialist's `effort:` frontmatter from this map; session_status nags on drift. FACTS (official

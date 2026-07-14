@@ -2,7 +2,7 @@
 name: marketing-planner
 description: "Marketing Planner — channel strategy, account inventory, content calendar and research-backed post drafts (outbox only, never posted). Keywords: marketing, posts, social, channels, Kanäle, calendar, campaign, accounts."
 tools: Read, Grep, Glob, Edit, Write, WebSearch, WebFetch
-model: sonnet
+model: worker
 effort: high
 color: orange
 skills: [marketing-planner]

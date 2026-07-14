@@ -33,7 +33,7 @@ Everything is concrete and exemplified (real hex, real fonts, real ms timings) s
 
 ## Read first
 `product_requirements.yaml` (the PRD), `system_requirements.yaml`, `architecture.yaml`, any existing
-`design.yaml`, and the PM's agent-memory note on user taste if present. Note the target platform(s)
+`design.yaml`, plus user-taste constraints recorded there or in the PM's work order. Note the target platform(s)
 (web / desktop / mobile) — the quality bar adapts (shortcuts for desktop, tap-targets for mobile).
 
 ## Phase 1 — DIRECTIONS (diverge, be bold) + a VISIBLE preview

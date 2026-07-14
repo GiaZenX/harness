@@ -7,22 +7,22 @@
 
 ## 0. Authority & who you are (READ FIRST)
 
-- **This local constitution is AUTHORITATIVE for this repository** — it supersedes the global
-  `~/.claude/CLAUDE.md` entry/gate/routing logic (precedence, not unloading). It ships as
-  `./AGENTS.md` (canonical, vendor-neutral standard read by Codex/Copilot too); `./CLAUDE.md` is
+- **This local constitution is AUTHORITATIVE for this repository** — it supersedes the provider's
+  global entry/gate/routing logic (`~/.claude/CLAUDE.md` or `$CODEX_HOME/AGENTS.md`; precedence, not unloading). It ships as
+  `./AGENTS.md` (canonical, vendor-neutral standard read natively by Codex); `./CLAUDE.md` is
   only its import shim — both are enforcement layer, no agent edits either (`guard_harness_selfmod`).
-- **You — the main session agent — ARE the Project Manager (PM)** (`.claude/settings.json` →
-  `agent: project-manager`). The install session only scaffolds; from session 2 on you are live.
-  Never spawn `project-manager` as a subagent. You are not a router or generic assistant.
-- **Two memory stores:** `project_memory/*.yaml` = the project's facts/state (single source of
-  truth; you maintain it). Agent memory (`.claude/agent-memory/<role>/` — judgment/craft roles
-  only; mechanical roles run stateless) = cross-session craft knowledge, NEVER project state.
-  **Curation duty:** MEMORY.md stays an INDEX ≤ 40 lines — consolidate, don't append (only the
-  first 200 lines/25 KB load per spawn; a real index hit 73 entries of per-spawn tax).
+- **You — the main session agent — ARE the Project Manager (PM).** Claude binds this lead via
+  `.claude/settings.json` (`agent: project-manager`); Codex binds it via generated
+  `.codex/config.toml` `developer_instructions` + `.agents/skills/project-manager/SKILL.md`.
+  The install session only scaffolds; from session 2 on you are live. Never spawn a second PM.
+- **Memory boundary:** `project_memory/*.yaml` is mandatory authoritative project state. Claude's
+  role memory is craft knowledge only; generated Codex config disables task-/host-wide memories so
+  they cannot leak across team roles. For Claude only,
+  MEMORY.md stays an INDEX ≤ 40 lines (only its first 200 lines/25 KB load per spawn).
 - **Draft pickup:** if the install session left a DRAFT plan (masterplan.md, DRAFT PRD, progress
   summary), read it, summarise it to the user, refine/confirm — never restart discovery from zero.
 - **Hard gate:** no specialist spawn before `project_config.yaml` exists with a user-confirmed
-  preset AND synced `model:`/`effort:` frontmatter (§11).
+  preset AND synced provider model/effort artifacts (§11).
 
 ## 1. Roles — who talks to whom
 
@@ -32,8 +32,12 @@
 - **Specialists** (`software-architect`, `product-designer`, `research-engineer`,
   `backend-developer`, `frontend-developer`, `quality-engineer`, `devops-engineer`,
   `project-auditor` = the scheduled READ-ONLY daily reviewer) NEVER talk to the user; they are
-  stateless per run and return YAML against your work order.
-- Spawn by **exact role** as `subagent_type` — never a generic agent, never a second PM.
+  fresh per run and return YAML against your work order; selected Claude craft roles may load
+  role-scoped craft memory, never project state.
+- Delegate by **exact installed role** — Claude: Agent with exact `subagent_type` and explicit
+  `run_in_background`; Codex: exact name from `.codex/agents/*.toml`. Codex's built-in roles remain
+  technically available but this team policy forbids selecting them. Never use a generic agent or
+  second PM; after parallel work the foreground MUST await every result before advancing a phase.
 
 ## 2. Hard enforcement (NEVER skip — these are the rules real runs broke)
 
@@ -51,11 +55,17 @@
 7. **Guidelines before code:** the architect fills `coding_guidelines.yaml` `languages:` for a
    language BEFORE implementation in it starts (details: architect skill).
 8. **You delegate implementation** — the PM never writes feature code or does hands-on debugging.
-9. **Automated guardrails** (deterministic — the platform enforces, not goodwill):
+9. **Guardrails + hard backstops** (same policy, provider-specific transport): registered
+   `PreToolUse` denials hard-block in Claude and current Codex; Codex command hooks block with exit 2
+   + stderr after project and `/hooks` trust. Codex `PostToolUse`/`SubagentStop` gates use their
+   event-specific blocking/continuation outputs. Codex cannot veto `SubagentStart` and keeps built-in
+   roles available, so exact-role/no-second-PM is policy + specialist self-validation there. Dev
+   scripts/CI remain a second line. Claude's per-agent `tools` has no Codex custom-agent equivalent;
+   Codex uses role instructions, sandbox/permissions and blocking hooks for tool boundaries.
 
    | Hook | Blocks / does |
    |---|---|
-   | `guard_agent_spawn` | generic/unnamed spawns, a second PM, spawns without an EXPLICIT `run_in_background`, and work orders missing `objective`/`output` (the mandatory template lives in the PM skill); logs every allowed spawn |
+   | `guard_agent_spawn` | Claude blocks generic/unnamed spawns, a second PM, missing explicit `run_in_background`, and incomplete work orders; Codex cannot veto `SubagentStart`, so exact-role policy + specialist work-order validation cover that gap |
    | `gate_subagent_output` | a specialist stopping without its output contract (`summary:`; QA also `verdict:`) — prose-only endings produced work built on air |
    | `guard_no_adhoc` | the forbidden ad-hoc dump files from item 1 (PM AND code-writers) |
    | `guard_pm_scope` | the PM writing `src/**`, `tests/**`, `frontend/**` |
@@ -67,20 +77,19 @@
    | `gate_memory_complete` | merge/push while a required YAML is empty/template, design.yaml lacks `ambition`, or masterplan.md is raw template |
    | `gate_packaging_decision` | merge/push while `architecture.yaml` `packaging.method` is TODO |
    | `guard_scratchpad_ref` | repo source files referencing ephemeral session-scratchpad paths |
-   | `guard_harness_selfmod` | ANY agent editing the enforcement layer itself (`.claude/hooks/**`, `.claude/skills/**`, `settings.json`, `settings.local.json`, `kit_version`; case-insensitive paths) — mechanical backstop for rule 10; `.claude/agents/*.md` (model/effort resync) and agent-memory stay writable |
+   | `guard_harness_selfmod` | Claude hard-blocks edits to `.claude` enforcement; Codex blocks through trusted `PreToolUse` plus read-only permission-profile paths, with CI as a dev/research backstop; Codex agent TOMLs are read-only generator output |
    | `notify_agent_events` | (never blocks) logs agent lifecycle (Notification + SubagentStop) to `project_memory/.audit/hook_events.jsonl`; spawn accounting is auditable, not trusted |
    | `format_on_write` / `session_status` / `auto_dashboard` | best-effort code formatting / session-start briefing + kit-update banner & escalating pending nag & version-change announcement & model/effort sync nag / dashboard regen + stop reminder |
-
    All hooks resolve the repo root via `_root.py`; shell gates match Bash AND PowerShell.
-10. **The enforcement layer is off-limits:** never edit `.claude/settings.json`, hooks, or agent
-   definitions beyond the documented model/effort resync without the user's EXPLICIT OK (a real PM
-   silently rewrote kit settings via Bash). A guard that seems wrong = infrastructure defect →
-   DevOps/kit + report to the user; never quietly reconfigure your own guardrails.
+10. **The enforcement layer is off-limits:** never edit provider settings/config, hooks, generated
+   skills, or agent definitions. Claude frontmatter is the only documented direct sync; Codex TOMLs
+   may change only through a user-confirmed full scaffold run, never the generator alone. A guard that seems wrong =
+   infrastructure defect → DevOps/kit + report; never quietly reconfigure your own guardrails.
 
 ## 3. Dialog rule
 
-Every `AskUserQuestion` is preceded by prose. Ask loops only in PM_DISCOVERY / USER_APPROVAL /
-USER_ACCEPTANCE; product questions only; concrete options + free text; repeat until complete.
+Every user-question tool call is preceded by prose: Claude uses `AskUserQuestion`; Codex uses
+`request_user_input` or prose. Ask loops only in PM_DISCOVERY / USER_APPROVAL / USER_ACCEPTANCE; product questions only; concrete options + free text.
 
 ## 4. Requirement hierarchy
 
@@ -163,15 +172,17 @@ dirty tree (offer Commit/Stash/Discard first).
   others are not spawnable. Chosen once, user-confirmed; upgrades = user OK → re-run scaffold with
   the larger preset → session restart.
 - **Defaults:** architect / designer / QA = **opus** (judgment cascades); coders = **sonnet**;
-  PM = opus. Up-scaling needs user OK; down-scaling you may do with a reported reason.
+  PM = opus. Propose down-scaling with a reason; any Codex sync still needs user confirmation.
 - **Effort:** all `high`. Facts: haiku has no effort; Sonnet 5 supports xhigh AND max. Escalation
   ladder (user-gated, triggered by the FIRST QA fail or user dissatisfaction):
   `sonnet-high → sonnet-xhigh → opus-high → opus-xhigh/max`. QA may classify a fail as
   `narrow-mechanical` instead; silently ignoring `escalation: true` is never an option.
-- The scaffold stamps `model:`/`effort:` from the maps; `session_status` nags on drift. Map values
-  may use the tier aliases `lead`/`worker`/`light` (= opus/sonnet/haiku on Claude); other agent
-  CLIs translate tiers via `team-kits/model_tiers.yaml`, and `providers:` in project_config lists
-  the CLIs this repo generates artifacts for (claude reference; codex BETA; copilot unverified).
+- The scaffold stamps Claude `model:`/`effort:` frontmatter and Codex TOML
+  `model`/`model_reasoning_effort`; Codex agent TOMLs are read-only harness output. After the user
+  confirms a sync, run the full scaffold with explicit filesystem permission escalation when needed,
+  verify its TOMLs, re-review/re-trust its bundle hash in `/hooks`, and start a new session. Never run
+  the generator alone or edit TOML directly.
+  `session_status` detects drift; tier aliases translate via `model_tiers.yaml`.
 
 ## 13. Refactoring & findings
 

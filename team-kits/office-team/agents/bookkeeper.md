@@ -2,7 +2,7 @@
 name: bookkeeper
 description: "Bookkeeper (Buchhaltung PREPARATION only — no tax advice): extracts invoice/receipt data (e-invoice XML first), appends validated ledger entries via scripts/ledger_add.py, maintains master data (categories, counterparties), writes report commentary. Keywords: bookkeeping, Buchhaltung, invoice, Rechnung, ledger, EÜR, XRechnung, ZUGFeRD."
 tools: Read, Grep, Glob, Bash, Edit, Write
-model: sonnet
+model: worker
 effort: high
 memory: project
 color: green

@@ -6,8 +6,11 @@ A real PM silently rewrote the kit settings via Bash to unblock its own spawns; 
 prose rule (§2.10) — this guard is its mechanical backstop, and it applies to EVERY agent (main
 AND subagents). Blocked via Edit/Write: `.claude/hooks/**`, `.claude/skills/**`,
 `.claude/settings.json`, `.claude/settings.local.json` (hook-affecting overrides land there too —
-security-review finding), `.claude/kit_version`, and the constitution itself (root `AGENTS.md` +
-the `CLAUDE.md` import shim — self-rewritten instructions are the documented compromise pattern).
+security-review finding), `.claude/kit_version`, the provider ownership manifests, and the
+constitution itself (root `AGENTS.md` + the `CLAUDE.md` import shim — self-rewritten instructions
+are the documented compromise pattern).
+    Provider control planes (`.codex/**`, `.agents/skills/**`, `.github/hooks/**`,
+    `.github/agents/**`) and scaffold backups are protected too.
 Paths compare case-INsensitively (Windows FS is;
 `.CLAUDE/hooks/x` must not slip through). Still allowed: `.claude/agents/*.md` (the
 documented model:/effort: resync), `.claude/agent-memory/**` (the memory feature writes there).
@@ -23,8 +26,10 @@ import _audit
 import _compat
 
 
-BLOCKED = ("hooks/", "skills/")
-BLOCKED_FILES = ("settings.json", "settings.local.json", "kit_version")
+BLOCKED = ("hooks/", "skills/", "backups/")
+BLOCKED_FILES = ("settings.json", "settings.local.json", "kit_version",
+                 "provider_artifacts.json", "team_kit_roles.txt")
+BLOCKED_PROVIDER_PREFIXES = (".codex/", ".agents/skills/", ".github/hooks/", ".github/agents/")
 
 
 def block(rel):
@@ -33,8 +38,9 @@ def block(rel):
         "[team-kit guard] '%s' is part of the ENFORCEMENT LAYER — no agent edits it in a "
         "project, ever (a real PM silently rewrote kit settings to unblock itself). A guard "
         "that seems wrong is an infrastructure defect: report it to the user; the generic fix "
-        "belongs in the KIT and arrives via a kit update. Allowed here: .claude/agents/*.md "
-        "(model:/effort: resync) and .claude/agent-memory/**.\n" % rel
+        "belongs in the KIT and arrives via a kit update. Generated .codex/** and "
+        ".agents/skills/** are updated only by the scaffold. Allowed here: "
+        ".claude/agents/*.md (model:/effort: resync) and .claude/agent-memory/**.\n" % rel
     )
     sys.exit(2)
 
@@ -50,6 +56,8 @@ def check(path, root):
     # (instructions/memory rewritten outside any diff) — constitution changes arrive via kit
     # updates (scaffold), never via agent edits.
     if rel_l in ("agents.md", "claude.md"):
+        block(rel)
+    if any(rel_l.startswith(prefix) for prefix in BLOCKED_PROVIDER_PREFIXES):
         block(rel)
     if not rel_l.startswith(".claude/"):
         return

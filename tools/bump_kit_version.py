@@ -19,6 +19,16 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKIP_DIRS = {"__pycache__", ".ruff_cache", ".mypy_cache", ".pytest_cache"}
+SHARED_HARNESS_FILES = (
+    "gen_provider_artifacts.py",
+    "init_project_memory.ps1",
+    "init_project_memory.sh",
+    "model_tiers.yaml",
+    "preset_config.py",
+    "registry.yaml",
+    "scaffold_team.ps1",
+    "scaffold_team.sh",
+)
 
 
 def discover_kits(root=ROOT):
@@ -32,7 +42,7 @@ def discover_kits(root=ROOT):
 
 
 def kit_hash(kit_dir):
-    """sha256 over relpath + CRLF-normalized bytes of every kit file (except VERSION + caches).
+    """Hash kit-local files plus shared scaffold/generator inputs (except VERSION + caches).
 
     CRLF normalization keeps the hash identical across Windows/Linux checkouts of the same commit.
     """
@@ -47,6 +57,14 @@ def kit_hash(kit_dir):
             h.update(rel.encode("utf-8"))
             with open(p, "rb") as fh:
                 h.update(fh.read().replace(b"\r\n", b"\n"))
+    team_kits_root = os.path.dirname(os.path.abspath(kit_dir))
+    for rel in SHARED_HARNESS_FILES:
+        path = os.path.join(team_kits_root, rel)
+        if not os.path.isfile(path):
+            continue
+        h.update(("@shared/" + rel).encode("utf-8"))
+        with open(path, "rb") as fh:
+            h.update(fh.read().replace(b"\r\n", b"\n"))
     return h.hexdigest()
 
 

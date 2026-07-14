@@ -6,7 +6,6 @@ Every `filed:` entry must point at a file that actually EXISTS under archive/ â€
 with a phantom target is exactly the self-reported-success class this harness exists to kill.
 Blocks with the missing entries listed. Uncertainty -> exit 0.
 """
-import json
 import os
 import sys
 
@@ -14,31 +13,23 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _root import find_repo_root
 import _audit
+import _compat
 
 
-def main():
-    try:
-        data = json.load(sys.stdin)
-    except Exception:
-        sys.exit(0)
-    if data.get("tool_name") not in ("Edit", "Write", "MultiEdit"):
-        sys.exit(0)
-    path = ((data.get("tool_input") or {}).get("file_path")
-            or (data.get("tool_input") or {}).get("path") or "")
+def check(data, path, root):
     if os.path.basename(path.replace("\\", "/")) != "filing_log.yaml":
-        sys.exit(0)
+        return
     if not os.path.isfile(path):
-        sys.exit(0)
+        return
     try:
         import yaml  # type: ignore[import-untyped]
     except ImportError:
-        sys.exit(0)
+        return
     try:
         doc = yaml.safe_load(open(path, encoding="utf-8", errors="ignore").read()) or {}
     except Exception:
-        sys.exit(0)  # guard_yaml_valid owns broken YAML
+        return  # guard_yaml_valid owns broken YAML
 
-    root = find_repo_root(data.get("cwd"))
     problems = []
     for entry in (doc.get("filed") or []):
         if not isinstance(entry, dict):
@@ -54,12 +45,21 @@ def main():
             problems.append("%s -> %s (file does NOT exist)" % (entry.get("source"), target))
     if problems:
         _audit.record("gate_filing", "; ".join(problems[:3]))
-        sys.stderr.write(
+        message = (
             "[team-kit gate] filing_log.yaml claims filings that are not real:\n%s\n"
             "Move the file(s) under archive/ FIRST, then log â€” a log entry is a verified fact, "
             "not an intention.\n" % "\n".join("  - " + p for p in problems[:8])
         )
-        sys.exit(2)
+        _compat.stop(message, "PostToolUse")
+
+
+def main():
+    data = _compat.load()
+    if data.get("tool_name") not in ("Edit", "Write", "MultiEdit"):
+        sys.exit(0)
+    root = find_repo_root(data.get("cwd"))
+    for path in _compat.file_paths(data):
+        check(data, path, root)
     sys.exit(0)
 
 

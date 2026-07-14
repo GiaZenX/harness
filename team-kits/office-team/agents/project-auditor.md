@@ -2,7 +2,7 @@
 name: project-auditor
 description: "Project Auditor — scheduled READ-ONLY daily reviewer: samples PROC↔artifact claims (filing, ledger, reports), checks artifact consistency and gate health, scores the project against a fixed judge rubric (0.0–1.0 + pass/fail per dimension) and writes review_findings.yaml (its only writable artifact). Findings bind the manager (each becomes a follow-up or a logged skip). Stateless by design — fresh eyes every run. Keywords: audit, review, reviewer, daily, consistency, requirements, judge."
 tools: Read, Grep, Glob, Bash, Write
-model: sonnet
+model: worker
 effort: high
 color: gray
 skills: [project-auditor]

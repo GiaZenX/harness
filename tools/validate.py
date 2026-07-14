@@ -9,12 +9,14 @@ registry role has an agent file. Exit 1 on any failure. Run locally or in CI: py
 import glob
 import json
 import os
-import py_compile
 import sys
 
 import yaml
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "team-kits"))
+from preset_config import UniqueKeyLoader, load_preset_catalog  # noqa: E402
+
 fails = []
 
 
@@ -25,15 +27,18 @@ def rel(p):
 def frontmatter(text):
     if not text.startswith("---"):
         return None
-    return yaml.safe_load(text.split("---", 2)[1])
+    return yaml.load(text.split("---", 2)[1], Loader=UniqueKeyLoader)
 
 
 # 1) compile python
-for p in glob.glob(ROOT + "/team-kits/**/hooks/*.py", recursive=True) + \
+for p in glob.glob(ROOT + "/team-kits/*.py") + \
+         glob.glob(ROOT + "/team-kits/**/hooks/*.py", recursive=True) + \
          glob.glob(ROOT + "/team-kits/**/templates/repo/scripts/*.py", recursive=True) + \
          glob.glob(ROOT + "/tools/*.py"):
     try:
-        py_compile.compile(p, doraise=True)
+        # Compile in memory: validation must never create __pycache__ that the installer could
+        # accidentally carry into the shared team-kit staging tree.
+        compile(open(p, "rb").read(), p, "exec")
     except Exception as e:
         fails.append("compile %s: %s" % (rel(p), e))
 
@@ -41,7 +46,7 @@ for p in glob.glob(ROOT + "/team-kits/**/hooks/*.py", recursive=True) + \
 for p in glob.glob(ROOT + "/team-kits/**/templates/project_memory/*.yaml", recursive=True) + \
          [ROOT + "/team-kits/registry.yaml"]:
     try:
-        yaml.safe_load(open(p, encoding="utf-8").read())
+        yaml.load(open(p, encoding="utf-8").read(), Loader=UniqueKeyLoader)
     except Exception as e:
         fails.append("yaml %s: %s" % (rel(p), e))
 
@@ -74,19 +79,55 @@ for p in glob.glob(ROOT + "/team-kits/**/skills/**/SKILL.md", recursive=True):
     except Exception as e:
         fails.append("skill frontmatter %s: %s" % (rel(p), e))
 
-# 6) registry roles -> agent files exist
-reg = yaml.safe_load(open(ROOT + "/team-kits/registry.yaml", encoding="utf-8").read())
+# 6) presets are executable policy: parse them strictly and prove that every explicit specialist
+#    is a real kit role, while the foreground lead remains outside every specialist list. The same
+#    implementation is called by both scaffold scripts, so CI and direct usage cannot disagree.
+preset_catalogs = {}
+for kit_dir in sorted(glob.glob(ROOT + "/team-kits/*")):
+    if not os.path.isdir(os.path.join(kit_dir, "agents")):
+        continue
+    kit = os.path.basename(kit_dir)
+    try:
+        preset_catalogs[kit] = load_preset_catalog(kit_dir)
+    except Exception as e:
+        fails.append("%s/presets.yaml: %s" % (rel(kit_dir), e))
+
+# 7) registry roles -> agent files exist, and its advertised presets exactly match the executable
+#    kit policy (otherwise the entry gate can offer a preset that the scaffold cannot resolve).
+reg = yaml.load(open(ROOT + "/team-kits/registry.yaml", encoding="utf-8").read(),
+                Loader=UniqueKeyLoader)
 for team in reg.get("teams", []):
     kit = team["key"]
     for role in team.get("roles", []):
         if not os.path.isfile(ROOT + "/team-kits/%s/agents/%s.md" % (kit, role)):
             fails.append("registry: %s role '%s' has no agent file" % (kit, role))
+    catalog = preset_catalogs.get(kit)
+    advertised = team.get("presets")
+    registry_roles = team.get("roles")
+    if catalog is not None:
+        if team.get("lead") != catalog["lead"]:
+            fails.append("registry: %s lead %r does not match settings agent %r" %
+                         (kit, team.get("lead"), catalog["lead"]))
+        expected_specialists = set(catalog["roles"]) - {catalog["lead"]}
+        if (not isinstance(registry_roles, list)
+                or any(not isinstance(role, str) for role in registry_roles)
+                or len(registry_roles) != len(set(registry_roles))
+                or set(registry_roles) != expected_specialists):
+            fails.append("registry: %s roles must list every specialist exactly once and exclude "
+                         "foreground lead %r" % (kit, catalog["lead"]))
+    if (not isinstance(advertised, list)
+            or any(not isinstance(name, str) for name in advertised)
+            or len(advertised) != len(set(advertised))):
+        fails.append("registry: %s presets must be a unique string list" % kit)
+    elif catalog is not None and advertised != list(catalog["presets"]):
+        fails.append("registry: %s presets %r do not match presets.yaml %r" %
+                     (kit, advertised, list(catalog["presets"])))
 
-# 7) model_map/effort_map <-> specialist agent frontmatter (catch tier drift in the shipped kit)
+# 8) model_map/effort_map <-> specialist agent frontmatter (catch tier drift in the shipped kit)
 for cfg in glob.glob(ROOT + "/team-kits/*/templates/project_memory/project_config.yaml"):
     kit_dir = os.path.dirname(os.path.dirname(os.path.dirname(cfg)))   # -> team-kits/<kit>
     try:
-        conf = yaml.safe_load(open(cfg, encoding="utf-8").read()) or {}
+        conf = yaml.load(open(cfg, encoding="utf-8").read(), Loader=UniqueKeyLoader) or {}
     except Exception:
         continue  # YAML parse already reported in step 2
     lead = "project-manager"  # the session lead is excluded from the maps
@@ -126,8 +167,19 @@ for cfg in glob.glob(ROOT + "/team-kits/*/templates/project_memory/project_confi
         for field in ("model", "effort"):
             if field not in lfm:
                 fails.append("%s: session lead missing '%s:' frontmatter" % (rel(lp), field))
+    # kit SOURCES are provider-neutral: agent frontmatter must use tier aliases, never a concrete
+    # provider model name (the scaffold resolves aliases per provider at install time)
+    for ap in glob.glob(os.path.join(kit_dir, "agents", "*.md")):
+        try:
+            afm = frontmatter(open(ap, encoding="utf-8").read()) or {}
+        except Exception:
+            continue
+        if "model" in afm and str(afm["model"]) not in ("lead", "worker", "light"):
+            fails.append("%s: model '%s' — kit sources must use the tier aliases "
+                         "lead/worker/light (model_tiers.yaml maps them per provider)"
+                         % (rel(ap), afm["model"]))
 
-# 8) kit VERSION stamps must match the kit content (forgetting a bump is a CI failure), and the
+# 9) kit VERSION stamps must match the kit content (forgetting a bump is a CI failure), and the
 #    constitution marker must sit on line 1 (session_status parses only the first line for the kit key —
 #    if it ever moved, update detection would go blind silently).
 sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -140,8 +192,11 @@ for kit in discover_kits(ROOT):
         fails.append("%s: missing team-kits/%s/VERSION — run python tools/bump_kit_version.py" % (kit, kit))
     elif ("content: %s" % kit_hash(kit_dir)) not in open(vfile, encoding="utf-8").read():
         fails.append("%s: kit files changed but VERSION not bumped — run python tools/bump_kit_version.py" % kit)
-    cpath = os.path.join(kit_dir, "constitution", "CLAUDE.md")
-    if os.path.isfile(cpath):
+    cpath = os.path.join(kit_dir, "constitution", "AGENTS.md")
+    if not os.path.isfile(cpath):
+        fails.append("%s: missing constitution/AGENTS.md (renamed from CLAUDE.md — the source file "
+                     "carries the vendor-neutral name it ships under)" % kit)
+    else:
         lines = open(cpath, encoding="utf-8", errors="ignore").read().splitlines()
         if not lines or "agents-and-skills:team-kit" not in lines[0]:
             fails.append("%s: constitution marker not on LINE 1 — session_status kit-update detection "
@@ -153,7 +208,7 @@ for kit in discover_kits(ROOT):
                          "mechanics into the role SKILLs (they load only for the affected role)"
                          % (kit, len(lines)))
 
-# 9) intended-identical hooks/scripts must stay byte-identical across kits (audit finding: a fix
+# 10) intended-identical hooks/scripts must stay byte-identical across kits (audit finding: a fix
 #    applied in one kit silently diverges the others — exactly the drift class this repo hunts).
 MIRROR_DEV_RESEARCH = [
     "hooks/guard_yaml_valid.py", "hooks/guard_agent_spawn.py", "hooks/notify_agent_events.py",
@@ -177,12 +232,12 @@ for other, names in (("research-team", MIRROR_DEV_RESEARCH), ("office-team", MIR
         elif open(a, "rb").read() != open(b, "rb").read():
             fails.append("mirror: %s diverged between dev-team and %s — copy the fixed file" % (name, other))
 
-# 10) every §-reference in hooks/skills/agents must resolve to a heading (## N.) or a bold anchor
+# 11) every §-reference in hooks/skills/agents must resolve to a heading (## N.) or a bold anchor
 #     (**Na.) in that kit's constitution — a block message citing a deleted paragraph teaches
 #     the agent to look for nothing (audit finding after the constitution diet).
 import re as _re  # noqa: E402
 for kit_dir_name in os.listdir(os.path.join(ROOT, "team-kits")):
-    cpath = os.path.join(ROOT, "team-kits", kit_dir_name, "constitution", "CLAUDE.md")
+    cpath = os.path.join(ROOT, "team-kits", kit_dir_name, "constitution", "AGENTS.md")
     if not os.path.isfile(cpath):
         continue
     cons = open(cpath, encoding="utf-8", errors="ignore").read()

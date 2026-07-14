@@ -2,7 +2,7 @@
 name: records-clerk
 description: "Records Clerk (Registratur) — owns the filing plan and the filing log: files inbox documents into the archive tree per naming convention, runs migrations move-only with a manifest, keeps retention per node. Keywords: filing, Ablage, Aktenplan, archive, migration, naming."
 tools: Read, Grep, Glob, Bash, Edit, Write
-model: sonnet
+model: worker
 effort: high
 color: yellow
 skills: [records-clerk]

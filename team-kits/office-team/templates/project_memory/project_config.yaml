@@ -8,10 +8,11 @@ project:
   name: ""                  # set at init
   preset: core              # core | commerce | full — user-confirmed
 
-# Agent CLIs this repo is generated for: claude | codex | copilot. Adding codex/copilot makes the
-# next scaffold run generate that provider's artifacts from the installed kit state — single
-# source, never hand-cloned. Claude is the reference platform; Codex is BETA, Copilot unverified.
-providers: [claude]
+# Agent CLIs this repo is generated for: claude | codex. With codex listed, every scaffold run
+# generates the Codex artifacts from the installed kit state — single source, never hand-cloned.
+# BOTH by default so a mid-project CLI switch needs no config edit. Claude is the reference
+# platform; Codex is BETA (one-time project trust + /hooks trust required).
+providers: [claude, codex]
 
 # Model ladder: haiku < sonnet < opus. Specialists DEFAULT to sonnet. Up-scaling needs user
 # confirmation; down-scaling the manager MAY do itself but MUST report it with a reason.
@@ -22,13 +23,13 @@ providers: [claude]
 # session_status nags on drift. Keys cover the FULL roster — entries for roles the preset did not
 # install are inert until an upgrade installs them.
 model_map:
-  records-clerk: sonnet
-  bookkeeper: sonnet
-  product-editor: sonnet
-  shop-curator: sonnet
-  compliance-researcher: sonnet
-  marketing-planner: sonnet
-  project-auditor: sonnet
+  records-clerk: worker
+  bookkeeper: worker
+  product-editor: worker
+  shop-curator: worker
+  compliance-researcher: worker
+  marketing-planner: worker
+  project-auditor: worker
 
 # Reasoning effort per specialist (low | medium | high | xhigh | max). All default high. FACTS
 # (official effort doc, verified 2026-07): haiku has NO effort parameter; Sonnet 5 supports xhigh

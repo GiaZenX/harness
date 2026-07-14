@@ -2,7 +2,7 @@
 name: product-editor
 description: "Product Editor — owns the product catalog and content guidelines: turns raw product data into article descriptions per the style guide, detects missing data and drafts supplier queries (outbox only, never sent). ALL product copy changes flow through this role. Keywords: product, Artikel, description, Artikelbeschreibung, catalog, supplier, Lieferant."
 tools: Read, Grep, Glob, Edit, Write
-model: sonnet
+model: worker
 effort: high
 color: purple
 skills: [product-editor]

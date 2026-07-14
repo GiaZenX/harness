@@ -3,10 +3,10 @@
 SubagentStop — a kit specialist may not stop without honoring its output contract.
 
 Every role skill defines an "Output to the PM/manager" YAML block; a real failure class is the
-specialist that "finishes" with prose, an apology, or nothing — and the PM builds on air. Exit 2
-BLOCKS the stop and feeds stderr back to the subagent (documented semantics), so it restates its
-result as the contract YAML and only then stops. Scope: only OUR installed specialists (an agent
-file exists for agent_type); utility/foreign agents pass. Verdict roles must also carry `verdict:`.
+specialist that "finishes" with prose, an apology, or nothing — and the PM builds on air. Claude
+uses exit 2; Codex uses `decision: block` with a continuation reason. Scope: only OUR specialists
+(an agent file exists for agent_type); utility/foreign agents pass. Verdict roles must also carry
+`verdict:`.
 Uncertainty -> exit 0.
 """
 import json
@@ -17,6 +17,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _root import find_repo_root
 import _audit
+import _compat
 
 
 VERDICT_ROLES = ("quality-engineer", "reviewer")
@@ -51,14 +52,14 @@ def main():
     missing = [k for k in required if (k + ":") not in low]
     if missing:
         _audit.record("gate_subagent_output", "%s missing %s" % (atype, ",".join(missing)))
-        sys.stderr.write(
+        message = (
             "[team-kit gate] Your final message is missing the output-contract key(s): %s. Every "
             "specialist ends with its YAML output block (see 'Output to the PM' in your skill) — "
             "restate your FULL result as that YAML now (summary, ids, statuses%s), then stop. The PM "
             "builds on this block; prose-only endings have produced work built on air.\n"
             % (", ".join(missing), ", verdict" if atype in VERDICT_ROLES else "")
         )
-        sys.exit(2)
+        _compat.stop(message, "SubagentStop")
     sys.exit(0)
 
 

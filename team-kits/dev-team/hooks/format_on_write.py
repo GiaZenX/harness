@@ -73,6 +73,10 @@ def fmt(path, cwd):
 
 def main():
     data = _compat.load()
+    allowed_roles = {role for role in os.environ.get("TEAM_KIT_AGENT_TYPES", "").split(",")
+                     if role}
+    if allowed_roles and str(data.get("agent_type") or "") not in allowed_roles:
+        sys.exit(0)
     if data.get("tool_name") not in ("Edit", "Write"):
         sys.exit(0)
     cwd = find_repo_root(data.get("cwd"))

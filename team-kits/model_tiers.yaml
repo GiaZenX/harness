@@ -29,9 +29,6 @@ tiers:
     lead: gpt-5.6-sol
     worker: gpt-5.6-terra
     light: gpt-5.6-luna
-    effort_field: model_reasoning_effort   # .codex/agents/*.toml key; values low|medium|high|xhigh
-  copilot:
-    lead: claude-opus-4.8             # Copilot serves Claude models; per-agent `model:` pinning
-    worker: claude-sonnet-5           # in .github/agents/*.agent.md
-    light: claude-haiku-4.5
-    effort_field: ""                  # no per-agent effort knob documented — omitted
+    effort_field: model_reasoning_effort   # .codex/agents/*.toml; shared vocabulary low|medium|high|xhigh|max
+                                           # (verified 2026-07: Sol/Terra also accept `ultra`, Luna does not —
+                                           # provider-only values go through the `codex:` frontmatter overlay)

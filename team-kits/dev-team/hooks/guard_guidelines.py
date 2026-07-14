@@ -10,7 +10,6 @@ already be filled — otherwise the architect has to fill it first (constitution
 
 Uncertainty -> exit 0 (never block legitimate work: no project_memory, unknown language, tests, etc.).
 """
-import json
 import os
 import re
 import sys
@@ -18,6 +17,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _root import find_repo_root
 import _audit
+import _compat
 
 # Alias TOKENS per extension. A `languages:` key satisfies the guard when ANY of its underscore/
 # dash-separated tokens equals one of these aliases — so canonical keys (javascript:) match, and so
@@ -49,41 +49,32 @@ def block(lang, rel):
     sys.exit(2)
 
 
-def main():
-    try:
-        data = json.load(sys.stdin)
-    except Exception:
-        sys.exit(0)
-    if data.get("tool_name") not in ("Edit", "Write"):
-        sys.exit(0)
-    inp = data.get("tool_input") or {}
-    path = inp.get("file_path") or inp.get("path") or ""
+def check(data, path, root):
     if not path:
-        sys.exit(0)
+        return
     langs = LANG.get(os.path.splitext(path)[1].lower())
     if not langs:
-        sys.exit(0)  # not a tracked code language
+        return  # not a tracked code language
 
-    root = find_repo_root(data.get("cwd"))
     try:
         rel = os.path.relpath(path, root).replace("\\", "/").lstrip("./")
     except Exception:
-        sys.exit(0)
+        return
     if rel.startswith("../"):
-        sys.exit(0)
+        return
     segs = [s for s in rel.split("/") if s]
     top = segs[0] if segs else ""
     is_code = top in CODE_TOP or len(segs) == 1
     if not is_code:
-        sys.exit(0)  # only gate production code areas
+        return  # only gate production code areas
 
     cg = os.path.join(root, "project_memory", "coding_guidelines.yaml")
     if not os.path.isfile(cg):
-        sys.exit(0)  # can't determine -> don't block
+        return  # can't determine -> don't block
     try:
         text = open(cg, encoding="utf-8", errors="ignore").read()
     except Exception:
-        sys.exit(0)
+        return
     # a filled language block = a key under `languages:` whose tokens (split on non-letters) include one
     # of the language's alias tokens. `javascript:` matches, and so does `html_vanilla_js:` (token "js").
     aliases = {a.lower() for a in langs}
@@ -97,15 +88,15 @@ def main():
     matched = None  # None -> undetermined, use the regex fallback
     try:
         import yaml  # type: ignore[import-untyped]
-        data = yaml.safe_load(text)
-        if isinstance(data, dict):
-            lb = data.get("languages")
+        parsed = yaml.safe_load(text)
+        if isinstance(parsed, dict):
+            lb = parsed.get("languages")
             matched = (any(key_matches(k) and v for k, v in lb.items())
                        if isinstance(lb, dict) else False)
     except Exception:
         matched = None  # no pyyaml / unparsable -> fall back, never block blind
     if matched is True:
-        sys.exit(0)
+        return
     if matched is False:
         block(langs[0], rel)
 
@@ -113,8 +104,22 @@ def main():
     # than blocking legitimate work.
     for m in re.finditer(r"(?m)^\s+([A-Za-z][\w+-]*):", text):
         if key_matches(m.group(1)):
-            sys.exit(0)
+            return
     block(langs[0], rel)
+
+
+def main():
+    data = _compat.load()
+    allowed_roles = {role for role in os.environ.get("TEAM_KIT_AGENT_TYPES", "").split(",")
+                     if role}
+    if allowed_roles and str(data.get("agent_type") or "") not in allowed_roles:
+        sys.exit(0)
+    if data.get("tool_name") not in ("Edit", "Write"):
+        sys.exit(0)
+    root = find_repo_root(data.get("cwd"))
+    for path in _compat.file_paths(data):
+        check(data, path, root)
+    sys.exit(0)
 
 
 if __name__ == "__main__":

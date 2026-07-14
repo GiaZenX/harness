@@ -284,7 +284,9 @@ def check_file_budget(root, ok, fail, warn):
 # files outside any reviewed diff). A kit update legitimately changes them — and always changes
 # .claude/kit_version in the same diff, which lifts the gate.
 _ENFORCEMENT_HARD = ("AGENTS.md", "CLAUDE.md", ".claude/hooks/", ".claude/settings.json",
-                     ".claude/settings.local.json", ".codex/", ".github/hooks/")
+                     ".claude/settings.local.json", ".claude/provider_artifacts.json",
+                     ".claude/team_kit_roles.txt", ".codex/", ".agents/skills/",
+                     ".github/hooks/")
 _ENFORCEMENT_SOFT = (".github/workflows/", "scripts/quality.py", "scripts/kit_checks.py")
 
 

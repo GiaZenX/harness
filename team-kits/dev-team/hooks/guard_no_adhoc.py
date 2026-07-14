@@ -69,13 +69,18 @@ def check(path, cwd):
 
 def main():
     data = _compat.load()
-    # Claude: only Write (new files) is gated. A normalized Codex apply_patch (`_file_paths` set)
-    # can CREATE files inside an "Edit" call, so it is gated too — plain Claude Edits stay free.
-    gated = ("Write", "Edit") if data.get("_file_paths") else ("Write",)
-    if data.get("tool_name") not in gated:
+    allowed_roles = {role for role in os.environ.get("TEAM_KIT_AGENT_TYPES", "").split(",")
+                     if role}
+    if allowed_roles and str(data.get("agent_type") or "") not in allowed_roles:
+        sys.exit(0)
+    # Claude exposes a dedicated Write event. Codex batches Add/Update/Delete/Move operations into
+    # one apply_patch call, so inspect only paths actually created by Add File or Move to.
+    paths = (_compat.created_file_paths(data) if data.get("_file_operations")
+             else _compat.file_paths(data) if data.get("tool_name") == "Write" else [])
+    if not paths:
         sys.exit(0)
     cwd = find_repo_root(data.get("cwd"))
-    for path in _compat.file_paths(data):
+    for path in paths:
         check(path, cwd)
     sys.exit(0)
 

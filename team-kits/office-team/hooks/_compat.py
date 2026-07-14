@@ -2,18 +2,19 @@
 """
 Shared helper: provider payload adapter — ONE place that normalizes hook payloads.
 
-Claude Code and Codex CLI send NEAR-identical hook JSON (same snake_case fields `tool_name`/
-`tool_input`/`cwd`/`hook_event_name`, same exit-2 + stderr blocking contract — verified against
-the official Codex hooks docs, 2026-07). The differences this shim absorbs:
+Claude Code and Codex CLI send similar hook JSON (`tool_name`/`tool_input`/`cwd`/
+`hook_event_name`), but their enforcement contracts differ. Claude documents exit 2 + stderr as
+blocking. Codex documents exit 2 + stderr for PreToolUse/PostToolUse/UserPromptSubmit/SubagentStop
+AND a structured `decision: block` JSON for the post/stop events; stop() below uses the JSON form
+there because it carries the reason back to the model (verified 2026-07-14, official docs+source).
+The differences this shim absorbs:
 
   * Codex file edits arrive as tool_name "apply_patch" with the patch envelope in
     tool_input.command (no file_path). load() normalizes that to tool_name "Edit" and extracts
-    EVERY touched file from the `*** Add|Update|Delete File:` headers; path guards iterate
+    EVERY touched file from the `*** Add|Update|Delete File:` and `*** Move to:` headers; path guards iterate
     file_paths() so a multi-file patch cannot smuggle a blocked path past a single-path check.
-  * Copilot hooks use camelCase (toolName/toolArgs/sessionId) — bridged to the snake_case names.
-    NOTE: Copilot's documented DENY contract is a stdout JSON (`permissionDecision`), not exit 2;
-    that emit is deliberately NOT implemented until it can be live-verified — the parity matrix
-    lists Copilot hook blocking as UNVERIFIED, and gates there are backstopped by CI.
+  * Lowercase/alternate tool names from non-Claude payloads are normalized to the Claude names
+    every guard filters on (see _TOOL_ALIASES).
 
 Uncertainty -> return the payload unchanged; a guard that cannot parse stays fail-open (exit 0),
 same philosophy as every other hook.
@@ -30,12 +31,10 @@ except Exception:  # standalone import (tests) — same fallback _audit uses
         return os.environ.get("CLAUDE_PROJECT_DIR") or start or os.getcwd()
 
 
-_PATCH_FILE_RX = re.compile(r"(?m)^\*{3} (?:Add|Update|Delete) File: (.+?)\s*$")
-_CAMEL = (("toolName", "tool_name"), ("toolArgs", "tool_input"),
-          ("hookEventName", "hook_event_name"), ("sessionId", "session_id"))
-# providers use different tool vocabularies (Copilot's camelCase surface uses lowercase names) —
-# normalize the KNOWN aliases to the Claude names every guard filters on; unknown names pass
-# through untouched (guards then fail open, by design).
+_PATCH_FILE_RX = re.compile(r"(?m)^\*{3} (Add|Update|Delete) File: (.+?)\s*$")
+_PATCH_MOVE_RX = re.compile(r"(?m)^\*{3} Move to: (.+?)\s*$")
+# providers use different tool vocabularies — normalize the KNOWN aliases to the Claude names
+# every guard filters on; unknown names pass through untouched (guards then fail open, by design).
 _TOOL_ALIASES = {"edit": "Edit", "write": "Write", "bash": "Bash", "powershell": "PowerShell",
                  "str_replace": "Edit", "create_file": "Write", "shell": "Bash"}
 
@@ -48,9 +47,6 @@ def load(stream=None):
         return {}
     if not isinstance(data, dict):
         return {}
-    for camel, snake in _CAMEL:  # Copilot bridge — snake_case always wins if both present
-        if camel in data and snake not in data:
-            data[snake] = data[camel]
     ti = data.get("tool_input")
     if not isinstance(ti, dict):
         ti = {}
@@ -59,7 +55,9 @@ def load(stream=None):
     if tn in _TOOL_ALIASES:
         data["tool_name"] = _TOOL_ALIASES[tn]
     if data.get("tool_name") == "apply_patch":
-        raw_paths = _PATCH_FILE_RX.findall(str(ti.get("command") or ti.get("input") or ""))
+        patch = str(ti.get("command") or ti.get("input") or "")
+        raw_operations = _PATCH_FILE_RX.findall(patch)
+        raw_operations += [("Move", path) for path in _PATCH_MOVE_RX.findall(patch)]
         # patch paths are CWD-relative (Codex applies the patch against the session cwd). Join
         # against cwd for the file the edit REALLY touches, and ADDITIONALLY against the repo
         # root when the two differ: block-guards then catch either interpretation (fail-closed
@@ -68,18 +66,23 @@ def load(stream=None):
         # repo-root-looking patch path miss every prefix check.)
         base = str(data.get("cwd") or "")
         root = find_repo_root(base or None)
-        paths = []
-        for q in raw_paths:
+        operations = []
+        for operation, q in raw_operations:
             p = q.replace("\\", "/")
             if os.path.isabs(p):
-                paths.append(p)
+                operations.append({"operation": operation, "path": p})
                 continue
-            paths.append(os.path.join(base, p) if base else p)
+            operations.append({"operation": operation,
+                               "path": os.path.join(base, p) if base else p})
             if root and os.path.abspath(root) != os.path.abspath(base or root):
                 cand = os.path.join(root, p)
-                if cand not in paths:
-                    paths.append(cand)
-        data["tool_name"] = "Edit"
+                if not any(item["path"] == cand and item["operation"] == operation
+                           for item in operations):
+                    operations.append({"operation": operation, "path": cand})
+        paths = [item["path"] for item in operations]
+        data["tool_name"] = ("Write" if operations and
+                             all(item["operation"] == "Add" for item in operations) else "Edit")
+        data["_file_operations"] = operations
         data["_file_paths"] = paths
         if paths and not ti.get("file_path"):
             ti["file_path"] = paths[0]
@@ -94,3 +97,28 @@ def file_paths(data):
     ti = data.get("tool_input") or {}
     p = ti.get("file_path") or ti.get("path") or ""
     return [str(p)] if p else []
+
+
+def created_file_paths(data):
+    """Paths newly created by apply_patch (`Add File` or a `Move to` destination)."""
+    operations = data.get("_file_operations")
+    if isinstance(operations, list):
+        return [str(item.get("path")) for item in operations
+                if isinstance(item, dict) and item.get("operation") in ("Add", "Move")
+                and item.get("path")]
+    return file_paths(data) if data.get("tool_name") == "Write" else []
+
+
+def stop(message, event):
+    """Block a post/stop event using the current provider's event-specific contract.
+
+    Codex PostToolUse/SubagentStop consume `decision: block` + `reason`. Claude uses exit 2 with
+    stderr for these events. PreToolUse guards should keep using exit 2 directly; current Codex
+    builds support that contract and include `agent_id` for subagent tool calls.
+    """
+    if (os.environ.get("TEAM_KIT_PROVIDER", "").lower() == "codex"
+            and event in ("PostToolUse", "SubagentStop")):
+        sys.stdout.write(json.dumps({"decision": "block", "reason": message}) + "\n")
+        sys.exit(0)
+    sys.stderr.write(message)
+    sys.exit(2)

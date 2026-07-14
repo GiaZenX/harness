@@ -6,8 +6,10 @@ The harness blocks other repos' merges on missing tests; it must test its OWN se
 Each hook is run as a real subprocess with synthetic stdin JSON and CLAUDE_PROJECT_DIR, and asserted
 on its exit code (0 = allow, 2 = block for guards/gates, 1 = red for quality.py). Run: pytest tools/
 """
+import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -16,23 +18,123 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOKS = os.path.join(ROOT, "team-kits", "dev-team", "hooks")
+RESEARCH_HOOKS = os.path.join(ROOT, "team-kits", "research-team", "hooks")
 OFFICE_HOOKS = os.path.join(ROOT, "team-kits", "office-team", "hooks")
 OFFICE_SCRIPTS = os.path.join(ROOT, "team-kits", "office-team", "templates", "repo", "scripts")
+OFFICE_PROFILE = os.path.join(ROOT, "team-kits", "office-team", "templates",
+                              "project_memory", "business_profile.yaml")
 QUALITY = os.path.join(ROOT, "team-kits", "dev-team", "templates", "repo", "scripts", "quality.py")
 KIT_CHECKS = os.path.join(ROOT, "team-kits", "dev-team", "templates", "repo", "scripts", "kit_checks.py")
+MERGE_SETTINGS = os.path.join(ROOT, "user", "merge_settings.py")
+
+
+def run_hook_process(name, payload, project_dir, hooks_dir=None, extra_env=None):
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(project_dir))
+    env.update(extra_env or {})
+    return subprocess.run([sys.executable, os.path.join(hooks_dir or HOOKS, name)],
+                          input=json.dumps(payload), capture_output=True, text=True,
+                          env=env, timeout=60)
 
 
 def run_hook(name, payload, project_dir, hooks_dir=None):
-    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(project_dir))
-    p = subprocess.run([sys.executable, os.path.join(hooks_dir or HOOKS, name)],
-                       input=json.dumps(payload), capture_output=True, text=True, env=env, timeout=60)
-    return p.returncode
+    return run_hook_process(name, payload, project_dir, hooks_dir).returncode
 
 
 def write(path, text):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(text)
+
+
+# ---------------- global settings merge ----------------
+def test_settings_merge_preserves_personal_values_and_unions_permissions(tmp_path):
+    ours = {
+        "_comment": "not installed",
+        "theme": "dark",
+        "statusLine": {"type": "command", "command": "bundled"},
+        "telemetryEnabled": False,
+        "permissions": {
+            "allow": ["Bash(git *)", "Bash(pytest *)", "Bash(git *)"],
+            "deny": ["Read(.env)", "Read(**/*.pem)"],
+            "ask": ["Bash(release *)"],
+        },
+    }
+    personal = {
+        "theme": "light",
+        "statusLine": {"type": "command", "command": "my-status"},
+        "customSetting": "keep-me",
+        "permissions": {
+            "allow": ["Bash(custom *)", "Bash(git *)", "Bash(custom *)"],
+            "deny": ["Read(private.txt)"],
+            "ask": ["Bash(prod *)"],
+            "defaultMode": "plan",
+        },
+    }
+    ours_path = tmp_path / "defaults.json"
+    target_path = tmp_path / "settings.json"
+    ours_path.write_text(json.dumps(ours), encoding="utf-8")
+    original = json.dumps(personal, indent=2) + "\n"
+    target_path.write_text(original, encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, MERGE_SETTINGS, str(ours_path), str(target_path)],
+        capture_output=True, text=True, timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr
+    merged = json.loads(target_path.read_text(encoding="utf-8"))
+    assert merged["theme"] == "light"
+    assert merged["statusLine"]["command"] == "my-status"
+    assert merged["telemetryEnabled"] is False
+    assert merged["customSetting"] == "keep-me"
+    assert merged["permissions"] == {
+        "allow": ["Bash(custom *)", "Bash(git *)", "Bash(pytest *)"],
+        "deny": ["Read(private.txt)", "Read(.env)", "Read(**/*.pem)"],
+        "ask": ["Bash(prod *)"],
+        "defaultMode": "plan",
+    }
+    assert "_comment" not in merged
+    assert (tmp_path / "settings.json.bak").read_text(encoding="utf-8") == original
+
+
+def test_settings_merge_adds_missing_permission_lists_but_preserves_malformed_values(tmp_path):
+    ours_path = tmp_path / "defaults.json"
+    target_path = tmp_path / "settings.json"
+    ours_path.write_text(json.dumps({
+        "permissions": {"allow": ["Bash(git *)"], "deny": ["Read(.env)"]},
+    }), encoding="utf-8")
+    target_path.write_text(json.dumps({
+        "permissions": {"allow": "managed-externally"},
+    }), encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, MERGE_SETTINGS, str(ours_path), str(target_path)],
+        capture_output=True, text=True, timeout=30,
+    )
+
+    assert result.returncode == 0
+    merged = json.loads(target_path.read_text(encoding="utf-8"))
+    assert merged["permissions"]["allow"] == "managed-externally"
+    assert merged["permissions"]["deny"] == ["Read(.env)"]
+    assert "preserving non-list permissions.allow" in result.stderr
+
+
+def test_settings_merge_rejects_invalid_existing_json_without_touching_it(tmp_path):
+    ours_path = tmp_path / "defaults.json"
+    target_path = tmp_path / "settings.json"
+    ours_path.write_text(json.dumps({"theme": "dark"}), encoding="utf-8")
+    invalid = '{"theme": '
+    target_path.write_text(invalid, encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, MERGE_SETTINGS, str(ours_path), str(target_path)],
+        capture_output=True, text=True, timeout=30,
+    )
+
+    assert result.returncode == 2
+    assert "left unchanged" in result.stderr
+    assert target_path.read_text(encoding="utf-8") == invalid
+    assert not (tmp_path / "settings.json.bak").exists()
 
 
 # ---------------- guard_pm_scope ----------------
@@ -210,6 +312,19 @@ def test_yaml_valid_blocks_parse_error(tmp_path):
     assert run_hook("guard_yaml_valid.py", _yaml_payload(tmp_path, "decisions.yaml"), tmp_path) == 2
 
 
+def test_yaml_valid_uses_codex_posttool_block_decision(tmp_path):
+    pytest.importorskip("yaml")
+    write(str(tmp_path / "project_memory" / "decisions.yaml"),
+          "decisions:\n  ADR-0001:\n    title: STRIDE: threat: model\n")
+    result = run_hook_process(
+        "guard_yaml_valid.py", _yaml_payload(tmp_path, "decisions.yaml"), tmp_path,
+        extra_env={"TEAM_KIT_PROVIDER": "codex"})
+    assert result.returncode == 0
+    output = json.loads(result.stdout)
+    assert output["decision"] == "block" and "INVALID YAML" in output["reason"]
+    assert "continue" not in output
+
+
 def test_yaml_valid_blocks_duplicate_key(tmp_path):
     pytest.importorskip("yaml")
     write(str(tmp_path / "project_memory" / "architecture.yaml"),
@@ -338,6 +453,20 @@ def test_validate_catches_unbumped_kit_change():
             fh.write(orig)
 
 
+def test_preset_parser_changes_every_shared_kit_hash(tmp_path):
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    from bump_kit_version import kit_hash
+
+    team_kits = tmp_path / "team-kits"
+    kit = team_kits / "demo-team"
+    write(str(kit / "agents" / "project-manager.md"), "# lead\n")
+    parser = team_kits / "preset_config.py"
+    write(str(parser), "# parser version one\n")
+    before = kit_hash(str(kit))
+    parser.write_text("# parser version two\n", encoding="utf-8")
+    assert kit_hash(str(kit)) != before
+
+
 # ---------------- gate_test_coverage + guard_guidelines for C/C++ (embedded) ----------------
 def test_coverage_blocks_cpp_without_tests(prd_repo):
     write(str(prd_repo / "src" / "main.cpp"), "int main(){return 0;}\n")
@@ -399,6 +528,57 @@ def test_init_project_memory_copies_and_never_clobbers(tmp_path):
     r2 = subprocess.run(cmd, cwd=str(repo), capture_output=True, text=True, env=env, timeout=60)
     assert r2.returncode == 0, r2.stdout + r2.stderr
     assert a.read_text(encoding="utf-8") == "EDITED\n"
+
+
+def _init_project_memory_symlink_state(tmp_path):
+    home = tmp_path / "home"
+    template = home / ".claude" / "team-kits" / "demo-team" / "templates" / "project_memory"
+    write(str(template / "new.yaml"), "new: template\n")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    external = tmp_path / "external-memory"
+    sentinel = external / "sentinel.txt"
+    write(str(sentinel), "external memory sentinel\n")
+    return home, repo, external, sentinel
+
+
+def test_init_project_memory_ps1_rejects_external_symlink_before_mutation(tmp_path):
+    if os.name != "nt" or not shutil.which("powershell"):
+        pytest.skip("PowerShell init integration runs on Windows")
+    home, repo, external, sentinel = _init_project_memory_symlink_state(tmp_path)
+    try:
+        os.symlink(external, repo / "project_memory", target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip("directory symlinks are not permitted in this test environment: %s" % exc)
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+         os.path.join(ROOT, "team-kits", "init_project_memory.ps1"),
+         "-Team", "demo-team"],
+        cwd=str(repo), capture_output=True, text=True, timeout=60,
+        env=dict(os.environ, USERPROFILE=str(home)))
+    output = (result.stdout + result.stderr).lower()
+    assert result.returncode != 0 and ("symlink" in output or "reparse" in output)
+    assert sentinel.read_text(encoding="utf-8") == "external memory sentinel\n"
+    assert not (external / "new.yaml").exists()
+    assert (repo / "project_memory").is_symlink()
+    assert not (repo / ".claude" / "kit_update_pending.memory").exists()
+
+
+def test_init_project_memory_sh_rejects_external_symlink_before_mutation(tmp_path):
+    if os.name == "nt" or not shutil.which("bash"):
+        pytest.skip("POSIX init integration runs on Unix CI")
+    home, repo, external, sentinel = _init_project_memory_symlink_state(tmp_path)
+    os.symlink(external, repo / "project_memory", target_is_directory=True)
+    result = subprocess.run(
+        ["bash", os.path.join(ROOT, "team-kits", "init_project_memory.sh"), "demo-team"],
+        cwd=str(repo), capture_output=True, text=True, timeout=60,
+        env=dict(os.environ, HOME=str(home)))
+    output = (result.stdout + result.stderr).lower()
+    assert result.returncode != 0 and "symlink" in output
+    assert sentinel.read_text(encoding="utf-8") == "external memory sentinel\n"
+    assert not (external / "new.yaml").exists()
+    assert (repo / "project_memory").is_symlink()
+    assert not (repo / ".claude" / "kit_update_pending.memory").exists()
 
 
 # ---------------- gate_packaging_decision (the generalised "Docker was forgotten" guard) ----------------
@@ -530,6 +710,19 @@ def test_notify_logs_agent_completed(tmp_path):
     assert audit.is_file() and "agent_completed" in audit.read_text(encoding="utf-8")
 
 
+def test_notify_logs_codex_subagent_start(tmp_path):
+    (tmp_path / "project_memory").mkdir()
+    payload = {"hook_event_name": "SubagentStart", "agent_type": "backend-developer",
+               "agent_id": "agent-1", "cwd": str(tmp_path)}
+    result = run_hook_process("notify_agent_events.py", payload, tmp_path,
+                              extra_env={"TEAM_KIT_PROVIDER": "codex"})
+    assert result.returncode == 0
+    audit = tmp_path / "project_memory" / ".audit" / "hook_events.jsonl"
+    event = json.loads(audit.read_text(encoding="utf-8").splitlines()[-1])
+    assert event["event"] == "subagent_start"
+    assert event["reason"] == "backend-developer"
+
+
 def test_notify_ignores_other_types(tmp_path):
     (tmp_path / "project_memory").mkdir()
     assert _notify(tmp_path, "permission_prompt") == 0
@@ -596,7 +789,8 @@ def test_session_status_quiet_without_pending(tmp_path):
 # ---------------- session_status: model/effort frontmatter must match the user-confirmed maps ----------------
 def _sync_repo(tmp_path, agent_model):
     repo = tmp_path / "repo"
-    write(str(repo / "project_memory" / "project_config.yaml"),
+    config_path = repo / "project_memory" / "project_config.yaml"
+    write(str(config_path),
           "project:\n  name: x\nmodel_map:\n  backend-developer: opus   # user-approved upscale\n"
           "effort_map:\n  backend-developer: high\n")
     write(str(repo / ".claude" / "agents" / "backend-developer.md"),
@@ -604,17 +798,31 @@ def _sync_repo(tmp_path, agent_model):
     return repo
 
 
-def _run_status(repo):
-    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(repo))
-    return subprocess.run([sys.executable, os.path.join(HOOKS, "session_status.py")],
+def _run_status(repo, provider="claude", hooks_dir=HOOKS):
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(repo), TEAM_KIT_PROVIDER=provider)
+    return subprocess.run([sys.executable, os.path.join(hooks_dir, "session_status.py")],
                           input=json.dumps({"cwd": str(repo)}), capture_output=True, text=True,
                           env=env, timeout=60).stdout
 
 
-def test_session_status_flags_model_drift(tmp_path):
+@pytest.mark.parametrize("hooks_dir", (HOOKS, RESEARCH_HOOKS, OFFICE_HOOKS))
+def test_session_status_flags_model_drift_with_claude_guidance(tmp_path, hooks_dir):
     # the scaffold reset the frontmatter to sonnet although the map says opus -> must nag
-    out = _run_status(_sync_repo(tmp_path, "sonnet"))
+    out = _run_status(_sync_repo(tmp_path, "sonnet"), "claude", hooks_dir)
     assert "MODEL/EFFORT OUT OF SYNC" in out and "backend-developer model=sonnet (map says opus)" in out
+    assert "frontmatter line in .claude/agents/" in out
+    assert "Do NOT edit .codex/agents/*.toml" not in out
+
+
+@pytest.mark.parametrize("hooks_dir", (HOOKS, RESEARCH_HOOKS, OFFICE_HOOKS))
+def test_session_status_flags_model_drift_with_codex_regeneration_guidance(tmp_path, hooks_dir):
+    out = _run_status(_sync_repo(tmp_path, "sonnet"), "codex", hooks_dir)
+    assert "MODEL/EFFORT OUT OF SYNC" in out
+    assert "Do NOT edit .codex/agents/*.toml or one isolated provider source" in out
+    assert "confirm a full scaffold re-sync" in out
+    assert "Never run the provider generator alone" in out
+    assert "verify the generated .codex/agents/*.toml model/effort mappings" in out
+    assert "Re-sync each named agent's model:/effort: frontmatter line" not in out
 
 
 def test_session_status_quiet_when_synced(tmp_path):
@@ -805,6 +1013,17 @@ def test_subagent_output_blocks_prose_only(kit_repo):
     assert run_hook("gate_subagent_output.py", payload, kit_repo) == 2
 
 
+def test_subagent_output_uses_codex_block_decision(kit_repo):
+    payload = _stop_payload(kit_repo, "backend-developer", "prose only")
+    result = run_hook_process(
+        "gate_subagent_output.py", payload, kit_repo,
+        extra_env={"TEAM_KIT_PROVIDER": "codex"})
+    assert result.returncode == 0
+    output = json.loads(result.stdout)
+    assert output["decision"] == "block" and "output-contract" in output["reason"]
+    assert "continue" not in output
+
+
 def test_subagent_output_passes_contract(kit_repo):
     payload = _stop_payload(kit_repo, "backend-developer", "summary: implemented SR-1\nstatus: DONE")
     assert run_hook("gate_subagent_output.py", payload, kit_repo) == 0
@@ -856,6 +1075,32 @@ def test_selfmod_blocks_settings_edit(tmp_path):
     assert run_hook("guard_harness_selfmod.py", payload, tmp_path) == 2
 
 
+@pytest.mark.parametrize("rel", [
+    ".codex/config.toml",
+    ".codex/hooks.json",
+    ".codex/agents/backend-developer.toml",
+    ".agents/skills/backend-developer/SKILL.md",
+    ".CoDeX/agents/reviewer.toml",
+    ".AGENTS/SKILLS/reviewer/SKILL.md",
+    ".claude/provider_artifacts.json",
+    ".claude/team_kit_roles.txt",
+])
+def test_selfmod_blocks_provider_generated_control_files(tmp_path, rel):
+    p = tmp_path / rel
+    payload = {"tool_name": "Edit", "tool_input": {"file_path": str(p)},
+               "cwd": str(tmp_path)}
+    assert run_hook("guard_harness_selfmod.py", payload, tmp_path) == 2, rel
+
+
+def test_selfmod_allows_scaffold_command(tmp_path):
+    payload = {
+        "tool_name": "Bash",
+        "tool_input": {"command": "bash ~/.claude/team-kits/scaffold_team.sh dev-team"},
+        "cwd": str(tmp_path),
+    }
+    assert run_hook("guard_harness_selfmod.py", payload, tmp_path) == 0
+
+
 def test_selfmod_allows_agent_resync_and_memory(tmp_path):
     for rel in (".claude/agents/backend-developer.md", ".claude/agent-memory/project-manager/MEMORY.md"):
         p = tmp_path / rel
@@ -899,6 +1144,14 @@ def test_subagent_output_gives_up_on_stop_hook_active(kit_repo):
 
 
 # ---------------- office fs tripwire: shell redirects into the ledger are blocked ----------------
+def test_office_business_profile_records_provider_and_preserves_legacy_key():
+    yaml = pytest.importorskip("yaml")
+    text = open(OFFICE_PROFILE, encoding="utf-8").read()
+    privacy = yaml.safe_load(text)["privacy"]
+    assert {"provider", "account_type", "claude_account_type"} <= set(privacy)
+    assert "LEGACY" in text and "provider=claude" in text
+
+
 def test_fs_tripwire_blocks_ledger_redirect(tmp_path):
     payload = {"tool_name": "Bash",
                "tool_input": {"command": 'echo "L1,2026-01-01,..." >> ledger/2026.csv'},
@@ -913,7 +1166,7 @@ def test_fs_tripwire_allows_ledger_add_script(tmp_path):
     assert run_hook("guard_fs_tripwire.py", payload, tmp_path, hooks_dir=OFFICE_HOOKS) == 0
 
 
-# ---------------- provider compat: Codex apply_patch / Copilot camelCase payloads ----------------
+# ---------------- provider compat: Codex apply_patch payloads ----------------
 def _codex_patch(*files):
     body = "".join("*** Update File: %s\n@@\n-x\n+y\n" % f for f in files)
     return "*** Begin Patch\n" + body + "*** End Patch"
@@ -924,6 +1177,19 @@ def test_selfmod_blocks_codex_apply_patch(tmp_path):
                "tool_input": {"command": _codex_patch(".claude/hooks/gate_git.py")},
                "cwd": str(tmp_path)}
     assert run_hook("guard_harness_selfmod.py", payload, tmp_path) == 2
+
+
+@pytest.mark.parametrize("rel", [
+    ".codex/config.toml",
+    ".agents/skills/project-manager/SKILL.md",
+    ".claude/provider_artifacts.json",
+    ".claude/team_kit_roles.txt",
+])
+def test_selfmod_blocks_codex_provider_artifact_patch(tmp_path, rel):
+    payload = {"tool_name": "apply_patch",
+               "tool_input": {"command": _codex_patch(rel)},
+               "cwd": str(tmp_path)}
+    assert run_hook("guard_harness_selfmod.py", payload, tmp_path) == 2, rel
 
 
 def test_pm_scope_blocks_codex_multifile_patch(tmp_path):
@@ -940,8 +1206,22 @@ def test_no_adhoc_blocks_codex_added_dump_file(tmp_path):
     assert run_hook("guard_no_adhoc.py", payload, tmp_path) == 2
 
 
-def test_pm_scope_blocks_copilot_camelcase(tmp_path):
-    payload = {"toolName": "edit", "toolArgs": {"file_path": str(tmp_path / "src" / "x.py")},
+def test_no_adhoc_allows_codex_update_of_existing_dump_name(tmp_path):
+    patch = "*** Begin Patch\n*** Update File: final_report.md\n@@\n-x\n+y\n*** End Patch"
+    payload = {"tool_name": "apply_patch", "tool_input": {"command": patch}, "cwd": str(tmp_path)}
+    assert run_hook("guard_no_adhoc.py", payload, tmp_path) == 0
+
+
+def test_no_adhoc_blocks_codex_move_to_dump_name(tmp_path):
+    patch = ("*** Begin Patch\n*** Update File: docs/notes.md\n*** Move to: final_report.md\n"
+             "@@\n-x\n+y\n*** End Patch")
+    payload = {"tool_name": "apply_patch", "tool_input": {"command": patch}, "cwd": str(tmp_path)}
+    assert run_hook("guard_no_adhoc.py", payload, tmp_path) == 2
+
+
+def test_pm_scope_blocks_lowercase_tool_alias(tmp_path):
+    # non-Claude payloads may use lowercase tool names; _TOOL_ALIASES must normalize them
+    payload = {"tool_name": "edit", "tool_input": {"file_path": str(tmp_path / "src" / "x.py")},
                "cwd": str(tmp_path)}
     assert run_hook("guard_pm_scope.py", payload, tmp_path) == 2
 
@@ -1024,6 +1304,22 @@ def test_enforcement_diff_blocks_hook_change_without_kit_bump(tmp_path):
     calls, ok, fail, warn = _collector()
     _kit_checks_mod().check_enforcement_diff(str(repo), ok, fail, warn)
     assert calls["fail"] and "kit update" in calls["fail"][0][1]
+
+
+@pytest.mark.parametrize("rel", [
+    ".codex/config.toml",
+    ".agents/skills/project-manager/SKILL.md",
+    ".claude/provider_artifacts.json",
+    ".claude/team_kit_roles.txt",
+])
+def test_enforcement_diff_blocks_codex_controls_without_kit_bump(tmp_path, rel):
+    repo = _mk_diff_repo(tmp_path)
+    write(str(repo / rel), "tampered\n")
+    _git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "add", "-A")
+    _git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", "tamper")
+    calls, ok, fail, warn = _collector()
+    _kit_checks_mod().check_enforcement_diff(str(repo), ok, fail, warn)
+    assert calls["fail"] and rel in calls["fail"][0][1]
 
 
 def test_enforcement_diff_allows_kit_update(tmp_path):
@@ -1118,6 +1414,8 @@ def test_gen_provider_artifacts(tmp_path):
     import shutil
     repo = tmp_path / "repo"
     os.makedirs(str(repo / ".claude"), exist_ok=True)
+    shutil.copytree(os.path.join(ROOT, "team-kits", "dev-team", "hooks"),
+                    str(repo / ".claude" / "hooks"))
     shutil.copy(os.path.join(ROOT, "team-kits", "dev-team", "settings", "settings.json"),
                 str(repo / ".claude" / "settings.json"))
     write(str(repo / ".claude" / "agents" / "backend-developer.md"),
@@ -1125,30 +1423,439 @@ def test_gen_provider_artifacts(tmp_path):
           "  the server side.\nmodel: sonnet\neffort: high\n---\nBody of the backend role.\n")
     write(str(repo / ".claude" / "agents" / "project-manager.md"),
           "---\nname: project-manager\ndescription: Lead\nmodel: opus\neffort: high\n---\nLead body.\n")
-    p = subprocess.run([sys.executable, GEN, "--repo", str(repo), "--providers", "codex,copilot"],
+    write(str(repo / ".claude" / "skills" / "backend-developer" / "SKILL.md"),
+          "---\nname: backend-developer\n---\nFollow ./CLAUDE.md.\n")
+    write(str(repo / ".claude" / "skills" / "project-manager" / "SKILL.md"),
+          "---\nname: project-manager\n---\nLead skill.\n")
+    write(str(repo / ".claude" / "team_kit_roles.txt"),
+          "# agents-and-skills:team-kit-roles v1 team=dev-team count=2\n"
+          "project-manager\nbackend-developer\n")
+    # Pre-manifest upgrades remove only artifacts carrying the old generator's stable marker.
+    write(str(repo / ".codex" / "agents" / "stale.toml"),
+          'developer_instructions = "team-kit governed repository"\n')
+    write(str(repo / ".codex" / "agents" / "custom.toml"),
+          'developer_instructions = "user-owned agent"\n')
+    write(str(repo / ".github" / "agents" / "stale.agent.md"),
+          "You are inside a team-kit governed repository.\n")
+    write(str(repo / ".github" / "agents" / "custom.agent.md"), "User-owned agent.\n")
+    p = subprocess.run([sys.executable, GEN, "--repo", str(repo), "--providers", "codex"],
                        capture_output=True, text=True, timeout=60)
     assert p.returncode == 0, p.stderr
+    assert not (repo / ".codex" / "agents" / "stale.toml").exists()
+    # legacy Copilot outputs (generation removed) are still recognized and cleaned up
+    assert not (repo / ".github" / "agents" / "stale.agent.md").exists()
+    assert (repo / ".codex" / "agents" / "custom.toml").is_file()
+    assert (repo / ".github" / "agents" / "custom.agent.md").is_file()
     hooks = json.loads(open(str(repo / ".codex" / "hooks.json"), encoding="utf-8").read())
     txt = json.dumps(hooks)
     assert "apply_patch" in txt                      # Edit|Write matchers translated
     assert "Agent|Task" not in txt                   # spawn guard deliberately not registered
-    assert "CLAUDE_PROJECT_DIR" not in txt           # repo-relative commands
+    # Codex may inherit a stale Claude variable from the parent shell. Every generated
+    # command must overwrite it with the root it just resolved before running a shared hook.
+    assert 'CLAUDE_PROJECT_DIR=\\"$root\\"' in txt
+    assert "$env:CLAUDE_PROJECT_DIR = $root" in txt
+    assert "git rev-parse --show-toplevel" in txt     # stable even when Codex starts in a subdir
+    assert "dirname" in txt and "Get-Location" in txt  # greenfield fallback before git init
+    assert "TEAM_KIT_PROVIDER=codex" in txt
+    assert "guard_pm_scope.py" in txt                 # current Codex PreToolUse carries agent_id
+    assert "SubagentStart" in hooks["hooks"] and "notify_agent_events.py" in json.dumps(
+        hooks["hooks"]["SubagentStart"])
+    import tomllib
+    config = tomllib.loads((repo / ".codex" / "config.toml").read_text(encoding="utf-8"))
+    assert config["model"] == "gpt-5.6-sol"
+    assert config["model_reasoning_effort"] == "high"
+    assert config["default_permissions"] == "team-kit"
+    assert config["features"]["multi_agent"] is True
+    assert "Lead body." in config["developer_instructions"]
+    fs = config["permissions"]["team-kit"]["filesystem"][":workspace_roots"]
+    assert fs["."] == "write" and fs[".env"] == "deny" and fs["**/*.pem"] == "deny"
+    assert fs[".codex"] == "read" and fs[".agents/skills"] == "read"
+    assert fs["AGENTS.md"] == "read" and fs[".claude/hooks"] == "read"
     toml = open(str(repo / ".codex" / "agents" / "backend-developer.toml"), encoding="utf-8").read()
     assert 'model = "gpt-5.6-terra"' in toml and "AGENTS.md" in toml
+    assert ".agents/skills/backend-developer/SKILL.md" in toml
     # audit M3: folded (>) frontmatter descriptions must be joined, not collapsed to '>'
     assert "Backend specialist: builds the server side." in toml
     assert not os.path.isfile(str(repo / ".codex" / "agents" / "project-manager.toml"))
-    gh = json.loads(open(str(repo / ".github" / "hooks" / "team-kit-hooks.json"), encoding="utf-8").read())
-    assert gh.get("version") == 1 and "PreToolUse" in gh["hooks"]
-    agent_md = open(str(repo / ".github" / "agents" / "backend-developer.agent.md"), encoding="utf-8").read()
-    assert "model: claude-sonnet-5" in agent_md
-    assert 'description: "Backend specialist: builds the server side."' in agent_md
+    native_skill = repo / ".agents" / "skills" / "backend-developer" / "SKILL.md"
+    assert native_skill.is_file() and "./AGENTS.md" in native_skill.read_text(encoding="utf-8")
+    native_marker = repo / ".agents" / "skills" / "backend-developer" / ".team-kit-generated"
+    assert "agents-and-skills:generated-codex-config" in native_marker.read_text(encoding="utf-8")
+    assert (repo / ".agents" / "skills" / "project-manager" / "SKILL.md").is_file()
+    manifest_path = repo / ".claude" / "provider_artifacts.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert ".codex/config.toml" in manifest["files"]
+
+    # Invalid ownership fails closed before any generated or user-owned output is touched.
+    write(str(repo / "src" / "keep.py"), "KEEP = True\n")
+    write(str(repo / ".agents" / "skills" / "keep" / "SKILL.md"), "user-owned\n")
+    tampered = json.loads(json.dumps(manifest))
+    tampered["files"].append("src/keep.py")
+    tampered["dirs"].append(".agents/skills/keep/nested")
+    write(str(manifest_path), json.dumps(tampered))
+    bad = subprocess.run([sys.executable, GEN, "--repo", str(repo), "--providers", "codex"],
+                         capture_output=True, text=True, timeout=60)
+    assert bad.returncode != 0 and "left untouched" in bad.stderr
+    assert (repo / ".codex" / "config.toml").is_file() and native_skill.is_file()
+    write(str(manifest_path), "{")
+    truncated = subprocess.run(
+        [sys.executable, GEN, "--repo", str(repo), "--providers", "codex"],
+        capture_output=True, text=True, timeout=60)
+    assert truncated.returncode != 0 and manifest_path.read_text(encoding="utf-8") == "{"
+    assert (repo / ".codex" / "config.toml").is_file() and native_skill.is_file()
+    write(str(manifest_path), json.dumps(manifest))
+
+    # The removed provider is rejected fail-closed with a migration hint, artifacts untouched.
+    rejected = subprocess.run([sys.executable, GEN, "--repo", str(repo), "--providers", "copilot"],
+                              capture_output=True, text=True, timeout=60)
+    assert rejected.returncode != 0 and "no longer supported" in rejected.stderr
+    assert (repo / ".codex" / "config.toml").is_file() and native_skill.is_file()
+
+    # Removing every extra provider cleans exactly the manifest-owned outputs, nothing else.
+    p2 = subprocess.run([sys.executable, GEN, "--repo", str(repo), "--providers", ""],
+                        capture_output=True, text=True, timeout=60)
+    assert p2.returncode == 0, p2.stderr
+    assert not (repo / ".codex" / "config.toml").exists()
+    assert not (repo / ".codex" / "hooks.json").exists()
+    assert not native_skill.exists()
+    assert (repo / "src" / "keep.py").is_file()
+    assert (repo / ".agents" / "skills" / "keep" / "SKILL.md").is_file()
+    empty_manifest = json.loads(
+        (repo / ".claude" / "provider_artifacts.json").read_text(encoding="utf-8")
+    )
+    assert empty_manifest == {"version": 1, "files": [], "dirs": []}
+    assert (repo / ".codex" / "agents" / "custom.toml").is_file()
+    assert (repo / ".github" / "agents" / "custom.agent.md").is_file()
+
+
+def test_gen_provider_artifacts_cleans_pre_manifest_codex_outputs(tmp_path):
+    repo = tmp_path / "repo"
+    write(str(repo / ".codex" / "config.toml"),
+          "# agents-and-skills:generated-codex-config\nmodel = \"old\"\n")
+    write(str(repo / ".codex" / "hooks.json"),
+          '{"hooks":{"PreToolUse":[{"command":".claude/hooks/old.py"}]}}')
+    write(str(repo / ".agents" / "skills" / "backend-developer" / "SKILL.md"),
+          "old generated kit skill\n")
+    write(str(repo / ".agents" / "skills" / "backend-developer" / ".team-kit-generated"),
+          "agents-and-skills:generated-codex-config\n")
+    write(str(repo / ".agents" / "skills" / "custom" / "SKILL.md"), "user-owned\n")
+    result = subprocess.run([sys.executable, GEN, "--repo", str(repo), "--providers", ""],
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stderr
+    assert not (repo / ".codex" / "config.toml").exists()
+    assert not (repo / ".codex" / "hooks.json").exists()
+    assert not (repo / ".agents" / "skills" / "backend-developer").exists()
+    assert (repo / ".agents" / "skills" / "custom" / "SKILL.md").is_file()
+
+
+def test_gen_provider_artifacts_preserves_unmarked_native_skill(tmp_path):
+    repo = tmp_path / "repo"
+    skill = repo / ".agents" / "skills" / "backend-developer" / "SKILL.md"
+    write(str(skill), "user-owned skill without generator marker\n")
+    result = subprocess.run([sys.executable, GEN, "--repo", str(repo), "--providers", ""],
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stderr
+    assert skill.read_text(encoding="utf-8") == "user-owned skill without generator marker\n"
+
+
+def _provider_test_repo(tmp_path):
+    """Minimal, complete installed-kit state for generator fail-closed tests."""
+    repo = tmp_path / "repo"
+    shutil.copytree(os.path.join(ROOT, "team-kits", "dev-team", "hooks"),
+                    str(repo / ".claude" / "hooks"))
+    shutil.copy(os.path.join(ROOT, "team-kits", "dev-team", "settings", "settings.json"),
+                str(repo / ".claude" / "settings.json"))
+    for role, model in (("project-manager", "opus"), ("backend-developer", "sonnet")):
+        write(str(repo / ".claude" / "agents" / (role + ".md")),
+              "---\nname: %s\ndescription: %s\nmodel: %s\neffort: high\n---\n%s body.\n"
+              % (role, role, model, role))
+        write(str(repo / ".claude" / "skills" / role / "SKILL.md"),
+              "---\nname: %s\n---\nFollow ./CLAUDE.md.\n" % role)
+    write(str(repo / ".claude" / "team_kit_roles.txt"),
+          "# agents-and-skills:team-kit-roles v1 team=dev-team count=2\n"
+          "project-manager\nbackend-developer\n")
+    return repo
+
+
+def test_gen_provider_artifacts_requires_installed_hook_bundle(tmp_path):
+    repo = _provider_test_repo(tmp_path)
+    shutil.rmtree(repo / ".claude" / "hooks")
+    result = subprocess.run([sys.executable, GEN, "--repo", str(repo),
+                             "--providers", "codex"],
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode != 0 and "Missing .claude/hooks" in result.stderr
+    assert not (repo / ".codex" / "config.toml").exists()
+    assert not (repo / ".codex" / "hooks.json").exists()
+
+
+def test_gen_provider_config_defaults_absent_providers_to_both(tmp_path):
+    # Legacy project_config predating the providers key: default [claude, codex] with a notice,
+    # so existing projects keep taking kit updates without a config edit first.
+    repo = _provider_test_repo(tmp_path)
+    config = repo / "project_memory" / "project_config.yaml"
+    write(str(config), "project:\n  preset: mini\n")
+    checked = subprocess.run([sys.executable, GEN, "--repo", str(repo),
+                              "--project-config", str(config), "--check-config-only"],
+                             capture_output=True, text=True, timeout=60)
+    assert checked.returncode == 0, checked.stderr
+    assert "defaulting to" in checked.stdout
+    generated = subprocess.run([sys.executable, GEN, "--repo", str(repo),
+                                "--project-config", str(config)],
+                               capture_output=True, text=True, timeout=60)
+    assert generated.returncode == 0, generated.stderr
+    assert (repo / ".codex" / "config.toml").is_file()
+
+    # an explicitly PRESENT but empty providers value stays fail-closed
+    config.write_text("project:\n  preset: mini\nproviders:\n", encoding="utf-8")
+    empty = subprocess.run([sys.executable, GEN, "--repo", str(repo),
+                            "--project-config", str(config), "--check-config-only"],
+                           capture_output=True, text=True, timeout=60)
+    assert empty.returncode != 0 and "must not be empty" in empty.stderr
+
+
+def test_gen_codex_frontmatter_overlay(tmp_path):
+    # The divergence valve: a namespaced `codex:` frontmatter block (ignored by Claude) merges
+    # Codex-only keys into the generated TOML; identity keys stay generator-owned.
+    repo = _provider_test_repo(tmp_path)
+    write(str(repo / ".claude" / "agents" / "backend-developer.md"),
+          "---\nname: backend-developer\ndescription: backend\nmodel: sonnet\neffort: high\n"
+          "codex:\n  sandbox_mode: workspace-write\n  model_reasoning_effort: xhigh\n"
+          "---\nbackend body.\n")
+    result = subprocess.run([sys.executable, GEN, "--repo", str(repo), "--providers", "codex"],
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stderr
+    toml = (repo / ".codex" / "agents" / "backend-developer.toml").read_text(encoding="utf-8")
+    assert 'sandbox_mode = "workspace-write"' in toml
+    assert 'model_reasoning_effort = "xhigh"' in toml       # overlay wins over effort:
+    assert 'model = "gpt-5.6-terra"' in toml                # tier mapping still applies
+
+    # reserved keys are rejected fail-closed
+    write(str(repo / ".claude" / "agents" / "backend-developer.md"),
+          "---\nname: backend-developer\ndescription: backend\nmodel: sonnet\neffort: high\n"
+          "codex:\n  developer_instructions: hijack\n---\nbackend body.\n")
+    rejected = subprocess.run([sys.executable, GEN, "--repo", str(repo), "--providers", "codex"],
+                              capture_output=True, text=True, timeout=60)
+    assert rejected.returncode != 0 and "must not override" in rejected.stderr
+    assert 'sandbox_mode = "workspace-write"' in (
+        repo / ".codex" / "agents" / "backend-developer.toml").read_text(encoding="utf-8")
+
+
+def test_gen_provider_removal_rejects_symlinked_managed_parent(tmp_path):
+    repo = _provider_test_repo(tmp_path)
+    config = repo / "project_memory" / "project_config.yaml"
+    write(str(config), "project:\n  preset: mini\nproviders: [claude, codex]\n")
+    generated = subprocess.run([sys.executable, GEN, "--repo", str(repo),
+                                "--project-config", str(config)],
+                               capture_output=True, text=True, timeout=60)
+    assert generated.returncode == 0, generated.stderr
+    manifest = repo / ".claude" / "provider_artifacts.json"
+    manifest_before = manifest.read_text(encoding="utf-8")
+
+    shutil.rmtree(repo / ".codex")
+    external = tmp_path / "outside-codex"
+    sentinel = external / "config.toml"
+    write(str(sentinel), "# external sentinel must survive\n")
+    try:
+        os.symlink(external, repo / ".codex", target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip("directory symlinks are not permitted in this test environment: %s" % exc)
+
+    config.write_text("project:\n  preset: mini\nproviders: [claude]\n", encoding="utf-8")
+    removed = subprocess.run([sys.executable, GEN, "--repo", str(repo),
+                              "--project-config", str(config)],
+                             capture_output=True, text=True, timeout=60)
+    assert removed.returncode != 0
+    assert "symlink" in (removed.stdout + removed.stderr).lower()
+    assert sentinel.read_text(encoding="utf-8") == "# external sentinel must survive\n"
+    assert manifest.read_text(encoding="utf-8") == manifest_before
+
+
+@pytest.mark.parametrize("relative,is_directory", [
+    (".codex/config.toml", False),
+    (".agents/skills/backend-developer", True),
+])
+def test_gen_provider_artifacts_rejects_unowned_output_collision(tmp_path, relative,
+                                                                 is_directory):
+    repo = _provider_test_repo(tmp_path)
+    target = repo / relative
+    if is_directory:
+        write(str(target / "SKILL.md"), "user-owned collision\n")
+    else:
+        write(str(target), "# user-owned collision\n")
+    result = subprocess.run([sys.executable, GEN, "--repo", str(repo),
+                             "--providers", "codex"],
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode != 0 and "Provider output collision" in result.stderr
+    assert "user-owned collision" in (
+        (target / "SKILL.md").read_text(encoding="utf-8") if is_directory
+        else target.read_text(encoding="utf-8"))
+    assert not (repo / ".claude" / "provider_artifacts.json").exists()
+
+
+@pytest.mark.parametrize("source", [
+    "project:\n  name: missing-providers\n",
+    "providers: null\n",
+    "providers: [claude]\nproviders: [codex]\n",
+])
+def test_gen_provider_config_rejects_missing_null_or_duplicate_provider_key(tmp_path, source):
+    config = tmp_path / "project_config.yaml"
+    config.write_text(source, encoding="utf-8")
+    sentinel = tmp_path / "sentinel.txt"
+    sentinel.write_text("untouched\n", encoding="utf-8")
+    result = subprocess.run([sys.executable, GEN, "--repo", str(tmp_path),
+                             "--project-config", str(config), "--check-config-only"],
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode != 0 and "provider artifacts were left untouched" in result.stderr
+    assert sentinel.read_text(encoding="utf-8") == "untouched\n"
+
+
+@pytest.mark.parametrize("missing_kind", ["agent", "skill"])
+def test_gen_provider_artifacts_rejects_role_or_skill_mismatch(tmp_path, missing_kind):
+    repo = _provider_test_repo(tmp_path)
+    if missing_kind == "agent":
+        (repo / ".claude" / "agents" / "backend-developer.md").unlink()
+    else:
+        shutil.rmtree(repo / ".claude" / "skills" / "backend-developer")
+    result = subprocess.run([sys.executable, GEN, "--repo", str(repo),
+                             "--providers", "codex"],
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode != 0
+    expected = "Role manifest/source mismatch" if missing_kind == "agent" else "native skill source"
+    assert expected in result.stderr
+    assert not (repo / ".codex" / "config.toml").exists()
+
+
+def test_gen_provider_artifacts_translates_role_scoped_hooks(tmp_path):
+    repo = _provider_test_repo(tmp_path)
+    agent_source = os.path.join(ROOT, "team-kits", "dev-team", "agents")
+    skill_source = os.path.join(ROOT, "team-kits", "dev-team", "skills")
+    for role in ("backend-developer", "frontend-developer"):
+        shutil.copy(os.path.join(agent_source, role + ".md"),
+                    str(repo / ".claude" / "agents" / (role + ".md")))
+        if role == "frontend-developer":
+            shutil.copytree(os.path.join(skill_source, role),
+                            str(repo / ".claude" / "skills" / role))
+    write(str(repo / ".claude" / "team_kit_roles.txt"),
+          "# agents-and-skills:team-kit-roles v1 team=dev-team count=3\n"
+          "project-manager\nbackend-developer\nfrontend-developer\n")
+    result = subprocess.run([sys.executable, GEN, "--repo", str(repo),
+                             "--providers", "codex"],
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stderr
+    text = (repo / ".codex" / "hooks.json").read_text(encoding="utf-8")
+    assert "guard_guidelines.py" in text
+    assert "TEAM_KIT_AGENT_TYPES=backend-developer,frontend-developer" in text
+    assert "$env:TEAM_KIT_AGENT_TYPES='backend-developer,frontend-developer'" in text
+
+
+def test_guard_guidelines_codex_multifile_patch_honors_role_scope(tmp_path):
+    pytest.importorskip("yaml")
+    write(str(tmp_path / "project_memory" / "coding_guidelines.yaml"),
+          "languages:\n  python:\n    - use type hints\n")
+    payload = {
+        "hook_event_name": "PreToolUse",
+        "agent_type": "backend-developer",
+        "tool_name": "apply_patch",
+        "tool_input": {"command": _codex_patch("src/ok.py", "frontend/blocked.ts")},
+        "cwd": str(tmp_path),
+    }
+    env = {"TEAM_KIT_PROVIDER": "codex",
+           "TEAM_KIT_AGENT_TYPES": "backend-developer,frontend-developer"}
+    assert run_hook_process("guard_guidelines.py", payload, tmp_path,
+                            extra_env=env).returncode == 2
+    payload["agent_type"] = "quality-engineer"
+    assert run_hook_process("guard_guidelines.py", payload, tmp_path,
+                            extra_env=env).returncode == 0
+
+
+def test_gen_provider_artifacts_hook_bundle_hash_changes_with_hook_content(tmp_path):
+    repo = _provider_test_repo(tmp_path)
+
+    def generate_and_hash():
+        result = subprocess.run([sys.executable, GEN, "--repo", str(repo),
+                                 "--providers", "codex"],
+                                capture_output=True, text=True, timeout=60)
+        assert result.returncode == 0, result.stderr
+        text = (repo / ".codex" / "hooks.json").read_text(encoding="utf-8")
+        hashes = set(re.findall(
+            r"TEAM_KIT_HOOK_BUNDLE_SHA256(?:=|=')([0-9a-f]{64})", text))
+        assert len(hashes) == 1
+        return hashes.pop()
+
+    before = generate_and_hash()
+    compat = repo / ".claude" / "hooks" / "_compat.py"
+    compat.write_text(compat.read_text(encoding="utf-8") + "\n# bundle hash regression\n",
+                      encoding="utf-8")
+    after = generate_and_hash()
+    assert before != after
+
+
+def _generated_subagent_start_command(repo, key):
+    result = subprocess.run([sys.executable, GEN, "--repo", str(repo),
+                             "--providers", "codex"],
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stderr
+    document = json.loads((repo / ".codex" / "hooks.json").read_text(encoding="utf-8"))
+    for group in document["hooks"].get("SubagentStart", []):
+        for hook in group.get("hooks", []):
+            if "notify_agent_events.py" in hook.get("command", ""):
+                return hook[key]
+    raise AssertionError("generated SubagentStart notify hook not found")
+
+
+def _exercise_generated_hook_bundle_command(tmp_path, command_key, shell_executable=None):
+    repo = _provider_test_repo(tmp_path)
+    (repo / "project_memory").mkdir()
+    git_init = subprocess.run(["git", "init", "-b", "main"], cwd=str(repo),
+                              capture_output=True, text=True, timeout=30)
+    assert git_init.returncode == 0, git_init.stderr
+    command = _generated_subagent_start_command(repo, command_key)
+    payload = {"hook_event_name": "SubagentStart", "agent_type": "backend-developer",
+               "agent_id": "generated-command-test", "cwd": str(repo)}
+
+    def run_command():
+        kwargs = {"cwd": str(repo), "input": json.dumps(payload), "capture_output": True,
+                  "text": True, "timeout": 60, "shell": bool(shell_executable),
+                  # A Codex process launched from a Claude-configured shell may inherit this.
+                  # The generated wrapper must replace it with the root resolved above.
+                  "env": dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path / "stale-root"))}
+        if shell_executable:
+            kwargs["executable"] = shell_executable
+        return subprocess.run(command, **kwargs)
+
+    clean = run_command()
+    assert clean.returncode == 0, clean.stdout + clean.stderr
+    audit = repo / "project_memory" / ".audit" / "hook_events.jsonl"
+    assert audit.is_file() and "subagent_start" in audit.read_text(encoding="utf-8")
+    audit_before = audit.read_bytes()
+
+    helper = repo / ".claude" / "hooks" / "_compat.py"
+    helper.write_text(helper.read_text(encoding="utf-8") + "\n# changed after hook trust\n",
+                      encoding="utf-8")
+    changed = run_command()
+    assert changed.returncode == 2
+    message = (changed.stdout + changed.stderr).lower()
+    assert "hook bundle changed" in message
+    assert "full scaffold" in message and "/hooks" in message
+    assert audit.read_bytes() == audit_before  # verifier stopped before the actual hook
+
+
+def test_generated_windows_hook_command_verifies_bundle_before_execution(tmp_path):
+    if os.name != "nt" or not shutil.which("powershell"):
+        pytest.skip("generated Windows hook command runs on Windows")
+    _exercise_generated_hook_bundle_command(tmp_path, "commandWindows")
+
+
+def test_generated_posix_hook_command_verifies_bundle_before_execution(tmp_path):
+    if os.name == "nt" or not shutil.which("bash"):
+        pytest.skip("generated POSIX hook command runs on Unix CI")
+    _exercise_generated_hook_bundle_command(tmp_path, "command", shutil.which("bash"))
 
 
 # ---------------- constitutions: every hook has a documented rule-home (diet safety) ----------------
 def test_every_hook_documented_in_its_constitution():
     for kit in ("dev-team", "research-team", "office-team"):
-        cpath = os.path.join(ROOT, "team-kits", kit, "constitution", "CLAUDE.md")
+        cpath = os.path.join(ROOT, "team-kits", kit, "constitution", "AGENTS.md")
         text = open(cpath, encoding="utf-8", errors="ignore").read()
         hooks_dir = os.path.join(ROOT, "team-kits", kit, "hooks")
         for fn in os.listdir(hooks_dir):
@@ -1308,6 +2015,23 @@ def test_gate_filing_passes_real_target(tmp_path):
     assert run_hook("gate_filing.py", payload, tmp_path, hooks_dir=OFFICE_HOOKS) == 0
 
 
+def test_gate_filing_blocks_codex_multifile_patch(tmp_path):
+    log = tmp_path / "project_memory" / "filing_log.yaml"
+    write(str(log), 'filed:\n  - source: a.pdf\n    target: "archive/fin/a.pdf"\n')
+    payload = {
+        "hook_event_name": "PostToolUse",
+        "tool_name": "apply_patch",
+        "tool_input": {"command": _codex_patch("docs/notes.md",
+                                                 "project_memory/filing_log.yaml")},
+        "cwd": str(tmp_path),
+    }
+    result = run_hook_process("gate_filing.py", payload, tmp_path, hooks_dir=OFFICE_HOOKS,
+                              extra_env={"TEAM_KIT_PROVIDER": "codex"})
+    assert result.returncode == 0
+    output = json.loads(result.stdout)
+    assert output["decision"] == "block" and "file does NOT exist" in output["reason"]
+
+
 def test_fs_tripwire_blocks_archive_delete(tmp_path):
     payload = {"tool_name": "Bash", "tool_input": {"command": "rm -rf archive/finance/2026"},
                "cwd": str(tmp_path)}
@@ -1398,27 +2122,371 @@ def test_fs_tripwire_allows_archiving_generated_report(tmp_path):
     assert run_hook("guard_fs_tripwire.py", payload, tmp_path, hooks_dir=OFFICE_HOOKS) == 0
 
 
-# ---------------- scaffold: mechanical presets + map re-stamp (Windows: real ps1 run) ----------------
+# ---------------- scaffold: mechanical presets + map re-stamp ----------------
+def _preset_parser_kit(tmp_path, presets):
+    kit = tmp_path / "preset-kit"
+    for role in ("project-manager", "alpha", "beta"):
+        write(str(kit / "agents" / (role + ".md")), "# %s\n" % role)
+    write(str(kit / "settings" / "settings.json"), '{"agent": "project-manager"}\n')
+    write(str(kit / "presets.yaml"), presets)
+    return kit
+
+
+def test_preset_parser_resolves_only_valid_specialists(tmp_path):
+    kit = _preset_parser_kit(tmp_path, "mini: alpha beta\nfull: all\n")
+    result = subprocess.run(
+        [sys.executable, os.path.join(ROOT, "team-kits", "preset_config.py"),
+         "--kit", str(kit), "--preset", "mini", "--format", "json"],
+        capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stderr
+    parsed = json.loads(result.stdout)
+    assert parsed == {
+        "preset": "mini", "lead": "project-manager", "all": False,
+        "roles": ["alpha", "beta"], "available": ["mini", "full"],
+    }
+
+
+@pytest.mark.parametrize("presets, diagnostic", [
+    ("mini: alpha\nmini: beta\n", "duplicate yaml key"),
+    ("mini: missing\n", "unknown role"),
+    ("mini: project-manager alpha\n", "foreground lead"),
+    ("mini: alpha alpha\n", "duplicate specialist"),
+    ("mini: [alpha]\n", "space-separated role string"),
+    ("- alpha\n", "non-empty mapping"),
+])
+def test_preset_parser_rejects_ambiguous_or_nonmechanical_policy(
+        tmp_path, presets, diagnostic):
+    kit = _preset_parser_kit(tmp_path, presets)
+    result = subprocess.run(
+        [sys.executable, os.path.join(ROOT, "team-kits", "preset_config.py"),
+         "--kit", str(kit)], capture_output=True, text=True, timeout=60)
+    output = (result.stdout + result.stderr).lower()
+    assert result.returncode != 0 and diagnostic in output
+
+
+def _unknown_recorded_preset_state(tmp_path):
+    home = tmp_path / "home"
+    kit = home / ".claude" / "team-kits" / "demo-team"
+    for role in ("project-manager", "alpha"):
+        write(str(kit / "agents" / (role + ".md")),
+              "---\nname: %s\nmodel: sonnet\neffort: high\n---\nbody\n" % role)
+        write(str(kit / "skills" / role / "SKILL.md"),
+              "---\nname: %s\n---\nbody\n" % role)
+    write(str(kit / "settings" / "settings.json"), '{"agent": "project-manager"}\n')
+    write(str(kit / "presets.yaml"), "mini: alpha\n")
+    write(str(kit / "constitution" / "AGENTS.md"),
+          "<!-- agents-and-skills:team-kit demo-team -->\n# Replacement constitution\n")
+
+    repo = tmp_path / "repo"
+    write(str(repo / "project_memory" / "project_config.yaml"),
+          'project:\n  name: demo\n  preset: "retired"\nproviders: [claude]\n')
+    write(str(repo / "AGENTS.md"), "# external sentinel constitution\n")
+    write(str(repo / ".claude" / "agents" / "custom.md"), "user-owned role\n")
+    return home, repo
+
+
+def _duplicate_recorded_preset_state(tmp_path):
+    home, repo = _unknown_recorded_preset_state(tmp_path)
+    config = repo / "project_memory" / "project_config.yaml"
+    config.write_text(
+        "project:\n  name: demo\n  preset: mini\nproviders: [claude]\n",
+        encoding="utf-8")
+    presets = home / ".claude" / "team-kits" / "demo-team" / "presets.yaml"
+    presets.write_text("mini: alpha\nmini: all\n", encoding="utf-8")
+    return home, repo
+
+
+def _scaffold_external_file_symlink_state(tmp_path, relative):
+    home = tmp_path / "home"
+    kit = home / ".claude" / "team-kits" / "demo-team"
+    for role in ("project-manager", "alpha"):
+        write(str(kit / "agents" / (role + ".md")),
+              "---\nname: %s\nmodel: sonnet\neffort: high\n---\nbody\n" % role)
+        write(str(kit / "skills" / role / "SKILL.md"),
+              "---\nname: %s\n---\nbody\n" % role)
+    write(str(kit / "settings" / "settings.json"), '{"agent": "project-manager"}\n')
+    write(str(kit / "presets.yaml"), "mini: alpha\n")
+    write(str(kit / "constitution" / "AGENTS.md"),
+          "<!-- agents-and-skills:team-kit demo-team -->\n# Replacement constitution\n")
+    write(str(kit / "templates" / "repo" / "scripts" / "kit_checks.py"),
+          "# kit-owned replacement\n")
+
+    repo = tmp_path / "repo"
+    write(str(repo / "project_memory" / "project_config.yaml"),
+          "project:\n  name: symlink\n  preset: mini\nproviders: [claude]\n")
+    write(str(repo / "AGENTS.md"), "# local constitution sentinel\n")
+    external = tmp_path / "external-scaffold" / relative.replace("/", "-")
+    write(str(external), "external scaffold sentinel\n")
+    target = repo / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    return home, repo, external, target
+
+
+def _assert_scaffold_symlink_preflight_untouched(repo, external, target):
+    assert external.read_text(encoding="utf-8") == "external scaffold sentinel\n"
+    assert target.is_symlink()
+    assert (repo / "AGENTS.md").read_text(encoding="utf-8") == (
+        "# local constitution sentinel\n")
+    assert not (repo / ".claude" / "settings.json").exists()
+    assert not (repo / ".claude" / "team_kit_roles.txt").exists()
+    assert not (repo / ".claude" / "backups").exists()
+
+
+@pytest.mark.parametrize("relative", [
+    "scripts/kit_checks.py",
+    ".claude/kit_update_pending.repo",
+])
+def test_scaffold_ps1_rejects_external_control_file_symlink_before_mutation(tmp_path, relative):
+    if os.name != "nt" or not shutil.which("powershell"):
+        pytest.skip("PowerShell scaffold integration runs on Windows")
+    home, repo, external, target = _scaffold_external_file_symlink_state(tmp_path, relative)
+    try:
+        os.symlink(external, target)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip("file symlinks are not permitted in this test environment: %s" % exc)
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+         os.path.join(ROOT, "team-kits", "scaffold_team.ps1"), "-Team", "demo-team"],
+        cwd=str(repo), capture_output=True, text=True, timeout=120,
+        env=dict(os.environ, USERPROFILE=str(home)))
+    output = (result.stdout + result.stderr).lower()
+    assert result.returncode != 0 and ("symlink" in output or "reparse" in output)
+    _assert_scaffold_symlink_preflight_untouched(repo, external, target)
+
+
+@pytest.mark.parametrize("relative", [
+    "scripts/kit_checks.py",
+    ".claude/kit_update_pending.repo",
+])
+def test_scaffold_sh_rejects_external_control_file_symlink_before_mutation(tmp_path, relative):
+    if os.name == "nt" or not shutil.which("bash"):
+        pytest.skip("POSIX scaffold integration runs on Unix CI")
+    home, repo, external, target = _scaffold_external_file_symlink_state(tmp_path, relative)
+    os.symlink(external, target)
+    pythonpath = os.pathsep.join(path for path in sys.path if path)
+    result = subprocess.run(
+        ["bash", os.path.join(ROOT, "team-kits", "scaffold_team.sh"), "demo-team"],
+        cwd=str(repo), capture_output=True, text=True, timeout=120,
+        env=dict(os.environ, HOME=str(home), PYTHONPATH=pythonpath))
+    output = (result.stdout + result.stderr).lower()
+    assert result.returncode != 0 and "symlink" in output
+    _assert_scaffold_symlink_preflight_untouched(repo, external, target)
+
+
+def _assert_unknown_preset_left_repo_untouched(repo):
+    assert (repo / "AGENTS.md").read_text(encoding="utf-8") == (
+        "# external sentinel constitution\n")
+    assert (repo / ".claude" / "agents" / "custom.md").read_text(
+        encoding="utf-8") == "user-owned role\n"
+    assert not (repo / ".claude" / "agents" / "alpha.md").exists()
+    assert not (repo / ".claude" / "settings.json").exists()
+    assert not (repo / ".claude" / "team_kit_roles.txt").exists()
+    assert not (repo / ".claude" / "backups").exists()
+
+
+def _scaffold_provider_collision_state(tmp_path):
+    home = tmp_path / "home"
+    kit = home / ".claude" / "team-kits" / "demo-team"
+    for role in ("project-manager", "alpha"):
+        model = "opus" if role == "project-manager" else "sonnet"
+        write(str(kit / "agents" / (role + ".md")),
+              "---\nname: %s\ndescription: new %s\nmodel: %s\neffort: high\n---\nnew body\n"
+              % (role, role, model))
+        write(str(kit / "skills" / role / "SKILL.md"),
+              "---\nname: %s\n---\nnew skill\n" % role)
+    write(str(kit / "settings" / "settings.json"), '{"agent": "project-manager"}\n')
+    write(str(kit / "hooks" / "new_hook.py"), "#!/usr/bin/env python3\n# new hook\n")
+    write(str(kit / "presets.yaml"), "mini: alpha\n")
+    write(str(kit / "VERSION"), "version: rollback-test\ncontent: new\n")
+    write(str(kit / "constitution" / "AGENTS.md"),
+          "<!-- agents-and-skills:team-kit demo-team -->\n# New constitution\n")
+
+    repo = tmp_path / "repo"
+    write(str(repo / "project_memory" / "project_config.yaml"),
+          "project:\n  name: rollback\n  preset: mini\nproviders: [claude, codex]\n")
+    write(str(repo / "AGENTS.md"),
+          "<!-- agents-and-skills:team-kit old-team -->\n# Old constitution\n")
+    write(str(repo / "CLAUDE.md"), "# Old Claude entry\n")
+    for role in ("project-manager", "alpha"):
+        write(str(repo / ".claude" / "agents" / (role + ".md")), "old %s agent\n" % role)
+        write(str(repo / ".claude" / "skills" / role / "SKILL.md"),
+              "old %s skill\n" % role)
+    write(str(repo / ".claude" / "agents" / "custom.md"), "user-owned custom agent\n")
+    write(str(repo / ".claude" / "hooks" / "old_hook.py"), "# old hook\n")
+    write(str(repo / ".claude" / "settings.json"),
+          '{"agent": "project-manager", "old": true}\n')
+    write(str(repo / ".claude" / "team_kit_roles.txt"),
+          "# agents-and-skills:team-kit-roles v1 team=old-team count=2\n"
+          "project-manager\nalpha\n")
+    write(str(repo / ".claude" / "provider_artifacts.json"),
+          '{"version": 1, "files": [], "dirs": []}\n')
+    write(str(repo / ".claude" / "kit_version"),
+          "version: old\ncontent: old\n")
+    write(str(repo / ".agents" / "skills" / "old-native" / "SKILL.md"),
+          "old native skill\n")
+    collision = repo / ".codex" / "config.toml"
+    write(str(collision), "# unowned collision sentinel\n")
+    return home, repo, collision
+
+
+def _controlled_scaffold_snapshot(repo):
+    roots = (
+        "AGENTS.md", "CLAUDE.md", ".claude/agents", ".claude/hooks",
+        ".claude/skills", ".claude/settings.json", ".claude/team_kit_roles.txt",
+        ".claude/provider_artifacts.json", ".claude/kit_version", ".codex",
+        ".agents/skills", ".github/hooks", ".github/agents",
+    )
+    snapshot = {}
+    for relative in roots:
+        path = repo / relative
+        if path.is_file():
+            data = path.read_bytes()
+            snapshot[relative] = (hashlib.sha256(data).hexdigest(), data)
+        elif path.is_dir():
+            snapshot[relative + "/"] = ("directory", b"")
+            for child in sorted(item for item in path.rglob("*") if item.is_file()):
+                child_relative = child.relative_to(repo).as_posix()
+                data = child.read_bytes()
+                snapshot[child_relative] = (hashlib.sha256(data).hexdigest(), data)
+    return snapshot
+
+
+def test_scaffold_ps1_rolls_back_base_after_provider_collision(tmp_path):
+    if os.name != "nt" or not shutil.which("powershell"):
+        pytest.skip("PowerShell scaffold integration runs on Windows")
+    home, repo, collision = _scaffold_provider_collision_state(tmp_path)
+    before = _controlled_scaffold_snapshot(repo)
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+         os.path.join(ROOT, "team-kits", "scaffold_team.ps1"), "-Team", "demo-team"],
+        cwd=str(repo), capture_output=True, text=True, timeout=120,
+        env=dict(os.environ, USERPROFILE=str(home)))
+    output = result.stdout + result.stderr
+    assert result.returncode != 0
+    assert "Provider output collision" in output and "rollback" in output.lower()
+    assert _controlled_scaffold_snapshot(repo) == before
+    assert collision.read_text(encoding="utf-8") == "# unowned collision sentinel\n"
+
+
+def test_scaffold_sh_rolls_back_base_after_provider_collision(tmp_path):
+    if os.name == "nt" or not shutil.which("bash"):
+        pytest.skip("POSIX scaffold integration runs on Unix CI")
+    home, repo, collision = _scaffold_provider_collision_state(tmp_path)
+    before = _controlled_scaffold_snapshot(repo)
+    pythonpath = os.pathsep.join(path for path in sys.path if path)
+    result = subprocess.run(
+        ["bash", os.path.join(ROOT, "team-kits", "scaffold_team.sh"), "demo-team"],
+        cwd=str(repo), capture_output=True, text=True, timeout=120,
+        env=dict(os.environ, HOME=str(home), PYTHONPATH=pythonpath))
+    output = result.stdout + result.stderr
+    assert result.returncode != 0
+    assert "Provider output collision" in output and "rollback" in output.lower()
+    assert _controlled_scaffold_snapshot(repo) == before
+    assert collision.read_text(encoding="utf-8") == "# unowned collision sentinel\n"
+
+
+def test_scaffold_ps1_rejects_unknown_quoted_recorded_preset_before_mutation(tmp_path):
+    if os.name != "nt" or not shutil.which("powershell"):
+        pytest.skip("PowerShell scaffold integration runs on Windows")
+    home, repo = _unknown_recorded_preset_state(tmp_path)
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+         os.path.join(ROOT, "team-kits", "scaffold_team.ps1"), "-Team", "demo-team"],
+        cwd=str(repo), capture_output=True, text=True, timeout=120,
+        env=dict(os.environ, USERPROFILE=str(home)))
+    output = result.stdout + result.stderr
+    assert result.returncode != 0
+    assert "retired" in output and "preset" in output.lower()
+    _assert_unknown_preset_left_repo_untouched(repo)
+
+
+def test_scaffold_sh_rejects_unknown_quoted_recorded_preset_before_mutation(tmp_path):
+    if os.name == "nt" or not shutil.which("bash"):
+        pytest.skip("POSIX scaffold integration runs on Unix CI")
+    home, repo = _unknown_recorded_preset_state(tmp_path)
+    pythonpath = os.pathsep.join(path for path in sys.path if path)
+    result = subprocess.run(
+        ["bash", os.path.join(ROOT, "team-kits", "scaffold_team.sh"), "demo-team"],
+        cwd=str(repo), capture_output=True, text=True, timeout=120,
+        env=dict(os.environ, HOME=str(home), PYTHONPATH=pythonpath))
+    output = result.stdout + result.stderr
+    assert result.returncode != 0
+    assert "retired" in output and "preset" in output.lower()
+    _assert_unknown_preset_left_repo_untouched(repo)
+
+
+def test_scaffold_ps1_rejects_duplicate_preset_keys_before_mutation(tmp_path):
+    if os.name != "nt" or not shutil.which("powershell"):
+        pytest.skip("PowerShell scaffold integration runs on Windows")
+    home, repo = _duplicate_recorded_preset_state(tmp_path)
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+         os.path.join(ROOT, "team-kits", "scaffold_team.ps1"), "-Team", "demo-team"],
+        cwd=str(repo), capture_output=True, text=True, timeout=120,
+        env=dict(os.environ, USERPROFILE=str(home)))
+    output = (result.stdout + result.stderr).lower()
+    assert result.returncode != 0 and "duplicate yaml key" in output
+    _assert_unknown_preset_left_repo_untouched(repo)
+
+
+def test_scaffold_sh_rejects_duplicate_preset_keys_before_mutation(tmp_path):
+    if os.name == "nt" or not shutil.which("bash"):
+        pytest.skip("POSIX scaffold integration runs on Unix CI")
+    home, repo = _duplicate_recorded_preset_state(tmp_path)
+    pythonpath = os.pathsep.join(path for path in sys.path if path)
+    result = subprocess.run(
+        ["bash", os.path.join(ROOT, "team-kits", "scaffold_team.sh"), "demo-team"],
+        cwd=str(repo), capture_output=True, text=True, timeout=120,
+        env=dict(os.environ, HOME=str(home), PYTHONPATH=pythonpath))
+    output = (result.stdout + result.stderr).lower()
+    assert result.returncode != 0 and "duplicate yaml key" in output
+    _assert_unknown_preset_left_repo_untouched(repo)
+
+
+# Windows: real ps1 run
 def test_scaffold_preset_and_map_sync(tmp_path):
     if os.name != "nt":
         pytest.skip("ps1 test runs on Windows; the sh mirror is covered by the kit audit")
     home = tmp_path / "home"
     kit = home / ".claude" / "team-kits" / "demo-team"
     for role in ("project-manager", "alpha", "beta", "gamma"):
+        # lead + gamma use tier aliases: the lead is never in model_map and gamma has no map
+        # entry, so both exercise the copy-time alias resolution (not the map stamping)
+        model = {"project-manager": "lead", "gamma": "worker"}.get(role, "sonnet")
         write(str(kit / "agents" / ("%s.md" % role)),
-              "---\nname: %s\nmodel: sonnet\neffort: high\n---\nbody\n" % role)
+              "---\nname: %s\ndescription: Demo %s\nmodel: %s\neffort: high\n---\nbody\n"
+              % (role, role, model))
         write(str(kit / "skills" / role / "SKILL.md"), "---\nname: %s\n---\nx\n" % role)
     write(str(kit / "settings" / "settings.json"), '{"agent": "project-manager"}')
+    write(str(kit / "hooks" / "noop.py"), "#!/usr/bin/env python3\n")
     write(str(kit / "presets.yaml"), "mini: alpha\nfull: all\n")
     write(str(kit / "VERSION"), "version: 2026.07.13-1\ncontent: x\n")
-    write(str(kit / "constitution" / "CLAUDE.md"),
+    write(str(kit / "constitution" / "AGENTS.md"),
           "<!-- agents-and-skills:team-kit demo-team -->\n# Demo constitution\nRule body.\n")
+    legacy_kit = home / ".claude" / "team-kits" / "legacy-team"
+    write(str(legacy_kit / "agents" / "legacy-specialist.md"), "old kit role\n")
+    write(str(legacy_kit / "skills" / "legacy-specialist" / "SKILL.md"), "old kit skill\n")
     repo = tmp_path / "repo"
-    write(str(repo / "project_memory" / "project_config.yaml"),
+    config_path = repo / "project_memory" / "project_config.yaml"
+    write(str(config_path),
           "project:\n  name: x\n  preset: mini\n"
-          "providers: [claude, codex]\n"
+          "providers:\n  - \"claude\"\n  - 'codex'  # generated provider\n"
           "model_map:\n  alpha: lead   # tier alias — must stamp as opus\n"
           "effort_map:\n  alpha: high\n")
+    # Simulate a pre-manifest install from another kit plus unrelated user-owned files.
+    write(str(repo / ".claude" / "agents" / "legacy-specialist.md"), "installed old role\n")
+    write(str(repo / ".claude" / "skills" / "legacy-specialist" / "SKILL.md"),
+          "installed old skill\n")
+    # Legacy Copilot artifacts from an older kit (generation removed): the marker proves
+    # ownership, so the full scaffold path must clean them up.
+    write(str(repo / ".github" / "agents" / "alpha.agent.md"),
+          "You are inside a team-kit governed repository.\n")
+    write(str(repo / ".github" / "hooks" / "team-kit-hooks.json"),
+          '{"version": 1, "hooks": {"PreToolUse": [{"bash": "python .claude/hooks/x.py"}]}}\n')
+    write(str(repo / "AGENTS.md"),
+          "<!-- agents-and-skills:team-kit legacy-team -->\n# Legacy constitution\n")
+    write(str(repo / ".claude" / "agents" / "custom.md"), "custom\n")
+    write(str(repo / ".claude" / "skills" / "custom" / "SKILL.md"), "custom\n")
     script = os.path.join(ROOT, "team-kits", "scaffold_team.ps1")
 
     def scaffold(*extra):
@@ -1427,6 +2495,27 @@ def test_scaffold_preset_and_map_sync(tmp_path):
                               cwd=str(repo), capture_output=True, text=True,
                               env=dict(os.environ, USERPROFILE=str(home)), timeout=120)
 
+    roles_manifest = repo / ".claude" / "team_kit_roles.txt"
+    write(str(roles_manifest),
+          "# agents-and-skills:team-kit-roles v1 team=legacy-team count=2\n"
+          "legacy-specialist\n")
+    invalid = scaffold("-Preset", "mini")
+    assert invalid.returncode != 0 and "Invalid/truncated" in invalid.stdout + invalid.stderr
+    assert (repo / ".claude" / "agents" / "legacy-specialist.md").is_file()
+    roles_manifest.unlink()
+
+    valid_config = config_path.read_text(encoding="utf-8")
+    # a PRESENT but invalid providers value stays fail-closed (the ABSENT key now defaults to
+    # [claude, codex] for legacy configs — covered by its own generator test)
+    config_path.write_text("project:\n  name: x\n  preset: mini\nproviders: 42\n",
+                           encoding="utf-8")
+    invalid_config = scaffold("-Preset", "mini")
+    assert invalid_config.returncode != 0
+    assert "Invalid provider configuration; no scaffold files were changed" in (
+        invalid_config.stdout + invalid_config.stderr)
+    assert "Legacy constitution" in (repo / "AGENTS.md").read_text(encoding="utf-8")
+    config_path.write_text(valid_config, encoding="utf-8")
+
     r = scaffold("-Preset", "mini")
     assert r.returncode == 0, r.stdout + r.stderr
     agents = repo / ".claude" / "agents"
@@ -1434,8 +2523,15 @@ def test_scaffold_preset_and_map_sync(tmp_path):
     assert not (agents / "beta.md").exists() and not (agents / "gamma.md").exists()
     skills = repo / ".claude" / "skills"
     assert (skills / "alpha" / "SKILL.md").is_file() and not (skills / "beta").exists()
+    assert not (agents / "legacy-specialist.md").exists()
+    assert not (skills / "legacy-specialist").exists()
+    assert (agents / "custom.md").is_file() and (skills / "custom" / "SKILL.md").is_file()
     # V4 + tier alias: the user-approved map value `lead` stamps the concrete claude name
     assert "model: opus" in (agents / "alpha.md").read_text(encoding="utf-8-sig")
+    # copy-time alias resolution: the lead is NOT in model_map — its kit-source alias must
+    # still become the concrete reference-platform name on install
+    pm_installed = (agents / "project-manager.md").read_text(encoding="utf-8-sig")
+    assert "model: opus" in pm_installed and "model: lead" not in pm_installed
     # constitution ships as AGENTS.md + a 2-line CLAUDE.md import shim (marker on line 1)
     assert "Demo constitution" in (repo / "AGENTS.md").read_text(encoding="utf-8-sig")
     shim = (repo / "CLAUDE.md").read_text(encoding="utf-8-sig").splitlines()
@@ -1443,9 +2539,56 @@ def test_scaffold_preset_and_map_sync(tmp_path):
     assert shim[1].strip() == "@AGENTS.md" and len([ln for ln in shim if ln.strip()]) == 2
     # providers: [claude, codex] -> the generator produced .codex artifacts (alpha on lead -> sol)
     assert (repo / ".codex" / "hooks.json").is_file()
+    import tomllib
+    codex_config = tomllib.loads((repo / ".codex" / "config.toml").read_text(encoding="utf-8-sig"))
+    assert codex_config["model"] == "gpt-5.6-sol"
     alpha_toml = (repo / ".codex" / "agents" / "alpha.toml").read_text(encoding="utf-8-sig")
     assert 'model = "gpt-5.6-sol"' in alpha_toml
     assert not (repo / ".codex" / "agents" / "project-manager.toml").exists()
+    assert (repo / ".agents" / "skills" / "alpha" / "SKILL.md").is_file()
+    assert (repo / ".agents" / "skills" / "project-manager" / "SKILL.md").is_file()
+    assert "agents-and-skills:generated-codex-config" in (
+        repo / ".agents" / "skills" / "alpha" / ".team-kit-generated").read_text(
+            encoding="utf-8")
+    assert (repo / ".codex" / "config.toml").read_text(encoding="utf-8-sig").startswith(
+        "# agents-and-skills:generated-codex-config")
+    assert (repo / ".claude" / "hooks" / "noop.py").is_file()
+    # legacy Copilot artifacts were marker-proven and removed by the provider transaction
+    assert not (repo / ".github" / "agents" / "alpha.agent.md").exists()
+    assert not (repo / ".github" / "hooks" / "team-kit-hooks.json").exists()
+    assert (repo / ".claude" / "team_kit_roles.txt").read_text(
+        encoding="utf-8-sig").splitlines() == [
+            "# agents-and-skills:team-kit-roles v1 team=demo-team count=2",
+            "project-manager", "alpha"]
+
+    # Upgrade, then downgrade back to the recorded mini preset. Only kit-managed stale roles go;
+    # unrelated user roles/skills survive.
+    r_full = scaffold("-Preset", "full")
+    assert r_full.returncode == 0, r_full.stdout + r_full.stderr
+    assert (agents / "beta.md").is_file() and (repo / ".codex" / "agents" / "beta.toml").is_file()
+    # gamma has NO model_map entry: its kit-source alias resolves at copy time
+    gamma_installed = (agents / "gamma.md").read_text(encoding="utf-8-sig")
+    assert "model: sonnet" in gamma_installed and "model: worker" not in gamma_installed
+
+    config_text = config_path.read_text(encoding="utf-8")
+    provider_block = "providers:\n  - \"claude\"\n  - 'codex'  # generated provider\n"
+    config_path.write_text(config_text.replace(provider_block, "providers: [codex"),
+                           encoding="utf-8")
+    malformed = scaffold()
+    assert malformed.returncode != 0 and "Invalid provider configuration; no scaffold files were changed" in (
+        malformed.stdout + malformed.stderr)
+    assert (repo / ".codex" / "agents" / "beta.toml").is_file()
+    # the removed provider is rejected with a migration hint before any mutation
+    config_path.write_text(config_text.replace(provider_block,
+                                               "providers: [claude, codex, copilot]\n"),
+                           encoding="utf-8")
+    rejected = scaffold()
+    assert rejected.returncode != 0 and "no longer supported" in (
+        rejected.stdout + rejected.stderr)
+    assert (repo / ".codex" / "agents" / "beta.toml").is_file()
+    config_path.write_text(config_text.replace(provider_block,
+                                               'providers: ["claude", "codex"]\n'),
+                           encoding="utf-8")
 
     # a kit UPDATE without a preset argument must keep the RECORDED preset (project_config.yaml) —
     # not silently install the full roster (the inert-preset failure mode)
@@ -1453,4 +2596,256 @@ def test_scaffold_preset_and_map_sync(tmp_path):
     assert r2.returncode == 0, r2.stdout + r2.stderr
     assert "from project_config.yaml" in r2.stdout
     assert not (agents / "beta.md").exists() and not (agents / "gamma.md").exists()
+    assert not (repo / ".codex" / "agents" / "beta.toml").exists()
+    assert not (repo / ".agents" / "skills" / "beta").exists()
+    assert not (repo / ".github" / "agents" / "alpha.agent.md").exists()
+    assert not (repo / ".github" / "hooks" / "team-kit-hooks.json").exists()
+    assert (agents / "custom.md").is_file() and (skills / "custom" / "SKILL.md").is_file()
     assert "model: opus" in (agents / "alpha.md").read_text(encoding="utf-8-sig")
+    backups = list((repo / ".claude" / "backups").glob("*/AGENTS.md"))
+    assert backups
+    assert list((repo / ".claude" / "backups").glob("*/.claude/provider_artifacts.json"))
+
+
+def test_scaffold_sh_preset_and_provider_e2e(tmp_path):
+    if os.name == "nt" or not shutil.which("bash"):
+        pytest.skip("POSIX scaffold integration runs on Unix CI")
+    home = tmp_path / "home"
+    kit = home / ".claude" / "team-kits" / "demo-team"
+    for role in ("project-manager", "alpha", "beta"):
+        model = "lead" if role == "project-manager" else "sonnet"
+        write(str(kit / "agents" / (role + ".md")),
+              "---\nname: %s\ndescription: Demo %s\nmodel: %s\neffort: high\n---\n%s body\n"
+              % (role, role, model, role))
+        write(str(kit / "skills" / role / "SKILL.md"),
+              "---\nname: %s\n---\nFollow ./CLAUDE.md.\n" % role)
+    # the lead never appears in model_map, so copy-time alias resolution is its ONLY path —
+    # and CRLF content exercises the CR-tolerant awk (audit finding: non-MSYS awk keeps \r in $0)
+    write(str(kit / "agents" / "project-manager.md"),
+          "---\r\nname: project-manager\r\ndescription: Demo lead\r\nmodel: lead\r\n"
+          "effort: high\r\n---\r\nlead body\r\n")
+    write(str(kit / "settings" / "settings.json"), '{"agent": "project-manager"}\n')
+    write(str(kit / "hooks" / "noop.py"), "#!/usr/bin/env python3\n")
+    write(str(kit / "presets.yaml"), "mini: alpha\nfull: all\n")
+    write(str(kit / "VERSION"), "version: 2026.07.14-test\ncontent: test\n")
+    write(str(kit / "constitution" / "AGENTS.md"),
+          "<!-- agents-and-skills:team-kit demo-team -->\n# Demo constitution\n")
+
+    repo = tmp_path / "repo"
+    write(str(repo / "project_memory" / "project_config.yaml"),
+          "project:\n  name: demo\n  preset: mini\n"
+          "providers: [claude, codex]\n"
+          "model_map:\n  alpha: lead\n"
+          "effort_map:\n  alpha: high\n")
+    write(str(repo / ".claude" / "agents" / "custom.md"), "user-owned role\n")
+    write(str(repo / ".claude" / "skills" / "custom" / "SKILL.md"), "user-owned skill\n")
+    script = os.path.join(ROOT, "team-kits", "scaffold_team.sh")
+    pythonpath = os.pathsep.join(path for path in sys.path if path)
+
+    def scaffold(preset=None):
+        command = ["bash", script, "demo-team"]
+        if preset:
+            command.append(preset)
+        return subprocess.run(command, cwd=str(repo), capture_output=True, text=True, timeout=120,
+                              env=dict(os.environ, HOME=str(home), PYTHONPATH=pythonpath))
+
+    first = scaffold("mini")
+    assert first.returncode == 0, first.stdout + first.stderr
+    assert (repo / ".claude" / "agents" / "alpha.md").is_file()
+    assert not (repo / ".claude" / "agents" / "beta.md").exists()
+    assert (repo / ".claude" / "agents" / "custom.md").is_file()
+    # copy-time alias resolution: lead is NOT in model_map, CRLF source, line ending preserved
+    lead_installed = (repo / ".claude" / "agents" / "project-manager.md").read_bytes()
+    assert b"model: opus\r\n" in lead_installed and b"model: lead" not in lead_installed
+    assert (repo / ".codex" / "config.toml").is_file()
+    assert (repo / ".agents" / "skills" / "alpha" / ".team-kit-generated").is_file()
+    assert (repo / ".claude" / "team_kit_roles.txt").read_text(
+        encoding="utf-8").splitlines() == [
+            "# agents-and-skills:team-kit-roles v1 team=demo-team count=2",
+            "project-manager", "alpha"]
+
+    upgraded = scaffold("full")
+    assert upgraded.returncode == 0, upgraded.stdout + upgraded.stderr
+    assert (repo / ".claude" / "agents" / "beta.md").is_file()
+    assert (repo / ".codex" / "agents" / "beta.toml").is_file()
+
+    downgraded = scaffold()
+    assert downgraded.returncode == 0, downgraded.stdout + downgraded.stderr
+    assert "from project_config.yaml" in downgraded.stdout
+    assert not (repo / ".claude" / "agents" / "beta.md").exists()
+    assert not (repo / ".codex" / "agents" / "beta.toml").exists()
+    assert not (repo / ".agents" / "skills" / "beta").exists()
+    assert (repo / ".claude" / "agents" / "custom.md").is_file()
+    assert (repo / ".claude" / "skills" / "custom" / "SKILL.md").is_file()
+    assert list((repo / ".claude" / "backups").glob("*/.codex/config.toml"))
+
+
+# ---------------- installers: fresh Codex-only homes + CODEX_HOME/override handling ----------------
+def test_install_sh_codex_only_uses_codex_home(tmp_path):
+    if os.name == "nt" or not shutil.which("bash"):
+        pytest.skip("POSIX installer integration runs on Unix CI")
+    home = tmp_path / "home"
+    codex_home = tmp_path / "custom-codex"
+    write(str(codex_home / "AGENTS.md"), "# old entry gate\n")
+    write(str(codex_home / "AGENTS.override.md"), "# keep me\n")
+    pythonpath = os.pathsep.join(path for path in sys.path if path)
+    command = ["bash", os.path.join(ROOT, "install.sh"), "--target", "codex", "--force"]
+    env = dict(os.environ, HOME=str(home), CODEX_HOME=str(codex_home), PYTHONPATH=pythonpath)
+    result = subprocess.run(command, cwd=str(ROOT), capture_output=True, text=True, timeout=180,
+                            env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert (codex_home / "AGENTS.md").is_file()
+    assert (codex_home / "AGENTS.override.md").read_text(encoding="utf-8") == "# keep me\n"
+    assert (home / ".claude" / "team-kits" / "gen_provider_artifacts.py").is_file()
+    assert (home / ".claude" / "team-kits" / "preset_config.py").is_file()
+    first_backups = list((home / ".claude" / "backups").glob("*/codex-AGENTS.md"))
+    assert len(first_backups) == 1
+    assert first_backups[0].read_text(encoding="utf-8") == "# old entry gate\n"
+    assert list((home / ".claude" / "backups").glob("*/codex-AGENTS.override.md"))
+    assert "entry gate stays inactive" in result.stdout
+
+    second = subprocess.run(command, cwd=str(ROOT), capture_output=True, text=True, timeout=180,
+                            env=env)
+    assert second.returncode == 0, second.stdout + second.stderr
+    backup_dirs = {path.parent for path in
+                   (home / ".claude" / "backups").glob("*/codex-AGENTS.md")}
+    assert len(backup_dirs) == 2
+    assert not list((home / ".claude").glob(".team-kits.stage.*"))
+    assert not list((home / ".claude").glob(".team-kits.previous.*"))
+
+
+def test_install_sh_rejects_symlinked_codex_agents_before_backup(tmp_path):
+    if os.name == "nt" or not shutil.which("bash"):
+        pytest.skip("POSIX installer integration runs on Unix CI")
+    home = tmp_path / "home"
+    codex_home = tmp_path / "custom-codex"
+    external = tmp_path / "external" / "AGENTS.md"
+    write(str(external), "# external sentinel\n")
+    codex_home.mkdir(parents=True)
+    os.symlink(external, codex_home / "AGENTS.md")
+    pythonpath = os.pathsep.join(path for path in sys.path if path)
+    result = subprocess.run(
+        ["bash", os.path.join(ROOT, "install.sh"), "--target", "codex", "--force"],
+        cwd=str(ROOT), capture_output=True, text=True, timeout=180,
+        env=dict(os.environ, HOME=str(home), CODEX_HOME=str(codex_home),
+                 PYTHONPATH=pythonpath))
+    assert result.returncode != 0
+    assert "symlink" in (result.stdout + result.stderr).lower()
+    assert external.read_text(encoding="utf-8") == "# external sentinel\n"
+    assert (codex_home / "AGENTS.md").is_symlink()
+    assert not (home / ".claude" / "backups").exists()
+    assert not (home / ".claude" / "team-kits").exists()
+
+
+def test_install_sh_codex_only_creates_fresh_codex_home(tmp_path):
+    if os.name == "nt" or not shutil.which("bash"):
+        pytest.skip("POSIX installer integration runs on Unix CI")
+    home = tmp_path / "home"
+    codex_home = tmp_path / "fresh-codex"
+    assert not codex_home.exists()
+    pythonpath = os.pathsep.join(path for path in sys.path if path)
+    result = subprocess.run(
+        ["bash", os.path.join(ROOT, "install.sh"), "--target", "codex", "--force"],
+        cwd=str(ROOT), capture_output=True, text=True, timeout=180,
+        env=dict(os.environ, HOME=str(home), CODEX_HOME=str(codex_home),
+                 PYTHONPATH=pythonpath))
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert codex_home.is_dir() and (codex_home / "AGENTS.md").is_file()
+    assert "created Codex home" in result.stdout
+    assert (home / ".claude" / "team-kits" / "gen_provider_artifacts.py").is_file()
+    assert (home / ".claude" / "team-kits" / "preset_config.py").is_file()
+
+
+def test_install_sh_rejects_invalid_target():
+    if os.name == "nt" or not shutil.which("bash"):
+        pytest.skip("POSIX installer integration runs on Unix CI")
+    result = subprocess.run(
+        ["bash", os.path.join(ROOT, "install.sh"), "--target", "invalid", "--force"],
+        cwd=str(ROOT), capture_output=True, text=True, timeout=30)
+    assert result.returncode != 0 and "Invalid target" in result.stderr
+
+
+def test_install_ps1_codex_only_uses_codex_home(tmp_path):
+    if os.name != "nt" or not shutil.which("powershell"):
+        pytest.skip("PowerShell installer integration runs on Windows")
+    home = tmp_path / "home"
+    codex_home = tmp_path / "custom-codex"
+    appdata = tmp_path / "appdata"
+    write(str(codex_home / "AGENTS.md"), "# old entry gate\n")
+    write(str(codex_home / "AGENTS.override.md"), "# keep me\n")
+    pythonpath = os.pathsep.join(path for path in sys.path if path)
+    command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+               os.path.join(ROOT, "install.ps1"), "-Target", "codex", "-Force"]
+    env = dict(os.environ, USERPROFILE=str(home), APPDATA=str(appdata),
+               CODEX_HOME=str(codex_home), PYTHONPATH=pythonpath)
+    result = subprocess.run(command, cwd=str(ROOT), capture_output=True, text=True, timeout=180,
+                            env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert (codex_home / "AGENTS.md").is_file()
+    assert (codex_home / "AGENTS.override.md").read_text(encoding="utf-8") == "# keep me\n"
+    assert (home / ".claude" / "team-kits" / "gen_provider_artifacts.py").is_file()
+    assert (home / ".claude" / "team-kits" / "preset_config.py").is_file()
+    first_backups = list((home / ".claude" / "backups").glob("*/codex-AGENTS.md"))
+    assert len(first_backups) == 1
+    assert first_backups[0].read_text(encoding="utf-8") == "# old entry gate\n"
+    assert list((home / ".claude" / "backups").glob("*/codex-AGENTS.override.md"))
+    assert "entry gate stays inactive" in result.stdout
+
+    second = subprocess.run(command, cwd=str(ROOT), capture_output=True, text=True, timeout=180,
+                            env=env)
+    assert second.returncode == 0, second.stdout + second.stderr
+    backup_dirs = {path.parent for path in
+                   (home / ".claude" / "backups").glob("*/codex-AGENTS.md")}
+    assert len(backup_dirs) == 2
+    assert not list((home / ".claude").glob(".team-kits.stage.*"))
+    assert not list((home / ".claude").glob(".team-kits.previous.*"))
+
+
+def test_install_ps1_rejects_symlinked_codex_agents_before_backup(tmp_path):
+    if os.name != "nt" or not shutil.which("powershell"):
+        pytest.skip("PowerShell installer integration runs on Windows")
+    home = tmp_path / "home"
+    codex_home = tmp_path / "custom-codex"
+    appdata = tmp_path / "appdata"
+    external = tmp_path / "external" / "AGENTS.md"
+    write(str(external), "# external sentinel\n")
+    codex_home.mkdir(parents=True)
+    try:
+        os.symlink(external, codex_home / "AGENTS.md")
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip("file symlinks are not permitted in this test environment: %s" % exc)
+    pythonpath = os.pathsep.join(path for path in sys.path if path)
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+         os.path.join(ROOT, "install.ps1"), "-Target", "codex", "-Force"],
+        cwd=str(ROOT), capture_output=True, text=True, timeout=180,
+        env=dict(os.environ, USERPROFILE=str(home), APPDATA=str(appdata),
+                 CODEX_HOME=str(codex_home), PYTHONPATH=pythonpath))
+    assert result.returncode != 0
+    output = (result.stdout + result.stderr).lower()
+    assert "symlink" in output or "reparse" in output
+    assert external.read_text(encoding="utf-8") == "# external sentinel\n"
+    assert (codex_home / "AGENTS.md").is_symlink()
+    assert not (home / ".claude" / "backups").exists()
+    assert not (home / ".claude" / "team-kits").exists()
+
+
+def test_install_ps1_codex_only_creates_fresh_codex_home(tmp_path):
+    if os.name != "nt" or not shutil.which("powershell"):
+        pytest.skip("PowerShell installer integration runs on Windows")
+    home = tmp_path / "home"
+    codex_home = tmp_path / "fresh-codex"
+    appdata = tmp_path / "appdata"
+    assert not codex_home.exists()
+    pythonpath = os.pathsep.join(path for path in sys.path if path)
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+         os.path.join(ROOT, "install.ps1"), "-Target", "codex", "-Force"],
+        cwd=str(ROOT), capture_output=True, text=True, timeout=180,
+        env=dict(os.environ, USERPROFILE=str(home), APPDATA=str(appdata),
+                 CODEX_HOME=str(codex_home), PYTHONPATH=pythonpath))
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert codex_home.is_dir() and (codex_home / "AGENTS.md").is_file()
+    assert "created Codex home" in result.stdout
+    assert (home / ".claude" / "team-kits" / "gen_provider_artifacts.py").is_file()
+    assert (home / ".claude" / "team-kits" / "preset_config.py").is_file()

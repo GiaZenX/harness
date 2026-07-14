@@ -11,16 +11,91 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+if ($Team -notmatch '^[A-Za-z0-9_-]+$') { throw "Team must match [A-Za-z0-9_-]+" }
 $src = Join-Path $env:USERPROFILE ".claude\team-kits\$Team\templates\project_memory"
 if (-not (Test-Path $src)) { throw "Templates not found: $src" }
 
 $repo = (Get-Location).Path
 $dst = Join-Path $repo "project_memory"
+
+function Test-ReparsePoint {
+    param([string]$Path)
+    # [IO.File]::GetAttributes reads the link ITSELF (no follow), so a DANGLING symlink/junction
+    # is still detected — Test-Path follows the target and reported dead links as absent.
+    try {
+        return [bool]([IO.File]::GetAttributes($Path) -band [IO.FileAttributes]::ReparsePoint)
+    } catch {
+        $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+        if ($null -eq $item) { return $false }
+        return [bool]($item.Attributes -band [IO.FileAttributes]::ReparsePoint)
+    }
+}
+
+function Assert-SafeRepoPath {
+    param([string]$Path)
+    $repoFull = [IO.Path]::GetFullPath($repo).TrimEnd('\', '/')
+    $full = [IO.Path]::GetFullPath($Path)
+    $prefix = $repoFull + [IO.Path]::DirectorySeparatorChar
+    if ($full -ne $repoFull -and -not $full.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Controlled project-memory path escapes the repository: $full"
+    }
+    $relative = if ($full -eq $repoFull) { "" } else { $full.Substring($prefix.Length) }
+    $current = $repoFull
+    foreach ($component in ($relative -split '[\\/]' | Where-Object { $_ })) {
+        $current = Join-Path $current $component
+        if (Test-ReparsePoint $current) {
+            throw "Refusing symlink/junction/reparse path '$current'; project_memory was left untouched."
+        }
+    }
+}
+
+function Assert-NoReparseComponentsAbsolute {
+    param([string]$Path)
+    $full = [IO.Path]::GetFullPath($Path)
+    $root = [IO.Path]::GetPathRoot($full)
+    $current = $root
+    foreach ($component in ($full.Substring($root.Length) -split '[\\/]' | Where-Object { $_ })) {
+        $current = Join-Path $current $component
+        if (Test-ReparsePoint $current) {
+            throw "Refusing symlink/junction/reparse template path '$current'; project_memory was left untouched."
+        }
+    }
+}
+
+function Assert-NoReparseTree {
+    param([string]$Path)
+    if (Test-ReparsePoint $Path) {
+        throw "Refusing symlink/junction/reparse template path '$Path'; project_memory was left untouched."
+    }
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    $pending = New-Object System.Collections.Generic.Stack[string]
+    if ((Get-Item -LiteralPath $Path -Force).PSIsContainer) { $pending.Push($Path) }
+    while ($pending.Count -gt 0) {
+        foreach ($item in (Get-ChildItem -LiteralPath $pending.Pop() -Force)) {
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+                throw "Refusing symlink/junction/reparse template path '$($item.FullName)'; project_memory was left untouched."
+            }
+            if ($item.PSIsContainer) { $pending.Push($item.FullName) }
+        }
+    }
+}
+
+Assert-NoReparseComponentsAbsolute $src
+Assert-NoReparseTree $src
+Assert-SafeRepoPath $dst
+$templateFiles = @(Get-ChildItem -LiteralPath $src -Recurse -File -Force | Where-Object { $_.FullName -notmatch '__pycache__' })
+foreach ($templateFile in $templateFiles) {
+    $relative = $templateFile.FullName.Substring($src.Length).TrimStart('\', '/')
+    Assert-SafeRepoPath (Join-Path $dst $relative)
+}
+foreach ($relative in @(".claude\kit_update_pending.memory", ".claude\kit_update_pending.state")) {
+    Assert-SafeRepoPath (Join-Path $repo $relative)
+}
 if (-not (Test-Path $dst)) { New-Item -ItemType Directory -Force -Path $dst | Out-Null }
 
 $copied = 0; $kept = 0
 $keptTooling = @()
-Get-ChildItem -Path $src -Recurse -File -Force | Where-Object { $_.FullName -notmatch '__pycache__' } | ForEach-Object {
+$templateFiles | ForEach-Object {
     $rel = $_.FullName.Substring($src.Length).TrimStart('\', '/')
     $target = Join-Path $dst $rel
     if (Test-Path $target) {

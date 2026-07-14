@@ -1,21 +1,25 @@
 # Agent Skills
 
 A global **entry-gate constitution** and installable **multi-agent team kits** (dev, research,
-office) for **Claude Code** — plus a Copilot entry gate. Role skills ship INSIDE the team kits
-(per repo); there are no userwide skills anymore.
+office) for **Claude Code and Codex CLI**. Role skills ship inside the
+team kits (per repo); there are no userwide skills anymore.
 
 Instead of a single assistant, this repo simulates a small software team: you are the **customer**, the
 **main agent becomes your Project Manager (PM)** — your only point of contact — and specialized dev roles
-(Architect, Backend, Frontend, QA, DevOps) work below it as **stateless subagents**. The role model and
-`project_memory/` bookkeeping work in both tools; the **deterministic, blocking enforcement hooks run under
-Claude Code** (the Claude Code VS Code extension included) — see [Parity](#parity-claude-code--copilot).
+(Architect, Backend, Frontend, QA, DevOps) work below it in **ephemeral subagent runs**. Selected
+Claude roles may keep role-scoped craft memory; generated Codex projects disable host/task memory
+and use checked-in `project_memory/`. The role model and bookkeeping work in both tools. Claude and current Codex builds both provide
+blocking pre-tool hooks; Codex additionally uses native permission profiles and event-specific
+post/stop outputs. Dev/research add deterministic CI backstops, while Office relies on its blocking
+guards, deterministic scripts and external outbound policy — see [Multi-provider support](#multi-provider-support-claude-code--codex-cli).
 
-**Two-tier entry.** A user-wide **entry gate** (`CLAUDE.md` / `COPILOT.instructions.md`) drives the
+**Two-tier entry.** A user-wide **entry gate** (`~/.claude/CLAUDE.md` or `$CODEX_HOME/AGENTS.md`)
+drives the
 default agent: on your first build/change wish it asks *structured or free*, classifies the effort via the
-**team registry**, and **installs the matching team kit locally into the repository** (`./.claude/agents/`,
-a local `./CLAUDE.md`, and enforcement hooks). From then on the **main agent itself acts as the PM**,
-governed by that local `./CLAUDE.md` — there is **no separate PM subagent** to bypass or forget, and the PM
-keeps the full conversation as its memory. The local constitution carries a marker; whenever it is present,
+**team registry**, and **installs the matching team kit locally into the repository**. From then on
+the **main agent itself acts as the PM**, governed by canonical `./AGENTS.md`: Claude binds it through
+`.claude/settings.json`; Codex binds the same lead body, model and native skill through
+`.codex/config.toml`. There is **no separate PM subagent** to bypass or forget. The local constitution carries a marker; whenever it is present,
 the entry gate **hands over to it completely** (every session). If you don't want the process, you choose
 *free* and work without bookkeeping.
 
@@ -24,17 +28,21 @@ experiments with an FZulG R&D-tax-credit documentation layer) and **`office-team
 automation: inbox-driven filing, bookkeeping preparation, product/content care, compliance research,
 marketing planning — drafts only, no tax/legal advice). The registry maps your intent to the right one.
 
-Based on [mattpocock/skills](https://github.com/mattpocock/skills) plus a custom role model and a
-global workflow standard.
+Everything here — role model, constitutions, hooks, skills and workflow standard — is authored in
+this repo (early versions started from an external skills collection; none of that content remains).
 
 ---
 
 ## Quickstart
 
+Prerequisite: Python 3 with PyYAML (`python -m pip install pyyaml`). Codex targets require a
+current host; a detected Codex below 0.131.0 (hooks GA + per-hash trust flow) is rejected. The
+installer validates the kit before replacing any managed configuration.
+
 ### Windows (PowerShell)
 
 ```powershell
-git clone https://github.com/GiaZenX/AgentAndSkills.git agent-skills
+git clone https://github.com/GiaZenX/harness.git agent-skills
 cd agent-skills
 .\install.ps1
 ```
@@ -42,64 +50,93 @@ cd agent-skills
 ### macOS / Linux
 
 ```bash
-git clone https://github.com/GiaZenX/AgentAndSkills.git agent-skills
+git clone https://github.com/GiaZenX/harness.git agent-skills
 cd agent-skills
 chmod +x install.sh
 ./install.sh
 ```
 
-Restart VS Code afterwards.
+Start a new Claude/Codex session afterwards.
+An existing `$CODEX_HOME/AGENTS.override.md` is preserved and takes precedence over the installed
+`AGENTS.md`, so the Codex gate stays inactive until you deliberately merge/remove that override.
 
 ### Options
 
 | Option | Description |
 |---|---|
-| `-Target both` (default) | Installs for Claude Code **and** Copilot |
+| `-Target both` (default) | Installs for Claude Code **and** Codex CLI |
 | `-Target claude` | Claude Code only (`~/.claude/CLAUDE.md` + `~/.claude/team-kits/` + statusline) |
-| `-Target copilot` | Copilot only (VS Code instructions/entry gate) |
+| `-Target codex` | Codex entry gate (`$CODEX_HOME/AGENTS.md`) + shared team-kit staging |
 | `-Force` | Overwrites already-installed files |
 
 On Linux/Mac use `--target` and `--force` accordingly.
 
 ---
 
-## Multi-provider support: Claude Code · Codex CLI · Copilot
+## Multi-provider support: Claude Code · Codex CLI
 
-One kit source, generated provider artifacts — never hand-cloned. The constitution ships as
-**`./AGENTS.md`** (the vendor-neutral Linux-Foundation/AAIF standard that Codex, Copilot, Cursor
-and ~20 other tools read natively) plus a thin **`./CLAUDE.md` import shim** (`@AGENTS.md` —
-Anthropic's documented bridge; verified: subagents inherit the imported content). Adding
-`codex`/`copilot` to `providers:` in `project_config.yaml` makes the next scaffold run generate
-`.codex/hooks.json` + `.codex/agents/*.toml` resp. `.github/hooks/` + `.github/agents/*.agent.md`
-from the installed state (`team-kits/gen_provider_artifacts.py`). All providers run the SAME
-`.claude/hooks/*.py` scripts — `hooks/_compat.py` absorbs payload differences (Codex `apply_patch`
-multi-file patches, Copilot camelCase). Models are tier-mapped per provider
-(`team-kits/model_tiers.yaml`: `lead`/`worker`/`light` → Opus/Sol, Sonnet/Terra, …).
+One kit source, generated provider artifacts — never hand-cloned. The shared `.claude/**` baseline
+is always installed as the canonical source (Claude itself need not be installed or started). The constitution ships as
+**`./AGENTS.md`** (the vendor-neutral Linux-Foundation/AAIF standard that Codex, Cursor
+and many other tools read natively) plus a thin **`./CLAUDE.md` import shim** (`@AGENTS.md` —
+Anthropic's documented bridge; verified: subagents inherit the imported content). With
+`codex` in `providers:` (the template default is `[claude, codex]`, so a mid-project CLI switch
+needs no config edit; a legacy config without the line gets the same default) every scaffold run
+generates `.codex/config.toml`, `.codex/hooks.json`, `.codex/agents/*.toml` and native
+`.agents/skills/` from the installed state (`team-kits/gen_provider_artifacts.py`). Provider
+removal and preset downgrades remove only outputs
+recorded in generated manifests. Both providers reuse the same `.claude/hooks/*.py` sources;
+`hooks/_compat.py` absorbs payload and documented stop-output differences. Models are tier-mapped per provider
+(`team-kits/model_tiers.yaml`; kit sources carry only the neutral aliases `lead`/`worker`/`light`,
+resolved per provider at install time). A namespaced `codex:` frontmatter overlay merges
+Codex-only TOML keys the Claude-native source format cannot express — the sanctioned divergence
+valve; both watchers flag when either platform outgrows it (trip-wire criteria in HARNESS_LOG).
+Copilot support was removed 2026-07-14 (unused, live-unverified); stale generated `.github`
+artifacts from older scaffolds are still recognized and cleaned up.
 
 Honest parity matrix (verified 2026-07 against official docs; the codex-watcher tracks changes):
 
-| Guarantee | Claude Code | Codex CLI (BETA) | Copilot (unverified) |
-|---|---|---|---|
-| Constitution + skills + project_memory | ✅ native | ✅ AGENTS.md (32 KiB cap) | ✅ AGENTS.md |
-| File-edit guards (scope/selfmod/ad-hoc/YAML) | ✅ blocking | ✅ blocking via `apply_patch` hook (exit-2 GA) — needs a ONE-TIME interactive `/hooks` trust in the repo | ⚠️ generated; exit-2 = deny per docs, not yet live-verified |
-| Shell gates (git/pipeline/coverage/…) | ✅ blocking | ✅ blocking (same exit-2 contract) | ⚠️ generated; **fail-open on hook timeout** → long gates (`gate_pipeline`) MUST also run as a required CI check |
-| Spawn guard (work orders, no 2nd PM) | ✅ blocking | ➖ not registered (spawn-tool hookability unverified); Codex itself only spawns defined `.codex/agents/*.toml` roles | ⚠️ registered, unverified |
-| Subagent output contract (SubagentStop) | ✅ blocking | ✅ same event, `decision:block` documented | ⚠️ generated, unverified |
-| Lead = session agent | ✅ `agent:` setting | ➖ carried by AGENTS.md §0 prose only | ➖ prose only |
-| Second line of defense (git-level) | ✅ `kit_checks` enforcement-diff + CI (branch diff; on the base branch itself: last commit + working tree) | ✅ same (provider-neutral) | ✅ same + branch protection/required checks |
+| Guarantee | Claude Code | Codex CLI (BETA) |
+|---|---|---|
+| Constitution + skills + project_memory | ✅ native | ✅ `AGENTS.md` + native `.agents/skills` (generated config raises project-doc budget to 64 KiB) |
+| Secret-file protection | ✅ Claude permissions | ✅ Codex permission profile (`.env`, keys, PEM, `secrets/**` denied)¹ |
+| PreToolUse file/shell guards | ✅ blocking | ✅ command exit 2 + stderr blocks in current Codex; requires project + `/hooks` trust |
+| PostToolUse + SubagentStop contracts | ✅ blocking | ✅ event-specific blocking/continuation output after project + `/hooks` trust |
+| Spawn guard (work orders, no 2nd PM) | ✅ blocking | ⚠️ exact-role policy + self-validating work orders; built-in roles remain available and `SubagentStart` cannot veto the requested spawn |
+| Per-agent tool allowlists | ✅ agent frontmatter | ⚠️ no equivalent custom-agent `tools` field; instructions + sandbox/permissions + blocking hooks enforce boundaries |
+| Lead = foreground session | ✅ `agent:` setting | ✅ `.codex/config.toml` model/developer instructions + native lead skill |
+| Second line of defense | ✅ dev/research: `kit_checks` + CI; Office: guards + deterministic office scripts | ✅ same kit-specific boundary; Office ships no repo-level CI and needs external outbound policy |
 
-Bottom line: Claude Code is the **reference platform** (every guarantee live-verified). Codex
-support is **BETA** — the mechanics are GA on OpenAI's side but their hook coverage is still
-maturing (open "Claude Code hook parity" tracker). Copilot artifacts are generated and
-schema-correct per the official reference, but **live-unverified** — there, branch protection +
-required CI checks are the enforcement you rely on.
+¹ Permission profiles are ignored if a user or CLI explicitly selects legacy `sandbox_mode`; this is
+an upstream Codex precedence rule, not something a repository can override.
 
-**Bootstrap (empty project → team installed)** works from any of the three CLIs: the installer
-ships an entry gate per provider — `~/.claude/CLAUDE.md` (Claude Code), the VS Code
-`COPILOT.instructions.md` (Copilot), and `~/.codex/AGENTS.md` (Codex). Each knows the same flow:
-interview → masterplan → `init_project_memory` → scaffold → restart. The Codex gate additionally
-sets `providers: [claude, codex]` before scaffolding (so its own artifacts are generated) and
-tells the user about the one-time `/hooks` trust. The scaffold scripts themselves are plain
+Bottom line: current Codex has equivalent bootstrap, foreground lead, models, native skills, secret
+boundaries and blocking pre-tool enforcement for the registered guards. It is not mechanically
+identical to Claude: Codex's built-in roles cannot be disabled by this kit and `SubagentStart` does
+not veto a requested spawn. Dev/research therefore retain CI; Office deliberately states its weaker
+outbound boundary instead of claiming a CI backstop it does not ship.
+
+Codex mappings follow the official documentation for [project config](https://learn.chatgpt.com/docs/config-file/config-basic),
+[custom agents](https://learn.chatgpt.com/docs/agent-configuration/subagents),
+[skills](https://learn.chatgpt.com/docs/build-skills),
+[hooks](https://learn.chatgpt.com/docs/hooks), the current Codex
+[PreToolUse implementation](https://github.com/openai/codex/blob/main/codex-rs/hooks/src/events/pre_tool_use.rs),
+[PostToolUse implementation](https://github.com/openai/codex/blob/main/codex-rs/hooks/src/events/post_tool_use.rs),
+[stop-event implementation](https://github.com/openai/codex/blob/main/codex-rs/hooks/src/events/stop.rs), and
+[hook discovery/trust hashing](https://github.com/openai/codex/blob/main/codex-rs/hooks/src/engine/discovery.rs), plus
+[permission profiles](https://learn.chatgpt.com/docs/permissions).
+
+The installer ships a user entry gate for both surfaces — `~/.claude/CLAUDE.md` (Claude Code)
+and `$CODEX_HOME/AGENTS.md` (Codex). They share the
+structured/free choice, intent routing, reviewed masterplan and complete-scaffold principle, but this
+README does not claim identical host behavior. Claude consumes the always-present source baseline.
+The Codex gate additionally performs explicit greenfield/onboarded assessment, writes the
+kit-specific Dev/Research/Office draft, sets the `providers: [claude, codex]` baseline, and
+requires project trust plus `/hooks` review. No Claude application or
+session is required for that Codex path. Generated hook definitions contain an inline verifier for
+the full hook-bundle hash; changed scripts/helpers block until a full scaffold regenerates the
+definition and `/hooks` trusts it again.
+The scaffold scripts themselves are plain
 PowerShell/Bash under the shared `~/.claude/team-kits/` staging — deliberately ONE staging for
 every provider.
 
@@ -110,26 +147,25 @@ every provider.
 | Component | Path |
 |---|---|
 | User entry gate (Claude Code) | `~/.claude/CLAUDE.md` |
-| User entry gate (Copilot, VS Code) | `<vscode prompts>/COPILOT.instructions.md` (`applyTo: "**"`) |
-| User entry gate (Codex CLI) | `~/.codex/AGENTS.md` (installed only if `~/.codex` exists) |
+| User entry gate (Codex CLI) | `$CODEX_HOME/AGENTS.md` (default `~/.codex`; created; `AGENTS.override.md` wins when present) |
 | Team kit staging (shared) | `~/.claude/team-kits/<team>/` (agents, constitution, templates) + scaffold scripts + `model_tiers.yaml` + `gen_provider_artifacts.py` |
-| Project team (per repo, created on demand) | `./.claude/agents/*.md` + `./.claude/skills/` + `./AGENTS.md` (constitution) + `./CLAUDE.md` (import shim) + `./.claude/settings.json`; with codex/copilot providers also `./.codex/**`, `./.github/hooks\|agents/**` |
-| Role skills (per repo, via scaffold) | `./.claude/skills/<role>/` — no userwide skills are installed |
-| VS Code prompts folder | Windows: `%APPDATA%\Code\User\prompts\` <br> macOS: `~/Library/Application Support/Code/User/prompts/` <br> Linux: `~/.config/Code/User/prompts/` |
+| Project team (per repo, created on demand) | `./.claude/agents/*.md` + `./.claude/skills/` + `./AGENTS.md` + `./CLAUDE.md` import shim + `./.claude/settings.json`; Codex adds `./.codex/config.toml`, hooks/agents and `./.agents/skills/` |
+| Role skills (per repo, via scaffold) | Shared source: `./.claude/skills/<role>/`; Codex-native generated copy: `./.agents/skills/<role>/` |
+| VS Code prompts folder (legacy Copilot cleanup only) | Windows: `%APPDATA%\Code\User\prompts\` <br> macOS: `~/Library/Application Support/Code/User/prompts/` <br> Linux: `~/.config/Code/User/prompts/` |
 
 ---
 
 ## Repo structure
 
 ```
-AgentAndSkills/
+harness/
 ├── user/                               ← user-scope (~/.claude) install sources
 │   ├── claude/
 │   │   ├── CLAUDE.md                    ← user entry gate (Claude Code)
 │   │   ├── settings.json                ← user defaults merged into ~/.claude/settings.json
 │   │   └── statusline.py                ← status line (model · context · cost · branch)
-│   ├── copilot/
-│   │   └── COPILOT.instructions.md      ← user entry gate (applyTo: **)
+│   ├── codex/
+│   │   └── AGENTS.md                    ← user entry gate ($CODEX_HOME/AGENTS.md)
 │   └── merge_settings.py                ← installer helper: merge keys, preserve personal settings
 ├── team-kits/
 │   ├── registry.yaml                    ← intent → kit routing (single source of truth)
@@ -138,17 +174,17 @@ AgentAndSkills/
 │   ├── dev-team/
 │   │   ├── agents/                      ← project-manager (session agent) + 7 specialist subagents
 │   │   ├── skills/                      ← one role skill per agent (project-manager, software-architect, …)
-│   │   ├── constitution/CLAUDE.md       ← project constitution → ./CLAUDE.md (carries team marker)
+│   │   ├── constitution/AGENTS.md       ← source → canonical ./AGENTS.md + Claude import shim
 │   │   ├── hooks/ + settings/           ← deterministic enforcement hooks + .claude/settings.json (agent, model, …)
 │   │   └── templates/project_memory/    ← YAML artifact templates
 │   ├── research-team/
 │   │   ├── agents/ + skills/            ← project-manager + 6 specialists + their role skills
-│   │   ├── constitution/CLAUDE.md       ← project research constitution (carries team marker)
+│   │   ├── constitution/AGENTS.md       ← research constitution source (carries team marker)
 │   │   ├── hooks/ + settings/           ← enforcement hooks + .claude/settings.json
 │   │   └── templates/project_memory/    ← research artifacts + LaTeX/HTML report templates + bundled KaTeX preview
 │   └── office-team/
 │       ├── agents/ + skills/            ← office-manager (session agent) + 6 specialists + role skills
-│       ├── constitution/CLAUDE.md       ← office constitution: PROC model, outbox-only, no tax/legal advice
+│       ├── constitution/AGENTS.md       ← office constitution source: PROC model, outbox-only
 │       ├── hooks/ + settings/           ← incl. proc-approval gate, ledger guard, filing gate, fs tripwire
 │       └── templates/                   ← office artifacts + deterministic scripts (ledger_add, euer_report, …)
 ├── install.ps1                          ← Windows installer (backup + confirm + overwrite)
@@ -159,39 +195,43 @@ AgentAndSkills/
 
 ## How it starts (two-tier flow)
 
-1. **Global gate asks** (non-coercive): on your first build/change wish the global `CLAUDE.md` /
-   `COPILOT.instructions.md` asks *structured (PM) or free?*. Choose *free* and you work without
+1. **Global gate asks** (non-coercive): on your first build/change wish the global `CLAUDE.md`
+   or Codex `AGENTS.md` asks *structured (PM) or free?*. Choose *free* and you work without
    bookkeeping.
-2. **Auto-init (discovery first):** on *structured*, the default agent classifies your intent via
-   `team-kits/registry.yaml`, then **interviews you and drafts a plan** (product-level questions + a
-   recommended team) **before** installing — it writes that plan as a DRAFT into `project_memory/`. Only
-   then does it run the scaffold script.
-3. **Local install:** the kit's specialist agents are copied to `./.claude/agents/`, its constitution to
-   `./CLAUDE.md` (with a team **marker**), and its enforcement **hooks + settings** to `./.claude/`. The
-   first session then asks you to **restart**; from the next session the PM picks up the DRAFT plan.
-4. **The main agent becomes the PM.** The kit's `.claude/settings.json` sets `agent: project-manager`, so the
-   repo's main session agent **is** the PM (`model: opus`, persistent `memory: project`, a preloaded
-   `project-manager` skill) — one identity, no relay, nothing to bypass. (The first session right after install is
-   bridged in-session by the `./CLAUDE.md` marker handover; the `agent` setting takes over from the next
-   session.) The PM runs the **startup gate** (creates `project_memory/` deterministically via the
-`init_project_memory` script if missing, proposes
-   preset + specialist models, you confirm, syncs the specialists' frontmatter), then begins the phase model.
-   It maintains `project_memory/` itself and delegates only implementation to the stateless specialists.
+2. **Auto-init (discovery first):** on *structured*, the default agent classifies intent, interviews
+   and drafts a reviewed plan before installing. The Codex gate additionally assesses an existing
+   repository read-only and seeds the correct kit artifact: Dev PRD, Research RQ, or Office business
+   profile. Provider-specific limitations are stated in the parity section above.
+3. **Local install:** specialist agents are copied to `./.claude/agents/`, the canonical constitution
+   to `./AGENTS.md`, and hooks/settings to `./.claude/`. On the Codex path, existing managed
+   destinations are inventoried and require explicit replacement consent first; Codex then also
+   receives config, hooks, exact custom-agent roles and native skills. Trust the project,
+   inspect/trust the generated hook definitions under `/hooks`, then start a new session so the local
+   layer is discovered. The PM picks up the reviewed draft there.
+4. **The main agent becomes the PM.** Claude uses `.claude/settings.json` `agent:` plus its preloaded
+   skill/memory. Codex uses generated `.codex/config.toml` lead instructions/model and the native
+   `.agents/skills/project-manager` (or office-manager) skill. Both keep one foreground lead; the lead
+   is never generated as a spawnable specialist. On Codex, the user entry gate has already created
+   and seeded the kit-specific `project_memory/` deterministically, confirmed the preset, and run the
+   complete scaffold. The PM's **startup gate** validates that handover and reports an
+   incomplete/inactive provider layer instead of silently degrading. It then begins the phase model,
+   maintains `project_memory/`, and delegates specialist work to ephemeral subagent runs.
 
 ---
 
 ## Multi-agent role model
 
-The workflow lives in each kit's **constitution** (`CLAUDE.md`) and is executed by the **main agent acting
-as PM** plus stateless specialist subagents. The PM is the only interface to the user, holds the
-conversation as memory, maintains `project_memory/` itself, and delegates only implementation; specialists
+The workflow lives in each kit's canonical **constitution** (`AGENTS.md`; Claude imports it) and is executed by the **main agent acting
+as PM** plus ephemeral specialist subagent runs. Selected Claude craft roles have role-scoped memory;
+Codex project memory features are disabled for deterministic roles. The PM is the only interface to
+the user, keeps current-session conversation context, maintains `project_memory/`, and delegates; specialists
 return YAML. Roles below are the **`dev-team`**; the **`research-team`** mirrors the same machinery.
 
 ### Roles (dev-team)
 
 | Role | File | Job | Talks to user |
 |---|---|---|---|
-| **Project Manager** | `project-manager` (the repo's session agent — `agent` setting; opus + memory) | Requirements (PRD/CR), `project_memory/` bookkeeping, delegation, merge, user acceptance | **Yes (only one)** |
+| **Project Manager** | `project-manager` (foreground lead; Claude: opus + role memory; Codex: mapped lead tier + checked-in project memory) | Requirements (PRD/CR), `project_memory/` bookkeeping, delegation, merge, user acceptance | **Yes (only one)** |
 | **Software Architect** | `software-architect` | System requirements, architecture, ADRs, coding guidelines, test strategy | No |
 | **Product Designer** | `product-designer` | UI/UX: screens, flows, design system, accessibility (UI-bearing PRDs) — `design.yaml` | No |
 | **Research Engineer** | `research-engineer` | Web-enabled investigation of libs/datasheets/APIs; cited facts — `research_notes.yaml` | No |
@@ -209,7 +249,7 @@ the only customer-facing role.
 
 | Role | File | Job |
 |---|---|---|
-| **Research Lead (PM)** | `project-manager` (the repo's session agent — `agent` setting; opus + memory) | RQs/PAs, `project_memory/` + **FZulG** bookkeeping, delegation, merge, user acceptance |
+| **Research Lead (PM)** | `project-manager` (foreground lead; Claude: opus + role memory; Codex: mapped lead tier + checked-in project memory) | RQs/PAs, `project_memory/` + **FZulG** bookkeeping, delegation, merge, user acceptance |
 | **Methodologist** | `methodologist` | Hypotheses, experiment designs, MDRs, research guidelines, FZulG criteria |
 | **Researcher** | `researcher` | Runs experiments, collects raw data, analysis code |
 | **Data Analyst** | `data-analyst` | Statistics, effect sizes, visualization, interpretation |
@@ -224,12 +264,13 @@ Back-office automation for a small business, PROCESS-shaped: the approval unit i
 (`process_definitions.yaml`) — approved once by the user (with a tamper-detecting `approved_hash`),
 then routine runs execute autonomously within it. Inbox → verified filing → script-validated
 append-only ledger → **generated** quarterly income/expense report (Zufluss/Abfluss; drafts only,
-no tax/legal advice, NOTHING is ever sent — `outbox/` is the user's send tray; MCP tools are
-denied by default).
+no tax/legal advice, NOTHING is ever sent — `outbox/` is the user's send tray. Claude denies
+`mcp__*` by default; Codex has no exact project-local wildcard equivalent, so stronger outbound
+enforcement requires external server/tool restrictions or admin policy).
 
 | Role | File | Job |
 |---|---|---|
-| **Office Manager** | `office-manager` (session agent; opus + memory) | Onboarding interview, business profile/masterplan, PROC lifecycle + approvals, inbox routing, report runs, git |
+| **Office Manager** | `office-manager` (foreground lead; Claude: opus + role memory; Codex: mapped lead tier + checked-in project memory) | Onboarding interview, business profile/masterplan, PROC lifecycle + approvals, inbox routing, report runs, git |
 | **Records Clerk** | `records-clerk` | Filing plan (+ retention), verified filing log, move-only migrations |
 | **Bookkeeper** | `bookkeeper` | E-invoice-first extraction, ledger entries via `scripts/ledger_add.py` (validated, append-only), master data, report commentary — **no tax advice** |
 | **Product Editor** | `product-editor` | Catalog + content guidelines, article texts, supplier-query drafts (single writer for product copy) |
@@ -275,41 +316,54 @@ by double-click.
   no force-push, no work on a dirty tree.
 - **Team preset** chosen once per project (dev/research: `solo` | `duo` | `team`; office: `core` |
   `commerce` | `full`) — **mechanical**: the scaffold installs only the preset's roles (kit
-  `presets.yaml`), so spawning any other role fails natively; upgrading = re-run the scaffold with
-  the larger preset + session restart. Escalation is user-gated only.
-- **Models:** the **PM (session agent) runs on `opus`**; **judgment roles default to `opus`**
-  (dev: architect/designer/QA; research: methodologist/reviewer) and **implementers to `sonnet`**,
-  controlled per repo via `project_config.yaml` — the scaffold stamps each specialist's
-  `model:`/`effort:` frontmatter from the maps and `session_status` nags on drift. Specialist
-  upgrades only after a user OK (triggers: first QA fail or dissatisfaction); ladder
-  sonnet-high → sonnet-xhigh → opus-high → opus-xhigh/max (Sonnet 5 supports xhigh/max; haiku has
-  no effort parameter).
+  `presets.yaml`), so another **custom kit role** is unavailable until an upgrade. Codex's upstream
+  built-in roles remain technically selectable and are prohibited by team policy, not removed by
+  the scaffold. Upgrading = re-run the scaffold with the larger preset + session restart.
+  Escalation is user-gated only.
+- **Models:** portable `lead`/`worker`/`light` tiers use canonical Claude aliases
+  `opus`/`sonnet`/`haiku`; Codex maps them to Sol/Terra IDs. PM/judgment roles default to lead and
+  implementers to worker, controlled via `project_config.yaml` — the scaffold stamps the shared Claude agent
+  frontmatter and generates the Codex TOMLs from it; `session_status` nags on drift. Under Codex,
+  re-sync only through a user-confirmed full scaffold run (which invokes the generator), request
+  explicit filesystem permission escalation for read-only harness paths when needed, verify the
+  TOMLs, re-review/re-trust the changed hook bundle in `/hooks`, and start a new session. Never run
+  the generator alone or edit one TOML/isolated provider source. Specialist upgrades only after
+  user OK; portable ladder: worker-high → worker-xhigh → lead-high → lead-xhigh/max, only when the
+  selected concrete model supports that effort.
 - **Reasoning effort:** each role also carries an `effort:` (`low|medium|high|xhigh|max`), set per repo via an
-  **`effort_map`** in `project_config.yaml` (the PM syncs each specialist's `effort:` frontmatter, same as
-  `model:`). Default: **all specialists + the PM run `high`**; on **sonnet `high` is the ceiling —
-  `xhigh`/`max` are opus-only**. Escalation is one combined, user-gated ladder (model + effort together):
-  **`sonnet-high → opus-high → opus-max`** (`xhigh` an optional middle). Deep effort is reserved for hard cases
+  **`effort_map`** in `project_config.yaml` (Claude syncs specialist frontmatter directly; Codex uses
+  the same user-confirmed full-scaffold flow as `model:`). Default: **all specialists + the PM run
+  `high`**. `xhigh`/`max` are used only when the concrete provider/model supports them; there is no
+  blanket provider-independent Sonnet ceiling. Escalation is one combined, user-gated model+effort ladder. Deep effort is reserved for hard cases
   (architect / reviewer-QA / a dev stuck on a bug), never a baseline.
 
 ### Memory
 
 - **`project_memory/`** = the project's facts/state (authoritative single source of truth; the PM maintains it).
-- **Agent memory** (`memory: project` → `.claude/agent-memory/<role>/MEMORY.md`) — every role keeps reusable
-  **craft knowledge** across sessions (preferences, recurring patterns), kept strictly separate from project
-  state. This is Claude Code's native persistent-subagent-memory feature.
+- **Agent memory** (`memory: project` → `.claude/agent-memory/<role>/MEMORY.md`) is enabled only for
+  selected Claude craft roles. Codex has no role-specific equivalent; generated project config sets
+  `features.memories=false` and `generate_memories/use_memories=false`, so required facts/rules stay
+  in checked-in `project_memory/`, `AGENTS.md`, and skills.
 
-### Enforcement (hooks)
+### Enforcement (hooks, permissions, CI)
 
-Because instructions alone get skipped, each kit ships a small **deterministic** layer (Claude Code hooks in
-`./.claude/settings.json` + `./.claude/hooks/`, installed by the scaffold):
+Because instructions alone get skipped, each kit ships deterministic hook scripts and, where the
+kit has a pipeline, pipeline checks. Claude registers hooks through `.claude/settings.json`. Codex
+generates `.codex/hooks.json` definitions that the user must inspect/trust, uses a filesystem
+permission profile for secret denial and read-only harness control files, and emits event-specific post/stop output. In current Codex,
+`PreToolUse` command exit 2 plus stderr is a hard block and the payload includes `agent_id`/
+`agent_type`; older Codex hosts must be upgraded rather than treated as equivalent. Codex ignores
+all project-local `.codex/` layers until the repository and hooks are trusted.
 
 - **No ad-hoc files** (`guard_no_adhoc`) — blocks writing status/summary/report files outside the allowlist
   (`project_memory/**`, `src/**`, `tests/**`, `docs/**`, configs).
-- **No rogue spawns** (`guard_agent_spawn`) — blocks spawning a generic/unnamed agent; only the installed
-  specialist roles may be spawned, and every spawn must set `run_in_background` EXPLICITLY (the platform
-  silently defaults to background — a real run spawned 37/37 specialists that way by omission).
-- **PM stays out of code** (`guard_pm_scope`) — blocks the PM (main agent) from writing `src/**`, `tests/**`,
-  `frontend/**`; code goes to specialists, QA gates it.
+- **No rogue spawns** (`guard_agent_spawn`) — hard-blocking in Claude. Codex installs exact custom
+  specialist roles, instructs the lead to use only those, and makes every specialist self-validate
+  the work order. Codex's built-in roles remain available upstream, and `SubagentStart` cannot veto
+  the requested spawn; this one boundary is policy plus verification, not a hard spawn deny.
+- **PM stays out of code** (`guard_pm_scope`) — hard-blocking in both supported providers. Current
+  Codex `PreToolUse` supplies `agent_id`/`agent_type`, so the same guard distinguishes the foreground
+  lead from specialists; dev/research still retain QA/pipeline as a second line of defense.
 - **Guidelines before code** (`guard_guidelines`) — blocks a code-writer from writing a language before its
   `coding_guidelines.yaml` `languages:` block exists, so the architect fills the rules first.
 - **Real pipeline at merge** (`gate_pipeline`) — runs `scripts/quality.py` (lint/types/tests+coverage,
@@ -348,11 +402,14 @@ Because instructions alone get skipped, each kit ships a small **deterministic**
   it can only LOWER the threshold below the default, and Opus-1M sessions reportedly ignore it
   (open issue) — treat it as best-effort; the real context hygiene is the "fresh session after each
   PRD merge" rule the PM skill enforces.
-- All hooks resolve the repo root via `${CLAUDE_PROJECT_DIR}` / an upward search (`_root.py`), so a shifted
-  working directory can't silently disable a guard.
+- Claude hooks resolve via `${CLAUDE_PROJECT_DIR}`/`_root.py`; generated Codex commands resolve the
+  Git root or walk upward before launching a shared hook, so subdirectories and greenfield repos
+  before `git init` both work.
 
-The kit's `.claude/settings.json` also sets `agent: project-manager`, `model: opus`, `plansDirectory: ./plans`,
-and `permissions` (allow common build commands; deny reading secrets).
+The kit's `.claude/settings.json` sets Claude's lead/model and permissions. Codex translates the
+lead/model into `.codex/config.toml` and maps secret-read denies into a native permission profile.
+Claude's generic Bash allowlist and Office's wildcard `mcp__*` deny have no exact project-local Codex
+equivalent; they are not misrepresented as translated policy.
 
 ### Quality pipeline (tools, not review)
 
@@ -366,13 +423,16 @@ owns the proposal.
 
 ### Status line & install backup
 
-- The installer adds a **status line** (`~/.claude/statusline.py`) and **merges** global defaults into
-  `~/.claude/settings.json` — the FULL list: statusLine, theme, alwaysThinkingEnabled, telemetry off,
+- The installer installs the bundled **status-line script** (`~/.claude/statusline.py`) and **merges**
+  global defaults into `~/.claude/settings.json` — the FULL list: statusLine, theme,
+  alwaysThinkingEnabled, telemetry off,
   empty commit/PR attribution, terminal progress bar, spinner tips, cleanupPeriodDays, plus a UNION of
   permission allow/deny rules. It deliberately does NOT ship `permissions.defaultMode`
   (`bypassPermissions` would remove your veto globally — against the official warning; set it yourself
-  per project if you want it), `remoteControlAtStartup` or `effortLevel`. Your other keys are preserved;
-  the previous file is backed up under `~/.claude/backups/`.
+  per project if you want it), `remoteControlAtStartup` or `effortLevel`. Every existing top-level
+  value wins, including a custom `theme` or `statusLine`; only missing defaults are added. Existing
+  permission sub-keys also win, except that valid `permissions.allow`/`deny` lists are unioned without
+  duplicates. The previous file is backed up under `~/.claude/backups/`.
 - Both the installer and the scaffold **back up** what they replace before overwriting (with a confirmation
   prompt on install).
 
@@ -396,14 +456,15 @@ Role instructions live in three tiers, each loaded where it's needed — no dupl
 
 | Tier | Holds | Loads into |
 |---|---|---|
-| **Constitution** (`./CLAUDE.md`) | shared law: hierarchy, phases, git, anti-sycophancy, memory rules, hard enforcement | the PM + every subagent |
+| **Constitution** (`./AGENTS.md`; Claude imports it through `./CLAUDE.md`) | shared law: hierarchy, phases, git, anti-sycophancy, memory rules, enforcement | the PM + every subagent |
 | **Agent body** (short) | who the agent is, who it obeys, its core duty | the agent's system prompt |
 | **Role skill** (`skills: [<role>]`) | *how* it works + which `project_memory/` files it reads/writes | preloaded into the agent |
 
 Each team kit ships **one role skill per agent** (incl. the PM's `project-manager`) under
-`team-kits/<kit>/skills/`. The scaffold installs them into the repo's `./.claude/skills/`, and each agent
-preloads its own via `skills:` frontmatter. There are **no global skills** — everything is scoped to the
-team repo and invocable with `/<role>` (e.g. `/project-manager`).
+`team-kits/<kit>/skills/`. The scaffold installs the shared source into `./.claude/skills/`; Codex
+also receives generated native copies under `./.agents/skills/`. Claude preloads via frontmatter;
+Codex lead/specialist instructions explicitly require the matching native skill. There are no global
+role skills.
 
 **Coverage guarantee:** every `project_memory/*.yaml` has a write-owner named in a role skill (a few are
 partitioned co-owners: `tasks`, `results`, `tests/`), so no artifact is ever left unmaintained. The
@@ -446,7 +507,10 @@ Team kits are **versioned** (`team-kits/<kit>/VERSION`, content-hashed — `vali
 without a bump). The scaffold stamps `./.claude/kit_version` into each project; at session start the
 `session_status` hook compares it with the staged kit and flags **KIT UPDATE AVAILABLE**. The PM then proposes
 the update (scaffold_team + init_project_memory — backup first, copy-if-absent, `project_memory/` content is
-never overwritten) and asks for a restart; newly required fields in existing YAMLs are requested by the gates.
+never overwritten) and asks for a restart. Under Codex the approved scaffold may need explicit filesystem
+permission escalation because harness/provider paths are read-only; never run the provider generator alone.
+Afterward verify generated TOMLs, review/re-trust the changed bundle hash in `/hooks`, and start the new
+session. Newly required fields in existing YAMLs are requested by the gates.
 
 ---
 
@@ -454,12 +518,12 @@ never overwritten) and asks for a restart; newly required fields in existing YAM
 
 Delete the folders manually:
 - `~/.claude/team-kits/`, `~/.claude/CLAUDE.md`, `~/.claude/statusline.py`
-- VS Code prompts folder (see the path table above): the file `COPILOT.instructions.md`
-- In each project: the local `./.claude/` (agents, hooks, `settings.json`) and `./CLAUDE.md` (only if you want to remove the team there)
+- `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`)
+- In each project: generated `./.claude/`, `./.codex/`, role folders under `./.agents/skills/`,
+  `./AGENTS.md`, and the `./CLAUDE.md` import shim (restore backups first when preserving prior files)
 
 ---
 
 ## License
 
-Skills from [mattpocock/skills](https://github.com/mattpocock/skills): MIT
-Custom additions (workflow docs, installer): MIT
+MIT

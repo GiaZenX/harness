@@ -41,7 +41,7 @@ def _parse_map(txt, name):
     for line in txt[m.end():].splitlines():
         if line.strip().startswith("#") or not line.strip():
             continue
-        mm = re.match(r"[ \t]+([A-Za-z0-9_-]+):[ \t]*([A-Za-z0-9_-]+)", line)
+        mm = re.match(r'''[ \t]+([A-Za-z0-9_-]+):[ \t]*["']?([A-Za-z0-9_.-]+)["']?''', line)
         if mm:
             out[mm.group(1)] = mm.group(2)
         elif not line.startswith((" ", "\t")):
@@ -71,7 +71,7 @@ def model_effort_mismatches(cwd):
             except Exception:
                 continue
             fm = raw.split("---", 2)[1] if raw.startswith("---") and raw.count("---") >= 2 else ""
-            got = re.search(r"(?m)^%s:[ \t]*([A-Za-z0-9_-]+)" % field, fm)
+            got = re.search(r'''(?m)^%s:[ \t]*["']?([A-Za-z0-9_.-]+)["']?''' % field, fm)
             have = got.group(1) if got else "MISSING"
             # provider-neutral tier aliases (team-kits/model_tiers.yaml): `lead` IS opus etc. —
             # a map saying `lead` with frontmatter `opus` is in sync, not drift.
@@ -79,6 +79,30 @@ def model_effort_mismatches(cwd):
             if canon.get(have, have) != canon.get(want, want):
                 mism.append("%s %s=%s (map says %s)" % (role, field, have, want))
     return mism
+
+
+def model_effort_sync_guidance():
+    """Return provider-safe recovery instructions for model/effort drift.
+
+    The installed Claude agent frontmatter is the shared generator source. Claude may repair that
+    source directly; Codex artifacts are generated/read-only and must never become an independent
+    source of truth.
+    """
+    if os.environ.get("TEAM_KIT_PROVIDER", "claude").strip().lower() == "codex":
+        return (
+            "Do NOT edit .codex/agents/*.toml or one isolated provider source. Ask the user to "
+            "confirm a full scaffold re-sync from project_config.yaml; only after confirmation run "
+            "the scaffold (it invokes the provider generator), with explicit filesystem permission "
+            "escalation when required by the read-only harness paths. Then verify the generated "
+            ".codex/agents/*.toml model/effort mappings, review/re-trust the changed hook bundle in "
+            "/hooks, and start a new session BEFORE delegating. Never run the provider generator "
+            "alone. If the map itself is outdated, correct it with a reported reason first."
+        )
+    return (
+        "Re-sync each named agent's model:/effort: frontmatter line in .claude/agents/ to "
+        "model_map/effort_map BEFORE delegating — or, if the map itself is outdated, correct the "
+        "map with a reported reason."
+    )
 
 
 def due_reports(cwd):
@@ -135,8 +159,16 @@ def main():
     except Exception:
         data = {}
     cwd = find_repo_root(data.get("cwd"))
+    is_codex = os.environ.get("TEAM_KIT_PROVIDER", "claude").strip().lower() == "codex"
 
-    parts = ["You are the Office Manager — the session agent the user talks to. Follow ./CLAUDE.md."]
+    if is_codex:
+        parts = [
+            "You are the Office Manager — the foreground session agent the user talks to. Follow "
+            "the repository-root AGENTS.md and read .agents/skills/office-manager/SKILL.md; use "
+            "project_memory/ as business truth. Do not depend on Claude-only shims or role memory."
+        ]
+    else:
+        parts = ["You are the Office Manager — the session agent the user talks to. Follow ./CLAUDE.md."]
 
     branch = git(cwd, "rev-parse", "--abbrev-ref", "HEAD")
     if branch:
@@ -185,7 +217,11 @@ def main():
             "'weiter'), BEFORE acting read project_memory/progress.yaml, business_profile.yaml, "
             "process_definitions.yaml and any DRAFT plan left by the install session, then give the "
             "user a one-line status (open inbox items, running PROCs, due reports, drafts waiting in "
-            "outbox/) and ask what to do next. Also consult your agent memory."
+            "outbox/) and ask what to do next. " + (
+                "Use the native office-manager skill; optional Codex host memory is not role-specific "
+                "or business truth and must not be maintained manually."
+                if is_codex else "Also consult your Claude office-manager agent memory."
+            )
         )
     else:
         parts.append(
@@ -249,6 +285,14 @@ def main():
                     "model:/effort: from the maps; work through any kit_update_pending files afterwards."
                     % (kit, sv, lv)
                 )
+                if is_codex:
+                    parts.append(
+                        "CODEX KIT UPDATE PROCEDURE: after explicit user approval, run the full "
+                        "scaffold with explicit filesystem permission escalation because .codex/ and "
+                        ".agents/skills/ are read-only harness paths. Never run the provider generator "
+                        "alone. Then verify generated TOMLs, open /hooks, review and trust the changed "
+                        "bundle hash, and start a new session before delegating."
+                    )
     except Exception:
         pass
 
@@ -307,10 +351,9 @@ def main():
         mism = model_effort_mismatches(cwd)
         if mism:
             parts.append(
-                "MODEL/EFFORT OUT OF SYNC with project_config.yaml: %s%s. Re-sync each named agent's "
-                "model:/effort: frontmatter line in .claude/agents/ to model_map/effort_map BEFORE "
-                "delegating — or, if the map itself is outdated, correct the map with a reported reason."
-                % ("; ".join(mism[:6]), " …" if len(mism) > 6 else "")
+                "MODEL/EFFORT OUT OF SYNC with project_config.yaml: %s%s. %s"
+                % ("; ".join(mism[:6]), " …" if len(mism) > 6 else "",
+                   model_effort_sync_guidance())
             )
     except Exception:
         pass

@@ -17,11 +17,12 @@ tax:
   oss: null                   # true/false — EU One-Stop-Shop registered?
   fiscal_year: "calendar"
 
-# Privacy honesty (constitution §2.7): processing a document sends its content to the Claude API
-# under the USER'S account terms. A consumer subscription (Abo) has NO DPA/AVV — the user decides
-# knowingly what the kit may process.
+# Privacy honesty (constitution §2.7): processing a document sends its content to the active
+# provider under the USER'S account terms. The user decides knowingly what the kit may process.
 privacy:
-  claude_account_type: ""     # abo | api  (asked in onboarding, never assumed)
+  provider: ""                # claude | codex | other (active document-processing provider)
+  account_type: ""            # provider-specific account/plan, in the user's words; never assumed
+  claude_account_type: ""     # LEGACY: abo | api; if set alone, read as provider=claude + this account_type
   sensitive_documents: ""     # process | redact | exclude  (the user's explicit choice)
   notes: ""
 

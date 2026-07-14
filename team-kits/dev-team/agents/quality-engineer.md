@@ -2,7 +2,7 @@
 name: quality-engineer
 description: "Quality Assurance. Use as a subagent (auto-triggered by the Project Manager after implementation) to review code against the coding guidelines, run the tests, enforce the Definition of Done, and gate the merge. Produces review/test/acceptance reports and signals escalation after repeated failures. Never talks to the user. Keywords: QA, quality assurance, code review, run tests, definition of done, gate merge, escalation."
 tools: Read, Edit, Write, Bash, Grep, Glob
-model: opus
+model: lead
 effort: high
 memory: project
 color: orange

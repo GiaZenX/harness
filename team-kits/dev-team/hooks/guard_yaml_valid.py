@@ -10,9 +10,9 @@ moment any role writes broken YAML (parse error OR duplicate key — safe_load s
 last duplicate), it gets the exact error back and fixes its OWN file on the spot.
 
 Parsing uses yaml.safe_load only; duplicate keys are found by walking yaml.compose()'s node graph
-(compose builds nodes, never constructs objects — no code-execution surface). PostToolUse exit 2
-feeds stderr back to the writing agent. Defensive: not a project_memory yaml / no PyYAML /
-internal error -> exit 0.
+(compose builds nodes, never constructs objects — no code-execution surface). Claude receives an
+exit-2 correction; Codex receives a PostToolUse `decision: block` response. Defensive: not a
+project_memory yaml / no PyYAML / internal error -> exit 0.
 
 Also the format backstop for progress.yaml: a real PM regrew `status` into a 307-line blob and
 dropped `log:` although the template says "ONE line" — prompt-level rules the PM applies to itself
@@ -20,6 +20,9 @@ get ignored, so the artifact's own contract is enforced here mechanically.
 """
 import os
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _compat
 
 YAML_TIPS = ("Tips: put prose containing ':' in a block scalar (key: |), quote strings with special "
              "characters, and never repeat a key at the same level.")
@@ -34,12 +37,12 @@ def block(base, msg, why="is INVALID YAML after your edit", tips=YAML_TIPS):
         _audit.record("guard_yaml_valid", base)
     except Exception:
         pass
-    sys.stderr.write(
+    message = (
         "[team-kit guard] project_memory/%s %s:\n%s\n"
         "Fix it NOW — you own this artifact. %s Do not hand the file to another role; "
         "do not leave it broken.\n" % (base, why, msg, tips)
     )
-    sys.exit(2)
+    _compat.stop(message, "PostToolUse")
 
 
 def find_duplicate_keys(yaml_mod, text):
@@ -132,8 +135,6 @@ def check(path):
 
 
 def main():
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import _compat
     data = _compat.load()
     if data.get("tool_name") not in ("Edit", "Write", "MultiEdit"):
         sys.exit(0)
