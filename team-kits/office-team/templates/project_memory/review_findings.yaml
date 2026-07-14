@@ -1,0 +1,22 @@
+# review_findings.yaml — owned by: Project-Auditor (its ONLY writable artifact; nobody else writes here)
+# One appended entry per scheduled/triggered read-only audit run. Findings bind the manager:
+# each becomes a follow-up (PROC amendment/task) or a logged skip in progress.yaml log:.
+#
+# Schema per run:
+#   - date: YYYY-MM-DD
+#     scores:                      # judge rubric, 0.0–1.0 each
+#       proc_adherence: 0.0
+#       artifact_consistency: 0.0
+#       gate_health: 0.0
+#       hygiene: 0.0
+#       report_honesty: 0.0
+#     pass_fail: pass | fail       # fail when any dimension < 0.6 or any MAJOR finding is open
+#     sampled: ["PRD-0003 AC2 vs src/...", ...]
+#     findings:
+#       - severity: MAJOR | MINOR
+#         claim: "<what is wrong, one sentence>"
+#         evidence: "<file:line / command output / quote>"
+#         recommendation: "<concrete next step>"
+#     fixed_since_last_run: []
+
+runs: []

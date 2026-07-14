@@ -74,11 +74,21 @@ def main():
     if m:
         target = m.group(1).upper()
 
-    # require a passing QA/validation/acceptance report — bound to THIS RQ when it is known,
-    # so a stray `result: pass` from an unrelated/old report cannot lift the gate.
+    # require a passing QA/validation/acceptance report — bound to THIS RQ when it is known.
+    # Audit finding: FILE-level text matching let an old PASS for another task plus a fresh FAIL
+    # for the target coexist in one file and lift the gate. Entry-level rule: when any report
+    # ENTRY is bound to the target, a BOUND entry must pass; only when no entry carries the
+    # binding at all (indirect linkage) does the file-level check apply. No PyYAML -> file-level
+    # fallback (fail-open philosophy).
     passing = False
     for f in glob.glob(os.path.join(pm, "*report*.yaml")):
         txt = read_text(f)
+        verdict = entry_verdict(txt, target)
+        if verdict is True:
+            passing = True
+            break
+        if verdict is False:
+            continue  # bound entries exist and none passes — this file cannot lift the gate
         if not re.search(r"result:\s*pass|verdict:\s*pass", txt, re.IGNORECASE):
             continue
         if target is None or re.search(re.escape(target), txt, re.IGNORECASE):
@@ -90,6 +100,36 @@ def main():
               % (target or "this work"))
 
     sys.exit(0)
+
+
+def entry_verdict(txt, target):
+    """Entry-level pass check. Returns True (a bound entry passes), False (bound entries exist,
+    none passes), or None (no bound entries / no parser -> caller falls back to file-level)."""
+    if not target:
+        return None
+    try:
+        import yaml  # type: ignore[import-untyped]
+        doc = yaml.safe_load(txt)
+    except Exception:
+        return None
+    bound_seen, bound_pass = False, False
+    stack = [doc] if doc is not None else []
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            verdict = str(node.get("result", node.get("verdict", ""))).strip().lower()
+            if verdict:
+                bound = any(target in str(v).upper() for v in node.values())
+                if bound:
+                    bound_seen = True
+                    if verdict == "pass":
+                        bound_pass = True
+            stack.extend(node.values())
+        elif isinstance(node, list):
+            stack.extend(node)
+    if bound_pass:
+        return True
+    return False if bound_seen else None
 
 
 if __name__ == "__main__":

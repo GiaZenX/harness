@@ -6,7 +6,7 @@ Closes the "code written against empty guidelines" gap deterministically and BEF
 (not just at the merge gate). Lives in the code-writers' frontmatter (it must fire for the
 specialist subagents, not the PM). When a specialist writes a code file under src/**/frontend/**/
 backend/** (or a root code file), the language's `languages:` block in coding_guidelines.yaml MUST
-already be filled — otherwise the architect has to fill it first (constitution §2.7/§12).
+already be filled — otherwise the architect has to fill it first (constitution §2.7/§2.7).
 
 Uncertainty -> exit 0 (never block legitimate work: no project_memory, unknown language, tests, etc.).
 """
@@ -44,7 +44,7 @@ def block(lang, rel):
     sys.stderr.write(
         "[team-kit guard] Blocked writing '%s': coding_guidelines.yaml has no `languages: %s` block yet.\n"
         "The architect MUST fill the coding guidelines for %s BEFORE code in it is written "
-        "(constitution §2.7/§12). Ask the PM to task the architect, then retry.\n" % (rel, lang, lang)
+        "(constitution §2.7/§2.7). Ask the PM to task the architect, then retry.\n" % (rel, lang, lang)
     )
     sys.exit(2)
 

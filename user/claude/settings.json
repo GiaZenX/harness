@@ -1,13 +1,11 @@
 {
-  "_comment": "agents-and-skills USER (~/.claude) defaults. The installer MERGES these into your ~/.claude/settings.json: top-level keys overwrite, `permissions.allow`/`deny` are UNIONED with yours, and any permission sub-key we ship (e.g. defaultMode) is set/overwritten. defaultMode is bypassPermissions so prompts are skipped; deny rules and PreToolUse hooks still apply. The previous file is backed up under ~/.claude/backups/.",
+  "_comment": "agents-and-skills USER (~/.claude) defaults. The installer MERGES these into your ~/.claude/settings.json: top-level keys listed here overwrite yours, `permissions.allow`/`deny` are UNIONED, other permission sub-keys we ship overwrite. Deliberately NOT shipped (your machine, your call — set them yourself if wanted): permissions.defaultMode (bypassPermissions removes your veto GLOBALLY, against the official warning to use it only in isolated environments; the kits ship web-capable roles), remoteControlAtStartup, effortLevel (cost). The previous file is backed up under ~/.claude/backups/.",
   "statusLine": {
     "type": "command",
     "command": "python ~/.claude/statusline.py",
     "padding": 1
   },
   "theme": "dark",
-  "remoteControlAtStartup": true,
-  "effortLevel": "xhigh",
   "alwaysThinkingEnabled": true,
   "telemetryEnabled": false,
   "attribution": {
@@ -60,7 +58,6 @@
       "Read(**/secrets/**)",
       "Read(**/*.key)",
       "Read(**/*.pem)"
-    ],
-    "defaultMode": "bypassPermissions"
+    ]
   }
 }

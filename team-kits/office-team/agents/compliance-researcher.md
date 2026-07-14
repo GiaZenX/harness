@@ -4,7 +4,6 @@ description: "Compliance Researcher — maintains the sourced compliance registe
 tools: Read, Grep, Glob, Edit, Write, WebSearch, WebFetch
 model: sonnet
 effort: high
-memory: project
 color: red
 skills: [compliance-researcher]
 ---

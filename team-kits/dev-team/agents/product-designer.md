@@ -2,9 +2,8 @@
 name: product-designer
 description: "Product/UX designer. Use as a subagent (invoked by the Project Manager) for UI-bearing PRDs: turn requirements into screens, user flows, a small design system (tokens, components) and accessibility rules BEFORE the frontend is implemented. Writes design.yaml; never writes code, never talks to the user. Keywords: design, UX, UI, wireframe, mockup, layout, accessibility, design system."
 tools: Read, Edit, Write, Grep, Glob
-model: sonnet
+model: opus
 effort: high
-memory: project
 color: magenta
 skills: [product-designer]
 hooks:

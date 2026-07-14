@@ -4,7 +4,6 @@ description: "Researcher / Experimenter. Use as a subagent (invoked by the Resea
 tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
 effort: high
-memory: project
 color: blue
 skills: [researcher]
 hooks:

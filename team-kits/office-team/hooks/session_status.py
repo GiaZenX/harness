@@ -140,6 +140,31 @@ def main():
         dirty = git(cwd, "status", "--porcelain")
         parts.append("Git branch: %s%s." % (branch, " (uncommitted changes present)" if dirty else " (clean)"))
 
+    # version-change announcement: an EXTERNAL restamp leaves staged==local, so the update banner
+    # below stays silent — a real PM never told the user the harness had changed. Track the last
+    # version THIS repo's sessions have seen (own marker file, session_status-owned).
+    try:
+        local_v = ""
+        lp = os.path.join(cwd, ".claude", "kit_version")
+        if os.path.isfile(lp):
+            lines_v = open(lp, encoding="utf-8").read().lstrip("\ufeff").strip().splitlines()
+            local_v = lines_v[0].replace("version: ", "") if lines_v else ""
+        if local_v:
+            seen_p = os.path.join(cwd, ".claude", "kit_last_seen_version")
+            seen = ""
+            if os.path.isfile(seen_p):
+                seen = open(seen_p, encoding="utf-8").read().strip()
+            if seen and seen != local_v:
+                parts.append(
+                    "KIT UPDATED since this repo's last session: %s -> %s (applied externally). Tell "
+                    "the user in your FIRST paragraph what changed for the team, and work through any "
+                    "kit_update_pending entries before routine work." % (seen, local_v))
+            if seen != local_v:
+                with open(seen_p, "w", encoding="utf-8") as fh:
+                    fh.write(local_v)
+    except Exception:
+        pass
+
     if os.path.isdir(os.path.join(cwd, "project_memory")):
         parts.append(
             "project_memory/ exists. On the user's FIRST message (whatever it says — even just "
@@ -244,7 +269,9 @@ def main():
             parts.append(
                 "KIT UPDATE NOT FINISHED (%s): %d file(s) still diverge from the kit templates (%s%s) "
                 "— diff each against the kit template, merge the kit's fixes via the owning role (or "
-                "document a conscious skip in progress.yaml log:), then DELETE the pending file(s).%s"
+                "document a conscious skip in progress.yaml log:), then DELETE the pending file(s). "
+                "Name this backlog in the FIRST paragraph of your reply to the user — a real PM "
+                "mentioned it once in passing and never returned.%s"
                 % ("+".join(pend_files), len(pend_lines), "; ".join(pend_lines[:5]),
                    " …" if len(pend_lines) > 5 else "", urgency)
             )

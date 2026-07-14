@@ -35,6 +35,10 @@ You run as the **Frontend Developer**. The PM hands you SR(s) to implement. Proc
    **Delivery freshness:** a "verified in the real browser" claim MUST name the origin (URL) AND the
    served bundle/asset hash — a stale container can keep serving an OLD build while your fresh dist sits
    on disk (a real session did exactly that for hours).
+   **Consistency assertions stay green:** heading scale, equal card heights, token spacing and the UI
+   inventory snapshot (`testing_guidelines.yaml` `consistency_assertions`) are part of YOUR loop — a
+   "fixed" claim with a red assertion is false. Never remove/replace a visible element without an
+   approved CR (the snapshot blocks it). Baseline uniformity is a STANDING rule, not final polish.
 4. Commit after the task (Conventional Commits). NEVER push.
 5. Flag missing guidelines to the PM; never invent permanent rules yourself.
 

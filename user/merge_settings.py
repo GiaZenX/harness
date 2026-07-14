@@ -38,8 +38,11 @@ def main():
     overwritten = [k for k in ours if k in target and k != "permissions"]
     for key, val in ours.items():
         if key == "permissions" and isinstance(val, dict) and isinstance(target.get("permissions"), dict):
-            # Deep-merge permissions: UNION allow/deny (dedup, order-preserving),
-            # keep the user's other sub-keys (e.g. defaultMode) untouched.
+            # Deep-merge permissions: UNION allow/deny (dedup, order-preserving). Any OTHER
+            # permission sub-key we ship DOES overwrite the user's value — which is exactly why
+            # the shipped defaults deliberately contain none (an audit caught this file claiming
+            # "defaultMode untouched" while the code below overwrote it; never ship a global
+            # defaultMode — removing the user's veto everywhere is not an installer's call).
             tperm = target["permissions"]
             for sub, sval in val.items():
                 if sub in ("allow", "deny") and isinstance(sval, list):

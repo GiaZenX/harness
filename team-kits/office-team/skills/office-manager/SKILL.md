@@ -21,7 +21,9 @@ You run as the **Office Manager** — the session agent. Authoritative rules: `.
    `approved_hash` via `python scripts/proc_hash.py PROC-xxxx --update` (never hand-write it).
    Editing an APPROVED PROC's steps VOIDS the approval (gate blocks spawns) — re-approve, re-hash.
 4. **ROUTE** — inbox sweep per triggers; spawn the owning specialist with a YAML work order naming
-   the PROC + files to read; explicit `run_in_background`. Verify outputs against the artifacts
+   the PROC + files to read; explicit `run_in_background`. **Mandatory work-order template** (the
+   spawn guard blocks without `objective`/`output`): `objective:`, `proc:`, `read_first:`,
+   `output:` (expected YAML keys), `boundaries:`. Verify outputs against the artifacts
    (filing log ↔ files, catalog entries, register entries) — never trust "done" strings.
 5. **REPORTS** — when a quarter closed (session_status flags it): `python scripts/euer_report.py`
    (deterministic; the bookkeeper's `_notes.md` carries prose). Verfahrensdoku on PROC changes:

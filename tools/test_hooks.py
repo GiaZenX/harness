@@ -70,25 +70,41 @@ def test_spawn_lead_blocked(kit_repo):
     assert run_hook("guard_agent_spawn.py", payload, kit_repo) == 2
 
 
+WORK_ORDER = "objective: implement SR-1\nread_first: [tasks.yaml TSK-1]\noutput: summary, status\nboundaries: no schema changes\n"
+
+
 def test_spawn_specialist_allowed(kit_repo):
     payload = {"tool_name": "Agent",
-               "tool_input": {"subagent_type": "backend-developer", "run_in_background": False},
+               "tool_input": {"subagent_type": "backend-developer", "run_in_background": False,
+                              "prompt": WORK_ORDER},
                "cwd": str(kit_repo)}
     assert run_hook("guard_agent_spawn.py", payload, kit_repo) == 0
 
 
 def test_spawn_without_background_flag_blocked(kit_repo):
     # V14 backstop: the platform defaults to background — 37/37 real spawns went that way by omission.
-    payload = {"tool_name": "Agent", "tool_input": {"subagent_type": "backend-developer"}, "cwd": str(kit_repo)}
+    payload = {"tool_name": "Agent",
+               "tool_input": {"subagent_type": "backend-developer", "prompt": WORK_ORDER},
+               "cwd": str(kit_repo)}
     assert run_hook("guard_agent_spawn.py", payload, kit_repo) == 2
 
 
 def test_spawn_explicit_background_allowed(kit_repo):
     # explicit true = a deliberate parallel batch — allowed (the PM must await all notifications)
     payload = {"tool_name": "Agent",
-               "tool_input": {"subagent_type": "backend-developer", "run_in_background": True},
+               "tool_input": {"subagent_type": "backend-developer", "run_in_background": True,
+                              "prompt": WORK_ORDER},
                "cwd": str(kit_repo)}
     assert run_hook("guard_agent_spawn.py", payload, kit_repo) == 0
+
+
+def test_spawn_without_work_order_schema_blocked(kit_repo):
+    # Anthropic: vague delegations duplicate work/leave gaps — objective/output are the floor
+    payload = {"tool_name": "Agent",
+               "tool_input": {"subagent_type": "backend-developer", "run_in_background": False,
+                              "prompt": "please implement the feature from the tasks file"},
+               "cwd": str(kit_repo)}
+    assert run_hook("guard_agent_spawn.py", payload, kit_repo) == 2
 
 
 def test_spawn_generic_blocked(kit_repo):
@@ -769,12 +785,145 @@ def test_stop_reminder_once_per_session(tmp_path):
 def test_allowed_spawn_is_audited(kit_repo):
     (kit_repo / "project_memory").mkdir()
     payload = {"tool_name": "Agent",
-               "tool_input": {"subagent_type": "backend-developer", "run_in_background": False},
+               "tool_input": {"subagent_type": "backend-developer", "run_in_background": False,
+                              "prompt": WORK_ORDER},
                "cwd": str(kit_repo)}
     assert run_hook("guard_agent_spawn.py", payload, kit_repo) == 0
     audit = kit_repo / "project_memory" / ".audit" / "hook_events.jsonl"
     text = audit.read_text(encoding="utf-8")
     assert '"event": "spawn"' in text and "backend-developer" in text
+
+
+# ---------------- gate_subagent_output: specialists honor their output contract ----------------
+def _stop_payload(repo, atype, message):
+    return {"hook_event_name": "SubagentStop", "agent_type": atype,
+            "last_assistant_message": message, "cwd": str(repo)}
+
+
+def test_subagent_output_blocks_prose_only(kit_repo):
+    payload = _stop_payload(kit_repo, "backend-developer", "All done, everything works great!")
+    assert run_hook("gate_subagent_output.py", payload, kit_repo) == 2
+
+
+def test_subagent_output_passes_contract(kit_repo):
+    payload = _stop_payload(kit_repo, "backend-developer", "summary: implemented SR-1\nstatus: DONE")
+    assert run_hook("gate_subagent_output.py", payload, kit_repo) == 0
+
+
+def test_subagent_output_verdict_role_needs_verdict(kit_repo):
+    write(str(kit_repo / ".claude" / "agents" / "quality-engineer.md"), "x")
+    payload = _stop_payload(kit_repo, "quality-engineer", "summary: reviewed everything, looks fine")
+    assert run_hook("gate_subagent_output.py", payload, kit_repo) == 2
+    payload = _stop_payload(kit_repo, "quality-engineer", "summary: gate run\nverdict: PASS")
+    assert run_hook("gate_subagent_output.py", payload, kit_repo) == 0
+
+
+def test_subagent_output_ignores_foreign_agents(kit_repo):
+    payload = _stop_payload(kit_repo, "Explore", "just some search results")
+    assert run_hook("gate_subagent_output.py", payload, kit_repo) == 0
+
+
+# ---------------- session_status: version-change announcement after an external restamp ----------------
+def test_version_change_announced_once(tmp_path):
+    repo = tmp_path / "repo"
+    write(str(repo / ".claude" / "kit_version"), "version: 2026.07.12-4\ncontent: aaa\n")
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(repo))
+
+    def run_status():
+        return subprocess.run([sys.executable, os.path.join(HOOKS, "session_status.py")],
+                              input=json.dumps({"cwd": str(repo)}), capture_output=True, text=True,
+                              env=env, timeout=60).stdout
+
+    first = run_status()
+    assert "KIT UPDATED" not in first  # first sighting just records the version
+    write(str(repo / ".claude" / "kit_version"), "version: 2026.07.14-1\ncontent: bbb\n")
+    second = run_status()
+    assert "KIT UPDATED" in second and "2026.07.12-4 -> 2026.07.14-1" in second
+    third = run_status()
+    assert "KIT UPDATED" not in third  # announced once, then recorded
+
+
+# ---------------- guard_harness_selfmod: the enforcement layer is not self-editable ----------------
+def test_selfmod_blocks_hook_edit(tmp_path):
+    p = tmp_path / ".claude" / "hooks" / "gate_git.py"
+    payload = {"tool_name": "Edit", "tool_input": {"file_path": str(p)}, "cwd": str(tmp_path)}
+    assert run_hook("guard_harness_selfmod.py", payload, tmp_path) == 2
+
+
+def test_selfmod_blocks_settings_edit(tmp_path):
+    p = tmp_path / ".claude" / "settings.json"
+    payload = {"tool_name": "Write", "tool_input": {"file_path": str(p)}, "cwd": str(tmp_path)}
+    assert run_hook("guard_harness_selfmod.py", payload, tmp_path) == 2
+
+
+def test_selfmod_allows_agent_resync_and_memory(tmp_path):
+    for rel in (".claude/agents/backend-developer.md", ".claude/agent-memory/project-manager/MEMORY.md"):
+        p = tmp_path / rel
+        payload = {"tool_name": "Edit", "tool_input": {"file_path": str(p)}, "cwd": str(tmp_path)}
+        assert run_hook("guard_harness_selfmod.py", payload, tmp_path) == 0, rel
+
+
+# ---------------- gate_git: entry-level QA binding (audit false-accept regression) ----------------
+def test_gate_git_old_pass_other_task_fresh_fail_target_blocks(prd_repo):
+    # the exact reported hole: an old PASS for ANOTHER PRD + a fresh FAIL for the target in ONE file
+    write(str(prd_repo / "project_memory" / "test_reports.yaml"),
+          "reports:\n  R1: { prd: PRD-0009, result: pass }\n  R2: { prd: PRD-0001, result: fail }\n")
+    payload = {"tool_name": "Bash", "tool_input": {"command": "git merge feat/PRD-0001-x"}, "cwd": str(prd_repo)}
+    assert run_hook("gate_git.py", payload, prd_repo) == 2
+
+
+def test_gate_git_bound_pass_still_allows(prd_repo):
+    write(str(prd_repo / "project_memory" / "test_reports.yaml"),
+          "reports:\n  R1: { prd: PRD-0009, result: fail }\n  R2: { prd: PRD-0001, result: pass }\n")
+    payload = {"tool_name": "Bash", "tool_input": {"command": "git merge feat/PRD-0001-x"}, "cwd": str(prd_repo)}
+    assert run_hook("gate_git.py", payload, prd_repo) == 0
+
+
+def test_gate_git_indirect_binding_falls_back_to_file_level(prd_repo):
+    # entries bound via task ids only (no PRD in the entry) -> file-level check keeps working
+    write(str(prd_repo / "project_memory" / "test_reports.yaml"),
+          "# gate for PRD-0001\nreports:\n  R1: { task: TSK-0007, result: pass }\n")
+    payload = {"tool_name": "Bash", "tool_input": {"command": "git merge feat/PRD-0001-x"}, "cwd": str(prd_repo)}
+    assert run_hook("gate_git.py", payload, prd_repo) == 0
+
+
+# ---------------- gate_subagent_output: honors stop_hook_active (no infinite block loop) ----------------
+def test_subagent_output_gives_up_on_stop_hook_active(kit_repo):
+    (kit_repo / "project_memory").mkdir(exist_ok=True)
+    payload = {"hook_event_name": "SubagentStop", "agent_type": "backend-developer",
+               "last_assistant_message": "still just prose", "stop_hook_active": True,
+               "cwd": str(kit_repo)}
+    assert run_hook("gate_subagent_output.py", payload, kit_repo) == 0
+    audit = kit_repo / "project_memory" / ".audit" / "hook_events.jsonl"
+    assert "gave_up" in audit.read_text(encoding="utf-8")
+
+
+# ---------------- office fs tripwire: shell redirects into the ledger are blocked ----------------
+def test_fs_tripwire_blocks_ledger_redirect(tmp_path):
+    payload = {"tool_name": "Bash",
+               "tool_input": {"command": 'echo "L1,2026-01-01,..." >> ledger/2026.csv'},
+               "cwd": str(tmp_path)}
+    assert run_hook("guard_fs_tripwire.py", payload, tmp_path, hooks_dir=OFFICE_HOOKS) == 2
+
+
+def test_fs_tripwire_allows_ledger_add_script(tmp_path):
+    payload = {"tool_name": "Bash",
+               "tool_input": {"command": "python scripts/ledger_add.py --year 2026 --net 1 > /tmp/log"},
+               "cwd": str(tmp_path)}
+    assert run_hook("guard_fs_tripwire.py", payload, tmp_path, hooks_dir=OFFICE_HOOKS) == 0
+
+
+# ---------------- constitutions: every hook has a documented rule-home (diet safety) ----------------
+def test_every_hook_documented_in_its_constitution():
+    for kit in ("dev-team", "research-team", "office-team"):
+        cpath = os.path.join(ROOT, "team-kits", kit, "constitution", "CLAUDE.md")
+        text = open(cpath, encoding="utf-8", errors="ignore").read()
+        hooks_dir = os.path.join(ROOT, "team-kits", kit, "hooks")
+        for fn in os.listdir(hooks_dir):
+            if not fn.endswith(".py") or fn.startswith("_"):
+                continue
+            name = fn[:-3]
+            assert name in text, "%s: hook %s has no documented rule-home in the constitution" % (kit, name)
 
 
 # ---------------- notify_agent_events: SubagentStop route ----------------

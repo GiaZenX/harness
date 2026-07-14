@@ -9,6 +9,11 @@ pipeline MUST exist. Give this hook a generous `timeout` in settings.json (it ru
 
 Only fires on `git push`/`git merge`, only when real work exists (a PRD). Hook-execution errors (could
 not even launch) -> exit 0 (never brick the repo on infra trouble); a RED pipeline -> exit 2.
+
+Deliberate trade-off (documented after an audit flag): this gate re-runs the FULL pipeline
+at merge/push even though QA just ran it - the merge gate is the last deterministic defense
+and must not trust any prior run. A commit-hash cache of the last green run is a known
+possible optimization, deferred until the cost hurts.
 """
 import json
 import os

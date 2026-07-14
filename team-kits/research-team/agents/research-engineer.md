@@ -4,7 +4,6 @@ description: "Research Engineer (lab-ops). Use as a subagent (invoked by the Res
 tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
 effort: high
-memory: project
 color: red
 skills: [research-engineer]
 hooks:

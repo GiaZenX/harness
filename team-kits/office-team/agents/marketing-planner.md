@@ -4,7 +4,6 @@ description: "Marketing Planner — channel strategy, account inventory, content
 tools: Read, Grep, Glob, Edit, Write, WebSearch, WebFetch
 model: sonnet
 effort: high
-memory: project
 color: orange
 skills: [marketing-planner]
 ---

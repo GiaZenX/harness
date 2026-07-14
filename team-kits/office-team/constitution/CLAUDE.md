@@ -14,7 +14,9 @@
   definition IS you — never spawn it as a subagent. Specialists are stateless subagents you spawn
   with YAML work orders.
 - **Two memory stores:** `project_memory/*.yaml` = the business's facts/state (single source of
-  truth). Your agent memory = cross-session craft knowledge only — never business state.
+  truth). Agent memory (manager + bookkeeper only; other roles run stateless) = cross-session craft
+  knowledge — never business state. **Curation duty:** MEMORY.md stays an INDEX of ≤ 40 lines —
+  consolidate instead of appending, delete stale entries (only the first 200 lines/25 KB load per spawn).
 - **Hard gate:** no specialist spawn before `project_config.yaml` exists with a user-confirmed
   preset AND `business_profile.yaml` carries the onboarding interview's results.
 
@@ -44,11 +46,12 @@ request), steps, owning role, outputs, approval points, exception policy — plu
    `outbox/` (per-role subfolders; `outbox/` is a handover tray, not a single-writer artifact) —
    the USER sends. The kit settings deny MCP tools by default (`mcp__*`); read-only tools may be
    selectively re-allowed with the user, mutations stay denied.
-3. **Ledger is append-only.** Direct edits to `ledger/*.csv` are BLOCKED (`guard_ledger_direct`,
-   for every role incl. you) — entries go through `python scripts/ledger_add.py`, which validates
-   the row (schema, date, arithmetic net×(1+vat)≈gross, duplicate check) and refuses bad data.
-   Corrections are explicit reversal entries, never edits (GoBD-inspired; this is NOT certified
-   revision-safe archiving and the reports say so).
+3. **Ledger is append-only.** Direct Edit/Write on `ledger/*.csv` is blocked (`guard_ledger_direct`)
+   and shell redirects into it trip `guard_fs_tripwire` — entries go through
+   `python scripts/ledger_add.py`, which validates the row (schema, dates, year, arithmetic
+   net×(1+vat)≈gross, duplicates) and refuses bad data. Corrections are explicit reversal entries,
+   never edits (GoBD-inspired; tripwire level — a determined bypass remains possible and would be
+   caught by the report recomputation; this is NOT certified revision-safe archiving).
 4. **Reports are generated, never written by hand:** `python scripts/euer_report.py` renders the
    quarterly income/expense statement deterministically FROM the ledger (sums cannot drift from
    the data); the bookkeeper adds prose only in the separate `_notes.md`. The Verfahrensdoku
@@ -71,13 +74,15 @@ request), steps, owning role, outputs, approval points, exception policy — plu
 
    | Hook | Blocks / does |
    |---|---|
-   | `guard_agent_spawn` | generic/unnamed spawns, a second manager, spawns without an EXPLICIT `run_in_background`; logs every allowed spawn |
+   | `guard_agent_spawn` | generic/unnamed spawns, a second manager, spawns without an EXPLICIT `run_in_background`, and work orders missing `objective`/`output`; logs every allowed spawn |
+   | `gate_subagent_output` | a specialist stopping without its output contract (`summary:` at minimum) — prose-only endings produced work built on air |
    | `gate_proc_approved` | specialist spawns without an APPROVED/ACTIVE `PROC-xxxx` reference, or whose PROC steps changed after approval (hash mismatch) |
    | `guard_ledger_direct` | any Edit/Write directly into `ledger/*.csv` — entries go through `scripts/ledger_add.py` |
    | `gate_filing` | a `filing_log.yaml` entry whose target file does not exist under `archive/` |
    | `guard_fs_tripwire` | shell delete/move commands targeting `inbox/` or `archive/` paths |
    | `guard_yaml_valid` | invalid `project_memory/*.yaml` at write time (parse errors, duplicate keys, progress.yaml contract) |
    | `guard_scratchpad_ref` | repo files referencing ephemeral session-scratchpad paths |
+   | `guard_harness_selfmod` | ANY agent editing the enforcement layer itself (`.claude/hooks/**`, `.claude/skills/**`, `settings.json`, `kit_version`) |
    | `notify_agent_events` / `session_status` | (never block) lifecycle audit log / session-start briefing incl. inbox count, due reports, stale compliance entries, kit-update + model/effort nags |
 
 ## 3. Dialog rule
@@ -119,6 +124,9 @@ shop-curator; `full` adds compliance-researcher + marketing-planner)
   date, `review_by`. Research + flags, never legal advice.
 - **marketing-planner (web):** owns `marketing_plan.yaml` (channels, account inventory, calendar);
   post drafts to `outbox/marketing-planner/`, research-backed with sources.
+- **project-auditor:** scheduled/daily READ-ONLY reviewer — samples filing/ledger/report claims for
+  real, scores the judge rubric, writes `review_findings.yaml` (sole writer); every finding becomes
+  a follow-up or a logged skip, never shelf-ware.
 
 ## 6. Artifacts + ownership (one writer per file)
 
@@ -130,6 +138,7 @@ shop-curator; `full` adds compliance-researcher + marketing-planner)
 | `product_catalog.yaml`, `content_guidelines.yaml` | Product-Editor |
 | `compliance_register.yaml` | Compliance-Researcher |
 | `marketing_plan.yaml` | Marketing-Planner |
+| `review_findings.yaml` (scheduled read-only audit runs) | Project-Auditor |
 | `reports/euer_*.md`, `docs/verfahrensdokumentation.md` | generated (scripts) — nobody edits |
 | `outbox/<role>/…` | the named role (handover tray, per-role subfolders) |
 

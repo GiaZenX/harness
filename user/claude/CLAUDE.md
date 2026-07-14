@@ -72,8 +72,10 @@ You **first interview the user and draft a plan, then install** the kit, then ha
    the confirmed plan: the full **masterplan into `project_memory/masterplan.md`** (the template ships the
    structure — fill EVERY section with the real content from the review loop, including your recommendations),
    a DRAFT `product_requirements.yaml` PRD (status `PROPOSED`) capturing the wish + acceptance criteria, plus a
-   one-paragraph summary and the recommended team/preset in `progress.yaml`. That is the ONLY project_memory
-   content you write — you do NOT derive SRs, tasks, or code.
+   one-paragraph summary in `progress.yaml`. **Write the preset the user confirmed in the interview into
+   `project_memory/project_config.yaml` `preset:`** — the scaffold reads it and installs exactly those roles
+   (the template's `solo` is only a placeholder; without this line every project silently starts as solo).
+   That is the ONLY project_memory content you write — you do NOT derive SRs, tasks, or code.
 4. **Install the kit locally** by running the scaffold script (your only shell write here):
    - `bash "$HOME/.claude/team-kits/scaffold_team.sh" <key>`
    - (Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\.claude\team-kits\scaffold_team.ps1" -Team <key>`)

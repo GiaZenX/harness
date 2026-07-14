@@ -4,7 +4,6 @@ description: "Report Writer. Use as a subagent (invoked by the Research Lead aft
 tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
 effort: high
-memory: project
 color: yellow
 skills: [report-writer]
 hooks:

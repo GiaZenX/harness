@@ -4,7 +4,6 @@ description: "Research Engineer. Use as a subagent (invoked by the Project Manag
 tools: Read, Edit, Write, Grep, Glob, WebFetch, WebSearch
 model: sonnet
 effort: high
-memory: project
 color: yellow
 skills: [research-engineer]
 hooks:

@@ -4,7 +4,6 @@ description: "Shop Curator — read/audit-only care for the online shop and web 
 tools: Read, Grep, Glob, Write, WebSearch, WebFetch
 model: sonnet
 effort: high
-memory: project
 color: blue
 skills: [shop-curator]
 ---

@@ -3,6 +3,6 @@
 # fails natively (missing agent file) and via guard_agent_spawn. Upgrading = user OK, then re-run
 # the scaffold with the larger preset (additive) + session restart. Flat format, shell-parsed:
 # one preset per line, roles space-separated, `all` = all roles.
-core: records-clerk bookkeeper
-commerce: records-clerk bookkeeper product-editor shop-curator
+core: records-clerk bookkeeper project-auditor
+commerce: records-clerk bookkeeper product-editor shop-curator project-auditor
 full: all

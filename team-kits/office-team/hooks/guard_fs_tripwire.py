@@ -22,6 +22,8 @@ DELETE_RX = re.compile(
     r"\b(rm|rmdir|del|erase|rd|Remove-Item|ri)\b[^\n;|&]*\b(inbox|archive)(\b|[/\\])", re.I)
 MOVE_RX = re.compile(
     r"\b(mv|move|Move-Item|mi|ren|rename|Rename-Item)\b[^\n;|&]*\barchive[/\\]", re.I)
+# shell redirects into the ledger bypass the Edit/Write guard (audit finding: `echo >> ledger/x.csv`)
+LEDGER_REDIRECT_RX = re.compile(r"[>|]\s*\"?[^\s\"|;&]*\bledger[/\\][^\s\"|;&]*\.csv", re.I)
 
 
 def main():
@@ -32,6 +34,13 @@ def main():
     if data.get("tool_name") not in ("Bash", "PowerShell"):
         sys.exit(0)
     cmd = str((data.get("tool_input") or {}).get("command") or "")
+    if LEDGER_REDIRECT_RX.search(cmd) and "ledger_add.py" not in cmd:
+        _audit.record("guard_fs_tripwire", "shell redirect into ledger: %s" % cmd[:120])
+        sys.stderr.write(
+            "[team-kit guard] Shell writes into ledger/*.csv are BLOCKED — the ledger is "
+            "script-validated and append-only: use `python scripts/ledger_add.py ...` (arithmetic, "
+            "duplicate and year checks) — corrections are reversal entries.\n")
+        sys.exit(2)
     if DELETE_RX.search(cmd):
         _audit.record("guard_fs_tripwire", "delete on inbox/archive: %s" % cmd[:120])
         sys.stderr.write(

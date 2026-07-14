@@ -73,6 +73,18 @@ def main():
               "choice), `true` ONLY for a deliberate parallel batch — then NEVER advance the phase "
               "before ALL completion notifications have returned")
 
+    # work-order minimal schema (Anthropic: every subagent needs an objective, an output format,
+    # sources and boundaries — vague orders produce duplicated work and gaps). Deterministic floor:
+    # the prompt must carry `objective` and `output` keys; the skills define the full template.
+    prompt_low = str(inp.get("prompt") or "").lower()
+    missing = [k for k in ("objective", "output") if k not in prompt_low]
+    if missing:
+        block("work order lacks %s — every delegation is a YAML work order with at least:\n"
+              "  objective: <one sentence - what DONE looks like>\n"
+              "  read_first: [the exact files to read]\n"
+              "  output: <the YAML keys expected back>\n"
+              "  boundaries: <what is OUT of scope>" % " + ".join("`%s:`" % k for k in missing))
+
     # allowed spawn -> audit it (V2): the Notification route for background completions proved dead
     # in a real environment (0 of 15 completions logged), so spawn accounting must not depend on it.
     try:

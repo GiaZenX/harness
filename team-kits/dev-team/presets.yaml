@@ -3,6 +3,6 @@
 # fails natively (missing agent file) and via guard_agent_spawn. Upgrading = user OK, then re-run
 # the scaffold with the larger preset (additive) + session restart. Flat format, shell-parsed:
 # one preset per line, roles space-separated, `all` = all roles.
-solo: software-architect backend-developer quality-engineer
-duo: software-architect backend-developer frontend-developer quality-engineer devops-engineer
+solo: software-architect backend-developer quality-engineer project-auditor
+duo: software-architect backend-developer frontend-developer quality-engineer devops-engineer project-auditor
 team: all

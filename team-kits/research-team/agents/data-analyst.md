@@ -4,7 +4,6 @@ description: "Data Analyst. Use as a subagent (invoked by the Research Lead) to 
 tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
 effort: high
-memory: project
 color: green
 skills: [data-analyst]
 hooks:

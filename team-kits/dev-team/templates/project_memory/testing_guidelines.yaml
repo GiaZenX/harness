@@ -64,6 +64,19 @@ tooling_defaults:
     optional: [k6]   # omitting load/stress testing MUST be an explicit line in the test-approach ADR
                      # (like property/golden-file omissions) — a conscious decision, never silence
 
+# UI CONSISTENCY ASSERTIONS (mandatory for UI-bearing projects — QA owns the tests, frontend keeps
+# them green). Uniformity is MEASURABLE; "looks consistent" must be a green test, not an LLM
+# judgment ("bearbeitet" claims without visible effect were a real failure class):
+consistency_assertions:
+  - "ONE heading scale: every view's top-level heading resolves to the SAME computed font-size
+     (Playwright: getComputedStyle over all views — a real app had a different size per menu)."
+  - "Cards/tiles in one row/grid have EQUAL bounding-box heights (compare boundingBox() of
+     siblings; tolerance 1px — a real app shipped visibly unequal neighboring cards)."
+  - "Spacing comes from the token scale ONLY (assert margins/paddings ∈ the design.yaml scale)."
+  - "UI INVENTORY SNAPSHOT: the visible navigation items + primary actions per view are a snapshot
+     test. Removing/replacing/renaming a visible element FAILS the snapshot — updating it requires
+     an approved CR in the same change (a real run silently deleted the Account button)."
+
 # Parallel execution (speed — a real project's SERIAL e2e suite ate 11+ minutes per verdict, repeated
 # per fix round). QA/DevOps wire this; it changes nothing about WHAT is verified, only how fast:
 parallel_execution:

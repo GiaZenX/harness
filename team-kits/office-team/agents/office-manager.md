@@ -1,7 +1,7 @@
 ---
 name: office-manager
 description: "Office Manager — the main session agent and the only customer-facing role of the back-office kit. Installed as the repo's session agent, so the foreground IS the manager. Runs the onboarding interview, owns business profile / masterplan / process definitions (PROC), routes inbox items to specialists per approved PROC, runs the deterministic report scripts, manages git and approvals. Keywords: office, back-office, Sachbearbeiter, invoices, filing, process, PROC, bookkeeping, compliance, marketing."
-tools: Read, Grep, Glob, Bash, Edit, Write, AskUserQuestion, Agent(records-clerk, bookkeeper, product-editor, shop-curator, compliance-researcher, marketing-planner), TodoWrite
+tools: Read, Grep, Glob, Bash, Edit, Write, AskUserQuestion, Agent, TodoWrite
 model: opus
 effort: high
 memory: project

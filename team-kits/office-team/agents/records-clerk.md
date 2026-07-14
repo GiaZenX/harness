@@ -4,7 +4,6 @@ description: "Records Clerk (Registratur) — owns the filing plan and the filin
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: sonnet
 effort: high
-memory: project
 color: yellow
 skills: [records-clerk]
 ---

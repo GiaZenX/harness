@@ -2,7 +2,7 @@
 name: methodologist
 description: "Methodologist — the scientific authority. Use as a subagent (invoked by the Research Lead) to derive hypotheses and experiment designs from a Research Question, choose methods and statistics, write Methodology Decision Records (MDR), maintain the research guidelines (append-only), assess FZulG criteria (novelty, technical uncertainty, systematic approach), and propose method changes only on real cause. Never talks to the user. Keywords: methodologist, methodology, experiment design, hypothesis, statistics, MDR, FZulG, novelty."
 tools: Read, Edit, Write, Grep, Glob
-model: sonnet
+model: opus
 effort: high
 memory: project
 color: purple

@@ -142,10 +142,61 @@ for kit in discover_kits(ROOT):
         fails.append("%s: kit files changed but VERSION not bumped — run python tools/bump_kit_version.py" % kit)
     cpath = os.path.join(kit_dir, "constitution", "CLAUDE.md")
     if os.path.isfile(cpath):
-        first = open(cpath, encoding="utf-8", errors="ignore").readline()
-        if "agents-and-skills:team-kit" not in first:
+        lines = open(cpath, encoding="utf-8", errors="ignore").read().splitlines()
+        if not lines or "agents-and-skills:team-kit" not in lines[0]:
             fails.append("%s: constitution marker not on LINE 1 — session_status kit-update detection "
                          "reads only the first line" % kit)
+        # context diet (official guidance: bloated CLAUDE.md files get ignored; the constitution
+        # loads into the PM AND every subagent spawn — verified empirically 2026-07-14)
+        if len(lines) > 220:
+            fails.append("%s: constitution has %d lines (> 220) — keep the core slim; move role "
+                         "mechanics into the role SKILLs (they load only for the affected role)"
+                         % (kit, len(lines)))
+
+# 9) intended-identical hooks/scripts must stay byte-identical across kits (audit finding: a fix
+#    applied in one kit silently diverges the others — exactly the drift class this repo hunts).
+MIRROR_DEV_RESEARCH = [
+    "hooks/guard_yaml_valid.py", "hooks/guard_agent_spawn.py", "hooks/notify_agent_events.py",
+    "hooks/guard_scratchpad_ref.py", "hooks/gate_subagent_output.py", "hooks/guard_harness_selfmod.py",
+    "hooks/_root.py", "hooks/_audit.py", "hooks/auto_dashboard.py",
+    "templates/repo/scripts/quality.py", "templates/repo/scripts/kit_checks.py",
+    "templates/repo/scripts/retro.py",
+]
+MIRROR_DEV_OFFICE = [
+    "hooks/guard_yaml_valid.py", "hooks/guard_agent_spawn.py", "hooks/notify_agent_events.py",
+    "hooks/guard_scratchpad_ref.py", "hooks/gate_subagent_output.py", "hooks/guard_harness_selfmod.py",
+    "hooks/_root.py", "hooks/_audit.py",
+]
+for other, names in (("research-team", MIRROR_DEV_RESEARCH), ("office-team", MIRROR_DEV_OFFICE)):
+    for name in names:
+        a = os.path.join(ROOT, "team-kits", "dev-team", name)
+        b = os.path.join(ROOT, "team-kits", other, name)
+        if not (os.path.isfile(a) and os.path.isfile(b)):
+            fails.append("mirror: %s missing in dev-team or %s" % (name, other))
+        elif open(a, "rb").read() != open(b, "rb").read():
+            fails.append("mirror: %s diverged between dev-team and %s — copy the fixed file" % (name, other))
+
+# 10) every §-reference in hooks/skills/agents must resolve to a heading (## N.) or a bold anchor
+#     (**Na.) in that kit's constitution — a block message citing a deleted paragraph teaches
+#     the agent to look for nothing (audit finding after the constitution diet).
+import re as _re  # noqa: E402
+for kit_dir_name in os.listdir(os.path.join(ROOT, "team-kits")):
+    cpath = os.path.join(ROOT, "team-kits", kit_dir_name, "constitution", "CLAUDE.md")
+    if not os.path.isfile(cpath):
+        continue
+    cons = open(cpath, encoding="utf-8", errors="ignore").read()
+    anchors = set(_re.findall(r"(?m)^##+\s*(\d+[a-z]?)\.", cons))
+    anchors |= set(_re.findall(r"(?m)^\*\*(\d+[a-z]?)\.", cons))
+    for pattern in ("hooks/*.py", "skills/*/SKILL.md", "agents/*.md"):
+        for p in glob.glob(os.path.join(ROOT, "team-kits", kit_dir_name, pattern)):
+            txt = open(p, encoding="utf-8", errors="ignore").read()
+            for m in _re.finditer(r"§(\d+[a-z]?)", txt):
+                if txt[m.end():m.end() + 1] == ".":
+                    continue  # §2.7-style sub-reference resolves to its parent section
+                if m.group(1) not in anchors:
+                    fails.append("%s: references §%s which does not exist in %s's constitution"
+                                 % (rel(p), m.group(1), kit_dir_name))
+                    break  # one finding per file is enough
 
 if fails:
     print("VALIDATION FAILED (%d):" % len(fails))

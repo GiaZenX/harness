@@ -4,7 +4,6 @@ description: "Product Editor — owns the product catalog and content guidelines
 tools: Read, Grep, Glob, Edit, Write
 model: sonnet
 effort: high
-memory: project
 color: purple
 skills: [product-editor]
 ---

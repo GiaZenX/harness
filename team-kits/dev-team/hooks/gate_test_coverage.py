@@ -35,7 +35,7 @@ def block(why):
     sys.stderr.write(
         "[team-kit gate] Blocked merge/push: %s\n"
         "Every source area must be tested on its own (the per-area coverage rule, constitution "
-        "§12a). Have QA add real tests for that area before merging.\n" % why
+        "§6). Have QA add real tests for that area before merging.\n" % why
     )
     sys.exit(2)
 

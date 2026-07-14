@@ -89,7 +89,11 @@ Record it under `chosen` + `design_system` in `design.yaml`. Iterate until the u
 The PM tasks you ONCE after the frontend implemented the PRD, before the QA gate: compare **screenshots of
 the build** against **your own per-view mockups** and return a concrete **deviation list** (layout,
 containment, component shapes, placement, wordmark/typography, motion feel) — you are the taste authority;
-judge intent, not just presence. You do NOT fix code; the frontend fixes in the same cycle, then QA gates.
+judge intent, not just presence. **Also diff the visible INVENTORY** (nav items, primary actions) against
+your mockups — a removed/replaced element without a CR is a deviation, never a detail. **Baseline
+uniformity (one heading scale, equal cards per row, token spacing) is a STANDING rule you spec from screen
+one — it is NOT "final polish"** and never waits for a last pass. You do NOT fix code; the frontend fixes
+in the same cycle, then QA gates.
 
 ## When the PM set the ambition to `minimal`
 Some PRDs are deliberately minimal/utilitarian — the user picked **"minimal"** in the PM's ambition question.

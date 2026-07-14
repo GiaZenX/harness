@@ -1,0 +1,137 @@
+# Harness output-quality eval — canonical scenarios (v1 skeleton, extend over time).
+# Pattern (Anthropic multi-agent research system): ~20 canonical queries + an LLM judge scoring
+# 0.0–1.0 per criterion + pass/fail. v1 ships 10 scenarios and a manual run procedure (README.md
+# in this folder); wiring into CI is deliberately deferred until the scenario set has settled.
+#
+# Each scenario: what a PM/manager would delegate, and the PROPERTIES a correct specialist
+# response must have (the judge checks properties, not exact wording).
+
+scenarios:
+  - id: EV-0001
+    kit: dev-team
+    role: software-architect
+    work_order: |
+      objective: derive SRs for a PRD "local notes app with offline sync"
+      read_first: [product_requirements.yaml PRD-0001]
+      output: system_requirements ids + decisions + open_questions
+      boundaries: no implementation, no test files
+    must_have:
+      - testable SRs with derives_from
+      - a direction-setting ADR WITH premise_invalidation_triggers
+      - packaging.method decided or explicitly proposed
+      - no code written
+  - id: EV-0002
+    kit: dev-team
+    role: quality-engineer
+    work_order: |
+      objective: gate PRD-0001 after implementation
+      read_first: [tasks.yaml TSK-0003..5, testing_guidelines.yaml]
+      output: verdict + review_findings + test_results
+      boundaries: no feature-code changes
+    must_have:
+      - runs targeted tests first, full suite exactly once before the verdict
+      - verdict PASS/FAIL with named evidence (no "looks good")
+      - consistency assertions checked for UI-bearing work
+      - SKIPPED-for-environment reported as BLOCKED, never green
+  - id: EV-0003
+    kit: dev-team
+    role: frontend-developer
+    work_order: |
+      objective: implement the approved mockup for the settings view
+      read_first: [design_preview.html settings view, design.yaml tokens]
+      output: summary + files_changed + tests_added
+      boundaries: no backend changes; no new visible elements beyond the mockup
+    must_have:
+      - mockup markup/CSS used as the BASE (no recolored old layout)
+      - consistency assertions green (heading scale, card heights)
+      - no visible element removed/replaced without naming a CR
+  - id: EV-0004
+    kit: dev-team
+    role: product-designer
+    work_order: |
+      objective: propose 3 design directions for a music practice app (ambition exploration)
+      read_first: [masterplan.md, design.yaml]
+      output: directions + per-view mockups plan
+      boundaries: no code
+    must_have:
+      - 3 genuinely distinct directions with a committed point of view
+      - baseline uniformity specced from screen one (heading scale, spacing tokens)
+      - a11y baseline present (focus-visible, contrast, reduced motion)
+  - id: EV-0005
+    kit: dev-team
+    role: project-auditor
+    work_order: |
+      objective: daily audit run
+      read_first: [review_findings.yaml last run, product_requirements.yaml, tasks.yaml]
+      output: appended run entry
+      boundaries: read-only outside review_findings.yaml
+    must_have:
+      - 3–5 sampled claims verified against real files (quoted evidence)
+      - rubric scores 0.0–1.0 for all five dimensions
+      - findings carry severity + evidence + recommendation
+      - nothing modified outside review_findings.yaml
+  - id: EV-0006
+    kit: research-team
+    role: methodologist
+    work_order: |
+      objective: design experiments for RQ-0001 "does context caching reduce agent latency?"
+      read_first: [research_questions.yaml RQ-0001, literature.yaml]
+      output: hypotheses + experiment_designs + decisions
+      boundaries: no experiment execution
+    must_have:
+      - falsifiable HYPs with success criteria
+      - seed pinning + baseline/ablation in the design
+      - a direction-setting MDR WITH premise_invalidation_triggers
+  - id: EV-0007
+    kit: research-team
+    role: reviewer
+    work_order: |
+      objective: validate EXP-0002 results
+      read_first: [results.yaml EXP-0002, experiment_designs.yaml]
+      output: verdict + reproduction
+      boundaries: no analysis-code changes
+    must_have:
+      - actual reproduction from recorded seeds (numbers re-checked, not trusted)
+      - verdict with named evidence
+      - per-experiment report NOT deferred to the merge
+  - id: EV-0008
+    kit: office-team
+    role: bookkeeper
+    work_order: |
+      objective: book the 3 invoices filed today (PROC-0001)
+      proc: PROC-0001
+      read_first: [master_data.yaml, filing_log.yaml newest entries]
+      output: booked + open_items + unclear
+      boundaries: no direct ledger edits; no tax advice
+    must_have:
+      - e-invoice extraction attempted FIRST (script), manual read only as fallback
+      - every row booked via ledger_add.py (no direct CSV writes)
+      - unreadable fields reported UNCLEAR, never invented
+      - categories only from master_data
+  - id: EV-0009
+    kit: office-team
+    role: records-clerk
+    work_order: |
+      objective: file today's inbox drop (PROC-0001)
+      proc: PROC-0001
+      read_first: [filing_plan.yaml]
+      output: filed + unclear
+      boundaries: move-only; nothing deleted
+    must_have:
+      - moves (never deletes), naming rule applied
+      - filing_log entries only for files that really exist under archive/
+      - unclear items -> _unsorted with a question list
+  - id: EV-0010
+    kit: office-team
+    role: compliance-researcher
+    work_order: |
+      objective: build the register for category electronics, market DE (PROC-0003)
+      proc: PROC-0003
+      read_first: [business_profile.yaml, compliance_register.yaml]
+      output: entries_added_updated + flags + tasks_for_user
+      boundaries: research only; no legal advice
+    must_have:
+      - every entry carries source URL + retrieved + review_by
+      - official/primary sources preferred and named
+      - uncertainty stated as uncertainty with a verification task
+      - disclaimer untouched

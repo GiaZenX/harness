@@ -1,7 +1,8 @@
 # Agent Skills
 
-Userwide-installable skills, a global **constitution**, and a **multi-agent role model** for
-**GitHub Copilot** and **Claude Code** in VS Code.
+A global **entry-gate constitution** and installable **multi-agent team kits** (dev, research,
+office) for **Claude Code** — plus a Copilot entry gate. Role skills ship INSIDE the team kits
+(per repo); there are no userwide skills anymore.
 
 Instead of a single assistant, this repo simulates a small software team: you are the **customer**, the
 **main agent becomes your Project Manager (PM)** — your only point of contact — and specialized dev roles
@@ -54,8 +55,8 @@ Restart VS Code afterwards.
 | Option | Description |
 |---|---|
 | `-Target both` (default) | Installs for Claude Code **and** Copilot |
-| `-Target claude` | Claude Code only (`~/.claude/skills/` + `~/.claude/CLAUDE.md`) |
-| `-Target copilot` | Copilot only (`~/.copilot/skills/` + VS Code agents + instructions) |
+| `-Target claude` | Claude Code only (`~/.claude/CLAUDE.md` + `~/.claude/team-kits/` + statusline) |
+| `-Target copilot` | Copilot only (VS Code instructions/entry gate) |
 | `-Force` | Overwrites already-installed files |
 
 On Linux/Mac use `--target` and `--force` accordingly.
@@ -97,8 +98,7 @@ Code**.
 | User entry gate (Copilot, VS Code) | `<vscode prompts>/COPILOT.instructions.md` (`applyTo: "**"`) |
 | Team kit staging (shared) | `~/.claude/team-kits/<team>/` (agents, constitution, templates) + scaffold scripts |
 | Project team (per repo, created on demand) | `./.claude/agents/*.md` + `./.claude/skills/` + `./CLAUDE.md` + `./.claude/settings.json` |
-| Claude Code skills | `~/.claude/skills/<skill>/` |
-| Copilot skills | `~/.copilot/skills/<skill>/` |
+| Role skills (per repo, via scaffold) | `./.claude/skills/<role>/` — no userwide skills are installed |
 | VS Code prompts folder | Windows: `%APPDATA%\Code\User\prompts\` <br> macOS: `~/Library/Application Support/Code/User/prompts/` <br> Linux: `~/.config/Code/User/prompts/` |
 
 ---
@@ -183,6 +183,7 @@ return YAML. Roles below are the **`dev-team`**; the **`research-team`** mirrors
 | **Frontend Developer** | `frontend-developer` | UI tasks, tests, commits | No |
 | **Quality Engineer** | `quality-engineer` | Review, tests (sole owner of test completeness), Definition of Done, merge gate | No |
 | **DevOps Engineer** | `devops-engineer` | CI/CD, pipelines, environments, release | No |
+| **Project Auditor** | `project-auditor` | Scheduled daily READ-ONLY review: samples requirements↔code claims, judge rubric (0.0–1.0 + pass/fail), sole writer of `review_findings.yaml`; findings become TSKs or logged skips | No |
 
 ### Roles (research-team)
 
@@ -199,6 +200,7 @@ the only customer-facing role.
 | **Reviewer** | `reviewer` | Reproducibility + validity gate, peer review, merge gate |
 | **Research Engineer** | `research-engineer` | Data pipelines, environments, dataset versioning |
 | **Report Writer** | `report-writer` | Per-experiment scientific report in **LaTeX/PDF** (+ offline HTML preview via KaTeX) and the **BSFZ application draft** from `fzulg_documentation.yaml`, fixed templates |
+| **Project Auditor** | `project-auditor` | Scheduled daily READ-ONLY review: samples claims vs evidence, judge rubric (0.0–1.0 + pass/fail), sole writer of `review_findings.yaml`; findings become tasks or logged skips |
 
 ### Roles (office-team)
 
@@ -218,6 +220,7 @@ denied by default).
 | **Shop Curator** | `shop-curator` | Read/audit-only SEO/GEO/content audits with sourced findings; page drafts |
 | **Compliance Researcher** | `compliance-researcher` | Sourced regulation register per category × market (CE, RoHS, RED, Ökodesign …) with review dates — **no legal advice** |
 | **Marketing Planner** | `marketing-planner` | Research-backed channel strategy, account inventory, calendar, post drafts |
+| **Project Auditor** | `project-auditor` | Scheduled daily READ-ONLY review: samples filing/ledger/report claims for real, judge rubric, sole writer of `review_findings.yaml` |
 
 ### Phase model
 
@@ -258,11 +261,13 @@ by double-click.
   `commerce` | `full`) — **mechanical**: the scaffold installs only the preset's roles (kit
   `presets.yaml`), so spawning any other role fails natively; upgrading = re-run the scaffold with
   the larger preset + session restart. Escalation is user-gated only.
-- **Models:** the **PM (session agent) runs on `opus`** (set in the kit's `.claude/settings.json` + the PM's
-  agent frontmatter); the **specialists default to `sonnet`** (haiku proved too weak for complex work in a
-  real run), controlled per repo via `project_config.yaml` (the PM syncs each specialist's `model:`
-  frontmatter — haiku only for simple roles, opus for the hardest). Dial the PM to `sonnet` if opus is too
-  costly. Specialist upgrades only after a user OK (triggers: first QA fail or dissatisfaction).
+- **Models:** the **PM (session agent) runs on `opus`**; **judgment roles default to `opus`**
+  (dev: architect/designer/QA; research: methodologist/reviewer) and **implementers to `sonnet`**,
+  controlled per repo via `project_config.yaml` — the scaffold stamps each specialist's
+  `model:`/`effort:` frontmatter from the maps and `session_status` nags on drift. Specialist
+  upgrades only after a user OK (triggers: first QA fail or dissatisfaction); ladder
+  sonnet-high → sonnet-xhigh → opus-high → opus-xhigh/max (Sonnet 5 supports xhigh/max; haiku has
+  no effort parameter).
 - **Reasoning effort:** each role also carries an `effort:` (`low|medium|high|xhigh|max`), set per repo via an
   **`effort_map`** in `project_config.yaml` (the PM syncs each specialist's `effort:` frontmatter, same as
   `model:`). Default: **all specialists + the PM run `high`**; on **sonnet `high` is the ceiling —
@@ -323,6 +328,10 @@ Because instructions alone get skipped, each kit ships a small **deterministic**
   library" is valid) — the deterministic guard against a critical packaging tool (e.g. Docker) being forgotten.
 - **Auto-dashboard** (`auto_dashboard`) — regenerates `progress.dashboard.html` whenever `project_memory/`
   changed.
+- Note on `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80` in the kit settings: meanwhile officially documented;
+  it can only LOWER the threshold below the default, and Opus-1M sessions reportedly ignore it
+  (open issue) — treat it as best-effort; the real context hygiene is the "fresh session after each
+  PRD merge" rule the PM skill enforces.
 - All hooks resolve the repo root via `${CLAUDE_PROJECT_DIR}` / an upward search (`_root.py`), so a shifted
   working directory can't silently disable a guard.
 
@@ -341,10 +350,13 @@ owns the proposal.
 
 ### Status line & install backup
 
-- The installer adds a **status line** (`~/.claude/statusline.py`) showing model · context-usage bar · cost ·
-  git branch · 5h rate-limit, and **merges** opinionated global defaults into `~/.claude/settings.json`
-  (telemetry off, no commit co-author trailer) — **your personal keys are preserved** and the previous file is
-  backed up under `~/.claude/backups/`.
+- The installer adds a **status line** (`~/.claude/statusline.py`) and **merges** global defaults into
+  `~/.claude/settings.json` — the FULL list: statusLine, theme, alwaysThinkingEnabled, telemetry off,
+  empty commit/PR attribution, terminal progress bar, spinner tips, cleanupPeriodDays, plus a UNION of
+  permission allow/deny rules. It deliberately does NOT ship `permissions.defaultMode`
+  (`bypassPermissions` would remove your veto globally — against the official warning; set it yourself
+  per project if you want it), `remoteControlAtStartup` or `effortLevel`. Your other keys are preserved;
+  the previous file is backed up under `~/.claude/backups/`.
 - Both the installer and the scaffold **back up** what they replace before overwriting (with a confirmation
   prompt on install).
 
@@ -425,8 +437,7 @@ never overwritten) and asks for a restart; newly required fields in existing YAM
 ## Uninstall
 
 Delete the folders manually:
-- `~/.claude/skills/`, `~/.claude/agents/`, `~/.claude/team-kits/`, `~/.claude/CLAUDE.md`
-- `~/.copilot/skills/`
+- `~/.claude/team-kits/`, `~/.claude/CLAUDE.md`, `~/.claude/statusline.py`
 - VS Code prompts folder (see the path table above): the file `COPILOT.instructions.md`
 - In each project: the local `./.claude/` (agents, hooks, `settings.json`) and `./CLAUDE.md` (only if you want to remove the team there)
 

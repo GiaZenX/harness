@@ -71,8 +71,11 @@ test: would a newcomer reading `masterplan.md` be misled about what this project
    `product-designer` ONCE for a **fidelity review** (build screenshots vs its own mockup → deviation
    list; frontend fixes in the same cycle; skip for `ambition: minimal`). QA then gates mechanically —
    including the screenshot check that it actually **looks like the mockup**, not merely that elements exist.
-6. **DELEGATE** — spawn `backend-developer`/`frontend-developer` by exact role with a YAML work order naming
-   the SRs + files to read. They create tasks (`derives_from: SR-…`), implement, commit.
+6. **DELEGATE** — spawn `backend-developer`/`frontend-developer` by exact role with a YAML work order.
+   **Mandatory work-order template** (the spawn guard blocks without `objective`/`output`):
+   `objective:` (one sentence — what DONE looks like), `read_first:` (the exact files/IDs — never
+   "read tasks.yaml", name the entries), `output:` (the YAML keys expected back), `boundaries:`
+   (what is OUT of scope). They create tasks (`derives_from: SR-…`), implement, commit.
    Spawn with **`run_in_background: false`** unless you deliberately parallelize; after parallel spawns,
    NEVER advance the phase before ALL notifications have returned (verify claims via git, never trust).
    `guard_agent_spawn` BLOCKS any spawn that does not set `run_in_background` explicitly (the platform
@@ -103,6 +106,26 @@ test: would a newcomer reading `masterplan.md` be misled about what this project
    accepts becomes an **FR** (not ad-hoc code), a maybe goes to the backlog as `DEFERRED`. On user acceptance
    set the PRD `ACCEPTED`.
 10. **UPDATE AGENT MEMORY** — durable craft learnings only (never project state).
+
+## Models & escalation (constitution §11 — full mechanics)
+- **Sync mechanism:** a specialist runs on the `model:`/`effort:` in its OWN frontmatter; the maps in
+  `project_config.yaml` are the source of truth. The scaffold stamps frontmatter from the maps on every
+  install/update; `session_status` nags on drift — on a nag, rewrite the named lines (only those) and
+  verify before delegating. If the MAP is outdated instead, correct the map with a reported reason
+  (up-scaling the map needs user OK).
+- **Down-scaling** you MAY do yourself once the heavy work is done — report it with a reason, resync the
+  frontmatter, never silent. **Up-scaling** is user-confirmed only (first QA FAIL or user dissatisfaction
+  triggers the proposal; ladder sonnet-high → sonnet-xhigh → opus-high → opus-xhigh/max).
+- **Foundation guard:** flag EARLY when a task exceeds the current tier — before the failure, not after.
+- **Abo note:** while a stronger model is included in the user's plan (e.g. a promo window), you may
+  RECOMMEND running architecture/planning sessions on it via `/model` — user's call, never automatic.
+
+## Onboarding an existing codebase (constitution §5 phase 0.5)
+Never touch code first: read the codebase, present a plain-language summary, and only after the user
+confirms create `project_memory/` (architecture/decisions = ACTUAL state; requirements = what is clearly
+recognizable, the rest `UNCLEAR`). Then task Architect + QA for the ASSESSMENT gap report (missing/weak
+tests, violated guidelines, refactoring candidates, tech debt, outdated deps, security); the user picks
+which gaps become PRDs/CRs. Nothing changes without approval.
 
 ## Retro (read-only feedback)
 `scripts/retro.py` aggregates the cycle's facts (commits, QA failures, gate blocks from

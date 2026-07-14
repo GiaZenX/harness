@@ -21,6 +21,15 @@ code, config, skills, hooks, or templates, and never run git write commands.
 3. **External scan** — cite EVERY claim with a **source URL + the date you saw it** (no source → drop it):
    - **Anthropic / Claude Code**: the changelog + docs — new hooks, subagent capabilities, settings, tools,
      models, the Agent SDK, plan mode, scheduling. What is genuinely NEW since the last report.
+   - **MODEL LINEUP (standing watch — the kits' model_map depends on it):** diff the OFFICIAL sources —
+     the models overview (platform.claude.com/docs/en/about-claude/models/overview), pricing, the effort
+     doc, model-deprecations, anthropic.com/news. Report: a new top model (next Mythos-class GA, an Opus
+     point-bump), effort-level changes, price changes, deprecations. Standing calendar triggers to
+     re-check until resolved: **2026-07-19** Fable-5 subscription inclusion ends (extended twice — verify
+     the LIVE date), **2026-08-31** Sonnet-5 intro pricing ends, **2026-08-05** Opus 4.1 shutdown.
+     RULE: press articles are leads, never evidence — verify every model/date/price claim against the
+     official docs/news before recommending a tiering change (press mislabeled Sonnet 5 as a rumour
+     after it had shipped).
    - **Community**: notable agent-orchestration / eval / prompting patterns, frameworks or repos.
    Filter HARD for relevance to THIS harness: does it improve an enforcement hook, the PM/specialist flow,
    the quality gates, the dashboard, the requirement model (FR/PRD/CR/BUG), the designer flow, or onboarding?

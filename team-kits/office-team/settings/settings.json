@@ -1,7 +1,6 @@
 {
   "agent": "office-manager",
   "model": "opus",
-  "plansDirectory": "./plans",
   "permissions": {
     "allow": [
       "Bash(git *)",
@@ -35,6 +34,10 @@
           {
             "type": "command",
             "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_ledger_direct.py\""
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_harness_selfmod.py\""
           }
         ]
       },
@@ -97,6 +100,10 @@
           {
             "type": "command",
             "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/notify_agent_events.py\""
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/gate_subagent_output.py\""
           }
         ]
       }

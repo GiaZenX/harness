@@ -50,6 +50,7 @@ teams:
       - frontend-developer
       - quality-engineer
       - devops-engineer
+      - project-auditor
 
   - key: research-team
     title: Research Team
@@ -79,6 +80,7 @@ teams:
       - reviewer
       - research-engineer
       - report-writer
+      - project-auditor
 
   - key: office-team
     title: Office / Back-Office Team (Sachbearbeiter)
@@ -115,6 +117,7 @@ teams:
       - shop-curator
       - compliance-researcher
       - marketing-planner
+      - project-auditor
 
 # Routing rule for the reader (the entry gate):
 #   1. Classify the user's wish against each team's `intents` (substring/keyword match).

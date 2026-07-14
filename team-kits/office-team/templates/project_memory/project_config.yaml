@@ -21,9 +21,11 @@ model_map:
   shop-curator: sonnet
   compliance-researcher: sonnet
   marketing-planner: sonnet
+  project-auditor: sonnet
 
-# Reasoning effort per specialist (low | medium | high | xhigh | max). All default high; on
-# sonnet, high is the ceiling (xhigh/max are opus-only, escalation-only, user-confirmed).
+# Reasoning effort per specialist (low | medium | high | xhigh | max). All default high. FACTS
+# (official effort doc, verified 2026-07): haiku has NO effort parameter; Sonnet 5 supports xhigh
+# AND max. Escalation ladder (user-confirmed): sonnet-high -> sonnet-xhigh -> opus-high -> opus-xhigh/max.
 effort_map:
   records-clerk: high
   bookkeeper: high
@@ -31,3 +33,4 @@ effort_map:
   shop-curator: high
   compliance-researcher: high
   marketing-planner: high
+  project-auditor: high

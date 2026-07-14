@@ -23,6 +23,8 @@ If the install session left a **DRAFT** plan (a DRAFT `research_questions.yaml` 
 5. **PLAN** — hand the RQ to `methodologist` to derive hypotheses (`HYP`) + experiment designs (`EXP`);
    create branch `feat/RQ-xxx`.
 6. **DELEGATE** — spawn `researcher`/`data-analyst` by exact role to run the experiment + analysis.
+   **Mandatory work-order template** (the spawn guard blocks without `objective`/`output`):
+   `objective:`, `read_first:` (exact files/IDs), `output:` (expected YAML keys), `boundaries:`.
    Spawn with **`run_in_background: false`** unless you deliberately parallelize; after parallel spawns,
    NEVER advance the phase before ALL notifications have returned (verify claims, never trust).
    `guard_agent_spawn` BLOCKS any spawn that does not set `run_in_background` explicitly (the platform
@@ -67,6 +69,23 @@ them: diff each against the kit template, have the owning role merge the kit's f
 conscious skip in `progress.yaml` `log:`), then **DELETE the pending file(s)**. `session_status` reminds
 you every session until they are gone. Afterwards gates may require newly added fields in existing filled
 YAMLs — fill those small deltas.
+
+## Models & escalation (constitution §11 — full mechanics)
+- **Sync mechanism:** specialists run on their OWN frontmatter `model:`/`effort:`; the maps in
+  `project_config.yaml` are the source of truth. The scaffold stamps frontmatter from the maps on every
+  install/update; `session_status` nags on drift — on a nag, rewrite the named lines only and verify
+  before delegating. If the MAP is outdated, correct it with a reported reason (up-scaling needs user OK).
+- **Down-scaling** you MAY do yourself once the heavy work is done — reported, resynced, never silent.
+  **Up-scaling** is user-confirmed only (first validation FAIL or user dissatisfaction triggers the
+  proposal; ladder sonnet-high → sonnet-xhigh → opus-high → opus-xhigh/max).
+- **Foundation guard:** flag EARLY when a task exceeds the current tier.
+
+## Onboarding an existing effort (constitution §5 phase 0.5)
+Never touch existing material first: read it, present a plain-language summary, and only after the user
+confirms create `project_memory/` (methodology/decisions = ACTUAL state; RQs = what is clearly
+recognizable, rest `UNCLEAR`). Then task Methodologist + Reviewer for the ASSESSMENT gap report
+(unstated methodology, missing controls, unreproducible steps, missing literature/novelty evidence,
+undocumented FZulG criteria); the user picks what becomes RQs/PAs.
 
 ## Retro (read-only feedback)
 `scripts/retro.py` aggregates the cycle's facts (commits, validation failures, gate blocks from
