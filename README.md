@@ -94,6 +94,15 @@ maturing (open "Claude Code hook parity" tracker). Copilot artifacts are generat
 schema-correct per the official reference, but **live-unverified** — there, branch protection +
 required CI checks are the enforcement you rely on.
 
+**Bootstrap (empty project → team installed)** works from any of the three CLIs: the installer
+ships an entry gate per provider — `~/.claude/CLAUDE.md` (Claude Code), the VS Code
+`COPILOT.instructions.md` (Copilot), and `~/.codex/AGENTS.md` (Codex). Each knows the same flow:
+interview → masterplan → `init_project_memory` → scaffold → restart. The Codex gate additionally
+sets `providers: [claude, codex]` before scaffolding (so its own artifacts are generated) and
+tells the user about the one-time `/hooks` trust. The scaffold scripts themselves are plain
+PowerShell/Bash under the shared `~/.claude/team-kits/` staging — deliberately ONE staging for
+every provider.
+
 ---
 
 ## Install paths
@@ -102,8 +111,9 @@ required CI checks are the enforcement you rely on.
 |---|---|
 | User entry gate (Claude Code) | `~/.claude/CLAUDE.md` |
 | User entry gate (Copilot, VS Code) | `<vscode prompts>/COPILOT.instructions.md` (`applyTo: "**"`) |
-| Team kit staging (shared) | `~/.claude/team-kits/<team>/` (agents, constitution, templates) + scaffold scripts |
-| Project team (per repo, created on demand) | `./.claude/agents/*.md` + `./.claude/skills/` + `./CLAUDE.md` + `./.claude/settings.json` |
+| User entry gate (Codex CLI) | `~/.codex/AGENTS.md` (installed only if `~/.codex` exists) |
+| Team kit staging (shared) | `~/.claude/team-kits/<team>/` (agents, constitution, templates) + scaffold scripts + `model_tiers.yaml` + `gen_provider_artifacts.py` |
+| Project team (per repo, created on demand) | `./.claude/agents/*.md` + `./.claude/skills/` + `./AGENTS.md` (constitution) + `./CLAUDE.md` (import shim) + `./.claude/settings.json`; with codex/copilot providers also `./.codex/**`, `./.github/hooks\|agents/**` |
 | Role skills (per repo, via scaffold) | `./.claude/skills/<role>/` — no userwide skills are installed |
 | VS Code prompts folder | Windows: `%APPDATA%\Code\User\prompts\` <br> macOS: `~/Library/Application Support/Code/User/prompts/` <br> Linux: `~/.config/Code/User/prompts/` |
 

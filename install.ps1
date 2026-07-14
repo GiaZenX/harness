@@ -1,18 +1,19 @@
 # Windows installer for agents-and-skills
 # Usage:
-#   .\install.ps1                 # Install for both Claude Code and Copilot (asks to confirm)
+#   .\install.ps1                 # Install for Claude Code, Copilot AND Codex (asks to confirm)
 #   .\install.ps1 -Target claude  # Only Claude Code
 #   .\install.ps1 -Target copilot # Only Copilot
+#   .\install.ps1 -Target codex   # Only the Codex entry gate (~/.codex/AGENTS.md)
 #   .\install.ps1 -Force          # Skip the confirmation prompt (still backs up first)
 #
 # Behavior: BACKS UP the existing agents-and-skills artifacts to ~/.claude/backups/<timestamp>/,
 # shows a notice, asks to confirm, then OVERWRITES them. Your ~/.claude/settings.json is MERGED
 # (our keys added; your personal keys like model/theme/permissions are preserved) and the previous
-# file is backed up.
+# file is backed up. "both" is kept as the historical name for "everything".
 
 [CmdletBinding()]
 param(
-    [ValidateSet("both", "claude", "copilot")]
+    [ValidateSet("both", "claude", "copilot", "codex")]
     [string]$Target = "both",
     [switch]$Force
 )
@@ -21,6 +22,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = $PSScriptRoot
 $userClaudeSrc    = Join-Path $repoRoot "user\claude"
 $userCopilotSrc   = Join-Path $repoRoot "user\copilot"
+$userCodexSrc     = Join-Path $repoRoot "user\codex"
 $teamKitsSrc      = Join-Path $repoRoot "team-kits"
 $mergeScript      = Join-Path $repoRoot "user\merge_settings.py"
 
@@ -30,6 +32,7 @@ $claudeAgents   = Join-Path $claudeGlobal "agents"
 $claudeTeamKits = Join-Path $claudeGlobal "team-kits"
 $copilotSkills  = Join-Path $env:USERPROFILE ".copilot\skills"
 $vscodePrompts  = Join-Path $env:APPDATA "Code\User\prompts"
+$codexGlobal    = Join-Path $env:USERPROFILE ".codex"
 
 $stamp     = Get-Date -Format "yyyyMMdd-HHmmss"
 $backupDir = Join-Path $claudeGlobal ("backups\" + $stamp)
@@ -84,6 +87,11 @@ Backup-Item $claudeSkills
 Backup-Item $claudeTeamKits
 if (Test-Path $vscodePrompts) {
     Get-ChildItem $vscodePrompts -Force | Where-Object { $_.Name -like '*.agent.md' -or $_.Name -eq 'COPILOT.instructions.md' } | ForEach-Object { Backup-Item $_.FullName }
+}
+if (Test-Path (Join-Path $codexGlobal "AGENTS.md")) {
+    # backed up as codex-AGENTS.md so it cannot collide with other backups
+    if (-not (Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir -Force | Out-Null }
+    Copy-Item (Join-Path $codexGlobal "AGENTS.md") (Join-Path $backupDir "codex-AGENTS.md") -Force
 }
 Write-Host "  [ok]   backup complete" -ForegroundColor Green
 
@@ -144,6 +152,19 @@ if ($Target -eq "both" -or $Target -eq "copilot") {
         Get-ChildItem -Path $copilotAgentsSrc -Filter "*.agent.md" | ForEach-Object {
             Install-File -Src $_.FullName -Dest (Join-Path $vscodePrompts $_.Name) -Label "agent: $($_.Name)"
         }
+    }
+}
+
+if ($Target -eq "both" -or $Target -eq "codex") {
+    Write-Host "`n-> Codex CLI (entry gate)"
+    if (Test-Path $codexGlobal) {
+        # ~/.codex exists only when Codex is installed; the entry gate teaches a fresh Codex
+        # session how to bootstrap a team-kit project (Codex-first bootstrap gap). OVERWRITES the
+        # global AGENTS.md (backed up above as codex-AGENTS.md) -- it is OURS to own, like
+        # ~/.claude/CLAUDE.md; a real incident left a hand-cloned pseudo-PM ruleset in there.
+        Install-File -Src (Join-Path $userCodexSrc "AGENTS.md") -Dest (Join-Path $codexGlobal "AGENTS.md") -Label "AGENTS.md -> ~/.codex/AGENTS.md (entry gate)"
+    } else {
+        Write-Host "  [skip] ~/.codex not found (Codex CLI not installed) - nothing to do" -ForegroundColor Yellow
     }
 }
 

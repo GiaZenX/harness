@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Linux/macOS installer for agents-and-skills
 # Usage:
-#   ./install.sh                  # Install for both Claude Code and Copilot (asks to confirm)
+#   ./install.sh                  # Install for Claude Code, Copilot AND Codex (asks to confirm)
 #   ./install.sh --target claude  # Only Claude Code
 #   ./install.sh --target copilot # Only Copilot
+#   ./install.sh --target codex   # Only the Codex entry gate (~/.codex/AGENTS.md)
 #   ./install.sh --force          # Skip the confirmation prompt (still backs up first)
 #
 # Behavior: backs up the existing agents-and-skills artifacts to ~/.claude/backups/<timestamp>/,
@@ -25,6 +26,7 @@ done
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 USER_CLAUDE_SRC="$REPO_ROOT/user/claude"
 USER_COPILOT_SRC="$REPO_ROOT/user/copilot"
+USER_CODEX_SRC="$REPO_ROOT/user/codex"
 TEAM_KITS_SRC="$REPO_ROOT/team-kits"
 MERGE_SCRIPT="$REPO_ROOT/user/merge_settings.py"
 
@@ -33,6 +35,7 @@ CLAUDE_SKILLS="$HOME/.claude/skills"
 CLAUDE_AGENTS="$HOME/.claude/agents"
 CLAUDE_TEAM_KITS="$HOME/.claude/team-kits"
 COPILOT_SKILLS="$HOME/.copilot/skills"
+CODEX_GLOBAL="$HOME/.codex"
 
 case "$(uname -s)" in
     Darwin) VSCODE_PROMPTS="$HOME/Library/Application Support/Code/User/prompts" ;;
@@ -92,6 +95,11 @@ if [[ -d "$VSCODE_PROMPTS" ]]; then
         [[ -e "$f" ]] && backup_item "$f"
     done
 fi
+if [[ -f "$CODEX_GLOBAL/AGENTS.md" ]]; then
+    # backed up as codex-AGENTS.md so it cannot collide with other backups
+    mkdir -p "$BACKUP_DIR"
+    cp -f "$CODEX_GLOBAL/AGENTS.md" "$BACKUP_DIR/codex-AGENTS.md"
+fi
 echo "  [ok]   backup complete"
 
 echo
@@ -149,6 +157,20 @@ if [[ "$TARGET" == "both" || "$TARGET" == "copilot" ]]; then
             [[ -e "$f" ]] || continue
             install_file "$f" "$VSCODE_PROMPTS/$(basename "$f")" "agent: $(basename "$f")"
         done
+    fi
+fi
+
+if [[ "$TARGET" == "both" || "$TARGET" == "codex" ]]; then
+    echo
+    echo "-> Codex CLI (entry gate)"
+    if [[ -d "$CODEX_GLOBAL" ]]; then
+        # ~/.codex exists only when Codex is installed; the entry gate teaches a fresh Codex
+        # session how to bootstrap a team-kit project (Codex-first bootstrap gap). OVERWRITES the
+        # global AGENTS.md (backed up above as codex-AGENTS.md) -- it is OURS to own, like
+        # ~/.claude/CLAUDE.md.
+        install_file "$USER_CODEX_SRC/AGENTS.md" "$CODEX_GLOBAL/AGENTS.md" "AGENTS.md -> ~/.codex/AGENTS.md (entry gate)"
+    else
+        echo "  [skip] ~/.codex not found (Codex CLI not installed) - nothing to do"
     fi
 fi
 
