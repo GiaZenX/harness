@@ -432,9 +432,15 @@ owns the proposal.
   per project if you want it), `remoteControlAtStartup` or `effortLevel`. Every existing top-level
   value wins, including a custom `theme` or `statusLine`; only missing defaults are added. Existing
   permission sub-keys also win, except that valid `permissions.allow`/`deny` lists are unioned without
-  duplicates. The previous file is backed up under `~/.claude/backups/`.
+  duplicates. The previous file is backed up under `~/.claude/backups/`; the merge additionally
+  leaves its own `~/.claude/settings.json.bak` next to the file (belt and braces — safe to delete).
 - Both the installer and the scaffold **back up** what they replace before overwriting (with a confirmation
   prompt on install).
+- Codex note: the harness never writes `$CODEX_HOME/config.toml` (user-owned — auth, model,
+  personality; a legacy `sandbox_mode` there would even override team permission profiles, which the
+  installer warns about). Consequence, deliberately accepted: the user-wide secret-read denies exist
+  on the CLAUDE side only — Codex gets its secret boundary from the GENERATED per-project
+  permission profile, so a Codex session in a non-team repo runs without a harness secret shield.
 
 ### Agent Teams (optional, not default)
 

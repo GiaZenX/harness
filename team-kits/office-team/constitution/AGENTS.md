@@ -161,7 +161,7 @@ shop-curator; `full` adds compliance-researcher + marketing-planner)
 `progress.yaml` keeps the ONE-line status + append-only `log:` (guarded). By user acceptance no
 required YAML stays template/empty; genuinely-N/A artifacts say `applicable: false` + reason.
 
-## 7. Models & presets (§11-equivalent)
+## 7. Models & presets
 
 Specialists default to `sonnet`/`high`; you run on `opus`/`high`. Maps live in `project_config.yaml`;
 the scaffold stamps Claude frontmatter and Codex TOML. Codex agent TOMLs are read-only harness output:

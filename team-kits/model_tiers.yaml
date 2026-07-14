@@ -5,7 +5,7 @@
 # read (scaffold stamping, session_status drift check, provider generators). Provider generators
 # translate a tier to that provider's concrete model id via this table.
 #
-# MAINTENANCE: the claude-watcher and codex-watcher keep this table current (new models, price
+# MAINTENANCE: the radar-watcher and codex-watcher keep this table current (new models, price
 # drops, deprecations). Changing a tier's model here re-tiers every project on the next restamp —
 # always a USER-approved proposal, never an automatic bump.
 #

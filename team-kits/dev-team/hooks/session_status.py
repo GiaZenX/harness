@@ -122,7 +122,7 @@ def main():
             "project_memory/ as project truth. Do not depend on Claude-only shims or role memory."
         ]
     else:
-        parts = ["You are the Project Manager — the session agent the user talks to. Follow ./CLAUDE.md."]
+        parts = ["You are the Project Manager — the session agent the user talks to. Follow ./AGENTS.md."]
 
     branch = git(cwd, "rev-parse", "--abbrev-ref", "HEAD")
     if branch:

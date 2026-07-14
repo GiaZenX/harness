@@ -1,6 +1,6 @@
 # Scaffold a team kit into the current repository (Windows).
 # Usage: scaffold_team.ps1 -Team dev-team
-# Copies the kit's agents into ./.claude/agents/ and its constitution into ./CLAUDE.md,
+# Copies the kit's agents into ./.claude/agents/ and its constitution into ./AGENTS.md,
 # plus enforcement hooks into ./.claude/. project_memory/ is NOT created here -- the entry gate
 # creates it deterministically via init_project_memory.ps1 BEFORE scaffolding (the PM startup
 # backfills it the same way if missing). This script never touches project_memory/.

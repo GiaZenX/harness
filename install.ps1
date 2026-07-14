@@ -213,9 +213,10 @@ Backup-Item $claudeAgents
 Backup-Item $claudeSkills
 Backup-Item $claudeTeamKits
 # Legacy Copilot files older installs put into VS Code prompts — backed up before cleanup below.
+$legacyCopilotNames = @("COPILOT.instructions.md", "group-leader.agent.md",
+    "memory-engineer.agent.md", "project-memory.instructions.md")
 if (Test-Path $vscodePrompts) {
-    $legacyCopilot = Get-ChildItem $vscodePrompts -Force | Where-Object {
-        $_.Name -eq 'COPILOT.instructions.md' -or $_.Name -eq 'group-leader.agent.md' }
+    $legacyCopilot = Get-ChildItem $vscodePrompts -Force | Where-Object { $_.Name -in $legacyCopilotNames }
     foreach ($item in $legacyCopilot) { Assert-NoReparseTree $item.FullName; Backup-Item $item.FullName }
 }
 if ($Target -eq "both" -or $Target -eq "codex") {
@@ -322,7 +323,7 @@ if ($Target -eq "both" -or $Target -eq "claude") {
 # One-time cleanup of files older installs shipped for the now-removed Copilot support — runs for
 # EVERY target (a codex-only profile may still carry them from an earlier "both" install).
 Remove-OldSkills -Destination $copilotSkills
-foreach ($legacyName in @("COPILOT.instructions.md", "group-leader.agent.md")) {
+foreach ($legacyName in $legacyCopilotNames) {
     $legacyPath = Join-Path $vscodePrompts $legacyName
     if (Test-Path $legacyPath) {
         Assert-NoReparseTree $legacyPath

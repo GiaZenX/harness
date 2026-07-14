@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Scaffold a team kit into the current repository (Unix).
 # Usage: scaffold_team.sh dev-team
-# Copies the kit's agents into ./.claude/agents/ and its constitution into ./CLAUDE.md.
+# Copies the kit's agents into ./.claude/agents/ and its constitution into ./AGENTS.md (+ CLAUDE.md import shim).
 # project_memory/ is NOT created here — the entry gate creates it deterministically via
 # init_project_memory.sh BEFORE scaffolding (the PM startup backfills it the same way if missing).
 set -Eeuo pipefail

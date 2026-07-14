@@ -208,9 +208,10 @@ backup_item "$CLAUDE_AGENTS"
 backup_item "$CLAUDE_SKILLS"
 backup_item "$CLAUDE_TEAM_KITS"
 # Legacy Copilot files older installs put into VS Code prompts — backed up before cleanup below.
+LEGACY_COPILOT_NAMES="COPILOT.instructions.md group-leader.agent.md memory-engineer.agent.md project-memory.instructions.md"
 if [[ -d "$VSCODE_PROMPTS" ]]; then
-    for f in "$VSCODE_PROMPTS/COPILOT.instructions.md" "$VSCODE_PROMPTS/group-leader.agent.md"; do
-        [[ -e "$f" ]] && backup_item "$f"
+    for name in $LEGACY_COPILOT_NAMES; do
+        [[ -e "$VSCODE_PROMPTS/$name" ]] && backup_item "$VSCODE_PROMPTS/$name"
     done
 fi
 if [[ "$TARGET" == "both" || "$TARGET" == "codex" ]]; then
@@ -289,7 +290,8 @@ fi
 # One-time cleanup of files older installs shipped for the now-removed Copilot support — runs for
 # EVERY target (a codex-only profile may still carry them from an earlier "both" install).
 remove_old_skills "$COPILOT_SKILLS"
-for legacy in "$VSCODE_PROMPTS/COPILOT.instructions.md" "$VSCODE_PROMPTS/group-leader.agent.md"; do
+for name in $LEGACY_COPILOT_NAMES; do
+    legacy="$VSCODE_PROMPTS/$name"
     if [[ -e "$legacy" ]]; then
         assert_no_symlink_tree "$legacy"
         rm -f "$legacy"

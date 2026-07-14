@@ -35,5 +35,5 @@ under `dashboard_history/`, and lists what changed since the last run. The bars 
 the items behind each status (id, title, owner, origin, start/end dates). Running the generator needs
 PyYAML (`pip install pyyaml`); the generated HTML itself has no dependencies and opens by double-click.
 
-Everyone may read everything; each role writes only its own area. See the constitution (`CLAUDE.md`) for
+Everyone may read everything; each role writes only its own area. See the constitution (`AGENTS.md`) for
 the full rules.

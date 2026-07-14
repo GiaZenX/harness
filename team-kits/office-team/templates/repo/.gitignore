@@ -1,9 +1,14 @@
 # Business documents are NOT tracked: binary PDFs bloat the repo, and GDPR erasure (Art. 17)
 # must stay possible — git history is forever. project_memory/, ledger/ (text CSV), reports/
-# and manifests ARE tracked.
-inbox/
-archive/
-outbox/
+# and manifests ARE tracked. The folder-guide README.txt seeds ARE tracked — `dir/*` + negation,
+# NOT `dir/` (git cannot re-include a file whose parent DIRECTORY is excluded; the dir/ form
+# silently untracked the kit's own seeds and broke fresh clones).
+inbox/*
+!inbox/README.txt
+archive/*
+!archive/README.txt
+outbox/*
+!outbox/README.txt
 
 # tooling artifacts
 __pycache__/

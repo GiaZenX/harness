@@ -254,6 +254,31 @@ for kit_dir_name in os.listdir(os.path.join(ROOT, "team-kits")):
                                  % (rel(p), m.group(1), kit_dir_name))
                     break  # one finding per file is enough
 
+# 12) every file the kit hash covers must be git-tracked. An ignored-but-present file makes
+#     VERSION true only on THIS machine: a real .gitignore'd office seed kept local validate green
+#     while CI was red and fresh clones could not install (the hash walks the FILESYSTEM).
+import subprocess as _sp  # noqa: E402
+from bump_kit_version import SKIP_DIRS  # noqa: E402
+try:
+    _git = _sp.run(["git", "ls-files", "team-kits"], cwd=ROOT, capture_output=True,
+                   text=True, timeout=30)
+    _tracked = set(_git.stdout.splitlines()) if _git.returncode == 0 else None
+except Exception:
+    _tracked = None  # no git available (e.g. an exported tree) — hash/track parity is then moot
+if _tracked is not None:
+    for kit in discover_kits(ROOT):
+        kit_root = os.path.join(ROOT, "team-kits", kit)
+        for dirpath, dirnames, filenames in os.walk(kit_root):
+            dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
+            for fn in sorted(filenames):
+                if fn.endswith(".pyc"):
+                    continue
+                relp = os.path.relpath(os.path.join(dirpath, fn), ROOT).replace("\\", "/")
+                if relp not in _tracked:
+                    fails.append("%s: %s is hashed into VERSION but not git-tracked "
+                                 "(check .gitignore) — CI and fresh clones will disagree "
+                                 "with the local hash" % (kit, relp))
+
 if fails:
     print("VALIDATION FAILED (%d):" % len(fails))
     for f in fails:

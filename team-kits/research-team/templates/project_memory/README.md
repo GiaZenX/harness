@@ -55,5 +55,5 @@ Once an RQ's `fzulg_documentation.yaml` is `READY`, it also renders the **BSFZ a
 (`reports/fzulg_application_RQ-xxxx.md`). The Report Writer presents existing results only — it never alters
 data or conclusions.
 
-Everyone may read everything; each role writes only its own area. See the constitution (`CLAUDE.md`) for
+Everyone may read everything; each role writes only its own area. See the constitution (`AGENTS.md`) for
 the full rules.

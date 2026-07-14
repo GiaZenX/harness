@@ -5,6 +5,25 @@ repo's history for any agent CLI (Claude Code, Codex) and for humans. Full ratio
 in the referenced commit messages; project conventions live in the kits themselves. Newest first.
 Append an entry with every shipped round (same commit).
 
+## 2026-07-14 — Two-auditor cleanliness sweep after the parity round (kits 2026.07.14-9)
+Two INDEPENDENT auditors swept repo + installed state + both live projects. Their unanimous green:
+staging/user files byte-identical to sources, both projects contract-clean on -8, the
+user/claude-vs-user/codex asymmetry is by design ($CODEX_HOME/config.toml is user-owned; everything
+kit-relevant is generated per project — now documented, incl. the deliberate consequence that
+user-wide secret denies exist on the Claude side only). One auditor found what every local check
+structurally missed: three office template seeds (inbox/archive/outbox README.txt) were shadowed by
+the template's own `dir/` .gitignore rules and NEVER tracked — the kit hash walks the filesystem,
+so local validate stayed green while GITHUB CI WAS RED and fresh clones could not install. Fixed
+via `dir/*` + `!dir/README.txt` negation (a file inside an EXCLUDED DIRECTORY cannot be
+re-included), plus a new validate check: every hashed kit file must be git-tracked. PROCESS RULE
+ADDED: a push is only "shipped" after the CI run is verified green. Both found the same MAJOR:
+two first-generation Copilot files (memory-engineer.agent.md, project-memory.instructions.md — the
+latter auto-injecting via `applyTo: "**"`) still in VS Code prompts; the installer cleanup list now
+covers them. Also swept: the last ~30 "constitution in ./CLAUDE.md" wordings → ./AGENTS.md
+(agents, session_status ×3, scaffold headers, template READMEs), model_tiers "claude-watcher" →
+radar-watcher, radar/README describes the watcher DUO, office heading dropped its dangling
+"§11-equivalent", stray empty dirs removed, settings.json.bak behavior documented.
+
 ## 2026-07-14 — Codex-authored parity deepening, reviewed + hardened; Copilot removed (kits 2026.07.14-8)
 (-7 was superseded minutes after push: the live synaipse restamp surfaced that the stricter map
 validation rejected `fable` — a legitimate §11 Claude-side pin on its frontend role — so `fable`
