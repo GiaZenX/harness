@@ -15,7 +15,10 @@
 param(
     [ValidateSet("both", "claude", "codex")]
     [string]$Target = "both",
-    [switch]$Force
+    [switch]$Force,
+    # OPT-IN: append the user-wide Codex secret shield (marked permission profile denying secret
+    # reads) to $CODEX_HOME/config.toml — the counterpart of the Claude-side settings.json denies.
+    [switch]$CodexGlobalSecrets
 )
 
 $ErrorActionPreference = "Stop"
@@ -343,6 +346,17 @@ if ($Target -eq "both" -or $Target -eq "codex") {
     Install-File -Src (Join-Path $userCodexSrc "AGENTS.md") -Dest (Join-Path $codexGlobal "AGENTS.md") -Label "AGENTS.md -> $codexGlobal\AGENTS.md (entry gate)"
     if (Test-Path (Join-Path $codexGlobal "AGENTS.override.md")) {
         Write-Host "  [warn] preserved AGENTS.override.md; Codex will use it instead of the installed entry gate." -ForegroundColor Yellow
+    }
+    if ($CodexGlobalSecrets) {
+        $codexUserConfigPath = Join-Path $codexGlobal "config.toml"
+        if (Test-Path $codexUserConfigPath) {
+            if (-not (Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir -Force | Out-Null }
+            Copy-Item $codexUserConfigPath (Join-Path $backupDir "codex-config.toml") -Force
+        }
+        & $pyCheck.Source (Join-Path $repoRoot "user\codex_global_config.py") $codexGlobal
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  [warn] Codex secret shield was NOT installed (see the message above); your config.toml is unchanged." -ForegroundColor Yellow
+        }
     }
 }
 

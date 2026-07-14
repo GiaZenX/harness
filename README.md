@@ -67,6 +67,7 @@ An existing `$CODEX_HOME/AGENTS.override.md` is preserved and takes precedence o
 | `-Target both` (default) | Installs for Claude Code **and** Codex CLI |
 | `-Target claude` | Claude Code only (`~/.claude/CLAUDE.md` + `~/.claude/team-kits/` + statusline) |
 | `-Target codex` | Codex entry gate (`$CODEX_HOME/AGENTS.md`) + shared team-kit staging |
+| `-CodexGlobalSecrets` | OPT-IN: appends the user-wide Codex secret shield to `$CODEX_HOME/config.toml` (marked, removable block; see the Codex note under Design decisions) |
 | `-Force` | Overwrites already-installed files |
 
 On Linux/Mac use `--target` and `--force` accordingly.
@@ -436,11 +437,19 @@ owns the proposal.
   leaves its own `~/.claude/settings.json.bak` next to the file (belt and braces — safe to delete).
 - Both the installer and the scaffold **back up** what they replace before overwriting (with a confirmation
   prompt on install).
-- Codex note: the harness never writes `$CODEX_HOME/config.toml` (user-owned — auth, model,
-  personality; a legacy `sandbox_mode` there would even override team permission profiles, which the
-  installer warns about). Consequence, deliberately accepted: the user-wide secret-read denies exist
+- Codex note: the harness never writes `$CODEX_HOME/config.toml` by default (user-owned — auth,
+  model, personality; a legacy `sandbox_mode` there would even override team permission profiles,
+  which the installer warns about). Default consequence: the user-wide secret-read denies exist
   on the CLAUDE side only — Codex gets its secret boundary from the GENERATED per-project
-  permission profile, so a Codex session in a non-team repo runs without a harness secret shield.
+  permission profile. The OPT-IN flag `-CodexGlobalSecrets` / `--codex-global-secrets` closes
+  that gap: it appends a clearly marked, removable profile (`extends = ":workspace"` + the same
+  secret denies as the Claude side + `~/.ssh`) and activates it only when you have no own
+  `default_permissions`. Fail-closed: invalid TOML or a present legacy `sandbox_mode` aborts
+  without writing (the legacy key would silently disable ALL profiles — upstream precedence).
+  Honest behavior change while active: folders WITHOUT a trust decision start with the
+  `:workspace` baseline instead of `:read-only` (approval prompts stay unchanged); trusted team
+  projects keep their generated profile (CLI precedence; the Codex DESKTOP app currently has an
+  open upstream bug applying project profiles, openai/codex#22553).
 
 ### Agent Teams (optional, not default)
 

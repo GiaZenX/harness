@@ -16,6 +16,7 @@ set -euo pipefail
 
 TARGET="both"
 FORCE=0
+CODEX_GLOBAL_SECRETS=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --target)
@@ -27,6 +28,9 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --force|-y) FORCE=1; shift ;;
+        # OPT-IN: append the user-wide Codex secret shield (marked permission profile denying
+        # secret reads) to $CODEX_HOME/config.toml — counterpart of the Claude settings denies.
+        --codex-global-secrets) CODEX_GLOBAL_SECRETS=1; shift ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
@@ -311,6 +315,15 @@ if [[ "$TARGET" == "both" || "$TARGET" == "codex" ]]; then
     install_file "$USER_CODEX_SRC/AGENTS.md" "$CODEX_GLOBAL/AGENTS.md" "AGENTS.md -> $CODEX_GLOBAL/AGENTS.md (entry gate)"
     if [[ -f "$CODEX_GLOBAL/AGENTS.override.md" ]]; then
         echo "  [warn] preserved AGENTS.override.md; Codex will use it instead of the installed entry gate."
+    fi
+    if [[ $CODEX_GLOBAL_SECRETS -eq 1 ]]; then
+        if [[ -f "$CODEX_GLOBAL/config.toml" ]]; then
+            mkdir -p "$BACKUP_DIR"
+            cp -f "$CODEX_GLOBAL/config.toml" "$BACKUP_DIR/codex-config.toml"
+        fi
+        if ! "$PYTHON" "$REPO_ROOT/user/codex_global_config.py" "$CODEX_GLOBAL"; then
+            echo "  [warn] Codex secret shield was NOT installed (see the message above); your config.toml is unchanged."
+        fi
     fi
 fi
 

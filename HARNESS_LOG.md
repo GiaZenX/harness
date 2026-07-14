@@ -5,6 +5,23 @@ repo's history for any agent CLI (Claude Code, Codex) and for humans. Full ratio
 in the referenced commit messages; project conventions live in the kits themselves. Newest first.
 Append an entry with every shipped round (same commit).
 
+## 2026-07-14 — Opt-in user-wide Codex secret shield (repo-level, no kit bump)
+Closes the last documented Claude/Codex asymmetry on user request: Claude gets user-wide
+secret-read denies via the settings.json merge, Codex had them only per generated team project.
+New OPT-IN installer flag (`-CodexGlobalSecrets` / `--codex-global-secrets`) runs
+user/codex_global_config.py, which appends a marked, removable profile to $CODEX_HOME/config.toml.
+Design rests on freshly VERIFIED semantics (learn.chatgpt.com/docs/permissions + openai/codex
+source): profiles are CLOSED-WORLD (a naive deny-only profile would have locked everything ->
+`extends = ":workspace"` + the Claude-side deny list + `~/.ssh`); `default_permissions` must sit
+BEFORE the first TOML table (surgical top-level insertion, block appended at the end); a
+`[permissions]` profile without any `default_permissions` is a Codex config ERROR (activation is
+skipped only when the user already has their own); legacy `sandbox_mode` in ANY loaded level
+silently disables ALL profiles (fail-closed abort with guidance instead of an inert shield).
+Honest trade-off documented: no-trust-decision folders start `:workspace` instead of `:read-only`
+while the shield is active; trusted team projects keep their generated profile (CLI precedence;
+Codex Desktop has an open upstream bug applying project profiles, openai/codex#22553). Never
+activated silently: backup first, tomllib re-parse before atomic replace, idempotent marker.
+
 ## 2026-07-14 — Two-auditor cleanliness sweep after the parity round (kits 2026.07.14-10)
 (-9 -> -10 within the hour: the NEW ci-green rule immediately caught its first real bug — on
 GitHub's windows runner a pwsh parent hands its PS7 PSModulePath to the powershell-5.1 child, so

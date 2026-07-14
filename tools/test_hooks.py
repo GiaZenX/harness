@@ -2787,6 +2787,96 @@ def test_install_sh_rejects_invalid_target():
     assert result.returncode != 0 and "Invalid target" in result.stderr
 
 
+# ---------------- codex_global_config.py: opt-in user-wide secret shield ----------------
+CODEX_SHIELD = os.path.join(ROOT, "user", "codex_global_config.py")
+
+
+def _run_shield(codex_home):
+    return subprocess.run([sys.executable, CODEX_SHIELD, str(codex_home)],
+                          capture_output=True, text=True, timeout=60)
+
+
+def test_codex_shield_appends_and_activates(tmp_path):
+    import tomllib
+    home = tmp_path / "codex"
+    write(str(home / "config.toml"),
+          'personality = "pragmatic"\nmodel = "gpt-5.6-sol"\n\n[windows]\nsandbox = "elevated"\n'
+          "[projects.'c:\\x']\ntrust_level = \"trusted\"\n")
+    r = _run_shield(home)
+    assert r.returncode == 0, r.stdout + r.stderr
+    text = (home / "config.toml").read_text(encoding="utf-8")
+    data = tomllib.loads(text)
+    assert data["default_permissions"] == "agents-and-skills-secrets"
+    profile = data["permissions"]["agents-and-skills-secrets"]
+    assert profile["extends"] == ":workspace"
+    assert profile["filesystem"][":workspace_roots"]["**/*.pem"] == "deny"
+    assert profile["filesystem"]["~/.ssh"] == "deny"
+    # personal content untouched, activation line BEFORE the first table (TOML top-level rule)
+    assert data["personality"] == "pragmatic" and data["windows"]["sandbox"] == "elevated"
+    assert text.index("default_permissions") < text.index("[windows]")
+    assert (home / "config.toml.agents-and-skills.bak").is_file()
+    before = text
+    r2 = _run_shield(home)  # idempotent: marker present -> byte-identical
+    assert r2.returncode == 0
+    assert (home / "config.toml").read_text(encoding="utf-8") == before
+
+    # a fresh Codex home without a config.toml gets a valid minimal one
+    empty_home = tmp_path / "codex-fresh"
+    empty_home.mkdir()
+    r3 = _run_shield(empty_home)
+    assert r3.returncode == 0, r3.stdout + r3.stderr
+    fresh = tomllib.loads((empty_home / "config.toml").read_text(encoding="utf-8"))
+    assert fresh["default_permissions"] == "agents-and-skills-secrets"
+
+
+def test_codex_shield_fail_closed(tmp_path):
+    home = tmp_path / "codex"
+    write(str(home / "config.toml"), 'sandbox_mode = "workspace-write"\n')
+    r = _run_shield(home)
+    assert r.returncode == 3 and "IGNORES permission profiles" in r.stderr
+    assert (home / "config.toml").read_text(
+        encoding="utf-8") == 'sandbox_mode = "workspace-write"\n'
+    write(str(home / "config.toml"), "not [ valid toml\n")
+    r2 = _run_shield(home)
+    assert r2.returncode == 2 and "nothing was written" in r2.stderr
+    assert (home / "config.toml").read_text(encoding="utf-8") == "not [ valid toml\n"
+
+
+def test_codex_shield_respects_existing_default(tmp_path):
+    import tomllib
+    home = tmp_path / "codex"
+    write(str(home / "config.toml"),
+          'default_permissions = "mine"\n\n[permissions.mine]\nextends = ":workspace"\n')
+    r = _run_shield(home)
+    assert r.returncode == 0 and "NOT activated" in r.stdout
+    data = tomllib.loads((home / "config.toml").read_text(encoding="utf-8"))
+    assert data["default_permissions"] == "mine"  # the user's choice is never fought
+    assert "agents-and-skills-secrets" in data["permissions"]
+
+
+def test_install_ps1_codex_global_secrets_flag(tmp_path):
+    if os.name != "nt" or not shutil.which("powershell"):
+        pytest.skip("PowerShell installer integration runs on Windows")
+    home = tmp_path / "home"
+    codex_home = tmp_path / "codex-home"
+    appdata = tmp_path / "appdata"
+    write(str(codex_home / "config.toml"), 'personality = "pragmatic"\n')
+    pythonpath = os.pathsep.join(path for path in sys.path if path)
+    command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+               os.path.join(ROOT, "install.ps1"), "-Target", "codex", "-Force",
+               "-CodexGlobalSecrets"]
+    env = dict(os.environ, USERPROFILE=str(home), APPDATA=str(appdata),
+               CODEX_HOME=str(codex_home), PYTHONPATH=pythonpath)
+    result = subprocess.run(command, cwd=str(ROOT), capture_output=True, text=True, timeout=180,
+                            env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    text = (codex_home / "config.toml").read_text(encoding="utf-8")
+    assert "agents-and-skills:codex-global-secrets" in text
+    assert 'default_permissions = "agents-and-skills-secrets"' in text
+    assert 'personality = "pragmatic"' in text
+    assert list((home / ".claude" / "backups").glob("*/codex-config.toml"))
+
+
 def test_install_ps1_codex_only_uses_codex_home(tmp_path):
     if os.name != "nt" or not shutil.which("powershell"):
         pytest.skip("PowerShell installer integration runs on Windows")
