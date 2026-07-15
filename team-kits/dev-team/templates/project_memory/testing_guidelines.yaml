@@ -15,6 +15,11 @@ global:
   - "No mock-only for user-/runtime-critical paths: a UI feature needs a real UI smoke (e.g. Playwright);
     a container needs a real `docker build` + health start; data/training needs a real end-to-end run."
   - Every component in architecture.yaml MUST be covered by the test type its `test_strategy` prescribes.
+  - "Test-scoping ladder (the merge gate is the guarantee; intermediate runs are feedback): per edit/step
+    run ONLY the affected tests + lint/types; per slice END run the full suite ONCE (QA's verdict run);
+    merge/push always runs the FULL gate. Escalate to full immediately for cross-cutting changes (shared
+    components, config, dependency bumps); a pre-push full run may be repeated once against flakiness.
+    Running the full suite after every micro-step is redundant with the gate and forbidden."
 
 # Coverage gate (hard). The architect/QA may raise it; never lower it silently.
 coverage_gate:

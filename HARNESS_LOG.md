@@ -5,6 +5,18 @@ repo's history for any agent CLI (Claude Code, Codex) and for humans. Full ratio
 in the referenced commit messages; project conventions live in the kits themselves. Newest first.
 Append an entry with every shipped round (same commit).
 
+## 2026-07-15 — Test-scoping ladder closes the ORCHESTRATION gap (dev-team 2026.07.15-2)
+Live-run finding (user complaint, second occurrence): the synaipse PM ordered the FULL 792-test
+suite after every micro-step. Forensics showed the kit already had the staged-testing rule in all
+three EXECUTOR skills (QA: full suite exactly once per verdict; frontend/backend: affected tests
+only in the dev loop) — the leak was the PM level, which no rule covered. Fix: the PM skill now
+carries the orchestration ladder (mid-slice work orders say "affected tests only"; full suite ONCE
+per slice end via QA's verdict run; merge/push gate untouched as the guarantee; escalation to full
+for cross-cutting changes; pre-push full run may repeat once against flakiness), and the
+testing_guidelines template states the ladder as a global project rule. research/office skipped
+deliberately (no comparable suite-scale/QA model). Template is copy-if-absent: existing projects
+get the ladder via the PM skill on restamp; their filled testing_guidelines.yaml keeps their state.
+
 ## 2026-07-15 — office-team gains the office-developer role (kits 2026.07.15-1)
 User decision, superseding "dashboards via separate consumer project": dashboards stay OUT of the
 kit (business-specific — structures, naming, products differ), but the office kit now ships the

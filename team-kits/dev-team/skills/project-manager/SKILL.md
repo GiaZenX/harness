@@ -88,6 +88,13 @@ test: would a newcomer reading `masterplan.md` be misled about what this project
    policy plus specialist work-order validation cover that gap; registered Codex `PreToolUse` file/shell
    guards still hard-block through exit 2 + stderr after trust. Codex has no per-agent `tools` field
    equivalent to Claude frontmatter; an exposed tool is not authorization beyond role boundaries.
+   **Test-scoping ladder (orchestration level — the executors already follow it):** never order a
+   FULL suite/pipeline run per micro-step; mid-slice work orders say "affected tests only". The full
+   suite runs ONCE per slice END (normally as QA's single verdict run), and the merge/push gate stays
+   the untouchable guarantee. Escalate to full immediately only for cross-cutting changes (shared
+   components, config, dependency bumps); a pre-push full run may be repeated once to prove
+   flakiness-freedom (a real session ran the full 792-test suite after every micro-step — the user
+   waited minutes per step for what the slice-end run would have caught bundled).
 7. **GATE** — trigger `quality-engineer`. No merge without a PASS in `review_reports`+`test_reports`+
    `acceptance_reports` (+ the coverage/completeness gates green). If QA returns `guideline_gaps`, task the
    `software-architect` to append the missing rule(s) to `coding_guidelines.yaml` before accepting. On PASS,
