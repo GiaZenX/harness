@@ -90,9 +90,10 @@ teams:
     summary: >
       Back-office automation for a small business: inbox-driven filing, bookkeeping preparation
       (append-only ledger + deterministic quarterly income/expense report), product/content care,
-      compliance research register and marketing planning. Runs the PROC (approved process) model:
-      foreground manager + up to 6 specialist subagents. Drafts only — it never sends anything;
-      no tax or legal advice.
+      compliance research register, marketing planning, and business-specific data
+      tools/dashboards (read-only consumers of the tracked data). Runs the PROC (approved
+      process) model: foreground manager + up to 8 specialist subagents. Drafts only — it never
+      sends anything; no tax or legal advice.
     intents:
       - office
       - back-office
@@ -118,6 +119,7 @@ teams:
       - shop-curator
       - compliance-researcher
       - marketing-planner
+      - office-developer
       - project-auditor
 
 # Routing rule for the reader (the entry gate):

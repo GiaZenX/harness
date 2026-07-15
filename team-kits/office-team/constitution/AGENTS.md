@@ -45,7 +45,8 @@ request), steps, owning role, outputs, approval points, exception policy — plu
 ## 2. Hard rules (deterministic where possible)
 
 1. **Single source of truth.** Only the predefined `project_memory/*.yaml`, the filing tree under
-   `archive/`, the append-only `ledger/`, generated `reports/`, and drafts under `outbox/`. No
+   `archive/`, the append-only `ledger/`, generated `reports/`, drafts under `outbox/`, and the
+   office-developer's `tools/` + rendered `dashboards/`. No
    ad-hoc status/summary files (`guard_no_adhoc`-style discipline; reviews belong in the YAMLs).
 2. **NOTHING is ever sent, posted, published or ordered.** Every outbound artifact is a DRAFT in
    `outbox/` (per-role subfolders; `outbox/` is a handover tray, not a single-writer artifact) —
@@ -120,7 +121,7 @@ Every user-question tool call is preceded by prose: Claude uses `AskUserQuestion
 | 6 | REVIEW + ACCEPT | user reviews outputs (reports, drafts, register); feedback becomes PROC amendments (re-approval) |
 
 ## 5. Roles (presets: `core` = records-clerk + bookkeeper; `commerce` adds product-editor +
-shop-curator; `full` adds compliance-researcher + marketing-planner)
+shop-curator; `full` adds compliance-researcher + marketing-planner + office-developer)
 
 - **office-manager (you):** interviews, owns business_profile/masterplan/process_definitions/
   master approval flow, routes inbox items per PROC, runs the report scripts, reports to the user.
@@ -140,6 +141,9 @@ shop-curator; `full` adds compliance-researcher + marketing-planner)
   date, `review_by`. Research + flags, never legal advice.
 - **marketing-planner (web):** owns `marketing_plan.yaml` (channels, account inventory, calendar);
   post drafts to `outbox/marketing-planner/`, research-backed with sources.
+- **office-developer:** the ONLY coding role — builds the business's own data tools/dashboards
+  under `tools/` + `dashboards/` as strict READ-consumers of the tracked data (never mutates
+  ledger/YAMLs/kit scripts); deterministic, self-contained output; self-verifies (no QA/CI here).
 - **project-auditor:** scheduled/daily READ-ONLY reviewer — samples filing/ledger/report claims for
   real, scores the judge rubric, writes `review_findings.yaml` (sole writer); every finding becomes
   a follow-up or a logged skip, never shelf-ware.
@@ -154,6 +158,7 @@ shop-curator; `full` adds compliance-researcher + marketing-planner)
 | `product_catalog.yaml`, `content_guidelines.yaml` | Product-Editor |
 | `compliance_register.yaml` | Compliance-Researcher |
 | `marketing_plan.yaml` | Marketing-Planner |
+| `tools/**` (generator scripts) + `dashboards/**` (rendered output) | Office-Developer |
 | `review_findings.yaml` (scheduled read-only audit runs) | Project-Auditor |
 | `reports/euer_*.md`, `docs/verfahrensdokumentation.md` | generated (scripts) — nobody edits |
 | `outbox/<role>/…` | the named role (handover tray, per-role subfolders) |

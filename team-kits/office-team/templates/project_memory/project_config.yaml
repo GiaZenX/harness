@@ -29,6 +29,8 @@ model_map:
   shop-curator: worker
   compliance-researcher: worker
   marketing-planner: worker
+  office-developer: lead       # the only coding role and the kit has no QA/CI net — judgment
+                               # errors in its tools go uncaught, so it gets the strong tier.
   project-auditor: worker
 
 # Reasoning effort per specialist (low | medium | high | xhigh | max). All default high. FACTS
@@ -41,4 +43,5 @@ effort_map:
   shop-curator: high
   compliance-researcher: high
   marketing-planner: high
+  office-developer: high
   project-auditor: high

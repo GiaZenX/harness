@@ -5,6 +5,20 @@ repo's history for any agent CLI (Claude Code, Codex) and for humans. Full ratio
 in the referenced commit messages; project conventions live in the kits themselves. Newest first.
 Append an entry with every shipped round (same commit).
 
+## 2026-07-15 — office-team gains the office-developer role (kits 2026.07.15-1)
+User decision, superseding "dashboards via separate consumer project": dashboards stay OUT of the
+kit (business-specific — structures, naming, products differ), but the office kit now ships the
+ROLE that builds them per business. `office-developer` (model lead — deliberately the strong tier:
+it is the kit's only coding role and office ships no QA/CI net; preset `full` via `all`) is a
+STRICT read-consumer: it owns `tools/**` (generator scripts) + `dashboards/**` (rendered output)
+and reads the tracked, kit-schema'd data (product_catalog, ledger CSV, registers) — it never
+mutates ledger/YAMLs/kit scripts/enforcement; PROC-gated like every specialist; output must be
+deterministic, self-contained (no external loads) and honestly labeled (EÜR-style, never "GuV");
+self-verification duty replaces the missing QA. Wiring: constitution §2.1/§5/§6, registry roster
+(+ summary now says 8 specialists), template model/effort maps. Precedent: research-team's
+research-engineer (technical builder inside a domain team). The new validate check 12 caught the
+two new files as hashed-but-untracked before they could repeat the CI-red incident.
+
 ## 2026-07-14 — Opt-in user-wide Codex secret shield (repo-level, no kit bump)
 Closes the last documented Claude/Codex asymmetry on user request: Claude gets user-wide
 secret-read denies via the settings.json merge, Codex had them only per generated team project.

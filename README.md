@@ -26,7 +26,8 @@ the entry gate **hands over to it completely** (every session). If you don't wan
 Three kits ship today: **`dev-team`** (software/product engineering), **`research-team`** (research +
 experiments with an FZulG R&D-tax-credit documentation layer) and **`office-team`** (back-office
 automation: inbox-driven filing, bookkeeping preparation, product/content care, compliance research,
-marketing planning — drafts only, no tax/legal advice). The registry maps your intent to the right one.
+marketing planning, business-specific data tools/dashboards — drafts only, no tax/legal advice). The
+registry maps your intent to the right one.
 
 Everything here — role model, constitutions, hooks, skills and workflow standard — is authored in
 this repo (early versions started from an external skills collection; none of that content remains).
