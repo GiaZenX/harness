@@ -249,7 +249,7 @@ def check_project_memory_yaml(root, ok, fail, warn):
                            "when empty; history goes there, never into status)")
     ok("yaml-lint (project_memory)") if not bad else fail(
         "yaml-lint (project_memory)", "; ".join(bad[:6]) + _more(bad, 6))
-    _repo_wide_yaml_parse(root, yaml, ok, fail)
+    _repo_wide_yaml_parse(root, yaml, ok, fail, warn)
 
 
 def _yaml_lint_excludes(root):
@@ -267,11 +267,13 @@ def _yaml_lint_excludes(root):
     return out
 
 
-def _repo_wide_yaml_parse(root, yaml, ok, fail):
+def _repo_wide_yaml_parse(root, yaml, ok, fail, warn):
     """Parse EVERY git-tracked *.yaml/*.yml, not only project_memory/ — a real decisions.yaml
     shipped ~50 unparsable items while the dashboard generator swallowed the ParserError silently
     (upstreamed from a live project's fork). Parse-only outside project_memory (which already got
-    the stricter duplicate-key + contract pass above)."""
+    the stricter duplicate-key + contract pass above). Requires git (no tracked files -> skip
+    silently); files beyond the size cap are skipped WITH a warn (a multi-MB pnpm-lock.yaml must
+    not cost the gate minutes — audit finding); the C loader is used when available."""
     import subprocess
     try:
         r = subprocess.run(["git", "-C", root, "ls-files", "*.yaml", "*.yml"],
@@ -282,7 +284,8 @@ def _repo_wide_yaml_parse(root, yaml, ok, fail):
     if not files:
         return  # no git / nothing tracked — project_memory pass above already ran
     excludes = _yaml_lint_excludes(root)
-    bad, count = [], 0
+    loader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+    bad, skipped_big, count = [], [], 0
     for rel in files:
         rel_norm = rel.replace("\\", "/")
         if rel_norm.startswith("project_memory/"):
@@ -292,9 +295,15 @@ def _repo_wide_yaml_parse(root, yaml, ok, fail):
         path = os.path.join(root, rel)
         if not os.path.isfile(path):
             continue  # tracked but deleted in the working tree
+        try:
+            if os.path.getsize(path) > 1_000_000:
+                skipped_big.append(rel_norm)
+                continue
+        except OSError:
+            continue
         count += 1
         try:
-            yaml.safe_load(open(path, encoding="utf-8", errors="ignore").read())
+            yaml.load(open(path, encoding="utf-8", errors="ignore").read(), Loader=loader)
         except yaml.YAMLError as e:
             first = str(e).splitlines()[0]
             mark = getattr(e, "problem_mark", None)
@@ -302,6 +311,10 @@ def _repo_wide_yaml_parse(root, yaml, ok, fail):
             bad.append("%s%s: %s" % (rel_norm, where, first))
         except Exception:
             continue
+    if skipped_big:
+        warn("yaml-lint (repo-wide)", "skipped %d file(s) over 1 MB (%s%s) — too big for a "
+             "pure-Python parse in the gate; lint them in CI if they matter"
+             % (len(skipped_big), "; ".join(skipped_big[:3]), _more(skipped_big, 3)))
     if bad:
         fail("yaml-lint (repo-wide)", "; ".join(bad[:6]) + _more(bad, 6)
              + " — genuinely templated YAML (Helm/Jinja) can be excluded via "
@@ -334,31 +347,36 @@ def check_module_invariants(root, ok, fail, warn):
             continue
     if not rules:
         return
-    hits, stale = [], []
+    hits, stale, effective = [], [], 0
     for rule in rules:
         rel = str(rule["path"]).replace("\\", "/")
         path = os.path.join(root, rel)
         if not os.path.isfile(path):
             stale.append(rel)
             continue
+        effective += 1
         try:
             lines = open(path, encoding="utf-8", errors="ignore").read().splitlines()
         except Exception:
             continue
+        tokens = rule["forbidden_tokens"]
+        if isinstance(tokens, str):
+            tokens = [tokens]  # a bare string would otherwise iterate CHARACTERS (audit repro)
         for i, line in enumerate(lines, 1):
             if _COMMENT_LINE_RX.match(line):
                 continue  # prose may legitimately NAME the forbidden token
-            for tok in rule["forbidden_tokens"]:
+            for tok in tokens:
                 if str(tok) in line:
                     hits.append("%s:%d contains %r — %s"
                                 % (rel, i, str(tok), str(rule.get("reason") or "invariant")))
     if hits:
         fail("module invariants", "; ".join(hits[:5]) + _more(hits, 5))
-    else:
-        if stale:
-            warn("module invariants", "declared file(s) missing: %s — update module_invariants "
-                 "in the guidelines (a stale rule guards nothing)" % "; ".join(stale[:4]))
-        ok("module invariants (%d rule(s))" % len(rules))
+        return
+    if stale:
+        warn("module invariants", "declared file(s) missing: %s — update module_invariants "
+             "in the guidelines (a stale rule guards nothing)" % "; ".join(stale[:4]))
+    if effective:  # never count dead rules as a PASS (audit: stale-only showed warn AND ok)
+        ok("module invariants (%d rule(s))" % effective)
 
 
 def _count_lines(path):
@@ -458,7 +476,8 @@ _ENFORCEMENT_HARD = ("AGENTS.md", "CLAUDE.md", ".claude/hooks/", ".claude/settin
                      ".claude/settings.local.json", ".claude/provider_artifacts.json",
                      ".claude/team_kit_roles.txt", ".codex/", ".agents/skills/",
                      ".github/hooks/")
-_ENFORCEMENT_SOFT = (".github/workflows/", "scripts/quality.py", "scripts/kit_checks.py")
+_ENFORCEMENT_SOFT = (".github/workflows/", "scripts/quality.py", "scripts/kit_checks.py",
+                     "scripts/kit_browser_checks.py")
 
 
 def check_enforcement_diff(root, ok, fail, warn):

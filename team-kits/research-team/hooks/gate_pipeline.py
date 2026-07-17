@@ -97,9 +97,12 @@ def main():
         # stdin=DEVNULL: the child must not inherit the hook's consumed payload pipe (node
         # tooling probes stdin). cwd comes from find_repo_root, which normalizes the Windows
         # drive-letter case — a lowercase c:\ cwd broke vite/rollup ONLY in this hook chain.
+        # encoding pinned: the runner writes UTF-8 (it reconfigures its own streams) — reading
+        # it with the locale codec (cp1252) killed the reader thread on the first ✓/❯ and the
+        # block message lost the ENTIRE pipeline output (audit-proven: p.stdout came back None)
         p = subprocess.run([sys.executable, runner], cwd=root,
-                           stdin=subprocess.DEVNULL,
-                           capture_output=True, text=True, timeout=1500)
+                           stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=1500)
     except subprocess.TimeoutExpired:
         block("the quality pipeline did not finish within the time limit — speed up the test suite or "
               "merge a smaller change. A non-completing pipeline cannot be certified green.")

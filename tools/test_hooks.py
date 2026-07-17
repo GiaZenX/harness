@@ -274,7 +274,8 @@ def run_quality_proc(repo, *args):
     shutil.copy(KIT_CHECKS, os.path.join(repo, "scripts", "kit_checks.py"))  # kit-owned check lib
     shutil.copy(BROWSER_CHECKS, os.path.join(repo, "scripts", "kit_browser_checks.py"))
     return subprocess.run([sys.executable, os.path.join(repo, "scripts", "quality.py"), *args],
-                          capture_output=True, text=True, cwd=repo, timeout=120)
+                          capture_output=True, text=True, encoding="utf-8", errors="replace",
+                          cwd=repo, timeout=120)
 
 
 def run_quality(repo):
@@ -3393,3 +3394,50 @@ def test_browser_smoke_config_and_missing_dist(tmp_path):
     calls, ok, fail, warn = _collector()
     mod.browser_smoke(str(tmp_path), ok, fail, warn)  # no frontend/dist
     assert not calls["fail"] and any("dist missing" in m for _n, m in calls["warn"])
+
+
+def test_browser_smoke_config_trailing_comment(tmp_path):
+    # audit finding: an unquoted value with a trailing comment silently fell back to the
+    # default route — the smoke then green-tested the WRONG page
+    mod = _browser_checks_mod()
+    write(str(tmp_path / "project_memory" / "testing_guidelines.yaml"),
+          "browser_smoke:\n  entry: /app/   # main view\n  mount_selector: '#app'  # spa mount\n")
+    assert mod._config(str(tmp_path)) == ("/app/", "#app")
+
+
+def test_quality_source_areas_inline_and_quoted(tmp_path):
+    # audit finding: the block-only parser silently skipped an INLINE-declared area that the
+    # file-budget check DID scan — same knob, two behaviors
+    os.makedirs(str(tmp_path / "scripts"))
+    shutil.copy(QUALITY, str(tmp_path / "scripts" / "quality.py"))
+    os.makedirs(str(tmp_path / "compounder"))
+    write(str(tmp_path / "project_memory" / "coding_guidelines.yaml"),
+          "source_areas: [compounder, '..']\n")
+    mod = _quality_mod(str(tmp_path / "scripts" / "quality.py"))
+    targets = mod._python_targets()
+    assert "compounder" in targets and ".." not in targets
+    write(str(tmp_path / "project_memory" / "coding_guidelines.yaml"),
+          "source_areas:\n  # extra areas below\n  - 'compounder'\n")
+    mod2 = _quality_mod(str(tmp_path / "scripts" / "quality.py"))
+    assert "compounder" in mod2._python_targets()  # quoted item + comment line survive
+
+
+def test_quality_declared_stacks_quoted_block(tmp_path):
+    os.makedirs(str(tmp_path / "scripts"))
+    shutil.copy(QUALITY, str(tmp_path / "scripts" / "quality.py"))
+    write(str(tmp_path / "project_memory" / "project_config.yaml"),
+          "stacks:  # declared by the architect\n  - 'python'\n  # more later\n  - go\n")
+    mod = _quality_mod(str(tmp_path / "scripts" / "quality.py"))
+    assert mod.declared_stacks() == ["python", "go"]
+
+
+def test_kit_checks_module_invariants_string_tokens(tmp_path):
+    # audit finding: a bare-string forbidden_tokens iterated CHARACTERS ('e' matched everywhere)
+    mod = _kit_checks_mod()
+    write(str(tmp_path / "project_memory" / "coding_guidelines.yaml"),
+          "module_invariants:\n  - path: src/pure.py\n    forbidden_tokens: \"open(\"\n"
+          "    reason: \"pure\"\n")
+    write(str(tmp_path / "src" / "pure.py"), "def f():\n    return open('x').read()\n")
+    calls, ok, fail, warn = _collector()
+    mod.check_module_invariants(str(tmp_path), ok, fail, warn)
+    assert len(calls["fail"]) == 1 and "'open('" in calls["fail"][0][1]

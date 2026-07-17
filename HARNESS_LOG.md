@@ -1,5 +1,26 @@
 # Harness log
 
+## 2026-07-17 — Double-Fable audit of the upstream round: 2 MAJORs + hardenings (dev 2026.07.17-4, research -5, office unchanged -3)
+Both cross-checkers confirmed the round's core (no shell-injection path into run_npm/Popen —
+every argument list static; `--only` cannot infect the merge gate or the green-tree cache;
+mirrors byte-identical; Windows npm bug + orphan leak empirically re-proven) and each found a
+real MAJOR. (1) HALF-SIDED UTF-8: gate_pipeline still read the now-UTF-8 runner with the locale
+codec — one Vitest `❯` killed the reader thread and the block message lost the ENTIRE pipeline
+output (audit-proven p.stdout=None); the hook now pins utf-8/replace ×2. (2) Missing Chromium
+BINARY hard-failed the gate although docstring/SKILL promise warn — and package-yes/browser-no
+is every fresh setup's state now that requirements-dev installs playwright; launch errors naming
+`playwright install` degrade to warn, everything else stays FAIL. Also fixed from the audits:
+kit_browser_checks joined validate's dev↔research mirror list AND kit_checks' _ENFORCEMENT_SOFT
+(it was watched by neither drift guard); source_areas parser in quality.py now accepts the same
+YAML forms as kit_checks (inline/quoted/comment lines — the block-only version silently skipped
+an inline-declared area); browser_smoke config survives trailing comments (silent default
+fallback); pytest gets the `python -m` fallback too; a frontend without a build script FAILs
+(fidelity to the original); npm audit reports PASS + tail again; module_invariants wraps bare-
+string tokens (char-iteration repro) and never counts stale rules as PASS; repo-wide YAML parse
+caps files at 1 MB (warn) + uses the C loader; readiness probe hits the server root and fails
+fast with output when the preview dies instantly; mypy covers every source area; declared_stacks
+survives quoted items/comments; glob-crosses-slashes documented. 4 new tests (227 total).
+
 ## 2026-07-17 — quality.py upstream round: synaipse fork distilled into the kits (dev/office 2026.07.17-3, research -4)
 The deferred backlog item 7: a forensic inventory of synaipse's 2,348-line quality.py fork (26
 commits) + portfolio's 382-line variant classified 21 features into generalizable / parameterizable
@@ -26,7 +47,7 @@ the same guard three times). requirements-dev += playwright; devops SKILL carrie
 container-parity + CSP-smoke recipes as patterns (deliberately NOT kit code: compose/product
 bound). NOT upstreamed: container self-delegation, contrast/structure orchestration, product e2e
 flows (locator churn: 4 rename commits), axe sweep helpers (valuable but axe-version-calibrated —
-own follow-up round). 11 new tests (223 total).
+own follow-up round). 8 new tests (223 total; an earlier "11" here was a miscount — audit I2).
 
 ## 2026-07-17 — Double-Fable audit of the adoption round: 3 MAJORs fixed (kits 2026.07.17-2)
 Two independent Fable cross-checkers on 4e7db52 (both confirmed the chain, the detection

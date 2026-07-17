@@ -216,7 +216,7 @@ MIRROR_DEV_RESEARCH = [
     "hooks/guard_pm_scope.py", "hooks/guard_no_adhoc.py",
     "hooks/_root.py", "hooks/_audit.py", "hooks/_compat.py", "hooks/auto_dashboard.py",
     "templates/repo/scripts/quality.py", "templates/repo/scripts/kit_checks.py",
-    "templates/repo/scripts/retro.py",
+    "templates/repo/scripts/kit_browser_checks.py", "templates/repo/scripts/retro.py",
 ]
 MIRROR_DEV_OFFICE = [
     "hooks/guard_yaml_valid.py", "hooks/guard_agent_spawn.py", "hooks/notify_agent_events.py",

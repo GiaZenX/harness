@@ -53,5 +53,7 @@ module_invariants: []
 
 # Repo-wide YAML parse (kit_checks): every git-tracked *.yaml must parse. Genuinely templated
 # YAML is excluded here by glob — never exclude project_memory files.
+# NOTE: `*` matches ACROSS directory separators ("deploy/*" also excludes deploy/sub/x.yaml) —
+# excludes can only weaken the check, so keep them as narrow as possible.
 yaml_lint_exclude: []
-#  - "deploy/helm/**"
+#  - "deploy/helm/*"

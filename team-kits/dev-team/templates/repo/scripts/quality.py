@@ -140,12 +140,16 @@ def declared_stacks():
     if m:
         out = [s.strip().strip("'\"").lower() for s in m.group(1).split(",") if s.strip()]
     else:
-        m = re.search(r"(?m)^[ \t]*stacks:[ \t]*$", txt)
+        m = re.search(r"(?m)^[ \t]*stacks:[ \t]*(?:#.*)?$", txt)
         if m:
             for line in txt[m.end():].splitlines():
-                mm = re.match(r"[ \t]*-[ \t]*([A-Za-z0-9_+-]+)[ \t]*$", line)
+                # quoted items and comment lines are valid YAML inside the list — an audit
+                # showed `- 'python'` silently emptying the list ("stacks: is empty" FAIL)
+                mm = re.match(r"[ \t]*-[ \t]*['\"]?([A-Za-z0-9_+-]+)['\"]?[ \t]*(?:#.*)?$", line)
                 if mm:
                     out.append(mm.group(1).lower())
+                elif re.match(r"[ \t]*#", line):
+                    continue
                 elif line.strip():
                     break  # left the list block
     return [s for s in out if s != "todo"]  # the [TODO] placeholder does not count as declared
@@ -187,9 +191,11 @@ def _sec(name, tool, cmd, detail):
 
 
 def _declared_source_areas():
-    """Top-level source dirs from coding/research_guidelines `source_areas:` (block list) —
-    the same key kit_checks' file budget reads. Dot-only names are rejected (audit: '..'
-    walked the parent dir)."""
+    """Top-level source dirs from coding/research_guidelines `source_areas:` — the same key
+    kit_checks' file budget reads, and the SAME accepted forms (inline `[a, b]` AND block
+    `- a`, quoted or not; an audit caught the block-only version silently skipping an
+    inline-declared area that the budget check DID scan). Dot-only names are rejected
+    (audit: '..' walked the parent dir)."""
     out = []
     for name in ("coding_guidelines.yaml", "research_guidelines.yaml"):
         p = os.path.join(ROOT, "project_memory", name)
@@ -197,13 +203,22 @@ def _declared_source_areas():
             txt = open(p, encoding="utf-8", errors="ignore").read()
         except Exception:
             continue
-        m = re.search(r"(?m)^source_areas:[ \t]*$", txt)
+        mi = re.search(r"(?m)^source_areas:[ \t]*\[([^\]]*)\]", txt)
+        if mi:
+            for item in mi.group(1).split(","):
+                item = item.strip().strip("'\"")
+                if re.fullmatch(r"[A-Za-z0-9_.-]+", item) and set(item) != {"."}:
+                    out.append(item)
+            continue
+        m = re.search(r"(?m)^source_areas:[ \t]*(?:#.*)?$", txt)
         if not m:
             continue
         for line in txt[m.end():].splitlines():
-            mm = re.match(r"[ \t]+-[ \t]*['\"]?([A-Za-z0-9_.-]+)['\"]?[ \t]*$", line)
+            mm = re.match(r"[ \t]*-[ \t]*['\"]?([A-Za-z0-9_.-]+)['\"]?[ \t]*(?:#.*)?$", line)
             if mm and set(mm.group(1)) != {"."}:
                 out.append(mm.group(1))
+            elif re.match(r"[ \t]*#", line):
+                continue  # a comment line inside the list must not end it
             elif line.strip():
                 break
     return out
@@ -223,24 +238,28 @@ def _python_targets():
 # ---------------- per-stack check definitions ----------------
 def check_python():
     targets = _python_targets()
-    tgt = "src" if os.path.isdir(os.path.join(ROOT, "src")) else \
-        next((t for t in targets if t not in ("tests", "scripts")), ".")
+    # every SOURCE target gets type-checked, not only src/ (an audit caught a declared extra
+    # area silently un-typechecked); coverage keeps the primary source dir as its base
+    src_targets = [t for t in targets if t not in ("tests", "scripts")] or ["."]
+    tgt = "src" if os.path.isdir(os.path.join(ROOT, "src")) else src_targets[0]
     thr = coverage_threshold()
     _core("ruff (lint)", "ruff", ["ruff", "check"] + targets, "lint errors")
-    _core("mypy (types)", "mypy", ["mypy", tgt], "type errors")
+    _core("mypy (types)", "mypy", ["mypy"] + src_targets, "type errors")
     if os.path.isdir(os.path.join(ROOT, "tests")) and has_files("tests", {".py"}):
         # pytest-xdist (requirements-dev) parallelizes across cores when installed — a serial suite is
         # the measured top time eater; pytest-cov combines per-worker coverage correctly.
         par = ["-n", "auto"] if importlib.util.find_spec("xdist") else []
         name = "pytest (+cov>=%d%%%s)" % (thr, ", -n auto" if par else "")
-        if not have("pytest"):
+        prefix = tool_cmd("pytest")  # python -m fallback for shim-less Windows installs too
+        if prefix is None:
             fail(name, "pytest not installed — set up the dev requirements")
         else:
-            rc, out = run(["pytest", "-q", *par, "--cov=" + tgt, "--cov-fail-under=" + str(thr)])
+            cov = ["-q", *par, "--cov=" + tgt, "--cov-fail-under=" + str(thr)]
+            rc, out = run(prefix + cov)
             if rc != 0 and par and "unrecognized arguments" in out:
                 # xdist importable in THIS interpreter but the PATH pytest lacks the plugin —
                 # retry serial instead of hard-failing on a tooling mismatch (mirrors check_node)
-                rc, out = run(["pytest", "-q", "--cov=" + tgt, "--cov-fail-under=" + str(thr)])
+                rc, out = run(prefix + ["-q", "--cov=" + tgt, "--cov-fail-under=" + str(thr)])
             ok(name) if rc == 0 else fail(name, "tests failed or coverage below %d%%" % thr + _tail(out))
     _sec("bandit (SAST)", "bandit", ["bandit", "-r", tgt, "-ll", "-q"], "high-severity finding")
     # audit only the project's own DECLARED dependencies, never the whole host interpreter —
@@ -306,6 +325,9 @@ def check_node():
             fail("frontend build (vite -> dist/)",
                  "build failed or dist/index.html missing (after %d attempts)" % attempts
                  + ((" :: " + wide[-2000:]) if wide else ""))
+    else:
+        fail("frontend build", "no build script — the frontend must produce a static build "
+             "(a lint-green frontend with no build proof is exactly the gap this step closes)")
     if '"test"' in pkg:
         rc, out = run_npm(["npm", "run", "-s", "test", "--", "--run", "--coverage"], cwd=fe)
         if rc != 0:
@@ -315,7 +337,9 @@ def check_node():
         fail("frontend tests", "no test script — frontend must be tested")
     rc, out = run_npm(["npm", "audit", "--audit-level=high"], cwd=fe)
     if rc != 0 and "vulnerab" in out.lower():
-        fail("npm audit (SCA)", "high/critical vulnerability")
+        fail("npm audit (SCA)", "high/critical vulnerability" + _tail(out))
+    else:
+        ok("npm audit (SCA)")
     # Tier 2: browser smoke against the PRODUCTION build (kit-owned module — jsdom-green tests
     # shipped two real browser bugs: crypto.randomUUID exists in jsdom/Node but throws on a
     # plain-http LAN origin). Degrades to warn when playwright/npx are absent.

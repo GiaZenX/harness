@@ -41,10 +41,11 @@ def _config(root):
     if not m:
         return entry, mount
     for line in txt[m.end():].splitlines():
-        # quoted values may CONTAIN '#' (a mount selector is usually "#root"); only an
-        # unquoted value treats '#' as a trailing comment
+        # quoted values may CONTAIN '#' (a mount selector is usually "#root"); an unquoted
+        # value ends at a trailing ' #' comment (audit: the comment used to void the whole
+        # line and the smoke silently tested the default route)
         mm = re.match(r"[ \t]+(entry|mount_selector):[ \t]*"
-                      r"(?:\"([^\"\n]*)\"|'([^'\n]*)'|([^#\n]+?))[ \t]*$", line)
+                      r"(?:\"([^\"\n]*)\"|'([^'\n]*)'|([^#\n]+?))[ \t]*(?:#.*)?$", line)
         if mm:
             val = (mm.group(2) if mm.group(2) is not None
                    else mm.group(3) if mm.group(3) is not None else mm.group(4) or "").strip()
@@ -113,16 +114,28 @@ def browser_smoke(root, ok, fail, warn):
         cwd=fe, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
         encoding="utf-8", errors="replace", shell=(os.name == "nt"), env=env)
     try:
+        # probe the server ROOT, not entry: a 404 on a custom entry (HTTPError) still proves the
+        # server is up — entry itself is judged by the browser below. A preview process that
+        # dies immediately must fail FAST with its own output, not after 45s of silence (audit).
+        base = "http://localhost:%d/" % port
         ready = False
         for _ in range(30):
+            if proc.poll() is not None:
+                out = (proc.stdout.read() if proc.stdout else "") or ""
+                fail(name, "`vite preview` exited immediately (rc=%s)%s"
+                     % (proc.returncode, (" :: " + out.strip()[-500:]) if out.strip() else ""))
+                return
             try:
-                urllib.request.urlopen(url, timeout=1)
+                urllib.request.urlopen(base, timeout=1)
                 ready = True
+                break
+            except urllib.error.HTTPError:
+                ready = True  # server responded (even 404) — it is up
                 break
             except (urllib.error.URLError, OSError):
                 time.sleep(0.5)
         if not ready:
-            fail(name, "`vite preview` did not become ready on %s" % url)
+            fail(name, "`vite preview` did not become ready on %s" % base)
             return
         console_errors = []
         try:
@@ -134,8 +147,17 @@ def browser_smoke(root, ok, fail, warn):
                 page.goto(url, wait_until="networkidle", timeout=15000)
                 mount_html = page.inner_html(mount)
                 browser.close()
-        except Exception as exc:  # any Playwright/browser failure is a real gate FAIL
-            fail(name, "Playwright run errored: %s" % exc)
+        except Exception as exc:
+            # missing BROWSER BINARY is a setup gap, not a product failure: requirements-dev
+            # installs the playwright PACKAGE by default, so package-yes/browser-no is every
+            # fresh machine's state — keep the documented warn degradation (CI enforces).
+            # Every other Playwright/browser failure stays a real gate FAIL.
+            msg = str(exc)
+            if "Executable doesn't exist" in msg or "playwright install" in msg:
+                warn(name, "Playwright browser not installed — run `playwright install "
+                           "chromium` once; CI enforces this")
+            else:
+                fail(name, "Playwright run errored: %s" % exc)
             return
         if not mount_html.strip():
             fail(name, "%s rendered empty — the built app did not mount" % mount)
