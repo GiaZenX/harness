@@ -1,5 +1,27 @@
 # Harness log
 
+## 2026-07-17 — Double-Fable audit of the adoption round: 3 MAJORs fixed (kits 2026.07.17-2)
+Two independent Fable cross-checkers on 4e7db52 (both confirmed the chain, the detection
+consolidation incl. every prior adversarial case, proc_hash and the PII mechanics) converged on
+two MAJORs and B found a third. (1) `..` ESCAPED THE REPO: the area sanitizer's char class blocks
+separators but not dot-only names — `source_areas: ['..']` walked the PARENT dir and scanned
+NEIGHBOR projects (empirically proven; sites: kit_checks budget, gate_test_coverage areas,
+dashboard vitals). Dot-only names are now rejected in all four copies. (2) RENAME TRIPWIRE
+false-fired on every mature project without auto-memory — memory is OPT-IN and two of the three
+live projects would have been nagged at every session start. Replaced by a DETERMINISTIC signal:
+session_status ×3 records the project's abspath in gitignored `.claude/project_path.state`; a
+recorded path differing from the current one IS a rename/move (first run records silently;
+normcase comparison also kills the drive-case footgun). (3) COMBINED SHORT FLAGS bypassed every
+git gate: `bash -lc "git push --force"` — the wrapper regex wanted `-c` as its own token, so the
+payload was stripped as prose (carried over from 2026.07.16-2, where consolidation was the moment
+to close it). The c-flag now matches inside a cluster (`-lc`, `-xec`) and quoted payloads with
+ESCAPED quotes no longer cut the unwrap short (_compat ×3, byte-identical). Plus F5/INFO: the
+memory-gate repeat counter now matches the exact reason, not an 80-char prefix. ACCEPTED
+tripwire-level residual (both auditors): Bash redirects can still write the green-tree cache —
+documented, consistent with the harness's 95%-tripwire philosophy. 3 new regression tests + the
+tripwire test rewritten for the deterministic signal (215 total). Live projects again NOT
+restamped per user decision.
+
 ## 2026-07-17 — Field-survey adoption round (kits 2026.07.17-1)
 Implements the two-Fable field survey's backlog (all three live projects, 2026-07-16); the deep
 quality.py upstream is DEFERRED to its own round. (1) FALSE-GREEN HOLE closed: budget/vitals scan

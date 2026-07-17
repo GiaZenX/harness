@@ -25,3 +25,4 @@ project_memory/.audit/
 .claude/kit_last_seen_version
 .claude/kit_update_pending.state
 .claude/.gate_pipeline_green
+.claude/project_path.state

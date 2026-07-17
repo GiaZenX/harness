@@ -1239,6 +1239,54 @@ def test_gates_catch_shell_wrapped_push(tmp_path):
     assert run_hook("gate_pipeline.py", prose, tmp_path) == 0
 
 
+def test_gates_catch_combined_flag_wrappers(tmp_path):
+    # audit finding (MAJOR): `bash -lc "git push --force"` bypassed EVERY git gate — the
+    # wrapper regex required -c as its OWN token, so a combined short cluster unwrapped
+    # nothing and the payload was then stripped as prose. Escaped quotes inside the payload
+    # must not cut the unwrap short either.
+    write(str(tmp_path / "project_memory" / "product_requirements.yaml"),
+          "requirements:\n  PRD-0001:\n    title: x\n")
+    for command in ('bash -lc "git push origin main"',
+                    'bash -xec "git push origin main"',
+                    "sh -euc 'git merge feature'",
+                    'bash -c "echo \\"done\\" && git push origin main"'):
+        payload = {"tool_name": "Bash", "cwd": str(tmp_path),
+                   "tool_input": {"command": command}}
+        r = run_hook_process("gate_pipeline.py", payload, tmp_path)
+        assert r.returncode == 2 and "no quality pipeline" in r.stderr, command
+    forced = {"tool_name": "Bash", "cwd": str(tmp_path),
+              "tool_input": {"command": 'bash -lc "git push --force origin main"'}}
+    r = run_hook_process("gate_git.py", forced, tmp_path)
+    assert r.returncode == 2 and "force-push" in r.stderr
+
+
+def test_source_areas_reject_dot_names(tmp_path):
+    # audit finding (both auditors, MAJOR): '..' passed the area filter and os.walk escaped
+    # the repo into NEIGHBOR projects (a sibling's file failed OUR budget). Dot-only names
+    # must never become scan areas — in the budget, the coverage gate and the dashboard.
+    mod = _kit_checks_mod()
+    repo = tmp_path / "repo"
+    write(str(tmp_path / "neighbor" / "big.py"), "x = 1\n" * 900)
+    write(str(repo / "project_memory" / "coding_guidelines.yaml"),
+          "source_areas:\n  - '..'\n  - '.'\nfile_budget:\n  max_lines: 800\n  exempt: []\n")
+    calls, ok, fail, warn = _collector()
+    mod.check_file_budget(str(repo), ok, fail, warn)
+    assert not any("neighbor" in m for _n, m in calls["fail"])  # never scans outside the repo
+    assert any("NO scan area matched" in m for _n, m in calls["warn"])
+
+
+def test_gate_test_coverage_rejects_dot_areas(tmp_path):
+    repo = tmp_path / "repo"
+    write(str(tmp_path / "stray.py"), "def f():\n    return 1\n")  # code OUTSIDE the repo
+    write(str(repo / "project_memory" / "product_requirements.yaml"),
+          "requirements:\n  PRD-0001:\n    title: x\n")
+    write(str(repo / "project_memory" / "testing_guidelines.yaml"),
+          "coverage_areas:\n  - '..'\n")
+    payload = {"tool_name": "Bash", "cwd": str(repo),
+               "tool_input": {"command": "git push origin main"}}
+    assert run_hook("gate_test_coverage.py", payload, repo) == 0  # '..' is ignored, no block
+
+
 # ---------------- provider compat: Codex apply_patch payloads ----------------
 def _codex_patch(*files):
     body = "".join("*** Update File: %s\n@@\n-x\n+y\n" % f for f in files)
@@ -1487,21 +1535,24 @@ def test_gate_memory_complete_escalates_on_repeat(tmp_path):
     assert "REPEAT BLOCK" in outputs[2]     # third identical block escalates
 
 
-def test_session_status_rename_tripwire(tmp_path):
-    home = tmp_path / "home"
+def test_session_status_path_change_tripwire(tmp_path):
+    # audit finding: the old absence-of-memory heuristic false-fired on every mature project
+    # without auto-memory (opt-in). The replacement is deterministic: a recorded path that
+    # differs from the current one. First run records SILENTLY, a changed record warns.
     repo = tmp_path / "repo"
-    log_lines = "".join("  - \"entry %d\"\n" % i for i in range(12))
-    write(str(repo / "project_memory" / "progress.yaml"),
-          "status: x\nlog:\n" + log_lines)
+    (repo / ".claude").mkdir(parents=True)
     payload = {"hook_event_name": "SessionStart", "cwd": str(repo)}
-    r = run_hook_process("session_status.py", payload, repo,
-                         extra_env={"USERPROFILE": str(home), "HOME": str(home)})
-    assert "RENAME TRIPWIRE" in r.stdout
-    key = re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(str(repo)))
-    os.makedirs(os.path.join(str(home), ".claude", "projects", key, "memory"))
-    r2 = run_hook_process("session_status.py", payload, repo,
-                          extra_env={"USERPROFILE": str(home), "HOME": str(home)})
-    assert "RENAME TRIPWIRE" not in r2.stdout
+    r = run_hook_process("session_status.py", payload, repo)
+    assert "PROJECT PATH CHANGED" not in r.stdout      # first run: record only, no nag
+    state = repo / ".claude" / "project_path.state"
+    assert state.read_text().strip() == os.path.abspath(str(repo))
+    r2 = run_hook_process("session_status.py", payload, repo)
+    assert "PROJECT PATH CHANGED" not in r2.stdout     # unchanged path: stays silent
+    old = os.path.abspath(str(tmp_path / "old-name"))
+    state.write_text(old + "\n")                       # simulate a folder rename
+    r3 = run_hook_process("session_status.py", payload, repo)
+    assert "PROJECT PATH CHANGED" in r3.stdout and "old-name" in r3.stdout
+    assert state.read_text().strip() == os.path.abspath(str(repo))  # re-recorded after warning
 
 
 def test_secure_context_skips_test_files_and_comment_lines(tmp_path):

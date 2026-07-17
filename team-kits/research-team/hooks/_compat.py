@@ -113,16 +113,20 @@ def created_file_paths(data):
 # an audit had to fix the same regression twice). Shell-WRAPPER payloads are CODE
 # (`bash -c "git push"` must gate), remaining quoted spans are PROSE (a commit MESSAGE describing
 # a push must not). Unquoted prose may still over-trigger — the safe direction for a gate.
+# The c-flag may sit in a COMBINED short cluster (`bash -lc`, `-xec` — audit: `-lc` bypassed
+# every gate) and quoted payloads may contain ESCAPED quotes — both are handled below.
 _WRAPPER_RX = re.compile(
     r'((?:bash|sh|zsh|dash|pwsh|powershell|cmd)(?:\.exe)?\s+(?:[-/]{1,2}[\w-]+\s+)*'
-    r'[-/]c(?:ommand)?\s+)(["\'])(.*?)\2',
+    r'[-/]{1,2}(?:[A-Za-z]*c|command)\s+)("((?:\\.|[^"\\])*)"|\'((?:\\.|[^\'\\])*)\')',
     re.IGNORECASE | re.DOTALL)
-_QUOTED_RX = re.compile(r'"[^"]*"|\'[^\']*\'')
+_QUOTED_RX = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'')
 
 
 def git_invocation_text(command):
     """Lowercased command text with wrapper payloads unwrapped and prose quotes stripped."""
-    unwrapped = _WRAPPER_RX.sub(lambda m: m.group(1) + " " + m.group(3) + " ", command or "")
+    unwrapped = _WRAPPER_RX.sub(
+        lambda m: m.group(1) + " " + (m.group(3) if m.group(3) is not None else m.group(4) or "")
+        + " ", command or "")
     return _QUOTED_RX.sub(" ", unwrapped.lower())
 
 

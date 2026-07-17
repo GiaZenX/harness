@@ -293,25 +293,32 @@ def main():
         pass
 
 
-    # Rename tripwire: a MATURE project whose Claude auto-memory dir is missing usually means the
-    # folder was renamed — the memory stays orphaned under the OLD path key (a real rename cost
-    # the PM its cross-session memory unnoticed; the same rename silently detached a compose
-    # volume). Heuristic + hint only; wrong key derivation just stays silent.
+    # Rename/move tripwire: remember the project's absolute path in a gitignored per-machine
+    # state file; a recorded path differing from the current one is DETERMINISTIC evidence the
+    # folder was renamed or moved (a real rename orphaned the PM's auto-memory under the old
+    # path key and silently detached a compose volume). The previous absence-of-memory
+    # heuristic false-fired on every mature project without auto-memory — memory is opt-in
+    # (audit finding, empirically two of three live projects). First run just records.
     try:
-        progress = os.path.join(cwd, "project_memory", "progress.yaml")
-        seasoned = (os.path.isfile(progress)
-                    and open(progress, encoding="utf-8", errors="ignore").read().count("\n  - ") >= 10)
-        if seasoned:
-            key = re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(cwd))
-            mem = os.path.join(os.path.expanduser("~"), ".claude", "projects", key, "memory")
-            if not os.path.isdir(mem):
-                parts.append(
-                    "RENAME TRIPWIRE: this project looks mature but has NO Claude auto-memory "
-                    "under its current path key — if the folder was recently renamed, the "
-                    "memory (and Codex trust) sit under the OLD key: check "
-                    "~/.claude/projects/<old-name> and move the memory dir; also verify docker "
-                    "compose volumes still attach (pin `name:` in compose)."
-                )
+        state_dir = os.path.join(cwd, ".claude")
+        path_state = os.path.join(state_dir, "project_path.state")
+        current = os.path.abspath(cwd)
+        recorded = ""
+        if os.path.isfile(path_state):
+            recorded = open(path_state, encoding="utf-8", errors="ignore").read().strip()
+        if recorded and os.path.normcase(recorded) != os.path.normcase(current):
+            old_key = re.sub(r"[^A-Za-z0-9]", "-", recorded)
+            parts.append(
+                "PROJECT PATH CHANGED since the last session (was: %s). If the folder was "
+                "renamed/moved on this machine: Claude auto-memory and Codex trust may sit "
+                "under the OLD key ~/.claude/projects/%s — move the memory dir and re-approve "
+                "trust; also verify docker compose volumes still attach (pin `name:` in "
+                "compose). A fresh clone/new machine can ignore this."
+                % (recorded, old_key)
+            )
+        if os.path.isdir(state_dir) and recorded != current:
+            with open(path_state, "w", encoding="utf-8") as fh:
+                fh.write(current + "\n")
     except Exception:
         pass
 

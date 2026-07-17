@@ -100,9 +100,12 @@ def _repeat_count(root, files):
                     entry = json.loads(line)
                 except Exception:
                     continue
+                er = str(entry.get("reason") or "")
+                # exact match (a shared 80-char prefix over-counted in an audit); older
+                # truncated audit entries still match via prefix-of-the-truncation
                 if (entry.get("hook") == "gate_memory_complete"
                         and entry.get("event") == "block"
-                        and str(entry.get("reason") or "").startswith(reason[:80])):
+                        and (er == reason or (len(er) >= 290 and reason.startswith(er)))):
                     count += 1
         return count
     except Exception:

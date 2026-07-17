@@ -258,7 +258,9 @@ def compute_repo_vitals():
             declared = (yaml.safe_load(fh.read()) or {}).get("source_areas") or []
         for item in declared:
             name = str(item).strip().strip("/").replace("\\", "/")
-            if re.fullmatch(r"[A-Za-z0-9_.-]+", name) and name not in areas:
+            # dot-only names ('..') would walk OUT of the repo (audit repro) — reject them
+            if (re.fullmatch(r"[A-Za-z0-9_.-]+", name) and set(name) != {"."}
+                    and name not in areas):
                 areas.append(name)
     except Exception:
         pass

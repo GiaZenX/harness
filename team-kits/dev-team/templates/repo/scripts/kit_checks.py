@@ -236,7 +236,10 @@ def _budget_config(root):
             data = yaml.safe_load(open(p, encoding="utf-8", errors="ignore").read()) or {}
             for extra in (data.get("source_areas") or []):
                 name_clean = str(extra).strip().strip("/").replace("\\", "/")
-                if re.fullmatch(r"[A-Za-z0-9_.-]+", name_clean) and name_clean not in areas:
+                # the char class blocks separators, but NOT dot-only names: '..' walked the
+                # PARENT directory in an audit repro — a scan area must be a real child name
+                if (re.fullmatch(r"[A-Za-z0-9_.-]+", name_clean)
+                        and set(name_clean) != {"."} and name_clean not in areas):
                     areas.append(name_clean)
             cfg = data.get("file_budget") or {}
             if isinstance(cfg, dict) and cfg:

@@ -29,3 +29,4 @@ project_memory/migration_manifest*.yaml
 # session-local kit bookkeeping (session_status owns these; per-machine state, never project state)
 .claude/kit_last_seen_version
 .claude/kit_update_pending.state
+.claude/project_path.state

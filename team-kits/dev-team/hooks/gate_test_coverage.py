@@ -126,7 +126,8 @@ def _declared_coverage_areas(pm):
         out = []
         for item in (data.get("coverage_areas") or []):
             name = str(item).strip().strip("/").replace("\\", "/")
-            if re.fullmatch(r"[A-Za-z0-9_.-]+", name):
+            # dot-only names ('..') would walk OUT of the repo (audit repro) — reject them
+            if re.fullmatch(r"[A-Za-z0-9_.-]+", name) and set(name) != {"."}:
                 out.append(name)
         return out
     except Exception:
