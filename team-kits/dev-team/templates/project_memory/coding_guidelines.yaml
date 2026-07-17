@@ -9,6 +9,9 @@ global:
   - All code, comments and names in English
   - Tests are mandatory
   - No secrets in code
+  - "Reconstructed/backfilled data is source-flagged (e.g. source: backfill) and junction-checked
+    where it meets live data (~5% sample); a label states the reconstruction scope — derived rows
+    must never masquerade as measured ones (pattern from a real portfolio backfill)."
   - Small, focused functions; no dead or commented-out code
   - Error handling only at boundaries
   - Security: follow OWASP Top 10
@@ -28,6 +31,13 @@ global:
 #   python:
 #     - "type hints everywhere; ruff as linter"
 languages: {}
+
+# Top-level source packages the deterministic checks SCAN (file budget, dashboard vitals).
+# Defaults: src, frontend, scripts, tests, static, public. The Architect MUST list every
+# additional top-level package here — a real project kept its whole codebase under compounder/
+# and "PASS file budget" was false-green for weeks. Entries EXTEND the defaults, never replace.
+source_areas: []
+#  - compounder
 
 # Anti-monolith gate (ENFORCED by scripts/kit_checks.py in the pipeline — a real App.tsx reached
 # 8,966 lines while structural flags verpuffed): no hand-written source file beyond max_lines.

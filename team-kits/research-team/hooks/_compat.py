@@ -109,6 +109,28 @@ def created_file_paths(data):
     return file_paths(data) if data.get("tool_name") == "Write" else []
 
 
+# Shared push/merge detection for every git gate (single home — six hook-local copies drifted:
+# an audit had to fix the same regression twice). Shell-WRAPPER payloads are CODE
+# (`bash -c "git push"` must gate), remaining quoted spans are PROSE (a commit MESSAGE describing
+# a push must not). Unquoted prose may still over-trigger — the safe direction for a gate.
+_WRAPPER_RX = re.compile(
+    r'((?:bash|sh|zsh|dash|pwsh|powershell|cmd)(?:\.exe)?\s+(?:[-/]{1,2}[\w-]+\s+)*'
+    r'[-/]c(?:ommand)?\s+)(["\'])(.*?)\2',
+    re.IGNORECASE | re.DOTALL)
+_QUOTED_RX = re.compile(r'"[^"]*"|\'[^\']*\'')
+
+
+def git_invocation_text(command):
+    """Lowercased command text with wrapper payloads unwrapped and prose quotes stripped."""
+    unwrapped = _WRAPPER_RX.sub(lambda m: m.group(1) + " " + m.group(3) + " ", command or "")
+    return _QUOTED_RX.sub(" ", unwrapped.lower())
+
+
+def wants_push_or_merge(command):
+    """True when the command really invokes `git push`/`git merge` (not merely mentions it)."""
+    return re.search(r"\bgit\b[^&|;\n]*\b(push|merge)\b", git_invocation_text(command)) is not None
+
+
 def stop(message, event):
     """Block a post/stop event using the current provider's event-specific contract.
 

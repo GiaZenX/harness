@@ -291,6 +291,28 @@ def main():
     except Exception:
         pass
 
+    # Rename tripwire: a MATURE project whose Claude auto-memory dir is missing usually means the
+    # folder was renamed — the memory stays orphaned under the OLD path key (a real rename cost
+    # the PM its cross-session memory unnoticed; the same rename silently detached a compose
+    # volume). Heuristic + hint only; wrong key derivation just stays silent.
+    try:
+        progress = os.path.join(cwd, "project_memory", "progress.yaml")
+        seasoned = (os.path.isfile(progress)
+                    and open(progress, encoding="utf-8", errors="ignore").read().count("\n  - ") >= 10)
+        if seasoned:
+            key = re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(cwd))
+            mem = os.path.join(os.path.expanduser("~"), ".claude", "projects", key, "memory")
+            if not os.path.isdir(mem):
+                parts.append(
+                    "RENAME TRIPWIRE: this project looks mature but has NO Claude auto-memory "
+                    "under its current path key — if the folder was recently renamed, the "
+                    "memory (and Codex trust) sit under the OLD key: check "
+                    "~/.claude/projects/<old-name> and move the memory dir; also verify docker "
+                    "compose volumes still attach (pin `name:` in compose)."
+                )
+    except Exception:
+        pass
+
     out = {
         "hookSpecificOutput": {
             "hookEventName": "SessionStart",

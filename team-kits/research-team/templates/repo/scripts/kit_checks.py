@@ -46,6 +46,10 @@ _SKIP_DIRS = ("node_modules", "dist", "build", "__pycache__", ".venv", "venv", "
 FILE_BUDGET_DEFAULT = 800
 _BUDGET_EXTS = {".py", ".js", ".mjs", ".ts", ".tsx", ".jsx", ".css", ".html", ".go", ".rs",
                 ".c", ".cpp", ".h", ".cs", ".java", ".svelte", ".vue"}
+# DEFAULT scan areas — projects with additional top-level packages MUST list them via
+# `source_areas:` in coding_guidelines.yaml (research: research_guidelines.yaml). A real project
+# kept its whole codebase under compounder/ and "PASS file budget" was false-green for weeks
+# (an 1,111-line file went undetected) because this tuple silently never matched anything.
 _BUDGET_AREAS = ("src", "frontend", "scripts", "tests", "static", "public")
 
 
@@ -217,10 +221,12 @@ def _count_lines(path):
 
 
 def _budget_config(root):
-    """file_budget from coding_guidelines.yaml (fallback: research_guidelines.yaml — the research
-    kit ships no coding_guidelines): {max_lines, exempt: [{path, reason}]}. Exemptions are
-    architect-owned and REQUIRE a reason — a bare path does not count."""
-    max_lines, exempt = FILE_BUDGET_DEFAULT, {}
+    """file_budget + source_areas from coding_guidelines.yaml (fallback: research_guidelines.yaml —
+    the research kit ships no coding_guidelines): {max_lines, exempt: [{path, reason}], areas}.
+    Exemptions are architect-owned and REQUIRE a reason — a bare path does not count.
+    `source_areas:` (top-level key) EXTENDS the default scan areas; it can never remove them
+    (removing would silently un-gate src/ — the false-green class this key exists to kill)."""
+    max_lines, exempt, areas = FILE_BUDGET_DEFAULT, {}, list(_BUDGET_AREAS)
     for name in ("coding_guidelines.yaml", "research_guidelines.yaml"):
         p = os.path.join(root, "project_memory", name)
         if not os.path.isfile(p):
@@ -228,6 +234,10 @@ def _budget_config(root):
         try:
             import yaml  # type: ignore[import-untyped]
             data = yaml.safe_load(open(p, encoding="utf-8", errors="ignore").read()) or {}
+            for extra in (data.get("source_areas") or []):
+                name_clean = str(extra).strip().strip("/").replace("\\", "/")
+                if re.fullmatch(r"[A-Za-z0-9_.-]+", name_clean) and name_clean not in areas:
+                    areas.append(name_clean)
             cfg = data.get("file_budget") or {}
             if isinstance(cfg, dict) and cfg:
                 if isinstance(cfg.get("max_lines"), int) and cfg["max_lines"] > 0:
@@ -238,16 +248,16 @@ def _budget_config(root):
                 break
         except Exception:
             pass
-    return max_lines, exempt
+    return max_lines, exempt, areas
 
 
 def check_file_budget(root, ok, fail, warn):
     """No hand-written source file beyond max_lines. Deterministic anti-monolith gate: split the
     file or add an architect-owned exemption WITH a reason (visible, reviewable) — never both grow
     silently. Vendored/generated/minified/dot-dirs are skipped."""
-    max_lines, exempt = _budget_config(root)
+    max_lines, exempt, areas = _budget_config(root)
     offenders, scanned = [], False
-    for area in _BUDGET_AREAS:
+    for area in areas:
         d = os.path.join(root, area)
         if not os.path.isdir(d):
             continue
@@ -276,6 +286,13 @@ def check_file_budget(root, ok, fail, warn):
              % (len(offenders), "; ".join("%s (%d)" % o for o in offenders[:5]), _more(offenders, 5)))
     elif scanned:
         ok("file budget (<=%d lines%s)" % (max_lines, ", %d exemption(s)" % len(exempt) if exempt else ""))
+    else:
+        # NEVER stay silent: a project that keeps its code under an unlisted top-level package
+        # would otherwise read every report as budget-green (real incident: compounder/ was never
+        # scanned and an 1,111-line file went undetected for weeks).
+        warn("file budget",
+             "NO scan area matched (%s) — declare the project's top-level source package(s) via "
+             "`source_areas:` in coding_guidelines.yaml" % ", ".join(areas))
 
 
 # Enforcement files no agent may change inside a project (provider-NEUTRAL second line of
@@ -372,9 +389,32 @@ def check_enforcement_diff(root, ok, fail, warn):
         ok("enforcement diff (%s)" % scope)
 
 
+def check_ops_pitfalls(root, ok, fail, warn):
+    """Deterministic ops tripwires. Compose without a pinned top-level `name:` derives the
+    project name from the FOLDER — after a folder rename, `docker compose` silently created a
+    fresh empty volume while 6.27M rows of production data sat in the old one (real incident,
+    caught hours before data entry would have diverged)."""
+    for name in ("docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"):
+        p = os.path.join(root, name)
+        if not os.path.isfile(p):
+            continue
+        try:
+            head = open(p, encoding="utf-8", errors="ignore").read()
+        except Exception:
+            continue
+        if not re.search(r"(?m)^name\s*:", head):
+            warn("ops: compose project name",
+                 "%s has no top-level `name:` — compose derives it from the FOLDER name, and "
+                 "a folder rename then silently detaches your volumes (a real project nearly lost "
+                 "its price database). Pin `name: <project>`." % name)
+        else:
+            ok("ops: compose project name pinned (%s)" % name)
+
+
 def run_kit_checks(root, ok, fail, warn):
     """Entry point for scripts/quality.py — runs every kit-owned check."""
     check_project_memory_yaml(root, ok, fail, warn)
     check_frontend_pitfalls(root, ok, fail, warn)
     check_file_budget(root, ok, fail, warn)
+    check_ops_pitfalls(root, ok, fail, warn)
     check_enforcement_diff(root, ok, fail, warn)

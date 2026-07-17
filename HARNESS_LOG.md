@@ -1,5 +1,33 @@
 # Harness log
 
+## 2026-07-17 — Field-survey adoption round (kits 2026.07.17-1)
+Implements the two-Fable field survey's backlog (all three live projects, 2026-07-16); the deep
+quality.py upstream is DEFERRED to its own round. (1) FALSE-GREEN HOLE closed: budget/vitals scan
+areas are now project-extendable (`source_areas:` in coding/research_guidelines — a real project's
+compounder/ was never scanned; the check also WARNS instead of staying silent when NO area
+matches) and the per-area test gate honors `coverage_areas:` in testing_guidelines. (2)
+proc_hash.py: the (?s)-DOTALL regex let a hash land in the NEIGHBORING PROC block (live incident)
+— fixed to (?m)+CRLF-tolerant headers plus a pre-write verification that no other PROC's hash
+changes. (3) Office PII package: filing_log + migration manifests are gitignored by design
+(names stay out of history; ledger stays tracked — statutory retention), data-minimization rule
+in constitution/skill/templates, owner-PII warning in business_profile, office gets its own
+security-guidance scoping file. (4) Rename-fallout package: compose `name:` warn-check in
+kit_checks, RENAME TRIPWIRE in session_status ×3 (mature project without auto-memory under its
+key), devops rules (pin compose name; foreign Docker projects only with user OK — a real OOM hunt
+stopped a neighbor's prod DB). (5) gate_pipeline: green-tree cache (identical clean tree skips
+the re-run — a night ran 13 identical pipelines; cache file is selfmod-blocked + gitignored),
+FAIL-lines-first block output, _audit reason 300→2000 (the cut had hidden the only FAIL line).
+(6) gate_subagent_output: retry says "do NOT work further, ONLY print the YAML" (a real retry did
+41 min of new work) + gave_up logs what stayed missing; gate_memory_complete escalates on the 3rd
+identical block (~14 identical nag-blocks in one night). (7) Field patterns into skills/templates:
+screenshot-walkthrough matrix + freshness-as-design-surface (designer), serialize-same-file
+agents (PM), standing-rule tests + backfill honesty (guidelines), env.example convention +
+compose/docker rules (devops), guidelines versioning + bundle-split/sha256 + Löschen-Quarantäne +
+cutover ritual (records-clerk). Detection consolidation: push/merge matching now lives ONCE in
+_compat (wants_push_or_merge) — six hook-local copies had already drifted twice. Per user
+decision the live projects were NOT restamped (their PMs get the update announcement at next
+session start).
+
 ## 2026-07-16 — Fable cross-check of the gate fix: wrapper-push regression closed (dev/research 2026.07.16-2)
 A user-requested independent Fable audit CONFIRMED the -1 round (root cause reproduced A/B/A;
 no fail-open in any guard — ntpath.relpath compares drive case-insensitively; delivery verified in

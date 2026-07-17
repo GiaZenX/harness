@@ -1,6 +1,10 @@
 # business_profile.yaml — owned by: Manager
 # Filled ONCE in the onboarding interview; everything else (categories, PROCs, register scope,
 # report layout) derives from it. Update only with the user (it is their business).
+# GIT HISTORY IS FOREVER: record only what operations truly needs. Trading name + legal form
+# yes; the owner's PRIVATE address, personal tax IDs or bank details do NOT belong in a tracked
+# file (a real deployment committed owner PII on day 1) — keep those in the user's own records
+# and reference "see user records" here.
 
 business:
   name: ""                    # trading name

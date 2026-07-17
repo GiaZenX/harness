@@ -24,3 +24,4 @@ project_memory/.audit/
 # session-local kit bookkeeping (session_status owns these; per-machine state, never project state)
 .claude/kit_last_seen_version
 .claude/kit_update_pending.state
+.claude/.gate_pipeline_green

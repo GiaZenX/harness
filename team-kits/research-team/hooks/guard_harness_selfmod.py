@@ -28,7 +28,9 @@ import _compat
 
 BLOCKED = ("hooks/", "skills/", "backups/")
 BLOCKED_FILES = ("settings.json", "settings.local.json", "kit_version",
-                 "provider_artifacts.json", "team_kit_roles.txt")
+                 "provider_artifacts.json", "team_kit_roles.txt",
+                 # gate_pipeline's green-tree cache: hand-writing it would skip the merge gate
+                 ".gate_pipeline_green")
 BLOCKED_PROVIDER_PREFIXES = (".codex/", ".agents/skills/", ".github/hooks/", ".github/agents/")
 
 

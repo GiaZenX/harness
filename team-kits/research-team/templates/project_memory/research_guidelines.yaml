@@ -34,3 +34,10 @@ method_tooling:
 #   ml_experiments:
 #     - "fixed train/val/test split; report seeds; no test-set tuning"
 methods: {}
+
+# Top-level source packages the deterministic checks SCAN (file budget, vitals).
+# Defaults: src, frontend, scripts, tests, static, public. List every additional top-level
+# package here — a real project kept its whole codebase under an unlisted package and the
+# budget check was false-green for weeks. Entries EXTEND the defaults, never replace.
+source_areas: []
+#  - experiments

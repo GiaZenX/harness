@@ -1329,6 +1329,181 @@ def _collector():
             lambda n, m: calls["warn"].append((n, m)))
 
 
+def test_file_budget_source_areas_extend_and_warn(tmp_path):
+    # false-green killer: a project keeping its whole codebase under an UNLISTED top-level
+    # package was never scanned ("PASS file budget" with an 1,111-line file undetected)
+    mod = _kit_checks_mod()
+    write(str(tmp_path / "compounder" / "big.py"), "x = 1\n" * 900)
+    calls, ok, fail, warn = _collector()
+    mod.check_file_budget(str(tmp_path), ok, fail, warn)
+    assert not calls["fail"] and not calls["ok"]
+    assert any("NO scan area matched" in m for _n, m in calls["warn"])  # never silent
+    write(str(tmp_path / "project_memory" / "coding_guidelines.yaml"),
+          "source_areas:\n  - compounder\nfile_budget:\n  max_lines: 800\n  exempt: []\n")
+    calls, ok, fail, warn = _collector()
+    mod.check_file_budget(str(tmp_path), ok, fail, warn)
+    assert any("compounder/big.py" in m for _n, m in calls["fail"])
+
+
+def test_ops_pitfalls_compose_name_pin(tmp_path):
+    mod = _kit_checks_mod()
+    write(str(tmp_path / "docker-compose.yml"), "services:\n  db:\n    image: postgres\n")
+    calls, ok, fail, warn = _collector()
+    mod.check_ops_pitfalls(str(tmp_path), ok, fail, warn)
+    assert any("no top-level `name:`" in m for _n, m in calls["warn"])
+    write(str(tmp_path / "docker-compose.yml"),
+          "name: myproject\nservices:\n  db:\n    image: postgres\n")
+    calls, ok, fail, warn = _collector()
+    mod.check_ops_pitfalls(str(tmp_path), ok, fail, warn)
+    assert not calls["warn"] and any("compose project name pinned" in n for n in calls["ok"])
+
+
+def test_gate_test_coverage_declared_areas(tmp_path):
+    write(str(tmp_path / "project_memory" / "product_requirements.yaml"),
+          "requirements:\n  PRD-0001:\n    title: x\n")
+    write(str(tmp_path / "compounder" / "core.py"), "def f():\n    return 1\n")
+    payload = {"tool_name": "Bash", "cwd": str(tmp_path),
+               "tool_input": {"command": "git push origin main"}}
+    assert run_hook("gate_test_coverage.py", payload, tmp_path) == 0  # undeclared -> old behavior
+    write(str(tmp_path / "project_memory" / "testing_guidelines.yaml"),
+          "coverage_areas:\n  - compounder\n")
+    r = run_hook_process("gate_test_coverage.py", payload, tmp_path)
+    assert r.returncode == 2 and "compounder" in r.stderr
+    write(str(tmp_path / "compounder" / "test_core.py"), "def test_f():\n    assert True\n")
+    assert run_hook("gate_test_coverage.py", payload, tmp_path) == 0
+
+
+PROC_HASH = os.path.join(ROOT, "team-kits", "office-team", "templates", "repo", "scripts",
+                         "proc_hash.py")
+
+
+def _proc_repo(tmp_path, newline="\n"):
+    repo = tmp_path / "office"
+    (repo / "scripts").mkdir(parents=True)
+    shutil.copy(PROC_HASH, str(repo / "scripts" / "proc_hash.py"))
+    text = (
+        "processes:\n"
+        "  PROC-0001:\n"
+        "    status: APPROVED\n"
+        "    steps:\n"
+        "      - do a thing\n"
+        '    approved_hash: "oldhash"\n'
+        "  PROC-0002:\n"
+        "    status: PROPOSED\n"
+        "    steps:\n"
+        "      - do another thing\n"
+        "  PROC-0003:\n"
+        "    status: APPROVED\n"
+        "    steps:\n"
+        "      - third thing\n"
+        '    approved_hash: "thirdhash"\n'
+    ).replace("\n", newline)
+    path = repo / "project_memory" / "process_definitions.yaml"
+    path.parent.mkdir(parents=True)
+    path.write_bytes(text.encode("utf-8"))
+    return repo, path
+
+
+def test_proc_hash_update_stays_in_its_block(tmp_path):
+    import tomllib  # noqa: F401  (env sanity: py3.11+)
+    import yaml
+    repo, path = _proc_repo(tmp_path)
+    # PROC-0002 has NO approved_hash line: the old (?s) regex swallowed the FOLLOWING blocks and
+    # wrote the hash into a NEIGHBOR (real incident: a PROPOSED PROC carried another's hash)
+    r = subprocess.run([sys.executable, str(repo / "scripts" / "proc_hash.py"),
+                        "PROC-0002", "--update"],
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    procs = data["processes"]
+    assert procs["PROC-0001"]["approved_hash"] == "oldhash"      # neighbors untouched
+    assert procs["PROC-0003"]["approved_hash"] == "thirdhash"
+    new_hash = procs["PROC-0002"]["approved_hash"]
+    assert new_hash and new_hash not in ("oldhash", "thirdhash")
+
+
+def test_proc_hash_update_survives_crlf(tmp_path):
+    import yaml
+    repo, path = _proc_repo(tmp_path, newline="\r\n")
+    r = subprocess.run([sys.executable, str(repo / "scripts" / "proc_hash.py"),
+                        "PROC-0001", "--update"],
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert data["processes"]["PROC-0001"]["approved_hash"] != "oldhash"
+    assert data["processes"]["PROC-0003"]["approved_hash"] == "thirdhash"
+
+
+def test_gate_pipeline_green_tree_cache(tmp_path):
+    repo = tmp_path / "repo"
+    runs = tmp_path / "runs.txt"           # OUTSIDE the repo: the counter must not dirty the tree
+    write(str(repo / "project_memory" / "product_requirements.yaml"),
+          "requirements:\n  PRD-0001:\n    title: x\n")
+    write(str(repo / "scripts" / "quality.py"),
+          "import pathlib\n"
+          "p = pathlib.Path(r'%s')\n"
+          "p.write_text(p.read_text() + 'x' if p.exists() else 'x')\n" % str(runs))
+    # real projects gitignore the kit bookkeeping (template .gitignore) — without this the cache
+    # file itself would count as an untracked change (the hook is deliberately conservative)
+    write(str(repo / ".gitignore"), ".claude/.gate_pipeline_green\nproject_memory/.audit/\n")
+    subprocess.run(["git", "init", "-q"], cwd=str(repo), capture_output=True, timeout=30)
+    subprocess.run(["git", "add", "-A"], cwd=str(repo), capture_output=True, timeout=30)
+    subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "x"],
+                   cwd=str(repo), capture_output=True, timeout=30)
+    payload = {"tool_name": "Bash", "cwd": str(repo),
+               "tool_input": {"command": "git push origin main"}}
+    assert run_hook("gate_pipeline.py", payload, repo) == 0
+    assert runs.read_text() == "x"          # pipeline ran once, green, cache written
+    assert run_hook("gate_pipeline.py", payload, repo) == 0
+    assert runs.read_text() == "x"          # identical clean tree -> cache hit, NOT rerun
+    audit = (repo / "project_memory" / ".audit" / "hook_events.jsonl").read_text(encoding="utf-8")
+    assert "cache_hit" in audit
+    # a tree change invalidates the cache
+    write(str(repo / "scripts" / "extra.py"), "y = 2\n")
+    subprocess.run(["git", "add", "-A"], cwd=str(repo), capture_output=True, timeout=30)
+    subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "y"],
+                   cwd=str(repo), capture_output=True, timeout=30)
+    assert run_hook("gate_pipeline.py", payload, repo) == 0
+    assert runs.read_text() == "xx"         # reran on the new tree
+    # a DIRTY tree always runs (no cache read or write)
+    write(str(repo / "scripts" / "extra.py"), "y = 3\n")
+    assert run_hook("gate_pipeline.py", payload, repo) == 0
+    assert runs.read_text() == "xxx"
+
+
+def test_gate_memory_complete_escalates_on_repeat(tmp_path):
+    write(str(tmp_path / "project_memory" / "product_requirements.yaml"),
+          "requirements:\n  PRD-0001:\n    title: x\n")
+    write(str(tmp_path / "project_memory" / "masterplan.md"),
+          "# Masterplan — <project name>\nTODO\n")
+    payload = {"tool_name": "Bash", "cwd": str(tmp_path),
+               "tool_input": {"command": "git push origin main"}}
+    outputs = []
+    for _ in range(3):
+        r = run_hook_process("gate_memory_complete.py", payload, tmp_path)
+        assert r.returncode == 2
+        outputs.append(r.stderr)
+    assert "REPEAT BLOCK" not in outputs[0]
+    assert "REPEAT BLOCK" in outputs[2]     # third identical block escalates
+
+
+def test_session_status_rename_tripwire(tmp_path):
+    home = tmp_path / "home"
+    repo = tmp_path / "repo"
+    log_lines = "".join("  - \"entry %d\"\n" % i for i in range(12))
+    write(str(repo / "project_memory" / "progress.yaml"),
+          "status: x\nlog:\n" + log_lines)
+    payload = {"hook_event_name": "SessionStart", "cwd": str(repo)}
+    r = run_hook_process("session_status.py", payload, repo,
+                         extra_env={"USERPROFILE": str(home), "HOME": str(home)})
+    assert "RENAME TRIPWIRE" in r.stdout
+    key = re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(str(repo)))
+    os.makedirs(os.path.join(str(home), ".claude", "projects", key, "memory"))
+    r2 = run_hook_process("session_status.py", payload, repo,
+                          extra_env={"USERPROFILE": str(home), "HOME": str(home)})
+    assert "RENAME TRIPWIRE" not in r2.stdout
+
+
 def test_secure_context_skips_test_files_and_comment_lines(tmp_path):
     write(str(tmp_path / "frontend" / "src" / "App.test.tsx"),
           "navigator.clipboard.writeText = vi.fn()\n")

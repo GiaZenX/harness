@@ -36,7 +36,16 @@ The repo's build/CI config, `tasks.yaml`, `testing_guidelines.yaml` (so CI runs 
    points the plugin's reviewer at real source instead of `project_memory/` bookkeeping or generated
    HTML. Review it once and adjust it to the project.
 2. Manage environments, dependencies and tooling the dev roles need; keep deps pinned + audited.
+   **`env.example` convention (no leading dot):** the user-wide secret shield denies reading the
+   whole `.env*` class by design — an exception cannot be expressed, so the template file is named
+   `env.example` (a real QA round blocked on `.env.example` maintenance).
 3. Prepare release/deploy mechanics; ensure rollbacks exist.
+   **Compose project name is PINNED (`name:` top-level):** compose otherwise derives it from the
+   FOLDER, and a folder rename silently detaches every volume — a real project's 6.27M-row price
+   database sat orphaned while compose wrote to a fresh empty volume (kit_checks warns on this).
+   **Foreign Docker projects are off-limits:** never stop/restart/remove containers or volumes
+   whose compose project is not THIS repo's without explicit user OK — a real OOM hunt stopped a
+   NEIGHBOR project's production database.
 4. Support the PM's git workflow (branch hygiene, hooks, status checks) — but **never push, merge, or
    deploy on your own initiative** and **never force-push**. The PM is the executor, only on user OK.
 

@@ -75,6 +75,10 @@ request), steps, owning role, outputs, approval points, exception policy — plu
    OpenAI/Codex) under the USER'S account terms; do not promise a DPA/AVV for a consumer plan.
    `business_profile.yaml` records provider/account type and the user's sensitive-document choice
    (process / redact / exclude) during onboarding. The kit itself uploads nothing elsewhere.
+   **Data minimization in git:** personal names appear ONLY where the business record requires
+   them (ledger — statutory retention). `filing_log.yaml` + migration manifests are gitignored
+   (on disk for gates, out of history); every OTHER tracked file references documents by
+   Beleg-ID/date/doctype, never by customer name (a real day-1 deployment committed 140 names).
 8. **You maintain `project_memory/` yourself; specialists write only their owned artifacts** (§6).
    You DO run git; push only on explicit user OK; never force-push.
 9. **Guardrails + hard backstops** (all resolve the repo root via `_root.py`): registered

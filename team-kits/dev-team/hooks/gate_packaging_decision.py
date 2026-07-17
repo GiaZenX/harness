@@ -18,6 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _root import find_repo_root
+from _compat import wants_push_or_merge
 import _audit
 
 
@@ -65,8 +66,9 @@ def main():
         sys.exit(0)
     if data.get("tool_name") not in ("Bash", "PowerShell"):
         sys.exit(0)
-    low = ((data.get("tool_input") or {}).get("command") or "").lower()
-    if "git push" not in low and "git merge" not in low:
+    # Detection lives in _compat.wants_push_or_merge (single home): wrapper payloads are
+    # CODE, quoted prose is not (a commit MESSAGE once re-triggered a full gate).
+    if not wants_push_or_merge(((data.get("tool_input") or {}).get("command") or "")):
         sys.exit(0)
 
     root = find_repo_root(data.get("cwd"))

@@ -19,6 +19,13 @@ venv/
 # append-only hook/agent event log (diagnostic — never project state)
 project_memory/.audit/
 
+# GDPR data minimization: these carry counterparty/customer NAMES in target paths (a real
+# deployment committed 140 customer names on day 1 — Art.-17 erasure impossible once in
+# history). They stay on disk for the gates and operations; they stay OUT of git history.
+# The ledger remains tracked: statutory bookkeeping retention overrides erasure there.
+project_memory/filing_log.yaml
+project_memory/migration_manifest*.yaml
+
 # session-local kit bookkeeping (session_status owns these; per-machine state, never project state)
 .claude/kit_last_seen_version
 .claude/kit_update_pending.state

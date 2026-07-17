@@ -83,7 +83,9 @@ test: would a newcomer reading `masterplan.md` be misled about what this project
    (what is OUT of scope). They create tasks (`derives_from: SR-…`), implement, commit.
    On Claude set **`run_in_background: false`** unless deliberately parallelizing. On Codex delegate
    parallel work only when independent. On BOTH, NEVER advance before every required agent has reached a
-   terminal result; verify claims via artifacts/git. Claude's spawn hook hard-blocks malformed spawns.
+   terminal result; verify claims via artifacts/git. **Serialize agents that edit the same files:**
+   parallel fixers plus a temp-edit agent raced on one file in a real run (commit collision, repaired
+   by luck) — same-file work is sequential, parallelism is for disjoint files only. Claude's spawn hook hard-blocks malformed spawns.
    Codex `SubagentStart` cannot veto a requested spawn and built-in roles remain available, so exact-role
    policy plus specialist work-order validation cover that gap; registered Codex `PreToolUse` file/shell
    guards still hard-block through exit 2 + stderr after trust. Codex has no per-agent `tools` field

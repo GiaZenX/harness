@@ -19,6 +19,7 @@ import subprocess
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _root import find_repo_root
+from _compat import git_invocation_text
 import _audit
 
 
@@ -44,14 +45,9 @@ def main():
     if data.get("tool_name") not in ("Bash", "PowerShell"):
         sys.exit(0)
     cmd = ((data.get("tool_input") or {}).get("command") or "")
-    # Shell-WRAPPER payloads are CODE (`bash -c "git push"` — audit finding: plain quote-stripping
-    # let it pass), remaining quoted spans are PROSE (a commit MESSAGE describing a push
-    # false-triggered this gate in a real run). Unwrap, then strip, then match.
-    unwrapped = re.sub(
-        r'((?:bash|sh|zsh|dash|pwsh|powershell|cmd)(?:\.exe)?\s+(?:[-/]{1,2}[\w-]+\s+)*'
-        r'[-/]c(?:ommand)?\s+)(["\'])(.*?)\2',
-        lambda m: m.group(1) + " " + m.group(3) + " ", cmd, flags=re.IGNORECASE | re.DOTALL)
-    low = re.sub(r'"[^"]*"|\'[^\']*\'', " ", unwrapped.lower())
+    # Detection lives in _compat.git_invocation_text (single home): wrapper payloads are CODE,
+    # quoted prose is not (a commit MESSAGE once re-triggered this gate — real incident).
+    low = git_invocation_text(cmd)
     if not re.search(r"\bgit\b[^&|;\n]*\b(push|merge)\b", low):
         sys.exit(0)
 

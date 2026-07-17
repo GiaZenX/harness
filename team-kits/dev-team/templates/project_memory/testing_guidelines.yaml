@@ -20,11 +20,19 @@ global:
     merge/push always runs the FULL gate. Escalate to full immediately for cross-cutting changes (shared
     components, config, dependency bumps); a pre-push full run may be repeated once against flakiness.
     Running the full suite after every micro-step is redundant with the gate and forbidden."
+  - "Standing-rule tests: when a UI pattern or behavior is deliberately REMOVED or banned, add a test
+    that forbids its return (a real project's deleted patterns crept back until tests pinned the rule)."
 
 # Coverage gate (hard). The architect/QA may raise it; never lower it silently.
 coverage_gate:
   threshold: 80          # percent; CI fails below this
   scope: changed + core paths
+
+# Top-level source packages the per-area TEST gate enforces beyond the built-in trio
+# (src/, frontend/, firmware): QA lists every additional package with code here — a real
+# project kept its whole codebase under compounder/ and the gate never looked (false-green).
+coverage_areas: []
+#  - compounder
 
 # Default tooling matrix. The Architect/QA pick the concrete tools per project and
 # may add/override per language under `languages`. These are recommendations, not law.

@@ -28,7 +28,9 @@ def record_event(hook, event, reason):
             "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
             "hook": hook,
             "event": event,
-            "reason": (str(reason) or "")[:300],
+            # 2000, not 300: the 300-char cut hid exactly the FAIL line of every pipeline block
+            # during a real overnight incident — forensics had to fall back to transcripts.
+            "reason": (str(reason) or "")[:2000],
         }, ensure_ascii=False)
         with open(os.path.join(d, "hook_events.jsonl"), "a", encoding="utf-8") as fh:
             fh.write(line + "\n")

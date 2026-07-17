@@ -31,32 +31,35 @@ def main():
         sys.exit(0)
     if str(data.get("hook_event_name") or "") != "SubagentStop":
         sys.exit(0)
+    atype = str(data.get("agent_type") or "")
+    required = DEFAULT_REQUIRED + (("verdict",) if atype in VERDICT_ROLES else ())
+    low = str(data.get("last_assistant_message") or "").lower()
+    missing = [k for k in required if (k + ":") not in low]
     if data.get("stop_hook_active"):
         # a stop hook already blocked this cycle — honor stop_hook_active (docs guidance) instead
-        # of looping the subagent forever; log the give-up so the PM sees the contract violation.
+        # of looping the subagent forever; log WHAT is still missing so the PM's retro sees the
+        # exact contract violation (field data: bare `gave_up` lines were undiagnosable).
         try:
             _audit.record_event("gate_subagent_output", "gave_up",
-                                str(data.get("agent_type") or ""))
+                                "%s still missing %s" % (atype, ",".join(missing) or "nothing"))
         except Exception:
             pass
         sys.exit(0)
-    atype = str(data.get("agent_type") or "")
     if not atype:
         sys.exit(0)
     root = find_repo_root(data.get("cwd"))
     if not os.path.isfile(os.path.join(root, ".claude", "agents", atype + ".md")):
         sys.exit(0)  # not one of our kit specialists
 
-    required = DEFAULT_REQUIRED + (("verdict",) if atype in VERDICT_ROLES else ())
-    low = str(data.get("last_assistant_message") or "").lower()
-    missing = [k for k in required if (k + ":") not in low]
     if missing:
         _audit.record("gate_subagent_output", "%s missing %s" % (atype, ",".join(missing)))
         message = (
-            "[team-kit gate] Your final message is missing the output-contract key(s): %s. Every "
-            "specialist ends with its YAML output block (see 'Output to the PM' in your skill) — "
-            "restate your FULL result as that YAML now (summary, ids, statuses%s), then stop. The PM "
-            "builds on this block; prose-only endings have produced work built on air.\n"
+            "[team-kit gate] Your final message is missing the output-contract key(s): %s. "
+            "Do NOT run any more tools and do NOT continue working — ONLY print the YAML output "
+            "block for the work you already did (see 'Output to the PM' in your skill: summary, "
+            "ids, statuses%s), then stop. A real retry spent 41 minutes doing NEW work instead of "
+            "restating; the PM builds on this block and prose-only endings produced work built on "
+            "air.\n"
             % (", ".join(missing), ", verdict" if atype in VERDICT_ROLES else "")
         )
         _compat.stop(message, "SubagentStop")

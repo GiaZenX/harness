@@ -10,10 +10,12 @@ pipeline MUST exist. Give this hook a generous `timeout` in settings.json (it ru
 Only fires on `git push`/`git merge`, only when real work exists (a PRD). Hook-execution errors (could
 not even launch) -> exit 0 (never brick the repo on infra trouble); a RED pipeline -> exit 2.
 
-Deliberate trade-off (documented after an audit flag): this gate re-runs the FULL pipeline
-at merge/push even though QA just ran it - the merge gate is the last deterministic defense
-and must not trust any prior run. A commit-hash cache of the last green run is a known
-possible optimization, deferred until the cost hurts.
+Green-tree cache (the cost DID hurt: a real night re-ran the identical full pipeline 13 times):
+after a GREEN run on a CLEAN working tree, the git tree hash is recorded in
+.claude/.gate_pipeline_green; a later push with the SAME tree skips the re-run. Any dirty tree
+or tree change runs the full pipeline as before — the gate never trusts a stale result. The
+cache file is agent-write-blocked (guard_harness_selfmod), only this hook's own subprocess
+writes it.
 """
 import json
 import os
@@ -23,6 +25,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _root import find_repo_root
+from _compat import wants_push_or_merge
 import _audit
 
 
@@ -47,16 +50,9 @@ def main():
         sys.exit(0)
     if data.get("tool_name") not in ("Bash", "PowerShell"):
         sys.exit(0)
-    # Shell-WRAPPER payloads are CODE (`bash -c "git push"` — audit finding: plain quote-stripping
-    # let it pass), remaining quoted spans are PROSE (a commit MESSAGE describing a push
-    # false-triggered a FULL pipeline run in a real session). Unwrap, then strip, then match.
-    cmd = ((data.get("tool_input") or {}).get("command") or "")
-    unwrapped = re.sub(
-        r'((?:bash|sh|zsh|dash|pwsh|powershell|cmd)(?:\.exe)?\s+(?:[-/]{1,2}[\w-]+\s+)*'
-        r'[-/]c(?:ommand)?\s+)(["\'])(.*?)\2',
-        lambda m: m.group(1) + " " + m.group(3) + " ", cmd, flags=re.IGNORECASE | re.DOTALL)
-    low = re.sub(r'"[^"]*"|\'[^\']*\'', " ", unwrapped.lower())
-    if not re.search(r"\bgit\b[^&|;\n]*\b(push|merge)\b", low):
+    # Detection lives in _compat.wants_push_or_merge (single home): wrapper payloads are CODE,
+    # quoted prose is not — a commit MESSAGE once re-triggered the full pipeline (real incident).
+    if not wants_push_or_merge(((data.get("tool_input") or {}).get("command") or "")):
         sys.exit(0)
 
     root = find_repo_root(data.get("cwd"))
@@ -70,6 +66,30 @@ def main():
     if not os.path.isfile(runner):
         block("no quality pipeline found (scripts/quality.py). DevOps must install it before merging — "
               "the merge gate runs the real linters/type-checkers/tests, it does not trust a report.")
+
+    def clean_tree_hash():
+        """Git tree hash IF the working tree is clean, else None (dirty trees always run)."""
+        try:
+            status = subprocess.run(["git", "-C", root, "status", "--porcelain"],
+                                    capture_output=True, text=True, timeout=30)
+            if status.returncode != 0 or status.stdout.strip():
+                return None
+            tree = subprocess.run(["git", "-C", root, "rev-parse", "HEAD^{tree}"],
+                                  capture_output=True, text=True, timeout=30)
+            return tree.stdout.strip() if tree.returncode == 0 else None
+        except Exception:
+            return None
+
+    cache_path = os.path.join(root, ".claude", ".gate_pipeline_green")
+    tree_hash = clean_tree_hash()
+    if tree_hash:
+        try:
+            if open(cache_path, encoding="utf-8").read().strip() == tree_hash:
+                _audit.record_event("gate_pipeline", "cache_hit",
+                                    "tree %s already certified green" % tree_hash[:12])
+                sys.exit(0)
+        except Exception:
+            pass
 
     try:
         # subprocess limit is BELOW the hook's settings.json timeout, so we time out first and can BLOCK
@@ -86,8 +106,19 @@ def main():
     except Exception:
         sys.exit(0)  # could not even launch (e.g. no python) -> do not brick the repo on infra trouble
     if p.returncode != 0:
-        tail = "\n".join((p.stdout or "").splitlines()[-25:])
+        # FAIL lines FIRST: the plain last-25-lines tail once showed only PASS/warn lines while
+        # the actual red check sat above the cut — a night of misdiagnosis followed.
+        lines = (p.stdout or "").splitlines()
+        fails = [ln for ln in lines if re.search(r"\bFAIL\b|\bERROR\b", ln)][:15]
+        tail = "\n".join(fails + ["--- last output lines: ---"] + lines[-10:])
         block("the quality pipeline is RED (scripts/quality.py). Fix it before merging:\n" + tail)
+    if tree_hash:
+        try:
+            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+            with open(cache_path, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(tree_hash + "\n")
+        except Exception:
+            pass
     sys.exit(0)
 
 

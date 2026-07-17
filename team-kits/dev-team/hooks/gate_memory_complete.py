@@ -22,6 +22,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _root import find_repo_root
+from _compat import wants_push_or_merge
 import _audit
 
 EMPTY_VALUE_RE = re.compile(r":\s*(\{\}|\[\]|\"\"|''|null|~)?\s*$")
@@ -86,15 +87,46 @@ def config_unfilled(text):
     return False
 
 
-def block(files):
+def _repeat_count(root, files):
+    """How often this gate already blocked for the SAME file set (audit log) — a real night
+    produced ~14 identical blocks without anyone being told to stop retrying and fix it."""
+    try:
+        reason = ", ".join(files)
+        count = 0
+        log = os.path.join(root, "project_memory", ".audit", "hook_events.jsonl")
+        with open(log, encoding="utf-8", errors="ignore") as fh:
+            for line in fh:
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    continue
+                if (entry.get("hook") == "gate_memory_complete"
+                        and entry.get("event") == "block"
+                        and str(entry.get("reason") or "").startswith(reason[:80])):
+                    count += 1
+        return count
+    except Exception:
+        return 0
+
+
+def block(root, files):
+    repeats = _repeat_count(root, files)
     _audit.record("gate_memory_complete", ", ".join(files))
+    escalation = ""
+    if repeats >= 2:
+        escalation = (
+            "REPEAT BLOCK #%d for the SAME files — STOP retrying the push. Fix it NOW: task the "
+            "owning role to fill the file(s) (or record 'applicable: false' + reason) in THIS "
+            "cycle, before anything else.\n" % (repeats + 1)
+        )
     sys.stderr.write(
         "[team-kit gate] Blocked merge/push: these required project_memory files are still empty/templates or "
         "missing a required field:\n"
-        "  %s\n"
+        "  %s\n" % "\n  ".join(files)
+        + escalation +
         "Fill each with real content, or — if it genuinely does not apply to this project — set "
         "'applicable: false' with a one-line reason (constitution §6a). No required artifact may stay "
-        "empty at acceptance.\n" % "\n  ".join(files)
+        "empty at acceptance.\n"
     )
     sys.exit(2)
 
@@ -106,8 +138,9 @@ def main():
         sys.exit(0)
     if data.get("tool_name") not in ("Bash", "PowerShell"):
         sys.exit(0)
-    low = ((data.get("tool_input") or {}).get("command") or "").lower()
-    if "git push" not in low and "git merge" not in low:
+    # Detection lives in _compat.wants_push_or_merge (single home): wrapper payloads are
+    # CODE, quoted prose is not (a commit MESSAGE once re-triggered a full gate).
+    if not wants_push_or_merge(((data.get("tool_input") or {}).get("command") or "")):
         sys.exit(0)
 
     root = find_repo_root(data.get("cwd"))
@@ -143,7 +176,7 @@ def main():
         if is_unfilled(text):
             stale.append(base)
     if stale:
-        block(stale)
+        block(root, stale)
     sys.exit(0)
 
 

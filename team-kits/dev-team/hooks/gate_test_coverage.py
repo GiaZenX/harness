@@ -21,6 +21,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _root import find_repo_root
+from _compat import wants_push_or_merge
 import _audit
 
 CODE_RE = re.compile(r"\.(py|ts|tsx|js|jsx|vue|svelte)$", re.IGNORECASE)
@@ -72,8 +73,9 @@ def main():
         sys.exit(0)
     if data.get("tool_name") not in ("Bash", "PowerShell"):
         sys.exit(0)
-    low = ((data.get("tool_input") or {}).get("command") or "").lower()
-    if "git push" not in low and "git merge" not in low:
+    # Detection lives in _compat.wants_push_or_merge (single home): wrapper payloads are
+    # CODE, quoted prose is not (a commit MESSAGE once re-triggered a full gate).
+    if not wants_push_or_merge(((data.get("tool_input") or {}).get("command") or "")):
         sys.exit(0)
 
     root = find_repo_root(data.get("cwd"))
@@ -102,7 +104,33 @@ def main():
             and not has_tests(root, ("test", "tests", "src", "lib"), CPP_TEST_RE):
         block("C/C++ firmware code exists but has no tests (no test_*.c[pp] / *_test.c[pp] / PlatformIO test/).")
 
+    # EXTRA areas declared in testing_guidelines.yaml `coverage_areas:` — the default trio missed
+    # a project whose entire codebase lived under compounder/ (never scanned, coverage false-green
+    # for weeks). QA/architect list every additional top-level source package there.
+    for area in _declared_coverage_areas(pm):
+        if area in ("src", "frontend", "lib", "firmware"):
+            continue  # already enforced above
+        if has_code(root, area, CODE_RE) and not has_tests(root, (area, "tests"), PY_TEST_RE) \
+                and not has_tests(root, (area,), JS_TEST_RE):
+            block("source area '%s/' has code but no tests (declared in testing_guidelines.yaml "
+                  "coverage_areas)." % area)
+
     sys.exit(0)
+
+
+def _declared_coverage_areas(pm):
+    try:
+        import yaml  # type: ignore[import-untyped]
+        data = yaml.safe_load(open(os.path.join(pm, "testing_guidelines.yaml"),
+                                   encoding="utf-8", errors="ignore").read()) or {}
+        out = []
+        for item in (data.get("coverage_areas") or []):
+            name = str(item).strip().strip("/").replace("\\", "/")
+            if re.fullmatch(r"[A-Za-z0-9_.-]+", name):
+                out.append(name)
+        return out
+    except Exception:
+        return []  # unreadable guidelines never brick the gate; the yaml guard owns validity
 
 
 if __name__ == "__main__":

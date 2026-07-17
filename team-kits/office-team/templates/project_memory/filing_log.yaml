@@ -1,6 +1,9 @@
 # filing_log.yaml — owned by: Records-Clerk
 # One entry per processed inbox item. gate_filing BLOCKS entries whose target does not actually
 # exist under archive/ — log AFTER moving, honestly. Append-only.
+# GITIGNORED by design (see repo .gitignore): target paths carry counterparty NAMES, and names
+# in git history make Art.-17 erasure impossible (a real deployment committed 140 customer names
+# on day 1). The file lives on disk for the gates; git-tracked files reference Beleg-IDs only.
 
 filed: []
 #  - source: "scan_0034.pdf"                                   # original inbox name

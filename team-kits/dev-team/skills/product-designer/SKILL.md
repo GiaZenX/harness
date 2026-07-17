@@ -94,6 +94,12 @@ your mockups — a removed/replaced element without a CR is a deviation, never a
 uniformity (one heading scale, equal cards per row, token spacing) is a STANDING rule you spec from screen
 one — it is NOT "final polish"** and never waits for a last pass. You do NOT fix code; the frontend fixes
 in the same cycle, then QA gates.
+**Screenshot walkthrough, not spot checks:** the review is a FULL matrix — every screen/tab ×
+light+dark × desktop+mobile width — and you SIGHT every image (a real project's "browser checks"
+were honest-but-unsystematic until a 38-screenshot walkthrough surfaced the IA gaps at once).
+**Data freshness is a design surface:** every data view names the real per-row data date and warns
+when N units are stale; vague "data fresh" badges are banned — a real one masked 22% of a
+portfolio running on stale prices.
 
 ## When the PM set the ambition to `minimal`
 Some PRDs are deliberately minimal/utilitarian — the user picked **"minimal"** in the PM's ambition question.

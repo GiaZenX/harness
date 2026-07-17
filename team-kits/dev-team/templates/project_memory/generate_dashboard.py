@@ -248,8 +248,22 @@ def compute_repo_vitals():
             ".c", ".cpp", ".h", ".cs", ".java", ".svelte", ".vue"}
     skip = ("node_modules", "dist", "build", "__pycache__", ".venv", "venv", "coverage",
             "target", "vendor", "third_party")
+    # `source_areas:` in coding_guidelines.yaml EXTENDS the defaults — a real project kept its
+    # whole codebase under compounder/ and these vitals silently showed nothing for weeks.
+    areas = ["src", "frontend", "scripts", "tests"]
+    try:
+        import yaml  # type: ignore[import-untyped]
+        with open(os.path.join(BASE_DIR, "coding_guidelines.yaml"), encoding="utf-8",
+                  errors="ignore") as fh:
+            declared = (yaml.safe_load(fh.read()) or {}).get("source_areas") or []
+        for item in declared:
+            name = str(item).strip().strip("/").replace("\\", "/")
+            if re.fullmatch(r"[A-Za-z0-9_.-]+", name) and name not in areas:
+                areas.append(name)
+    except Exception:
+        pass
     sizes = []
-    for area in ("src", "frontend", "scripts", "tests"):
+    for area in areas:
         d = os.path.join(root, area)
         if not os.path.isdir(d):
             continue
