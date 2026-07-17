@@ -3475,3 +3475,37 @@ def test_question_context_allows_self_contained_and_dialogue_refs(tmp_path):
     # prose containing 'above' in a non-reference sense stays legal
     prose = _question_payload(tmp_path, "Ist die above-average Latenz akzeptabel?")
     assert run_hook("guard_question_context.py", prose, tmp_path) == 0
+
+
+def run_hook_raw_utf8(name, payload, project_dir, hooks_dir=None):
+    """Send the payload as RAW UTF-8 bytes (ensure_ascii=False) — how providers really send it.
+    json.dumps' default ASCII-escaping made the test suite structurally blind to the audit-proven
+    Windows failure: text-mode stdin decoded cp1252 and umlaut patterns never matched."""
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(project_dir))
+    return subprocess.run([sys.executable, os.path.join(hooks_dir or HOOKS, name)],
+                          input=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+                          capture_output=True, env=env, timeout=60)
+
+
+def test_question_context_matches_umlauts_in_raw_utf8_stdin(tmp_path):
+    bad = _question_payload(tmp_path, "Freigeben (oben erwähnt)?")
+    r = run_hook_raw_utf8("guard_question_context.py", bad, tmp_path)
+    assert r.returncode == 2  # cp1252 stdin used to mojibake 'erwähnt' -> silent miss
+    flexed = _question_payload(tmp_path, "Das oben beschriebene Set freigeben?")
+    assert run_hook_raw_utf8("guard_question_context.py", flexed, tmp_path).returncode == 2
+    placement = _question_payload(tmp_path, "Soll die Navigation oben dargestellt werden?")
+    assert run_hook_raw_utf8("guard_question_context.py", placement, tmp_path).returncode == 0
+    garbage = {"tool_name": "AskUserQuestion", "cwd": str(tmp_path), "tool_input": "not a dict"}
+    assert run_hook_raw_utf8("guard_question_context.py", garbage, tmp_path).returncode == 0
+
+
+def test_question_context_catches_audit_reported_misses(tmp_path):
+    for text in ("Approve the plan as mentioned above?",
+                 "Approve the plan above?",
+                 "Die o.g. Punkte freigeben?",
+                 "Die obigen Kategorien freigeben?"):
+        payload = _question_payload(tmp_path, text)
+        assert run_hook("guard_question_context.py", payload, tmp_path) == 2, text
+    header_ref = _question_payload(tmp_path, "Freigeben?")
+    header_ref["tool_input"]["questions"][0]["header"] = "s.o."
+    assert run_hook("guard_question_context.py", header_ref, tmp_path) == 2

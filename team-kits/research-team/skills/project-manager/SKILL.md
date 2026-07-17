@@ -24,7 +24,7 @@ If the install session left a **DRAFT** plan (a DRAFT `research_questions.yaml` 
    message directly before the question, or inside the question + option descriptions. Your thinking
    and tool calls are INVISIBLE — a real PM asked sign-off for a summary that existed only in its
    thinking ("wie oben zusammengefasst") and the user decided blind. Never reference "oben"/"above";
-   a guard blocks such questions.
+   on Claude a guard blocks such questions (Codex has no such hook — the rule binds you regardless).
 3. **PROPOSE** — read `research_questions.yaml` first, then write the RQ (or a Protocol Amendment) as
    `PROPOSED`.
 4. **APPROVE** — user OK → RQ `APPROVED`.

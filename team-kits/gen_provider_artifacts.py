@@ -48,8 +48,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 #   Agent|Task  — Codex exposes SubagentStart, but it cannot stop a spawn and does not carry the
 #                 Claude work-order payload. Built-in Codex roles also remain available.
 #   Notification — no such Codex event.
+#   AskUserQuestion — Codex asks via request_user_input (root-only, different payload shape);
+#                 guard_question_context cannot hook it, so the self-contained-question rule
+#                 binds Codex PMs through the SKILL alone (audit: the fallthrough used to
+#                 register the Claude tool name verbatim — a dead entry in .codex/hooks.json).
 CODEX_MATCHER = {"Write": "apply_patch", "Edit|Write": "apply_patch",
-                 "Bash|PowerShell": "Bash", "Agent|Task": None}
+                 "Bash|PowerShell": "Bash", "Agent|Task": None,
+                 "AskUserQuestion": None}
 CODEX_EVENTS = ("SessionStart", "PreToolUse", "PostToolUse", "SubagentStart",
                 "SubagentStop", "Stop")
 

@@ -36,7 +36,7 @@ test: would a newcomer reading `masterplan.md` be misled about what this project
    message directly before the question, or inside the question + option descriptions. Your thinking
    and tool calls are INVISIBLE — a real PM asked sign-off for a summary that existed only in its
    thinking ("wie oben zusammengefasst") and the user decided blind. Never reference "oben"/"above";
-   a guard blocks such questions.
+   on Claude a guard blocks such questions (Codex has no such hook — the rule binds you regardless).
    When the user asks for **NEW capabilities** beyond the current PRDs, capture each as a user-story
    **Feature Request** in `feature_requests.yaml` (FR-xxxx, MoSCoW priority) rather than silently widening a PRD.
 3. **PROPOSE** — read `product_requirements.yaml` first (no duplicates), then write the PRD as a **user story**

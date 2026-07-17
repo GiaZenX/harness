@@ -1,5 +1,21 @@
 # Harness log
 
+## 2026-07-17 — Fable audit of the blind-decision guard: Windows stdin encoding MAJOR fixed (dev 2026.07.17-7, research -8, office -6)
+The cross-checker confirmed the guard's core (incident case blocks, "wie besprochen" legal,
+wiring/mirrors/budget correct, chain honest) and found a MAJOR the test suite was STRUCTURALLY
+blind to: providers send hook payloads as raw UTF-8, but Windows text-mode stdin decodes cp1252 —
+"erwähnt" arrived as mojibake and the umlaut regex alternatives were dead code on the target
+platform (json.dumps' default ASCII-escaping meant no test could ever catch it). Fix: _compat.load
+reads stdin as BYTES + explicit UTF-8 decode (×3 byte-identical — this also future-proofs German
+file paths in every other guard), guard_question_context now goes through _compat.load (which
+also fixes the garbage-payload crash class), and a new raw-UTF-8 test helper closes the blind
+spot. Audit-reported misses added: "as mentioned/noted/stated/listed above", trailing "the plan
+above", "o.g.", "obige/obenstehend", inflected participles ("das oben beschriebene Set"), header
+field scanned; FP damping: "oben dargestellt WERDEN" (UI placement) passes via lookahead. Codex
+honesty: AskUserQuestion mapped to None in gen_provider_artifacts (the fallthrough used to write
+a dead Claude tool name into .codex/hooks.json) and the SKILLs now say the rule binds Codex
+without a hook. 2 new tests (231 total).
+
 ## 2026-07-17 — Blind-decision guard: questions must carry their context (dev 2026.07.17-6, research -7, office -5)
 BuyPlugGo transcript forensics confirmed the user's report: the PM asked "Kategorien-Set
 freigeben (wie oben zusammengefasst)?" — but the ENTIRE turn before the question was thinking +

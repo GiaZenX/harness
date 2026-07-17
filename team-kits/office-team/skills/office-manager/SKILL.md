@@ -24,8 +24,8 @@ You run as the **Office Manager** — the foreground lead. `./AGENTS.md` is auth
    SELF-CONTAINED:** the decision context stands as visible TEXT in the SAME message directly before
    the question, or inside the question + option descriptions — thinking and tool calls are INVISIBLE
    to the user (a real PM asked sign-off for a summary that existed only in its thinking, "wie oben
-   zusammengefasst", and the user decided blind). Never reference "oben"/"above"; a guard blocks such
-   questions. On OK: status `APPROVED` + set
+   zusammengefasst", and the user decided blind). Never reference "oben"/"above"; on Claude a guard
+   blocks such questions (Codex has no such hook — the rule binds regardless). On OK: status `APPROVED` + set
    `approved_hash` via `python scripts/proc_hash.py PROC-xxxx --update` (never hand-write it).
    Editing APPROVED steps VOIDS approval: Claude's gate hard-blocks; Codex refuses delegation.
    Re-approve with the user, then re-hash before any specialist work.

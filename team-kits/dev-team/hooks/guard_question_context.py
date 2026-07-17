@@ -12,37 +12,44 @@ question and its option descriptions — thinking does not count, and "oben" is 
 
 Any uncertainty -> exit 0 (never block legitimate questions).
 """
-import json
 import os
 import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _audit
+import _compat
 
 # References to context OUTSIDE the question itself (German + English variants seen in real
-# transcripts). Deliberately narrow: "wie besprochen" (the user SAW that dialogue) stays legal;
-# the guard targets references to PM-produced artifacts ("wie zusammengefasst") and spatial
-# "above" references — the question dialog renders detached from prose, so a question must be
-# self-contained. Missing prose like "the above-average latency" is fine to block-miss.
+# transcripts). Deliberately narrow: "wie besprochen" (the user SAW that dialogue) stays legal,
+# and "oben dargestellt WERDEN" (UI placement, not a reference) is exempted via lookahead; the
+# guard targets references to PM-produced artifacts ("wie zusammengefasst", inflected forms
+# too — "das oben beschriebene Set") and spatial "above" references — the question dialog
+# renders detached from prose, so a question must be self-contained.
 _INVISIBLE_REF_RX = re.compile(
     r"\bwie\s+oben\b"
     r"|\bsiehe\s+oben\b"
+    r"|\bvgl\.\s?oben\b"
     r"|\bs\.\s?o\.\B"
-    r"|\boben\s+(?:zusammengefasst|beschrieben|genannt|erwähnt|dargestellt|erläutert|skizziert)\b"
+    r"|\bo\.\s?g\.\B"
+    r"|\bobige[mnrs]?\b"
+    r"|\bobenstehend\w*\b"
+    r"|\boben\s+(?:zusammengefasst|beschrieben|genannt|erwähnt|dargestellt|erläutert|"
+    r"skizziert)(?:e[mnrs]?)?\b(?!\s+(?:werden|wird|anzeigen|angezeigt))"
     r"|\bwie\s+(?:gerade\s+|eben\s+|zuvor\s+)?(?:zusammengefasst|dargestellt|skizziert)\b"
+    r"|\bwie\s+(?:gerade|eben|zuvor)\s+beschrieben\b"
     r"|\bsee\s+above\b"
-    r"|\bas\s+(?:discussed|summarized|summarised|described|outlined|explained|shown)\s+above\b"
-    r"|\bthe\s+above\s+(?:summary|proposal|list|plan)\b",
+    r"|\bas\s+(?:discussed|summarized|summarised|described|outlined|explained|shown|"
+    r"mentioned|noted|stated|listed)\s+above\b"
+    r"|\bas\s+per\s+the\s+above\b"
+    r"|\bthe\s+above\s+(?:summary|proposal|list|plan|analysis|points|options|categories)\b"
+    r"|\bthe\s+(?:summary|proposal|list|plan|analysis|points|options|categories)\s+above\b",
     re.IGNORECASE)
 
 
 def main():
-    try:
-        data = json.load(sys.stdin)
-    except Exception:
-        sys.exit(0)
-    if data.get("tool_name") != "AskUserQuestion":
+    data = _compat.load()  # bytes-level UTF-8 stdin decode — Windows cp1252 stdin turned the
+    if data.get("tool_name") != "AskUserQuestion":  # umlaut patterns into dead code (audit)
         sys.exit(0)
     ti = data.get("tool_input") or {}
     texts = []
@@ -50,6 +57,7 @@ def main():
         if not isinstance(q, dict):
             continue
         texts.append(str(q.get("question") or ""))
+        texts.append(str(q.get("header") or ""))
         for o in (q.get("options") or []):
             if isinstance(o, dict):
                 texts.append(str(o.get("label") or ""))

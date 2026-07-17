@@ -40,9 +40,16 @@ _TOOL_ALIASES = {"edit": "Edit", "write": "Write", "bash": "Bash", "powershell":
 
 
 def load(stream=None):
-    """Read + normalize the hook payload from stdin. Never raises; returns {} on garbage."""
+    """Read + normalize the hook payload from stdin. Never raises; returns {} on garbage.
+
+    stdin is read as BYTES and decoded UTF-8: providers send raw UTF-8, but Windows text-mode
+    stdin decodes cp1252 — an audit proved non-ASCII payload content (umlauts in question text,
+    German file paths) arrived as mojibake and pattern matches silently missed."""
     try:
-        data = json.load(stream or sys.stdin)
+        if stream is None and getattr(sys.stdin, "buffer", None) is not None:
+            data = json.loads(sys.stdin.buffer.read().decode("utf-8", "replace"))
+        else:
+            data = json.load(stream or sys.stdin)
     except Exception:
         return {}
     if not isinstance(data, dict):
