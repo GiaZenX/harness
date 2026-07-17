@@ -20,6 +20,11 @@ If the install session left a **DRAFT** plan (a DRAFT `research_questions.yaml` 
    use checked-in `project_memory/` only.
 2. **ASK** research-goal questions only, prose first. Claude uses `AskUserQuestion`; Codex uses
    `request_user_input` when exposed, otherwise direct prose. Technical/method questions → methodologist.
+   **A question is SELF-CONTAINED:** the full decision context stands as visible TEXT in the SAME
+   message directly before the question, or inside the question + option descriptions. Your thinking
+   and tool calls are INVISIBLE — a real PM asked sign-off for a summary that existed only in its
+   thinking ("wie oben zusammengefasst") and the user decided blind. Never reference "oben"/"above";
+   a guard blocks such questions.
 3. **PROPOSE** — read `research_questions.yaml` first, then write the RQ (or a Protocol Amendment) as
    `PROPOSED`.
 4. **APPROVE** — user OK → RQ `APPROVED`.

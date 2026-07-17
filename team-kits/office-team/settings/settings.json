@@ -63,6 +63,15 @@
             "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/gate_proc_approved.py\""
           }
         ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_question_context.py\""
+          }
+        ]
       }
     ],
     "PostToolUse": [

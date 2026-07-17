@@ -3441,3 +3441,37 @@ def test_kit_checks_module_invariants_string_tokens(tmp_path):
     calls, ok, fail, warn = _collector()
     mod.check_module_invariants(str(tmp_path), ok, fail, warn)
     assert len(calls["fail"]) == 1 and "'open('" in calls["fail"][0][1]
+
+
+# ---------------- guard_question_context: a question must never point at invisible context ----------------
+def _question_payload(tmp_path, question, desc="pick one"):
+    return {"tool_name": "AskUserQuestion", "cwd": str(tmp_path),
+            "tool_input": {"questions": [{"question": question, "header": "Decision",
+                                          "options": [{"label": "Ja", "description": desc},
+                                                      {"label": "Nein", "description": "skip"}],
+                                          "multiSelect": False}]}}
+
+
+def test_question_context_blocks_invisible_references(tmp_path):
+    # the real incident: sign-off requested for a summary that existed only in THINKING
+    bad = _question_payload(tmp_path, "Kategorien-Set freigeben (wie oben zusammengefasst)?")
+    r = run_hook_process("guard_question_context.py", bad, tmp_path)
+    assert r.returncode == 2 and "CANNOT see" in r.stderr
+    # an option DESCRIPTION referencing invisible context blocks too
+    desc_bad = _question_payload(tmp_path, "Freigeben?", desc="applies the plan as summarized above")
+    assert run_hook("guard_question_context.py", desc_bad, tmp_path) == 2
+    for hooks_dir in (RESEARCH_HOOKS, OFFICE_HOOKS):  # mirrored guard behaves identically
+        assert run_hook("guard_question_context.py", bad, tmp_path, hooks_dir=hooks_dir) == 2
+
+
+def test_question_context_allows_self_contained_and_dialogue_refs(tmp_path):
+    good = _question_payload(
+        tmp_path, "Kategorien-Set freigeben? Vorschlag: 12 Kategorien (Wareneinkauf, Versand, "
+                  "Gebühren, ...) — Details in den Optionen.")
+    assert run_hook("guard_question_context.py", good, tmp_path) == 0
+    # "wie besprochen" refers to the VISIBLE dialogue with the user — must stay legal
+    dialogue = _question_payload(tmp_path, "Wie besprochen mit Etappe 1 starten?")
+    assert run_hook("guard_question_context.py", dialogue, tmp_path) == 0
+    # prose containing 'above' in a non-reference sense stays legal
+    prose = _question_payload(tmp_path, "Ist die above-average Latenz akzeptabel?")
+    assert run_hook("guard_question_context.py", prose, tmp_path) == 0

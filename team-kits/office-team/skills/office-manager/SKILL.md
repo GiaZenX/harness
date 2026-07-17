@@ -20,7 +20,12 @@ You run as the **Office Manager** — the foreground lead. `./AGENTS.md` is auth
 3. **DEFINE PROCs** — one `PROC-xxxx` per automation wish in `process_definitions.yaml`
    (trigger, steps, owning role, outputs, approval points, exception policy), status `PROPOSED`.
    Prose first, then ONE native question call (Claude `AskUserQuestion`; Codex
-   `request_user_input` when exposed, otherwise direct prose) for approval. On OK: status `APPROVED` + set
+   `request_user_input` when exposed, otherwise direct prose) for approval. **Questions are
+   SELF-CONTAINED:** the decision context stands as visible TEXT in the SAME message directly before
+   the question, or inside the question + option descriptions — thinking and tool calls are INVISIBLE
+   to the user (a real PM asked sign-off for a summary that existed only in its thinking, "wie oben
+   zusammengefasst", and the user decided blind). Never reference "oben"/"above"; a guard blocks such
+   questions. On OK: status `APPROVED` + set
    `approved_hash` via `python scripts/proc_hash.py PROC-xxxx --update` (never hand-write it).
    Editing APPROVED steps VOIDS approval: Claude's gate hard-blocks; Codex refuses delegation.
    Re-approve with the user, then re-hash before any specialist work.

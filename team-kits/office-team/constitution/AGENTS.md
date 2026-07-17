@@ -101,6 +101,7 @@ request), steps, owning role, outputs, approval points, exception policy — plu
    | `guard_ledger_direct` | any Edit/Write directly into `ledger/*.csv` — entries go through `scripts/ledger_add.py` |
    | `gate_filing` | a `filing_log.yaml` entry whose target file does not exist under `archive/` |
    | `guard_fs_tripwire` | shell delete/move commands targeting `inbox/` or `archive/` paths |
+   | `guard_question_context` | user questions referencing INVISIBLE context ("wie oben zusammengefasst" — thinking/tool calls are unseen); questions must be self-contained or preceded by visible text |
    | `guard_yaml_valid` | invalid `project_memory/*.yaml` at write time (parse errors, duplicate keys, progress.yaml contract) |
    | `guard_scratchpad_ref` | repo files referencing ephemeral session-scratchpad paths |
    | `guard_harness_selfmod` | Claude hard-blocks edits to `.claude` enforcement; Codex blocks through trusted `PreToolUse` plus read-only permission-profile paths (the Office kit has no CI backstop) |

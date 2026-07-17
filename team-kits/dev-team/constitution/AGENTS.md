@@ -67,8 +67,8 @@
    |---|---|
    | `guard_agent_spawn` | Claude blocks generic/unnamed spawns, a second PM, missing explicit `run_in_background`, and incomplete work orders; Codex cannot veto `SubagentStart`, so exact-role policy + specialist work-order validation cover that gap |
    | `gate_subagent_output` | a specialist stopping without its output contract (`summary:`; QA also `verdict:`) — prose-only endings produced work built on air |
-   | `guard_no_adhoc` | the forbidden ad-hoc dump files from item 1 (PM AND code-writers) |
-   | `guard_pm_scope` | the PM writing `src/**`, `tests/**`, `frontend/**` |
+   | `guard_no_adhoc` + `guard_pm_scope` | the forbidden ad-hoc dump files from item 1 (PM AND code-writers); the PM writing `src/**`, `tests/**`, `frontend/**` |
+   | `guard_question_context` | user questions referencing INVISIBLE context ("wie oben zusammengefasst" — thinking/tool calls are unseen); questions must be self-contained or preceded by visible text |
    | `guard_guidelines` | code in a language whose `coding_guidelines.yaml` block is unfilled |
    | `guard_yaml_valid` | invalid `project_memory/*.yaml` at write time (parse errors, duplicate keys) + the `progress.yaml` contract (ONE-line status, `log:` present) |
    | `gate_git` | force-push; push/merge without a passing QA report bound to the PRD |

@@ -1,5 +1,20 @@
 # Harness log
 
+## 2026-07-17 — Blind-decision guard: questions must carry their context (dev 2026.07.17-6, research -7, office -5)
+BuyPlugGo transcript forensics confirmed the user's report: the PM asked "Kategorien-Set
+freigeben (wie oben zusammengefasst)?" — but the ENTIRE turn before the question was thinking +
+tool calls, zero visible text. The referenced summary existed only in the model's hidden
+thinking; the user decided blind (3 of 16 AskUserQuestion turns in that session had NO visible
+text in the turn at all). Not a client rendering bug — a PM behavior bug. Fix: NEW
+guard_question_context (PreToolUse AskUserQuestion, byte-identical ×3, validate-mirrored,
+settings-registered ×3) blocks question/option text referencing invisible context ("wie oben",
+"siehe oben", "oben zusammengefasst", "as summarized above", "the above plan", ...) — while "wie
+besprochen" stays legal (the user SAW that dialogue); the block message teaches the self-
+contained form. Rule documented in the PM/office-manager SKILLs + constitution hook tables (dev/
+research stayed at exactly 220 lines by merging the guard_no_adhoc/guard_pm_scope rows). 2 new
+tests (229 total). Installed to staging; live projects NOT restamped (user starts fresh sessions
+tonight — the update announcement will offer it).
+
 ## 2026-07-17 — Double-Fable audit of the upstream round: 2 MAJORs + hardenings (dev 2026.07.17-4, research -5, office unchanged -3)
 Both cross-checkers confirmed the round's core (no shell-injection path into run_npm/Popen —
 every argument list static; `--only` cannot infect the merge gate or the green-tree cache;
