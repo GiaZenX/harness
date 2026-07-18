@@ -20,6 +20,21 @@ if (-not (Test-Path $kit)) { throw "Team kit not found: $kit" }
 $kitsRoot = Split-Path -Parent $kit
 
 $repo = (Get-Location).Path
+
+# Same-version detection (audit): a redundant re-run stays ALLOWED (it legitimately re-syncs
+# roles to the recorded preset and repairs drifted managed files) but must be LOUD about not
+# resolving merge tasks, and must NOT reset the merge-backlog escalation counter (a PM who
+# "updated again just to be safe" used to silently restart the nag from session 1).
+$script:SameVersion = $false
+$installedVersionFile = Join-Path $repo ".claude\kit_version"
+$stagedVersionFile = Join-Path $kit "VERSION"
+if ((Test-Path $installedVersionFile) -and (Test-Path $stagedVersionFile)) {
+    $script:SameVersion = ((Get-Content $installedVersionFile -TotalCount 1) -eq (Get-Content $stagedVersionFile -TotalCount 1))
+}
+if ($script:SameVersion) {
+    Write-Host "NOTE: kit '$Team' is already at the staged version -- re-applying managed files/roles only. This does NOT resolve .claude/kit_update_pending.* merge tasks (work through them and DELETE the file)." -ForegroundColor Yellow
+}
+
 Write-Host "Scaffolding team '$Team' into $repo" -ForegroundColor Cyan
 
 function Test-ReparsePoint {
@@ -449,10 +464,21 @@ if (Test-Path $settingsSrc) {
     Write-Host "  [ok] .claude/settings.json (session agent + enforcement hooks)" -ForegroundColor Green
 }
 # Stamp the installed kit version (session_status compares it with the staged kit to flag updates).
+# BEFORE overwriting, preserve the PREVIOUS version in a one-shot marker: the "KIT UPDATED x->y"
+# announcement is consumed by the NEXT SessionStart — a mid-session update used to lose it
+# entirely when no clean restart followed (audit: a live repo sat two days without the banner).
 $verSrc = Join-Path $kit "VERSION"
 if (Test-Path $verSrc) {
-    Copy-Item $verSrc (Join-Path $repo ".claude\kit_version") -Force
-    Write-Host "  [ok] .claude/kit_version ($((Get-Content $verSrc -TotalCount 1)))" -ForegroundColor Green
+    $kvDst = Join-Path $repo ".claude\kit_version"
+    $newV = (Get-Content $verSrc -TotalCount 1)
+    if (Test-Path $kvDst) {
+        $oldV = (Get-Content $kvDst -TotalCount 1)
+        if ($oldV -and $oldV -ne $newV) {
+            Set-Content -Path (Join-Path $repo ".claude\kit_updated_from") -Value $oldV -Encoding utf8
+        }
+    }
+    Copy-Item $verSrc $kvDst -Force
+    Write-Host "  [ok] .claude/kit_version ($newV)" -ForegroundColor Green
 }
 
 # Extra providers: Python/PyYAML owns parsing so quoted or block-style valid YAML can never be
@@ -512,7 +538,9 @@ if ($keptList.Count -gt 0) {
     $lines = @("# Repo templates that DIFFER from kit $Team $((Get-Content (Join-Path $kit 'VERSION') -TotalCount 1 -ErrorAction SilentlyContinue)) -- the PM reviews each against the kit template, merges the kit's fixes (or documents a conscious skip in progress.yaml log:), then DELETES this file. session_status reminds every session until it is gone.")
     $lines += ($keptList | ForEach-Object { "- $_" })
     Set-Content -Path $pendFile -Value $lines -Encoding utf8
-    if (Test-Path $stateFile) { Remove-Item $stateFile -Force }   # fresh update -> fresh nag counter
+    # fresh REAL update -> fresh nag counter; a same-version re-run must NOT reset the
+    # escalation (audit: "updating again just to be safe" kept the backlog forever young)
+    if ((Test-Path $stateFile) -and -not $script:SameVersion) { Remove-Item $stateFile -Force }
     Write-Host "  [!] $($keptList.Count) diverged repo file(s) -> .claude/kit_update_pending.repo (merge or consciously skip, then delete it)" -ForegroundColor Yellow
 } elseif (Test-Path $pendFile) {
     Remove-Item $pendFile -Force

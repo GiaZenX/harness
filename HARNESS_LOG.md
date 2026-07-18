@@ -1,5 +1,30 @@
 # Harness log
 
+## 2026-07-18 — Update-flow round: the evening-chaos forensics fixed (kits 2026.07.18-2)
+Two Opus investigators reconstructed the user's three restart symptoms from transcripts + state
+files: (1) BuyPlugGo "stale state" = VS Code opened TWO parallel sessions; the fresh one served
+its pre-update SessionStart snapshot and re-proposed a finished update; no session started after
+the stamp, so last_seen/path.state sat waiting. (2) portfolio "wanted to update again" = the
+update was PERFECT; the "KIT UPDATE NOT FINISHED" nag + the false "(applied externally)" banner
+read like a hanging update. (3) synaipse = the healthy flow, forced through by the escalating
+nag ("5th session" in ONE evening — every window counts). Fixes: scaffold ×2 writes a one-shot
+`.claude/kit_updated_from` marker (previous version) that the next SessionStart consumes —
+announcement survives broken/parallel restarts and never claims "external" for PM-run updates
+(deliberately NOT "write last_seen at scaffold time": that would kill the announcement — audit
+warning); same-version re-runs stay allowed (they legitimately re-sync preset/roles) but are
+LOUD and no longer reset the pending escalation counter; the nag is renamed KIT MERGE BACKLOG
+with explicit "version already current — do NOT re-run the scaffold"; no scolding while
+first_seen is today; the UPDATE AVAILABLE text tells the PM to re-read kit_version right before
+scaffolding (parallel-session snapshot). NEW alias tripwire: raw `model: worker` in INSTALLED
+frontmatter (an OneDrive write artifact left it unresolved — the bookkeeper subagent crashed at
+spawn) is now flagged as broken instead of "in sync". NEW handover hint: SessionStart names the
+PREVIOUS session's transcript (~/.claude/projects/<key>/, newest jsonl excluding the current
+session) and instructs the PM to skim its END before resuming — a real office PM re-proposed
+something the prior session had already settled; project_memory stays the truth. PM skills
+updated (merge tasks ≠ update; finish merges BEFORE proposing the restart). Field repair:
+BuyPlugGo's 8 broken agents fixed (worker→sonnet, lead→opus, map-consistent). 3 new + 3
+rewritten tests (243 total).
+
 ## 2026-07-17 — Double-Fable audit of the consolidation: outbound encoding + crash guards (dev 2026.07.17-9, research -10, office -8)
 Auditor A issued the week's first unconditional Freigabe (behavior preservation verified
 line-by-line at every migrated call site; quotepath=off proven strictly better; the E2E cache

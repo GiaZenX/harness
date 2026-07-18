@@ -21,6 +21,18 @@ if [ ! -d "$KIT" ]; then
 fi
 
 REPO="$(pwd)"
+
+# Same-version detection (audit): a redundant re-run stays ALLOWED (it legitimately re-syncs
+# roles to the recorded preset and repairs drifted managed files) but must be LOUD about not
+# resolving merge tasks, and must NOT reset the merge-backlog escalation counter (a PM who
+# "updated again just to be safe" used to silently restart the nag from session 1).
+SAME_VERSION=0
+if [ -f "$REPO/.claude/kit_version" ] && [ -f "$KIT/VERSION" ] \
+    && [ "$(head -n 1 "$REPO/.claude/kit_version")" = "$(head -n 1 "$KIT/VERSION")" ]; then
+  SAME_VERSION=1
+  echo "NOTE: kit '$TEAM' is already at the staged version -- re-applying managed files/roles only. This does NOT resolve .claude/kit_update_pending.* merge tasks (work through them and DELETE the file)."
+fi
+
 echo "Scaffolding team '$TEAM' into $REPO"
 
 assert_safe_repo_path() {
@@ -483,6 +495,16 @@ if command -v python3 >/dev/null 2>&1 && ! command -v python >/dev/null 2>&1; th
 fi
 # Stamp the installed kit version (session_status compares it with the staged kit to flag updates).
 if [ -f "$KIT/VERSION" ]; then
+  # preserve the PREVIOUS version in a one-shot marker BEFORE overwriting: the "KIT UPDATED
+  # x->y" announcement is consumed by the NEXT SessionStart — a mid-session update used to
+  # lose it entirely when no clean restart followed (audit: a live repo sat two days silent).
+  if [ -f "$REPO/.claude/kit_version" ]; then
+    OLD_V="$(head -n 1 "$REPO/.claude/kit_version")"
+    NEW_V="$(head -n 1 "$KIT/VERSION")"
+    if [ -n "$OLD_V" ] && [ "$OLD_V" != "$NEW_V" ]; then
+      printf '%s\n' "$OLD_V" > "$REPO/.claude/kit_updated_from"
+    fi
+  fi
   cp -f "$KIT/VERSION" "$REPO/.claude/kit_version"
   echo "  [ok] .claude/kit_version ($(head -n 1 "$KIT/VERSION"))"
 fi
@@ -532,7 +554,9 @@ if [ ${#kept_list[@]} -gt 0 ]; then
     echo "# Repo templates that DIFFER from kit $TEAM $(head -n 1 "$KIT/VERSION" 2>/dev/null) -- the PM reviews each against the kit template, merges the kit's fixes (or documents a conscious skip in progress.yaml log:), then DELETES this file. session_status reminds every session until it is gone."
     printf -- "- %s\n" "${kept_list[@]}"
   } > "$PEND"
-  rm -f "$STATE"   # fresh update -> fresh nag counter
+  # fresh REAL update -> fresh nag counter; a same-version re-run must NOT reset the
+  # escalation (audit: "updating again just to be safe" kept the backlog forever young)
+  if [ "$SAME_VERSION" != "1" ]; then rm -f "$STATE"; fi
   echo "  [!] ${#kept_list[@]} diverged repo file(s) -> .claude/kit_update_pending.repo (merge or consciously skip, then delete it)"
 else
   rm -f "$PEND"

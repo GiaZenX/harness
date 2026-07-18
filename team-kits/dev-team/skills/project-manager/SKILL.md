@@ -179,11 +179,14 @@ harness/provider paths; never run the provider generator alone. Verify every con
 against `model_map`/`effort_map` (§11), review/re-trust the changed bundle hash in `/hooks`, and only then
 start the new session; never hand-edit TOML. Diverged files (like
 `scripts/quality.py`, project_memory tooling like `generate_dashboard.py`) are recorded in
-**`.claude/kit_update_pending.repo` / `.memory`** — the update is NOT finished until you worked through
-them: diff each against the kit template, have the owning role merge the kit's fixes (or document a
-conscious skip in `progress.yaml` `log:`), then **DELETE the pending file(s)**. `session_status` reminds
-you every session until they are gone — a real project showed `[kept]` lines alone get ignored and kit
-fixes silently never arrive. Afterwards gates may require newly added fields in existing filled YAMLs —
+**`.claude/kit_update_pending.repo` / `.memory`** — these are MERGE tasks, and the kit version is
+already current at that point: **NEVER re-run the scaffold because of them** (it cannot resolve them —
+a real PM read the reminder as "update again"; a redundant re-run is loud, preserves the reminder state, and resolves nothing). Work them
+through — ideally BEFORE proposing the restart, the file merges need no restart: diff each against the
+kit template, have the owning role merge the kit's fixes (or document a conscious skip in
+`progress.yaml` `log:`), then **DELETE the pending file(s)**. `session_status` reminds you every
+session until they are gone — a real project showed `[kept]` lines alone get ignored and kit fixes
+silently never arrive. Afterwards gates may require newly added fields in existing filled YAMLs —
 fill those small deltas; nothing filled is ever lost.
 
 ## Defects (bugs)

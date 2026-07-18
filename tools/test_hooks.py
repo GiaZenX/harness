@@ -832,7 +832,8 @@ def test_session_status_reminds_on_pending_kit_update(tmp_path):
     p = subprocess.run([sys.executable, os.path.join(HOOKS, "session_status.py")],
                        input=json.dumps({"cwd": str(repo)}), capture_output=True, text=True,
                        env=env, timeout=60)
-    assert "KIT UPDATE NOT FINISHED" in p.stdout and "scripts/quality.py" in p.stdout
+    assert "KIT MERGE BACKLOG" in p.stdout and "scripts/quality.py" in p.stdout
+    assert "do NOT run the scaffold again" in p.stdout  # audit: a PM re-ran the update instead
 
 
 def test_session_status_quiet_without_pending(tmp_path):
@@ -842,7 +843,7 @@ def test_session_status_quiet_without_pending(tmp_path):
     p = subprocess.run([sys.executable, os.path.join(HOOKS, "session_status.py")],
                        input=json.dumps({"cwd": str(repo)}), capture_output=True, text=True,
                        env=env, timeout=60)
-    assert "KIT UPDATE NOT FINISHED" not in p.stdout
+    assert "KIT MERGE BACKLOG" not in p.stdout
 
 
 # ---------------- session_status: model/effort frontmatter must match the user-confirmed maps ----------------
@@ -1020,12 +1021,18 @@ def test_pending_nag_escalates(tmp_path):
                               env=env, timeout=60).stdout
 
     first = run_status()
-    assert "KIT UPDATE NOT FINISHED" in first and "OPEN SINCE" not in first
+    assert "KIT MERGE BACKLOG" in first and "OPEN SINCE" not in first
     second = run_status()
-    assert "OPEN SINCE" in second and "2. session" in second
+    # SAME-DAY sessions never scold (audit: a user actively working the backlog hit
+    # "5th session" within one evening) — escalation needs an OLDER first_seen
+    assert "OPEN SINCE" not in second
+    write(str(repo / ".claude" / "kit_update_pending.state"),
+          json.dumps({"sessions": 2, "first_seen": "2020-01-01"}))
+    third = run_status()
+    assert "OPEN SINCE 2020-01-01" in third and "3. session" in third
     (repo / ".claude" / "kit_update_pending.repo").unlink()
     cleared = run_status()
-    assert "KIT UPDATE NOT FINISHED" not in cleared
+    assert "KIT MERGE BACKLOG" not in cleared
     assert not (repo / ".claude" / "kit_update_pending.state").exists()  # counter reset
 
 
@@ -1743,7 +1750,8 @@ def test_session_status_announces_bootstrap_update_with_pending(tmp_path):
     p = subprocess.run([sys.executable, os.path.join(HOOKS, "session_status.py")],
                        input=json.dumps({"cwd": str(repo)}), capture_output=True, text=True,
                        env=env, timeout=60)
-    assert "KIT UPDATED externally to 2026.07.14-3" in p.stdout
+    assert "KIT UPDATED to 2026.07.14-3" in p.stdout  # neutral wording: PM-run updates are
+    # not "external" (audit: the label confused a PM into re-updating)
 
 
 def test_session_status_pending_counter_ignores_resume(tmp_path):
@@ -3530,3 +3538,58 @@ def test_quality_regex_fallbacks_without_pyyaml(tmp_path, monkeypatch):
     targets = mod._python_targets()
     assert "compounder" in targets and ".." not in targets
     assert mod.coverage_threshold() == 85
+
+
+# ---------------- update-flow round: marker announce, alias guard, transcript handover ----------------
+def test_session_status_announces_from_scaffold_marker(tmp_path):
+    # the one-shot kit_updated_from marker survives broken/parallel restarts — the pure
+    # last_seen delta lost the announcement when no clean SessionStart followed (audit:
+    # a live repo sat two days without the banner, mislabeled as "applied externally")
+    repo = tmp_path / "repo"
+    write(str(repo / ".claude" / "kit_version"), "version: 2026.07.17-8\n")
+    write(str(repo / ".claude" / "kit_updated_from"), "version: 2026.07.16-1\n")
+    payload = {"hook_event_name": "SessionStart", "cwd": str(repo)}
+    r = run_hook_process("session_status.py", payload, repo)
+    assert "KIT UPDATED: 2026.07.16-1 -> 2026.07.17-8" in r.stdout
+    assert "do NOT run the scaffold again" in r.stdout
+    assert not (repo / ".claude" / "kit_updated_from").exists()  # consumed exactly once
+    assert (repo / ".claude" / "kit_last_seen_version").read_text().strip() == "2026.07.17-8"
+    r2 = run_hook_process("session_status.py", payload, repo)
+    assert "KIT UPDATED" not in r2.stdout  # announced once, then silent
+
+
+def test_session_status_flags_unresolved_tier_alias(tmp_path):
+    # a raw `model: worker` in INSTALLED frontmatter crashes subagents at spawn; the
+    # canonicalized compare used to call it "in sync" (audit: a real bookkeeper died)
+    repo = tmp_path / "repo"
+    write(str(repo / "project_memory" / "project_config.yaml"),
+          "name: x\nmodel_map:\n  bookkeeper: worker\n")
+    write(str(repo / ".claude" / "agents" / "bookkeeper.md"),
+          "---\nname: bookkeeper\nmodel: worker\n---\nbody\n")
+    payload = {"hook_event_name": "SessionStart", "cwd": str(repo)}
+    r = run_hook_process("session_status.py", payload, repo)
+    assert "UNRESOLVED tier alias" in r.stdout
+    write(str(repo / ".claude" / "agents" / "bookkeeper.md"),
+          "---\nname: bookkeeper\nmodel: sonnet\n---\nbody\n")
+    r2 = run_hook_process("session_status.py", payload, repo)
+    assert "UNRESOLVED tier alias" not in r2.stdout  # resolved name + worker map = in sync
+
+
+def test_session_status_points_at_previous_transcript(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / ".claude").mkdir(parents=True)
+    home = tmp_path / "home"
+    key = re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(str(repo)))
+    tdir = home / ".claude" / "projects" / key
+    write(str(tdir / "aaaa-old-session.jsonl"), '{"type":"user"}\n')
+    payload = {"hook_event_name": "SessionStart", "cwd": str(repo),
+               "session_id": "bbbb-current"}
+    r = run_hook_process("session_status.py", payload, repo,
+                         extra_env={"USERPROFILE": str(home), "HOME": str(home)})
+    assert "PREVIOUS SESSION transcript" in r.stdout and "aaaa-old-session" in r.stdout
+    assert "never re-open settled decisions" in r.stdout
+    # the CURRENT session's own transcript must never be suggested as "previous"
+    write(str(tdir / "bbbb-current.jsonl"), '{"type":"user"}\n')
+    r2 = run_hook_process("session_status.py", payload, repo,
+                          extra_env={"USERPROFILE": str(home), "HOME": str(home)})
+    assert "aaaa-old-session" in r2.stdout and "bbbb-current.jsonl" not in r2.stdout
