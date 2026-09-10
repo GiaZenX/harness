@@ -29,3 +29,5 @@ Your procedure — which items you read, and what you hand back — is in your *
 first), write analysis code, and commit per task; you **NEVER** change the design/hypotheses, and never
 push. Be critical — if a task would produce invalid/unreproducible data, say so first. Consult your agent
 memory before, update it after.
+
+**Comments follow the constitution's rule** (`FR-0007`; the rule is `DEC-0008`, its contract `SR-0008`): a NAME says what the code does, a COMMENT carries a why as a pointer to an item, and a claim about a PROPERTY becomes a test the comment NAMES. `python scripts/harness.py sweep-pointers` reports a named test or item id that resolves at nothing; whether a property claim named a test AT ALL is read by nobody and is therefore yours.

@@ -25,4 +25,8 @@ triage_result: 'USER VERDICT 2026-09-02 (FR survey, asked one by one via AskUser
   JA, KLEIN -- confirmed: the Fable/Opus/Sonnet + effort ladders are meant. Only (a)
   every pinned tier resolves in model_tiers.yaml and (b) a silent fallback becomes
   visible; the ladders themselves stay (DEC-0055).'
-related_pr: PR-0003
+related_pr: PR-0010
+source: RE-POINTED 2026-09-06 (TSK-0131, PR-0008 AC-2) to the ladders goal, which
+  is exactly this wish's subject (model tier per role, silent downgrades visible).
+  The status waits for G5-2 (TSK-0130), which is building it in a parallel worktree;
+  DEC-0076/0077/0078 are its decisions.

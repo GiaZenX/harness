@@ -1,4 +1,4 @@
-generated_at: '2026-09-05T20:28:35'
+generated_at: '2026-09-11T01:49:33'
 items:
 - id: APR-0001
   type: APR
@@ -31,6 +31,66 @@ items:
   revision: null
   approval_ref: null
 - id: APR-0006
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0007
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0008
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0009
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0010
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0011
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0012
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0013
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0014
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0015
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0016
   type: APR
   title: null
   status: null
@@ -180,13 +240,6 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0025
-  type: BUG
-  title: .gitattributes pinnt .md nicht auf eol=lf -- ein Standard-Windows-Klon blaeht
-    das Lead-Paket ueber das Limit und install.sh bricht ab
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0026
   type: BUG
   title: record_deposit_of laesst den Digest weg, waehrend die Abhilfe den Leser die
@@ -232,13 +285,6 @@ items:
   type: BUG
   title: validate's orphan heuristic reads staging dirs against active item NAMES
     only -- a dir referenced by active EVD artifact_refs is reported as orphaned
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0033
-  type: BUG
-  title: test_gate1_answers_before_its_registration_gives_up fails under host load
-    and passes idle -- 'host too noisy' and 'gate too slow' are indistinguishable
   status: OPEN
   revision: 1
   approval_ref: null
@@ -598,77 +644,11 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: BUG-0083
-  type: BUG
-  title: 'Kernel: report._root_of resolves ONE hop while _hangs_from is transitive
-    -- the research chain RQ -> HYP -> EXP -> TSK the constitution documents cannot
-    be created (H92)'
-  status: VERIFIED
-  revision: 1
-  approval_ref: APR-0001
-- id: BUG-0084
-  type: BUG
-  title: 'Kernel: an approval on a HYP covers NO content and never invalidates --
-    it mints (APR-0003), unlocks dispatch, survives every edit of the HYP, and takes
-    the task out of the QA-debt check (H93, security-relevant)'
-  status: VERIFIED
-  revision: 1
-  approval_ref: APR-0002
-- id: BUG-0085
-  type: BUG
-  title: 'Research kit: the rendered report (project_memory/reports/*) has NO write
-    route -- section 6 assigns it to the report-writer, section 17 makes it a completeness
-    condition, and gate_write_scope refuses every write there (H94, BUG-0071 class)'
-  status: VERIFIED
-  revision: 1
-  approval_ref: APR-0003
-- id: BUG-0086
-  type: BUG
-  title: 'Kernel: the task-origin check falls OPEN on ambiguous parentage -- an item
-    with two parents gets _root_of None and dispatch skips the root comparison, in
-    every kit (verifier B2 / H95)'
-  status: VERIFIED
-  revision: 1
-  approval_ref: APR-0004
 - id: BUG-0087
   type: BUG
   title: tools/test_hooks_v2.py:9428 is an assert-or-True -- a test that cannot fail,
     standing next to the hook time-budget checks
   status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0088
-  type: BUG
-  title: 'A kit update removes the memory: key from a role but leaves the agent-memory
-    tree an older kit version wrote -- no installer, scaffold or kernel path names
-    agent-memory (stream E verifier F3)'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0089
-  type: BUG
-  title: 'kernel `update` refuses a frozen work-order field with the remedy ''transition
-    the task back to DRAFT'' -- but the TSK automaton forbids READY -> DRAFT (allowed:
-    CANCELLED, LEASED); the printed remedy cannot be walked'
-  status: VERIFIED
-  revision: 1
-  approval_ref: APR-0006
-- id: BUG-0090
-  type: BUG
-  title: 'A BUG cannot reach VERIFIED on an honestly declared regression run: the
-    confirming edge reads the merge''s evidence filter, which drops every passing
-    run_scope=selection (DEC-0061) -- while the kernel''s own refusal text asks for
-    exactly such a targeted run'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0091
-  type: BUG
-  title: create-task accepts an inbox item (FR) as product_requirement and derives_from
-    -- a work order can hang from a wish that was never triaged into a root, although
-    the constitution (section 4) and the create-task help name only root, BUG, CR,
-    EXP
-  status: OPEN
   revision: 1
   approval_ref: null
 - id: BUG-0092
@@ -1348,6 +1328,230 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
+- id: BUG-0248
+  type: BUG
+  title: 'The docking point (scripts/invoice_intake.py) refuses a mixed-VAT-rate outgoing
+    invoice for booking -- a ledger row carries ONE vat_rate, so a document with 7
+    % and 19 % positions (ordinary in trade: food beside hardware) is accepted by
+    the norm check and then handed back ''by hand'''
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0249
+  type: BUG
+  title: 'The session brief does not show the rung and the effort the dispatcher derived:
+    `report.generate_session_brief` builds each `active_tasks` row from a fixed field
+    set (id/status/assigned_role/blocked_by), so DEC-0077 (5) and PR-0010 AC-6 ("shown
+    in the session brief") are unbuilt while the values sit on the task item (new,
+    TSK-0130, PR-0010 AC-6)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0250
+  type: BUG
+  title: 'One kit release ships two contradicting ladder texts: the constitutions
+    say the escalation is derived by the kernel and "there is no user-gated escalation
+    ladder any more", while the PMs'' own SKILL and all three project_config templates
+    still instruct the retired `sonnet-high -> sonnet-xhigh -> opus-high -> opus-xhigh/max`
+    -- and session_status plus the scaffold still translate the retired `light` rung
+    (new, TSK-0130, PR-0010 AC-3/AC-7, DEC-0076/DEC-0077/DEC-0078)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0251
+  type: BUG
+  title: 'The EFFORT axis of the ladder (DEC-0077 (1)) is derived, written and shown
+    but never applied: the Agent tool has no per-spawn effort parameter, so the child
+    runs on its installed `effort:` pin (new, TSK-0130, PR-0010 AC-6)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0252
+  type: BUG
+  title: 'The office `large` effort (DEC-0078 (2): `high` when the goal''s class is
+    large) is unreachable: a `PROC` root carries no `class` field, so every office
+    order gets the default (new, TSK-0130, PR-0010 AC-6)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0253
+  type: BUG
+  title: 'A project without a scaffold record -- this repository''s own harness --
+    dispatches with `ladder: absent`: no rung is derived and no spawn is held, because
+    there is no kit declaration to read (new, TSK-0130, PR-0010 AC-6, DEC-0078 (4))'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0254
+  type: BUG
+  title: 'The Codex effort ceiling (`max` vs `ultra`) is unmeasured against the Codex
+    CLI: no Codex CLI on the measuring host, the vendor''s pages contradict each other,
+    model_tiers.yaml claims no ceiling (new, TSK-0130, PR-0010 AC-2, DEC-0076 (3))'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0255
+  type: BUG
+  title: 'On Codex the spawn-side hold of the rung does not exist: the Agent tool
+    is not hookable there (`gen_provider_artifacts.CODEX_UNSUPPORTED_TOOLS`), so a
+    climbed order''s rung is on the lease and in the header only (new, TSK-0130, PR-0010
+    AC-6)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0257
+  type: BUG
+  title: Der Zeiger-Sweep kann eine ILLUSTRATION nicht von einem Zeiger unterscheiden
+    -- und den Bestand eines fremden Stores nicht vom eigenen
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0258
+  type: BUG
+  title: After the generation-4 hole migration docs/POST_V2_WISHLIST.md carries no
+    `### H` entry any more, so test_repo_hygiene::test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole
+    is RED at HEAD b7f282e
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0259
+  type: BUG
+  title: The empty-lists rule that keeps a kit template from shipping somebody's business
+    reads only LISTS, so every SCALAR term of correspondence.yaml ships as a value
+    the kit chose and a customer letter carries it unchallenged
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0260
+  type: BUG
+  title: 'A QA fail classified narrow/mechanical still climbs the rung: the constitutions
+    offer that classification as the alternative to escalating, and the built mechanic
+    counts FAILED RUNS, which no classification is part of -- so the one lever the
+    rule gave QA no longer reaches the model (new, TSK-0130, PR-0010 AC-6, DEC-0034
+    rule 2 vs parity matrix row 43/45)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0261
+  type: BUG
+  title: Ein bestandener Test, der einen Fehler NENNT, sagt nicht, dass der Fehler
+    weg ist -- 106 gemessene Bugs ohne Urteil
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0262
+  type: BUG
+  title: Ein zweiter Zeitmess-Test faellt auf einem beschaeftigten Host rot statt
+    zu ueberspringen -- dieselbe Klasse wie BUG-0033, anderer Test
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0263
+  type: BUG
+  title: 'The repo-wide test-pointer check pairs backticks running across a whole
+    file, so ONE code fence blinds it for everything below: 48 files, 39 citations,
+    judged by nothing'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0264
+  type: BUG
+  title: 'Four schedule claims survive in the enforcement layer that AC-1 cleaned
+    everywhere else: .claude/hooks/gate_spawn_needs_item.py and .claude/hooks/_harness.py
+    still say the watchers ''run on a weekly schedule'', no test reads them, and the
+    reworded watcher definitions now POINT at them (new, TSK-0130, PR-0010 AC-1, DEC-0084)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0265
+  type: BUG
+  title: Der Zeiger-Sweep liest in einem Projekt mit installiertem Kit die Skript-Verzeichnisse
+    gar nicht -- auch das eigene Skript des Projekts nicht
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0266
+  type: BUG
+  title: 'The project-auditor routine is REMINDED but cannot be DISPATCHED on its
+    own route: `request-approval` offers twelve kinds and neither `routine` nor `analysis`,
+    so the only walkable way to run the auditor is an ordinary work order with a writable
+    allowed_scope -- measured as a process on a scaffolded dev pilot (new, TSK-0130,
+    DEC-0084 (2)(b), confirms H111 four weeks on)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0268
+  type: BUG
+  title: CLAUDE.md sagt "die vier Gates dieses Repos", registriert sind fuenf -- und
+    die Datei ist fuer jede Rolle verbotener Bereich
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0269
+  type: BUG
+  title: 'The radar watcher''s Desktop scheduled task is a mechanism this repository
+    can neither ask nor see fire: its day, hour and enabled flag live in the Desktop
+    app, it runs only while that app is open, and a week with the app closed is silent
+    -- the report cadence in radar/ is the only evidence, read by `--due` (corrected
+    under DEC-0089: the task IS the mechanism and its reports DO carry the `-claude`
+    suffix; TSK-0130, PR-0010 AC-1)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0270
+  type: BUG
+  title: Der Zeiger-Sweep dieses Repos liest team-kits/ und docs/, nicht tools/ --
+    39 Testzeiger in den eigenen Suiten pruefen nichts
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0271
+  type: BUG
+  title: 'Die Freigabe-Frage der Kits ist Maschinendeutsch: englische Freigabe-Art,
+    Hash, Anfrage-Id (zweimal), YAML-Pfad und englische Feldnamen in einem deutschen
+    Satz -- und das Gate zwingt den PM, genau diesen Text wortgleich zu stellen'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0272
+  type: BUG
+  title: 'Gate 1 refuses a READ-ONLY grep as a write to the drive root when its double-quoted
+    pattern carries escaped backticks AND a space: `grep -c "\`a\`, \`b\`" README.md`
+    is rc 2 with ''no tool call in this repo may write C:\'' (over-refusal, measured
+    2026-09-06 in the generation-5 merge, TSK-0133)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0273
+  type: BUG
+  title: 'The radar claim reader admits a cadence sentence that names no mechanism
+    word: ''The watcher duo runs once a week without a human.'' passes tools/test_radar_trigger.py
+    by design, because a claim is recognised by its WORD (schedule, automatic, cron,
+    Desktop task, the cloud option''s names, a weekday) and a cadence alone is read
+    as intent -- so a sentence asserting agentless recurrence in plain words is judged
+    by nobody (TSK-0133 verify round 1, P6; beside H182)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0274
+  type: BUG
+  title: 'The claim reader''s list of names for the rejected cloud routine (`cloud_option.named_as`)
+    has no tripwire at either end: the shipped README''s own words for that option
+    (''hosted code routine of the platform'', ''sandbox routine against the remote'')
+    pass the reader as a mechanism claim (verify round 2 N1, TSK-0133)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0275
+  type: BUG
+  title: 'The ladder-paragraph reader''s lead-in branch (`_states_the_scaling_rule`)
+    accepts rung and effort a whole bullet apart while its docstring says a rule states
+    both axes ''in one breath'': moving the word effort into the bold lead-in and
+    deleting the effort RULE keeps the constitution qualifying (verify round 2 N2,
+    TSK-0133)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
 - id: DEC-0002
   type: DEC
   title: ADR-Datensaetze werden DEC-Items, nicht getragene Belege
@@ -1902,6 +2106,124 @@ items:
   status: VALID
   revision: 1
   approval_ref: null
+- id: DEC-0080
+  type: DEC
+  title: 'Generation 4 verdict (DEC-0070 rules applied, DEC-0067 bundle at the goal,
+    DEC-0068 plan approval): the measured cut held, the merge round found what no
+    stream could see for the third time, the repeated finding class is ''a reader
+    that reads less than its docstring claims'', four host power-offs came from an
+    all-core load rig, and the lead repeated a refuted order sentence -- eight rules
+    for generation 5'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0081
+  type: DEC
+  title: 'Stufen korrigiert: die Stroeme einer Generation laufen auf Opus (high),
+    nur die MERGE-Runde auf Fable (high; xhigh sobald der Spawn es erreicht) -- Kostenentscheidung
+    des Nutzers, ersetzt DEC-0077 (4) und DEC-0080 (8)'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0082
+  type: DEC
+  title: 'Schriftverkehr im Buero-Kit entschieden: ein beigebrachter Arbeitsablauf
+    (Skript + Klartext-Anleitung, vom Buero-Manager ausgefuehrt und geprueft), keine
+    eigene Rolle -- FR-0033 / PR-0009 AC-1'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0083
+  type: DEC
+  title: 'FR-0012 entschieden: eine Entscheidung sagt in einem Feld `work`, welche
+    Items sie tragen (oder `none`), und der Validator nennt jede geltende Entscheidung,
+    auf die kein Item zeigt -- Feld plus Zeiger-Erkennung (A)'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0084
+  type: DEC
+  title: 'Radar-Ausloeser entschieden: die Watcher laufen ueber eine CLAUDE-ROUTINE
+    -- ''so wie auch der Project Auditor laufen sollte'' -- und ob der Auditor in
+    den Kits ueberhaupt laeuft, wird zuerst gemessen; kein Windows-Task, keine Sitzungsstart-Pflicht
+    des Leads als Mechanismus'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0086
+  type: DEC
+  title: 'Schliessweg eines reparierten Bugs entschieden: eine Nutzer-Muenzung (scope)
+    je Bug, vom Lead gebuendelt vorgelegt -- der ausgelieferte Automat bleibt; die
+    Kante TRIAGED -> FIXED fuer den bewiesenen Fall ist die Frage einer eigenen Runde
+    (DEC-0051 (2))'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0087
+  type: DEC
+  title: 'Die leichte Arbeitsform ab Generation 6: der Orchestrator baut nicht selbst,
+    er spawnt EINEN Bauer mit dem ganzen Ziel; Team-Groesse wird abgeleitet, nie gefragt;
+    ein unabhaengiges Prueftor je Ziel statt Runde um Runde; die Einstiegsfrage heisst
+    ''mit Langzeit-Gedaechtnis oder erstmal frei'''
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0088
+  type: DEC
+  title: 'Stufen und Prueftakt der leichten Arbeitsform (Zusatz zu DEC-0087): der
+    Orchestrator leitet die Stufe selbst ab -- Qualitaet vor Kosten, aber keine unnoetigen
+    Kosten --, und geprueft wird am Ziel: hoechstens zwei Prueferrunden je Ziel, keine
+    nach einer Kleinaenderung'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0089
+  type: DEC
+  title: 'Radar-Ausloeser, dritte Runde (loest DEC-0085 ab): der Mechanismus IST die
+    LOKALE Claude-Desktop-Routine (''Weekly harness radar'', freitags ~20:00, seit
+    2026-06-30 durch den Sitzungsagenten angelegt) -- sie laeuft nachweislich; die
+    Codex-Haelfte bekommt dieselbe Art Routine; die Cloud-Routine wird NICHT angelegt'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0090
+  type: DEC
+  title: 'Watcher-Duo: radar-watcher heisst kuenftig claude-watcher (Gegenstueck codex-watcher),
+    beide auf der opus-Sprosse (Claude opus, Codex gpt-5.6-sol), und JEDER Watcher
+    laeuft ueber BEIDE Anbieter -- vier lokale Routinen (zwei Claude-Desktop-Aufgaben,
+    zwei Codex-App-Automationen), angelegt beim naechsten lokalen Neustart'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0091
+  type: DEC
+  title: 'Stufe je AUFTRAG (Zusatz zu DEC-0077 / DEC-0088): bei mehreren parallelen
+    Bauern gibt der PM jedem Arbeitsauftrag seine eigene Sprosse und seinen eigenen
+    Aufwand nach Umfang und noetigem Urteil -- sonnet / opus / fable mal high / xhigh
+    -- als dritte Eingabe der Sprossen-Ableitung, nie unter dem Boden der Rolle'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0092
+  type: DEC
+  title: 'Ehrliche Team- und Stufenwahl (Zusatz zu DEC-0087/0088/0091): kein Begruendungs-Freitext,
+    sondern ein Struktur-Gate (zweiter Bauer nur mit Bereichsabgleich), eine Verteilungszeile
+    im Briefing, eine Rueckschau-Regel, ein Pilot-Rig -- und ein FAKTEN-Checkpoint
+    des Spawn-Gates, der den PM vor jedem Start zum Nachdenken bringt statt ihn zu
+    blockieren'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0093
+  type: DEC
+  title: 'Eigenstaendiger Abschluss von Generation 5 und Start von Generation 6 (Nutzerwort
+    2026-09-10): Commit ohne Rueckfrage, Start der Gen-6-Arbeit ohne die Plan-Freigabe
+    abzuwarten, die nur der Nutzer praegen kann -- alle Nutzer-Freigaben werden bei
+    seiner Rueckkehr als EIN Buendel gestellt; kein Push ohne sein Wort; Updates in
+    2-3 Saetzen'
+  status: VALID
+  revision: 1
+  approval_ref: null
 - id: EVD-0001
   type: EVD
   title: null
@@ -2400,6 +2722,66 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0084
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0085
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0086
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0087
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0088
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0089
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0090
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0091
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0092
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0093
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -2493,38 +2875,10 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: FR-0048
-  type: FR
-  title: Entry agent breaks the German-report rule itself -- fix user/claude/CLAUDE.md
-    wording and roll out to the home directory (user approval required)
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: FR-0058
   type: FR
   title: 'Der Bestand luegt nach oben: gelieferte Wuensche und reparierte Fehler stehen
     weiter als offen -- eine Bestandsaufnahme plus ein ableitbarer Erledigt-Begriff'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: FR-0064
-  type: FR
-  title: 'Evaluate subagent memory (memory: frontmatter) for the harness roles --
-    implementer maybe, verifier NO by design'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: FR-0069
-  type: FR
-  title: 'A design BRIEF before any design work: read the existing repo first, then
-    ask the user only what cannot be derived from it'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: FR-0072
-  type: FR
-  title: 'A humanizer skill for every kit: texts a role writes for people (product
-    copy, letters, reports, chat replies) read as written by a person, not by an AI'
   status: TRIAGED
   revision: 1
   approval_ref: null
@@ -2551,6 +2905,15 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
+- id: FR-0089
+  type: FR
+  title: Kosten / Nutzen / Qualitaet / Effizienz des Multi-Agenten-Harness gegen EINEN
+    Fable-Agenten -- Recherche (was die Welt gemessen hat) und ein kontrolliertes
+    Experiment (dieselbe Aufgabe, zwei Wege), bevor die naechste Produkt-Generation
+    den Schnitt waehlt
+  status: OPEN
+  revision: 1
+  approval_ref: null
 - id: PR-0001
   type: PR
   title: Migrationsweg V1 -> V2
@@ -2574,52 +2937,52 @@ items:
   title: 'G4-1 Test discipline and hook hygiene: a gate on the SCOPE of a test run
     (this repo + kits), timeouts on every kit hook registration, and the design checks''
     BUILD half'
-  status: APPROVED
+  status: DELIVERED
   revision: 1
-  approval_ref: APR-0005
+  approval_ref: APR-0013
 - id: PR-0005
   type: PR
   title: 'G4-2 Kernel contracts: honest evidence for a BUG (BUG-0090), no work order
     under an inbox item (BUG-0091), SR duty by PR class (FR-0085), holes as typed
     items (FR-0087), leases for parallel specialists (C-2/C-3)'
-  status: APPROVED
+  status: DELIVERED
   revision: 1
-  approval_ref: APR-0005
+  approval_ref: APR-0014
 - id: PR-0006
   type: PR
   title: 'G4-3 Procedure and retrospective: review as an EVENT in the kits and here
     (FR-0084), a cut critic before the order (FR-0005), the five malformed order lines
     in the PM role (FR-0010), and the orchestrator rules of DEC-0070 in the lead role
     text'
-  status: APPROVED
+  status: DELIVERED
   revision: 1
-  approval_ref: APR-0005
+  approval_ref: APR-0015
 - id: PR-0007
   type: PR
   title: 'G4-4 Repo hygiene: the hosted CI is green or honest (BUG-0069), line endings
     pinned and the 33 CRLF files normalised (BUG-0025), kit update leaves no memory
     residue (BUG-0088), the load-class gate test stops flapping (BUG-0033)'
-  status: APPROVED
+  status: DELIVERED
   revision: 1
-  approval_ref: APR-0005
+  approval_ref: APR-0016
 - id: PR-0008
   type: PR
   title: 'G5-1 Bestandsbereinigung: every open BUG and wish of this repo measured
     against the running code and closed through the kernel or kept with its chain
     (FR-0058), plus a derivable notion of ''done'' so the stock cannot lie upward
     again'
-  status: DRAFT
+  status: APPROVED
   revision: 1
-  approval_ref: null
+  approval_ref: APR-0007
 - id: PR-0009
   type: PR
   title: 'G5-3 Office package: correspondence capability (FR-0033), the docking point
     for the external invoice application (intake, validation, filing, booking), a
     year-versioned chart of accounts with EUeR mapping (FR-0081), the eight takeovers
     from a real operation (FR-0002), and the four open office bugs (BUG-0070/0071/0072/0079)'
-  status: DRAFT
+  status: APPROVED
   revision: 1
-  approval_ref: null
+  approval_ref: APR-0007
 - id: PR-0010
   type: PR
   title: 'G5-2 Watchers, ladders and escalation: the radar/codex watcher duo runs
@@ -2627,6 +2990,18 @@ items:
     per provider (fable/opus/sonnet = astra/sol/terra, DEC-0076), effort is high by
     default and xhigh for large goals, and DEC-0034''s escalation mechanic is BUILT
     in the dispatcher (two axes, from state)'
+  status: APPROVED
+  revision: 1
+  approval_ref: APR-0007
+- id: PR-0011
+  type: PR
+  title: 'G6 The light kit: one builder per goal with the whole goal, team size and
+    tiers derived by the orchestrator (per goal AND per order), verification at the
+    goal instead of after every change, the entry question ''mit Langzeit-Gedaechtnis
+    oder erstmal frei'' -- built in its own form, measured by the FR-0089 experiment;
+    plus the watcher duo on the new names/rungs/routines and the two user-facing defects
+    the light form must not carry (the approval question''s language, the auditor''s
+    read-only route)'
   status: DRAFT
   revision: 1
   approval_ref: null
@@ -2679,39 +3054,33 @@ items:
   status: ACCEPTED
   revision: 1
   approval_ref: null
-- id: TSK-0121
+- id: TSK-0130
   type: TSK
   title: null
   status: CANCELLED
   revision: 1
   approval_ref: null
-- id: TSK-0122
+- id: TSK-0131
   type: TSK
   title: null
   status: CANCELLED
   revision: 1
   approval_ref: null
-- id: TSK-0123
+- id: TSK-0132
   type: TSK
   title: null
   status: CANCELLED
   revision: 1
   approval_ref: null
-- id: TSK-0124
-  type: TSK
-  title: null
-  status: CANCELLED
-  revision: 1
-  approval_ref: null
-- id: TSK-0125
-  type: TSK
-  title: null
-  status: CANCELLED
-  revision: 1
-  approval_ref: null
-- id: TSK-0126
+- id: TSK-0133
   type: TSK
   title: null
   status: READY
+  revision: 1
+  approval_ref: null
+- id: TSK-0134
+  type: TSK
+  title: null
+  status: DRAFT
   revision: 1
   approval_ref: null

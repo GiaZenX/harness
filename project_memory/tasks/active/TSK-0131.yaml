@@ -1,0 +1,181 @@
+id: TSK-0131
+product_requirement: PR-0008
+derives_from: PR-0008
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-1
+- AC-2
+- AC-3
+- AC-4
+- AC-5
+- AC-6
+- AC-7
+allowed_scope:
+- team-kits/kernel/report.py
+- team-kits/kernel/state.py
+- team-kits/kernel/backlog_types.py
+- team-kits/kernel/cli.py
+- team-kits/kernel/holes.py
+- team-kits/*/constitution/AGENTS.md
+- team-kits/*/agents/*.md
+- team-kits/*/skills/project-manager/**
+- team-kits/office-team/skills/office-manager/SKILL.md
+- team-kits/*/skills/project-auditor/**
+- .claude/agents/harness-lead.md
+- .claude/agents/harness-implementer.md
+- .claude/agents/harness-verifier.md
+- team-kits/*/VERSION
+- tools/**
+- docs/**
+- README.md
+forbidden_scope:
+- scaffold_team.*
+- install.*
+- init_project_memory.*
+- user/**
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- CLAUDE.md
+- project_memory/**
+- team-kits/kernel/dispatch.py
+- team-kits/kernel/documents.py
+- team-kits/kernel/filing.py
+- team-kits/kernel/approvals.py
+- team-kits/model_tiers.yaml
+- team-kits/gen_provider_artifacts.py
+- team-kits/*/hooks/**
+- team-kits/*/settings/**
+- team-kits/*/templates/**
+- team-kits/*/ladder.yaml
+- .claude/agents/radar-watcher.md
+- .claude/agents/codex-watcher.md
+- radar/**
+- .claude/hooks/**
+required_inputs:
+- 'project_memory/product/active/PR-0008.yaml (AC-1..AC-7) and what it absorbed: FR-0058
+  (the stock lies upward), BUG-0023 (empty expected_outputs), BUG-0022 (CR type never
+  reached), FR-0007 (comment discipline into the kits: DEC-0008 + SR-0008 are the
+  rule), FR-0012 (a decision landing in prose has no catcher -- DEC-0034''s 26 days
+  without an item are the case, DEC-0080 records it), the generation-4 leftovers (BUG-0025,
+  BUG-0033, BUG-0069, BUG-0088, BUG-0090, BUG-0091 to VERIFY against b7f282e with
+  evidence lines; BUG-0083..0086 and BUG-0089 and TSK-0121..0126 to archive)'
+- 'project_memory/generated/index.yaml and every active BUG/FR (89 BUGs + 155 migrated
+  hole items in bugs/active, 21 FRs -- measured 2026-09-05); the kernel''s evidence
+  and transition commands (`evidence`, `transition`, `archive`, `update`) -- every
+  verdict is a kernel write, never a file edit; kernel/report.py (validate_state,
+  tasks_under_an_inbox_item, closed_by_delivery cross-check) as the place of the derivable
+  ''done'' and the decision-without-item catcher; kernel/backlog_types.py (AUTOMATA
+  CR, REQUIRED_FIELDS); DEC-0080 rules 3 and 7 and DEC-0077 (4) for .claude/agents/harness-*.md
+  (rules 1-3/7 into harness-lead.md, rule 6 into harness-verifier.md, model pins:
+  implementer fable / verifier opus with the effort line -- the verifier-role pin
+  is a SEAM sentence from G5-2)'
+- DEC-0080 (retrospective), DEC-0063, DEC-0070, DEC-0066 (hierarchy), DEC-0067; the
+  constitutions' 'duties that have no gate behind them' section (G4-3 added the rejected-alternative
+  paragraph there -- the comment-discipline duty joins it byte-identical x3)
+expected_outputs:
+- 'PR-0008 AC-1 (FR-0058 survey): every one of the active BUGs -- the 89 pre-existing
+  and the 155 migrated holes -- measured against b7f282e (observed line re-run or
+  test executed, one short run at a time) and given ONE of three verdicts THROUGH
+  THE KERNEL: VERIFIED + archived with an Evidence item naming the measurement; OPEN/TRIAGED
+  with the re-measured chain and date written by `update`; CANCELLED/superseded naming
+  the absorbing item; the protocol tables all of them with verdict and measured line;
+  no verdict without a measurement; batches by module so the round can be resumed
+  from disk after a crash.'
+- 'PR-0008 AC-2 (FR-0058 wishes): the 21 FRs triaged against b7f282e: delivered ->
+  MERGED with resulting_item, absorbed -> pointing at their goal, the deferred block
+  (FR-0024, FR-0019, FR-0022, FR-0023, FR-0025, FR-0020) TRIAGED with the user''s
+  ''needs planning'' note in the item, no FR left whose source describes something
+  built.'
+- 'PR-0008 AC-3 (the derivable ''done''): validate names an item standing OPEN while
+  its confirming evidence or named regression test exists and passes -- derived from
+  items + evidence store + the test tree, no list; red-first; measured on this repo''s
+  store (the survey feeds it).'
+- 'PR-0008 AC-4 (BUG-0023): create-task and capture TSK refuse an empty expected_outputs
+  list naming the field (one rule, both entrances); the validator names existing items
+  with an empty list; red-first.'
+- 'PR-0008 AC-5 (BUG-0022): the CR type reached in a measured run on a scaffolded
+  dev pilot (a change to something built produces a CR through its automaton) with
+  the PM texts saying WHEN a CR applies instead of a PR replacement and a test on
+  the text-to-behaviour path -- or the type removed with the reasons recorded; the
+  PR-replacement path stays and records the replacement.'
+- 'PR-0008 AC-6 (generation-4 leftovers): BUG-0025, BUG-0033, BUG-0069 (after the
+  user''s push: the hosted run is the evidence -- name it as the one line that waits),
+  BUG-0088, BUG-0090, BUG-0091 VERIFIED against b7f282e with their evidence lines;
+  BUG-0083..0086, BUG-0089 archived; TSK-0121..TSK-0126 archived; PR-0004..PR-0007
+  walked to their delivered status with the merge commit as delivered_commit where
+  the automaton asks for it.'
+- 'PR-0008 AC-7 (FR-0007 + FR-0012): the comment-discipline duty (a comment carries
+  the WHY and points at items; a property claim becomes a test the comment names;
+  a named test must resolve; no sentence claims a check the code does not build) in
+  the three constitutions'' ''duties that have no gate behind them'' section byte-identical
+  x3 and in every implementing role definition; the kits ship the mechanical half
+  (a pointer sweep over the project''s own code and role texts, red on a named test
+  or item that does not resolve) scaffolded and measured on a pilot per kit; FR-0012:
+  a validator line naming a Decision item whose text demands build work while no item
+  points at it -- DEC-FIRST proposal dec-decision-catcher.json on how a decision says
+  it demands work (a field, a phrase class, or the pointer direction), the user decides;
+  then built red-first and shipped to the three kits in the same round.'
+- 'Per absorbed wish or bug its own red-first test measured in a copy outside the
+  repo (restore the defect, see red, put it back) and its own acceptance line in the
+  protocol; the verifier reports PER acceptance criterion of the goal. Every new property
+  claim -- code comment, docstring, docs, hole item -- is MEASURED before handover.
+  DEC-0080 (6): every new READER or tripwire this stream writes gets, before the report,
+  a mutation in the direction its docstring denies (a reader that reads less than
+  it claims was the repeated class of generation 4) -- the mutation and its red line
+  stand in the protocol per reader. A named test must be able to fail. Holes: a measured
+  gap is a BUG item captured through `PYTHONPATH=team-kits python -B -m kernel.cli
+  --root project_memory capture BUG --hole` (kernel-allocated number; `limits` duty;
+  module prefix in citations) -- no hand numbers, no document entries. forbidden_scope
+  project_memory/** EXCEPTS project_memory/staging/(this task id)/ and the kernel
+  command lines this order names. Wherever the truth about a shell can be executed,
+  a real shell is the arbiter. Only the READING suites run in the stream -- and DEC-0080
+  (2): a stream that changes a DISPATCH, LEASE or VALIDATOR rule runs every suite
+  that READS that rule (grep the predicate''s callers, list them in the protocol)
+  -- the full suite belongs to the merge; gate 5 is live: a full-surface line is refused,
+  the DELIVERY_RUN prefix is the merge''s, never a stream''s. HOST RULE: one pytest
+  at a time, every run with a timeout, no CPU-saturating rig (four hard power-offs
+  on 2026-09-04). Clock: every protocol time is read, never extrapolated (DEC-0080
+  (7)).'
+- 'Seams: team-kits/kernel/cli.py (G5-2 and G5-3 add commands -- your block only);
+  the constitutions and team-kits/*/agents/*.md (G5-2 writes ladder sentences + model/effort
+  pins, G5-3 the office correspondence role -- you write the comment-discipline duty
+  and the CR rule, per file in the protocol); .claude/agents/harness-*.md are YOURS
+  (DEC-0080 rules 1-3/7 into harness-lead.md, rule 6 into harness-verifier.md, the
+  model/effort pin lines as G5-2 hands them); tools/lead_package_sizes.json + docs/reviews/phase0-disposition.md
+  (record, not overwrite); README.md. Reach seam (DEC-0080 (1)): the validator lines
+  run in every kit -- measure all three pilots; list every suite that reads validate_state
+  before handover (DEC-0080 (2)).'
+- 'Handover: worktree C:/Offline Repos/v2-testbed/_worktrees/g5-stock (branch g5/stock
+  off feat/harness-v2 at b7f282e); ALL scratch only under C:/Offline Repos/v2-testbed/_round-scratch/(this
+  task id)/; a red-first rig refuses to run outside its own directory and writes binary;
+  verifier copies made WITHOUT the .git file of the worktree; patch = the worktree
+  diff WITHOUT the VERSION hunks at C:/Offline Repos/v2-testbed/_round-scratch/(this
+  task id)/stream-stock.patch (a patch carrying VERSION hunks is a cut finding); protocol
+  at project_memory/staging/(this task id)/stream-protocol.md with: seam table (received
+  / expected at merge), per-criterion acceptance line + red-first tests, reader mutations,
+  measured lines, what was deliberately not closed but named (as hole items), the
+  one-line rejected alternative of the plan (FR-0084 shape, now a constitution duty),
+  suites run (reading suites + the suites that read a changed rule), provisional VERSION
+  stamp, wall-clock (read) and tokens for the (g) table. DEC-first proposals go to
+  the lead as project_memory/staging/(this task id)/dec-*.json -- the user decides,
+  the stream waits on that point and works on the rest. No commit, no push, no install
+  to the global store.'
+dependencies: []
+seam_scope:
+- tools/**
+- docs/**
+- team-kits/*/VERSION
+- team-kits/kernel/cli.py
+- team-kits/*/constitution/AGENTS.md
+- team-kits/*/agents/*.md
+- tools/lead_package_sizes.json
+- docs/reviews/phase0-disposition.md
+- README.md
+- team-kits/office-team/skills/office-manager/SKILL.md
+root_revision: 1
+status: CANCELLED
+revision: 1
+approval_ref: null
+created: '2026-09-05T21:10:58'

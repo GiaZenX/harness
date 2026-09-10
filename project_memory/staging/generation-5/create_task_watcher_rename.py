@@ -1,0 +1,106 @@
+"""DEC-0090's carrier: ONE work order under PR-0010 (AC-1/AC-2 lineage) -- rename radar-watcher -> claude-watcher,
+pin both watchers on the opus rung on both providers, the runner suffix in the report name, texts and tests,
+red-first. Created in DRAFT while the generation-5 merge (TSK-0133) runs; READY + check-scopes after the merge
+commit. One Opus builder (DEC-0088 tiers: a mechanical slice with a complete spec). Not idempotent -- run once."""
+import json
+import os
+import subprocess
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+KERNEL = [sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory"]
+
+ALLOWED = [
+    ".claude/agents/radar-watcher.md", ".claude/agents/claude-watcher.md", ".claude/agents/codex-watcher.md",
+    ".codex/agents/radar-watcher.toml", ".codex/agents/claude-watcher.toml", ".codex/agents/codex-watcher.toml",
+    "radar/README.md", "radar/routine.json", "tools/radar_routine.py", "tools/test_radar_trigger.py",
+    "tools/gen_provider_artifacts.py", "tools/test_gen_provider_artifacts.py", "docs/POST_V2_WISHLIST.md",
+    "README.md",
+]
+FORBIDDEN = [
+    "team-kits/**", ".claude/settings.json", ".claude/hooks/**", ".claude/agents/harness-*.md",
+    "radar/20*.md", "radar/decided.md", "project_memory/**",
+]
+INPUTS = [
+    "DEC-0090 (names, rungs, cross-provider runs, four staggered local routines, who creates when) and DEC-0089 "
+    "(the local Claude Desktop scheduled task IS the mechanism; the cloud routine is not built) -- both VALID, "
+    "both cited by the code that implements them (CLAUDE.md: a built file names its DEC)",
+    "the merged tree after TSK-0133's commit (base for this order): tools/radar_routine.py with the record shape "
+    "and --describe / --due / --run, tools/test_radar_trigger.py with the claim reader, radar/README.md rewritten "
+    "per DEC-0089, the two watcher definitions with `model: sonnet` (radar-watcher.md:14, codex-watcher.md:14), "
+    "the two .codex overlays WITHOUT a model line, team-kits/model_tiers.yaml (three rungs: opus -> claude opus / "
+    "codex gpt-5.6-sol; read through the generator, never typed twice)",
+    "the living routine: C:/Users/zenti/.claude/scheduled-tasks/radar-watcher/SKILL.md tells its run to follow "
+    ".claude/agents/radar-watcher.md -- after the rename that pointer is dead until the lead edits the SKILL.md at "
+    "the next local session (outside the repo; the protocol says so and lists the exact replacement line); the "
+    "measured cadence: radar/ mtimes Fridays 20:10-20:47 since 2026-07-17",
+    "radar/2026-*.md report names: `<date>-claude.md` / `<date>-codex.md` today -- the fourteen existing reports "
+    "are NOT renamed (history); the runner suffix applies from the first cross-provider run on",
+    "forbidden_scope project_memory/** EXCEPTS project_memory/staging/(this task id)/; kernel writes by the lead",
+]
+OUTPUTS = [
+    "RENAME (DEC-0090 (1)): .claude/agents/claude-watcher.md and .codex/agents/claude-watcher.toml replace the "
+    "radar-watcher pair (git mv; `name:` updated; the description's cross-reference in codex-watcher.md/.toml "
+    "follows); every citation of `radar-watcher` in the allowed files follows; a reading test refuses a definition "
+    "or README sentence that still names radar-watcher as an agent -- red-first on the tree before the rename; the "
+    "radar/ folder and tools/radar_routine.py keep their names (radar = the duo's product) and README says so in "
+    "one sentence.",
+    "RUNGS (DEC-0090 (2)): both Claude definitions pin `model: opus`; both Codex overlays carry `model = "
+    "\"gpt-5.6-sol\"` and `model_reasoning_effort = \"high\"` -- produced by tools/gen_provider_artifacts.py from "
+    "model_tiers.yaml's opus rung (if the generator does not cover this repo's own .codex/agents today, it does "
+    "after this order, or the protocol shows why a hand-written pin with a reading test against model_tiers.yaml "
+    "is the smaller change); red-first: a pin the ladder cannot place is refused (DEC-0076 lineage).",
+    "RUNNER SUFFIX (DEC-0090 (3)): the report name becomes radar/<date>-<watcher>-by-<runner>.md (runner in "
+    "{claude, codex}); both definitions and both overlays write it; tools/radar_routine.py --due counts a run per "
+    "watcher AND runner per week and reads the old two-part names as runner = the watcher's own provider "
+    "(history stays countable); radar/README.md documents the four weekly reports; red-first on --due with a "
+    "fixture of old and new names.",
+    "ROUTINE RECORD (DEC-0090 (4), DEC-0089 (3)): radar/routine.json's shape holds four entries {watcher, runner, "
+    "kind: desktop_task | codex_automation, schedule_as_told, source, first_report, last_report}; --describe prints "
+    "the four with 'schedule as told by the user, not readable from disk' and the exact Instructions text for each "
+    "app (the Claude task body: 'Follow .claude/agents/<watcher>.md exactly ...'; the Codex automation body: "
+    "'Run the agent defined in .codex/agents/<watcher>.toml ...'), so the lead can hand the user the two Codex "
+    "texts verbatim and ask Claude Desktop for the two tasks; `starts_itself` per DEC-0089 (3); a claim-reader test "
+    "red on any sentence promising a schedule routine.json does not record.",
+    "TEXTS: radar/README.md and the two definitions say the truth after this order (four routines, who runs "
+    "where, the app-open limit, the catch-up run); the DEC-0090 / DEC-0089 lines cited at the code that "
+    "implements them; the old `radar-watcher` name survives only in history (reports, decided.md, archived items).",
+    "RUNS: the reading suites (tools/test_radar_trigger.py, tools/test_gen_provider_artifacts.py, test_repo_hygiene, "
+    "the pointer sweeps), ONE pytest at a time with timeouts, gate 5 live; `python tools/bump_kit_version.py` "
+    "(expected unchanged unless the generator is a kit file -- say which); ruff + validate.py green.",
+    "PROTOCOL in project_memory/staging/(this task id)/protocol.md: the file table, the red-first lines, the exact "
+    "SKILL.md replacement line for the lead's local edit, the four Instructions texts + schedules (Fri/Sat/Sun/Mon "
+    "~20:00) for the user, the (g) row (Opus, tokens, wall-clock read), the patch path (no VERSION hunk). No commit, "
+    "no push, no routine created from a remote session (DEC-0090 (5)).",
+]
+
+
+def main():
+    argv = list(KERNEL) + [
+        "create-task", "--product-requirement", "PR-0010", "--derives-from", "PR-0010",
+        "--type", "implementation", "--assigned-role", "harness-implementer", "--acceptance-ref", "AC-1",
+    ]
+    for path in ALLOWED:
+        argv += ["--allowed-scope", path]
+    for path in FORBIDDEN:
+        argv += ["--forbidden-scope", path]
+    for line in INPUTS:
+        argv += ["--required-input", line]
+    for line in OUTPUTS:
+        argv += ["--expected-output", line]
+    env = dict(os.environ, PYTHONPATH="team-kits")
+    result = subprocess.run(argv, cwd=ROOT, env=env, capture_output=True, text=True, encoding="utf-8")
+    print(result.stdout.strip()[-600:])
+    if result.returncode != 0:
+        print(result.stderr.strip()[-1500:])
+        return result.returncode
+    new_id = result.stdout.strip().split()[0]
+    body = json.dumps({"work": [new_id]})
+    upd = subprocess.run(list(KERNEL) + ["update", "DEC-0090"], cwd=ROOT, env=env, input=body,
+                         capture_output=True, text=True, encoding="utf-8")
+    print(upd.stdout.strip()[-300:], upd.stderr.strip()[-300:])
+    return upd.returncode
+
+
+if __name__ == "__main__":
+    sys.exit(main())

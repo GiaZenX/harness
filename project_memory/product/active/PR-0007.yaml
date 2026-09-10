@@ -47,7 +47,8 @@ invariants:
 out_of_scope:
 - Repo layout changes beyond .gitattributes and .github
 priority: normal
-status: APPROVED
+status: DELIVERED
 revision: 1
-approval_ref: APR-0005
+approval_ref: APR-0016
 created: '2026-09-04T02:54:26'
+approved_hash: eb02a0b363bec14ce1746f7878589be86e4aad7ffbdb3e619da2851bb47f2e03

@@ -1,0 +1,33 @@
+id: BUG-0083
+title: 'Kernel: report._root_of resolves ONE hop while _hangs_from is transitive --
+  the research chain RQ -> HYP -> EXP -> TSK the constitution documents cannot be
+  created (H92)'
+related_pr: FR-0029
+observed: 'Stream D pilot + verifier, 2026-09-01, scaffolded research project via
+  scripts/harness.py only: capture EXP under HYP-0001 rc 0; create-task --product-requirement
+  RQ-0001 --derives-from EXP-0001 -> rc 1 ''derives_from EXP-0001 belongs to HYP-0001,
+  not to this task root RQ-0001 -- refused at creation (spec II.8)''. _hangs_from(EXP-0001
+  -> RQ-0001) is True; _root_of(EXP) returns HYP-0001. Three independent proofs the
+  CONSTITUTION is right and the kernel wrong: cli.py:484 names EXP as a legal --derives-from
+  origin; cli.py:482 names RQ as the research root (ROOT_TYPE_BY_KIT); the refusal''s
+  own second remedy says ''name an origin that hangs from RQ-0001'' -- transitive
+  wording while the check reads one hop. The dev kit never hits it (every task origin
+  sits one level under PR).'
+expected: _assert_task_origin_matches_root (dispatch.py) and _check_task_origins (report.py)
+  judge by transitive descent from the root, not by the first parent; the documented
+  research chain is creatable; the pinning test tools/test_research_chain.py::test_a_task_on_an_experiment_cannot_name_the_question_the_experiment_hangs_from
+  is INVERTED in the same change (its docstring says so).
+repro: See observed; verifier rig C:/Offline Repos/v2-testbed/_round-scratch/TSK-0103/vrig/proj.
+severity: high
+acceptance_criteria:
+- id: AC-1
+  text: research chain RQ->HYP->EXP->TSK creates and dispatches end to end on a scaffolded
+    project; red-first via the inverted pin test
+- id: AC-2
+  text: dev and office chains unchanged (their existing origin tests stay green)
+status: VERIFIED
+revision: 1
+approval_ref: APR-0001
+created: '2026-09-01T23:17:59'
+approved_hash: c08ec5264a2b9961a219c2d8421dbea53409a490eb57cfeb1857d7c0f0d2a733
+closed_at: '2026-09-05T21:32:15'

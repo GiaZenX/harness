@@ -1,0 +1,34 @@
+id: BUG-0033
+title: test_gate1_answers_before_its_registration_gives_up fails under host load and
+  passes idle -- 'host too noisy' and 'gate too slow' are indistinguishable
+related_pr: PR-0007
+observed: 'Three measurements on 2026-08-13, same tree: (1) full-suite run under the
+  verifier''s parallel load: FAILED at :4102 (''the gate answered after 2.09s while
+  its registration gives it 2s''); (2) isolated run during the same verification session:
+  FAILED at :4092 at the noise bound (''widest band 0.55s ... noise over 3 runs 0.71s'');
+  (3) clean idle full run after the TSK-0055 rework: PASSED (143 passed in 4512.42s).
+  The failure mode wanders with host load and vanishes idle -- so a red from this
+  test cannot be read: it means ''host busy'' as often as ''gate slow'', and a suite
+  that is red for the first reason masks the second. Neither the test nor .claude/settings.json
+  timeouts were touched by the round that surfaced it (TSK-0055 changes docs/ + project_memory/
+  only, measured).'
+expected: On a host whose measured noise exceeds every offered band, the test refuses
+  the measurement HONESTLY (an explicit skip naming the noise figure) instead of failing
+  -- or the measurement gains enough headroom to be a measurement again. A red that
+  means 'host too noisy' must be distinguishable from 'gate too slow'.
+repro: python -B -m pytest .claude/hooks/test_gates.py -q -k gate1_answers_before_its_registration
+  -- on this host (2026-08-13) it fails at the noise bound in an otherwise idle run.
+severity: medium
+acceptance_criteria:
+- 'AC-1: an idle-host isolated run is green or an explicit skip that names the measured
+  noise and band'
+- 'AC-2: ''host too noisy'' and ''gate too slow'' produce distinguishable outcomes'
+- 'AC-3: the edge is pinned by a test that is red without the fix'
+source: TSK-0055 round verification addendum N1, 2026-08-13; full-run log referenced
+  there (2 failed, 141 passed in 4101.94s)
+status: VERIFIED
+revision: 1
+approval_ref: APR-0009
+created: '2026-08-13T11:00:07'
+approved_hash: 5e328bd2687a09c9dcf237eb6c93d723dad71f86148d7f20050d3d2e5b776868
+closed_at: '2026-09-06T15:53:28'

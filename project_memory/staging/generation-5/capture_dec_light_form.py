@@ -1,0 +1,78 @@
+"""Capture the user decision of 2026-09-06: the LIGHT WORKING FORM from generation 6 on -- built on the
+FR-0089 research (three reports + the lead's summary) and the user's questions about marrying it with the
+kernel. Body on stdin to `kernel.cli capture DEC`. Not idempotent -- run once."""
+import json
+import os
+import subprocess
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+KERNEL = [sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory", "capture", "DEC"]
+
+BODY = {
+    "title": "Die leichte Arbeitsform ab Generation 6: der Orchestrator baut nicht selbst, er spawnt EINEN Bauer "
+             "mit dem ganzen Ziel; Team-Groesse wird abgeleitet, nie gefragt; ein unabhaengiges Prueftor je Ziel "
+             "statt Runde um Runde; die Einstiegsfrage heisst 'mit Langzeit-Gedaechtnis oder erstmal frei'",
+    "context": "USER DECISION 2026-09-06 ('ja wir bauen um') after the FR-0089 research: staging/FR-0089/"
+               "research-A-evidence.md (Anthropic ~15x tokens for multi-agent, gains in breadth not depth, "
+               "'coding has fewer truly parallelizable tasks'; MAST 41-87 % failure rates, mostly coordination; "
+               "Cognition: one writer), research-B-practice.md (7-15x cost ratios; frontend the weakest case; "
+               "independent review the one proven gain; effort logarithmic; smallest team first), "
+               "research-C-our-numbers-and-routines.md (gen 3 ~4.6/2.4 M, gen 4 ~4/5.6 M impl/verif tokens, "
+               "verifier share 58 %, the three dearest findings all coordination; TSK-0132 ~105 k tokens per "
+               "AC) and the lead's summary.md. The user's questions and the answers: (1) 'doesn't the kernel "
+               "lock the orchestrator's writes?' -- yes, and that stays: the rule 'the orchestrator builds "
+               "nothing, else it neglects the items' is measured; (2) 'how does he decide whether he needs "
+               "someone from the kit, and when does he install it?' -- derived, not felt; installed at entry; "
+               "(3) 'may he still write code?' -- no; (4) 'he should not ask the team size any more but "
+               "decide himself -- but I fear he will always do everything himself out of habit' -- he cannot: "
+               "code writes are refused by the gate and a builder needs a lease, so his only freedom is one "
+               "builder or two, and two needs check-scopes evidence; (5) the entry question is not "
+               "'structured via a PM?' but 'with long-term documentation of the project or simply free for "
+               "now'. Generation 5 finishes unchanged (two streams closed, one closing, merge TSK-0133 in "
+               "DRAFT) -- restructuring mid-flight would be the next coordination error.",
+    "decision": "(1) ONE WRITER PER GOAL: the PM/lead spawns exactly one BUILDER with the WHOLE goal (the PR "
+                "with its acceptance criteria, the masterplan, the architecture and product questions) -- a "
+                "peer-level model that thinks and builds end to end; the PM keeps items, decisions, approvals, "
+                "evidence and never writes product code (kernel write scope unchanged). (2) TEAM SIZE IS "
+                "DERIVED, NEVER ASKED: a second builder only when check-scopes shows two measured-disjoint file "
+                "sets (e.g. frontend / backend as two goals with two leases); a light model only for a "
+                "MECHANICAL slice with an acceptance criterion and a complete spec; otherwise one builder; the "
+                "presets question of the entry interview is removed, presets become the PM's derivation "
+                "(DEC-0048's 'ask again when a role is missing' stays as the escape); the opposite habit "
+                "(always solo where parallel would pay) is caught by the retrospective step at the goal "
+                "(wall-clock against measured-disjoint scopes). (3) VERIFICATION AT THE GOAL: the builder "
+                "keeps red-first tests per fix (cheap, self-check); the independent verifier runs ONCE when a "
+                "goal is delivered (the delivery/acceptance gate), plus at most one mid-goal check for a large "
+                "goal -- never after every rework; the merge round stays the integration verification. (4) "
+                "ENTRY: the first-contact question becomes 'Mit Langzeit-Gedaechtnis fuer das Projekt "
+                "(Projektakte, Entscheidungen, Beweise) -- oder erstmal frei?'; 'with' installs the kit at "
+                "once (solo default); the product interview stays but shorter; no team-size question. (5) "
+                "EFFORT: medium/high as the default, xhigh only on explicit instruction for a named step. (6) "
+                "WHAT STAYS: project_memory and the kernel as the only writer, the approvals for goal scope and "
+                "delivery, the gates that catch damage (write scope, commit evidence, spawn needs item), "
+                "red-first, the retrospective step. WHAT GOES OR SHRINKS: verification after every change, the "
+                "team-size question, dispatch to many roles as the default, the seam machinery for routine "
+                "work (kept for measured-disjoint parallel goals only). (7) BUILT as generation 6's single "
+                "goal 'the light kit' -- itself built in this form (one builder, one verification gate) so the "
+                "form proves itself; the FR-0089 frontend experiment (one Fable alone vs the kit) is its first "
+                "measurement; the builder's default tier (Fable, or Opus with Fable for architecture/design) is "
+                "the user's open taste question, put at the generation-6 cut. (8) Generation 5 finishes as it "
+                "runs.",
+    "consequences": "Fewer rounds, one context per goal, the verifier where its finds were real (integration), "
+                    "the kernel's locks untouched. Cost: a late verifier finds more at once; a builder-tier "
+                    "goal costs the top model's price per token but fewer tokens overall (to be measured by "
+                    "the experiment). Rejected: the orchestrator writing code (measured item neglect); "
+                    "asking the user for team sizes (a product decision the derivation makes better); keeping "
+                    "per-change verification (the measured cost driver).",
+    "source": "user messages 2026-09-06; FR-0089 + staging/FR-0089/*.md; DEC-0080 (gen-4 retrospective); "
+              "DEC-0063; DEC-0067; DEC-0048; DEC-0081; CLAUDE.md 'Die drei Rollen'; user/claude/CLAUDE.md "
+              "(the entry gate, FR-0048 lineage)",
+}
+
+env = dict(os.environ, PYTHONPATH="team-kits")
+result = subprocess.run(KERNEL, cwd=ROOT, env=env, input=json.dumps(BODY),
+                        capture_output=True, text=True, encoding="utf-8")
+sys.stdout.write(result.stdout)
+sys.stderr.write(result.stderr)
+sys.exit(result.returncode)

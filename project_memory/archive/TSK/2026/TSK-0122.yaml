@@ -1,0 +1,135 @@
+id: TSK-0122
+product_requirement: PR-0005
+derives_from: PR-0005
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-1
+- AC-2
+- AC-3
+- AC-4
+- AC-5
+allowed_scope:
+- team-kits/kernel/**
+- team-kits/*/hooks/gate_dispatch.py
+- .claude/hooks/test_gates.py
+- team-kits/*/templates/project_memory/**
+- team-kits/*/VERSION
+- tools/**
+- docs/**
+forbidden_scope:
+- team-kits/kernel/kitupdate.py
+- team-kits/*/hooks/_*.py
+- team-kits/*/hooks/gate_approval.py
+- team-kits/*/hooks/gate_git.py
+- team-kits/*/hooks/gate_write_scope.py
+- team-kits/*/hooks/session_status.py
+- team-kits/*/hooks/guard_*.py
+- team-kits/*/settings/**
+- team-kits/*/constitution/**
+- team-kits/*/agents/**
+- team-kits/*/skills/**
+- team-kits/*/templates/repo/**
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- .claude/settings.json
+- .claude/agents/**
+- .github/**
+- .gitattributes
+- scaffold_team.*
+- install.*
+- init_project_memory.*
+- team-kits/gen_provider_artifacts.py
+- user/**
+- CLAUDE.md
+- project_memory/**
+required_inputs:
+- 'project_memory/product/active/PR-0005.yaml (AC-1..AC-5) and what it absorbed: project_memory/bugs/active/BUG-0090.yaml
+  (selection evidence vs VERIFIED), BUG-0091.yaml (task under an inbox item), project_memory/archive/FR/2026/FR-0085.yaml
+  (SR duty by class), FR-0087.yaml (holes as items), project_memory/staging/TSK-0118/stream-protocol.md
+  section 3 (C-2 refusal on overlapping scope in create_lease, C-3 worktree field
+  on the lease -- with the two D tests that go red) and TSK-0117 section 6/10 (what
+  C built: check-scopes, seam_scope, plan approval, blocked, minted_via)'
+- DEC-0061 (run scope), DEC-0064 (MST), DEC-0066 (hierarchy), DEC-0067 (bundle at
+  PR), DEC-0068 (plan approval), DEC-0069 (H138 acceptance as the shape of a user-accepted
+  hole), DEC-0070 (rules 1 and 2), DEC-0056
+- 'team-kits/kernel/backlog_types.py (AUTOMATA, REQUIRED_FIELDS, ROOT_TYPE_BY_KIT,
+  APPROVAL_TRANSITIONS, EVIDENCE_RESULTS, RUN_SCOPES), state.py (_assert_confirmed,
+  capture, _dates_in), report.py (_delivery_evidence, qa_verdicts, validate_state),
+  approvals.py (plan, minted_via, IRREVERSIBLE_KINDS), dispatch.py (create_lease),
+  scopes.py (check-scopes), cli.py; team-kits/*/hooks/gate_dispatch.py; .claude/hooks/test_gates.py
+  (the hole-list judges + name-resolution tests: they move to read ITEMS); docs/POST_V2_WISHLIST.md
+  (150 entries to migrate once)'
+- 'project_memory/staging/generation-3-streams.md: the three cut findings about hand-reserved
+  hole numbers (why FR-0087 exists) and the two-readers question'
+expected_outputs:
+- 'PR-0005 AC-1 (BUG-0090): a DEC line beside DEC-0061 decides refuse-or-walk; then
+  either a passing test Evidence with run_scope selection that names the BUG walks
+  FIXED -> VERIFIED, or the refusal text and evidence --help stop describing a targeted
+  run; the merge gate''s reading unchanged (test_report::test_a_pass_from_a_partial_run_is_not_merge_evidence_and_a_fail_still_is
+  stays green); red-first.'
+- 'PR-0005 AC-2 (BUG-0091): create-task refuses an FR as product_requirement or derives_from
+  with the triage route in the remedy (CONVERTED + resulting_item), or the DEC documents
+  the allowed case and the board labels it as inbox work; existing tasks stay valid;
+  a check over the index counts TSKs whose root is an FR (21 today); red-first.'
+- 'PR-0005 AC-3 (FR-0085): a TSK under a PR of class normal or large is refused at
+  dispatch (kernel create_lease or gate_dispatch, decided with reasons) while no ACCEPTED
+  SR hangs under that PR, remedy names the architect step; small is not asked; measured
+  on a scaffolded pilot as a process; red-first.'
+- 'PR-0005 AC-4 (FR-0087): DEC first (BUG-shaped with a ''limits'' duty and a user-minted
+  acceptance edge, or an own type); ids by the kernel; the test_gates judges-test
+  and name-resolution test read ITEMS (parsed), the merge seam table reads holes from
+  the index; the existing H1-H150 migrated ONCE through the kernel with the H number
+  kept as a field and a GENERATED pointer index left in docs/POST_V2_WISHLIST.md that
+  a hand edit invalidates; the kits ship the same shape (templates/project_memory
+  dirs); no second list beside the first for longer than this round; the other three
+  streams file their new holes in the current format and you carry them over at merge
+  -- say how in the protocol.'
+- 'PR-0005 AC-5 (C-2/C-3): create_lease refuses a task whose allowed_scope overlaps
+  a running lease at file level (check-scopes as the predicate, seam_scope subtracted);
+  a lease carries the worktree it was granted for; D''s tests test_nothing_shipped_refuses_two_tasks_whose_scopes_overlap
+  and test_the_lease_carries_no_tree_of_its_own rewritten to the new contract in THIS
+  stream with the parallel-streams text lines that change handed to G4-3 verbatim
+  as a seam.'
+- Per absorbed wish or bug its own red-first test measured in a copy outside the repo
+  (restore the defect, see red, put it back) and its own acceptance line in the protocol;
+  the verifier reports PER acceptance criterion of the goal. Every new property claim
+  -- code comment, docstring, docs, hole list -- is MEASURED before handover; a named
+  test must be able to fail (four cases in generation 3 could not); every hole-list
+  citation carries its module prefix; hole numbers H154 to H156 ONLY, reserved here
+  in the item; forbidden_scope project_memory/** EXCEPTS project_memory/staging/(this
+  task id)/ -- said here so the item does not contradict itself (generation-3 cut
+  finding). Wherever the truth about a shell can be executed, a real shell is the
+  arbiter, not a derivation (DEC-0070). Only the READING suites run in the stream;
+  the full suite belongs to the merge (DEC-0050, five breaches in generation 3 ~5
+  h).
+- 'Seams: .claude/hooks/test_gates.py shared with G4-1 (gate 5 tests) and G4-4 (timing
+  test) -- your block only; kitupdate.py is G4-4''s (BUG-0088) -- forbidden here;
+  constitution / PM-skill sentences (SR duty, inbox rule, hole items) -> G4-3 verbatim;
+  hooks other than gate_dispatch.py -> G4-1; every other stream''s hole entries arrive
+  in the merge -- your migration must accept the current entry format from a patch.'
+- 'Handover: worktree C:/Offline Repos/v2-testbed/_worktrees/g4-kernel (branch g4/kernel
+  off feat/harness-v2 at 75a00d1); ALL scratch only under C:/Offline Repos/v2-testbed/_round-scratch/(this
+  task id)/; a red-first rig refuses to run outside its own directory and writes binary
+  (the generation-3 CRLF incident); verifier copies made WITHOUT the .git file of
+  the worktree; patch = the worktree diff WITHOUT the VERSION hunks at C:/Offline
+  Repos/v2-testbed/_round-scratch/(this task id)/stream-kernel.patch (a patch carrying
+  VERSION hunks is a cut finding, DEC-0070); protocol at project_memory/staging/(this
+  task id)/stream-protocol.md with: seam table (received / expected at merge), per-criterion
+  acceptance line + red-first tests, measured lines, what was deliberately not closed
+  but named, the one-line rejected alternative of the plan (FR-0084 shape), suite
+  runs (reading suites only), provisional VERSION stamp, wall-clock and tokens for
+  the (g) table. No commit, no push, no install to the global store.'
+dependencies: []
+seam_scope:
+- tools/**
+- docs/**
+- team-kits/*/VERSION
+- .claude/hooks/test_gates.py
+- docs/POST_V2_WISHLIST.md
+root_revision: 1
+status: CANCELLED
+revision: 1
+approval_ref: null
+created: '2026-09-04T06:01:46'
+closed_at: '2026-09-05T21:32:21'

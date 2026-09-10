@@ -61,7 +61,8 @@ out_of_scope:
   show open holes
 - F5 evidence-path normalisation unless it falls out of AC-1
 priority: high
-status: APPROVED
+status: DELIVERED
 revision: 1
-approval_ref: APR-0005
+approval_ref: APR-0014
 created: '2026-09-04T02:54:24'
+approved_hash: bf7742046cac1f00ba0b8b1b5703831d6f4ef40edac2f69845e074595e33ed5e

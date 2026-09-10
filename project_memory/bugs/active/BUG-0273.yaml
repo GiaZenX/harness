@@ -1,0 +1,64 @@
+id: BUG-0273
+title: 'The radar claim reader admits a cadence sentence that names no mechanism word:
+  ''The watcher duo runs once a week without a human.'' passes tools/test_radar_trigger.py
+  by design, because a claim is recognised by its WORD (schedule, automatic, cron,
+  Desktop task, the cloud option''s names, a weekday) and a cadence alone is read
+  as intent -- so a sentence asserting agentless recurrence in plain words is judged
+  by nobody (TSK-0133 verify round 1, P6; beside H182)'
+related_pr: PR-0010
+severity: low
+observed: 'MEASURED 2026-09-11 (TSK-0133, generation-5 merge, verify round 1 P6):
+  `tools/test_radar_trigger.py` reads the three texts that say how a watcher run starts
+  (`TEXTS`: radar/README.md and the two watcher definitions) and holds every CLAIM
+  against `tools/radar_routine.py --describe`. What counts as a claim is `automation_claims`:
+  a sentence carrying a form of ''schedule'', ''automatic'', ''cron'', the Task Scheduler,
+  a weekday, ''Desktop task/routine/app'', or a name the declaration publishes for
+  its not-built cloud option. The module docstring says the other half out loud: a
+  cadence on its own (''once a week'', ''weekly'') is an intent and not a claim of
+  a mechanism. The verifier''s sentence -- ''The watcher duo runs once a week without
+  a human.'' -- carries none of the claim words and asserts exactly what the reader
+  exists to catch: recurrence with nobody starting it. Measured with the shipped reader:
+  `automation_claims(...)` returns [] for it, so `schedule_claim_offence` is never
+  asked. The shipped texts do not carry such a sentence today (the three texts are
+  the subject of `test_no_text_claims_a_schedule_the_repo_does_not_build`, which is
+  green); the gap is the SHAPE the reader does not see.'
+expected: 'A sentence asserting that a run happens without a person is a claim whether
+  or not it uses a mechanism word: the reader recognises the AGENTLESS-RECURRENCE
+  shape (a cadence -- ''once a week'', ''weekly'', ''every week'' -- together with
+  a phrase that removes the person: ''without a human'', ''by itself'', ''on its own'',
+  ''nobody starts'') and judges it like every other claim. The definition is the property
+  ''recurs AND nobody named'', not a longer word list; both ends measured with sentences
+  the test writes itself, and the shipped texts re-read under it.'
+repro: '`python - <<''EOF''` in the repo: `import sys; sys.path.insert(0, ''tools'');
+  import test_radar_trigger as t; print(t.automation_claims(''The watcher duo runs
+  once a week without a human.''))` -> `[]`. Compare `t.automation_claims(''The watcher
+  duo runs on a weekly schedule.'')` -> one claim. The reader''s word list is `AUTOMATION_CLAIM_RX`
+  in `tools/test_radar_trigger.py`; the sentence it does not see is the verifier''s.'
+acceptance_criteria:
+- id: AC-1
+  text: the sentence 'The watcher duo runs once a week without a human.' is read as
+    a claim and refused against today's declaration (the codex half has no recorded
+    task), measured in tools/test_radar_trigger.py::test_the_claim_reader_reads_what_it_claims
+- id: AC-2
+  text: a cadence sentence that names who starts the run ('meant to run once a week;
+    the lead starts it') stays no claim, so the three shipped texts keep their true
+    sentences
+- id: AC-3
+  text: the shape is defined as a property (cadence AND the person removed), and the
+    definition says in its docstring which phrasing it deliberately does not read
+limits: 'The damage is bounded: the reader''s subject is three short texts (radar/README.md,
+  two watcher definitions), all rewritten in generation 5 and read by the merge verifier
+  sentence by sentence; a sentence of the missing shape would have to be written INTO
+  one of them, and nothing in the repository generates those texts. What it does not
+  cover until closed: a future editor who writes ''runs weekly by itself'' about the
+  codex half before its Desktop task is recorded is refused by nothing but the reviewer.
+  The neighbouring hole H182 (BUG-0264) is the other end of the same reader: four
+  schedule claims in `.claude/hooks/` that no test reads at all.'
+source: TSK-0133 merge protocol (project_memory/staging/TSK-0133/merge-protocol.md),
+  verify round 1 finding P6 (project_memory/staging/TSK-0133/verify-round-1.md); tools/test_radar_trigger.py
+  module docstring ('a cadence on its own is an intent'); DEC-0089; H182 (BUG-0264)
+hole_number: H189
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-11T01:17:25'

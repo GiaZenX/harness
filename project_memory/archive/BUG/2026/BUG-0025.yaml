@@ -1,0 +1,44 @@
+id: BUG-0025
+title: .gitattributes pinnt .md nicht auf eol=lf -- ein Standard-Windows-Klon blaeht
+  das Lead-Paket ueber das Limit und install.sh bricht ab
+related_pr: PR-0007
+observed: 'Live-Handover-Pilot 2026-08-11 + Lead-Nachmessung (docs/pilot/2026-08-11-live-handover-bypasspermissions.md).
+  Gemessen: .gitattributes pinnt *.py/*.sh/VERSION auf ''eol=lf'', laesst .md aber
+  unter ''* text=auto''. Auf einem LF-Arbeitsbaum ist das Lead-Instruction-Package
+  (constitution/AGENTS.md + agents/<lead>.md) exakt am Rekord (dev 30674==30674, office
+  31787, research 34761) und tools/validate.py besteht. Sobald .md als CRLF vorliegt
+  -- was ''git archive'' auf diesem Windows-Host tut und was ein Standard-Git-for-Windows-Klon
+  mit autocrlf=true beim Checkout tut -- waechst das Paket um ~1 Byte je Zeile (dev
+  31006, office 32124, research 35129) und tools/validate.py bricht mit ''lead instruction
+  package is N bytes (> M recorded, spec II.5)'' ab. install.sh ruft validate.py VOR
+  der Installation der globalen User-Dateien (inkl. handover_guard.py) und macht exit
+  1 -- ein solcher Klon installiert GAR NICHTS, auch nicht den BUG-0016-Guard. Ersetzt
+  die falsch gerahmte BUG-0024 (die behauptete faelschlich, zwei Commits seien mit
+  rotem validate.py gelandet; tatsaechlich sind sie auf einem LF-Baum gruen).'
+expected: 'Der Groessencheck ist gegen den Zeilenenden-Stil stabil: entweder pinnt
+  .gitattributes text/.md auf eol=lf (wie schon .py/.sh/VERSION), sodass jeder Checkout
+  LF ist, oder lead_package.size misst zeilenenden-normalisiert. Zusaetzlich (Verwandtschaft
+  BUG-0014/urspruenglich BUG-0024): tools/validate.py laeuft in der Abnahme, gegen
+  die committet wird, damit eine install-blockierende Roetung nicht nur beim echten
+  install.sh auffaellt.'
+repro: 'Auf einem Host mit git config core.autocrlf=true frisch klonen (Git-for-Windows-Default),
+  dann bash install.sh -- validate.py bricht an den Lead-Package-Groessen ab. Oder:
+  git archive HEAD <lead-package-datei> | tar -xO | wc -c > blob-Groesse (CRLF-inflationiert).'
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: Ein Checkout mit autocrlf=true (oder eine CRLF-Extraktion) laesst tools/validate.py
+    bestehen -- gemessen an echten Byte-Groessen, nicht angenommen
+- id: AC-2
+  text: 'Ein Test wird ohne den Fix rot: CRLF-Lead-Package ueber Rekord heute -> danach
+    stabil (extern belegt)'
+- id: AC-3
+  text: tools/validate.py (inkl. Lead-Package-Groesse) ist Teil der Abnahme, gegen
+    die Gate 3 committen laesst -- eine install-blockierende Roetung wird vor dem
+    Ship sichtbar (Verwandtschaft BUG-0014)
+status: VERIFIED
+revision: 1
+approval_ref: APR-0008
+created: '2026-08-11T05:57:29'
+approved_hash: 4bf2bf9b2b95a469ddb75d62fd22e9b9d8725823c7dd91a0e59ee640cd07f46c
+closed_at: '2026-09-06T15:52:46'

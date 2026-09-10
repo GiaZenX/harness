@@ -1,0 +1,75 @@
+id: BUG-0266
+title: 'The project-auditor routine is REMINDED but cannot be DISPATCHED on its own
+  route: `request-approval` offers twelve kinds and neither `routine` nor `analysis`,
+  so the only walkable way to run the auditor is an ordinary work order with a writable
+  allowed_scope -- measured as a process on a scaffolded dev pilot (new, TSK-0130,
+  DEC-0084 (2)(b), confirms H111 four weeks on)'
+related_pr: PR-0010
+severity: medium
+observed: "**The user's question, measured** (DEC-0084 (2)(b): \"Macht er das ueberhaupt?\"\
+  ). On a scaffolded dev-team pilot, everything as a PROCESS, 2026-09-06 07:26 (`C:/Offline\
+  \ Repos/v2-testbed/_round-scratch/TSK-0130/routine_probe.log.json`):\n  * DECLARED:\
+  \ yes. `session_status.py` is registered on `SessionStart` in the project's own\
+  \ `settings.json`; the shared `hooks/_routine.py` names `AUDIT_ROLE = project-auditor`\
+  \ and a period of one ISO week (`2026-W36` at the time of the run); `.claude/agents/project-auditor.md`\
+  \ is installed.\n  * REPORTED DUE: yes. With an empty event log the hook printed:\
+  \ \"ROUTINE DUE (2026-08-31): the project-auditor has not run in 2026-W36 (last\
+  \ run in this project's event log: none) - propose it to the user and spawn it yourself;\
+  \ no hook starts a run.\"\n  * CLEARED BY A REAL RUN: yes. One run record written\
+  \ by the project's own `notify_agent_events.py` as a process (`{\"event\": \"subagent_stop\"\
+  , \"reason\": \"project-auditor\"}`) made the notice disappear.\n  * DUE AGAIN AFTER\
+  \ THE CADENCE: yes. The same record moved eight days back brought the sentence back,\
+  \ now naming the older run.\n  * SPAWNED: **no, not on its own route.** The constitutions\
+  \ say the auditor's dispatch \"rides on an `APR.kind: routine` ... or on an `APR.kind:\
+  \ analysis`\". Measured against the INSTALLED entry point of the pilot: `python\
+  \ scripts/harness.py request-approval routine PR-0001` -> `invalid choice: 'routine'\
+  \ (choose from 'acceptance', 'delivery', 'document_proposal', 'document_revision',\
+  \ 'filing_correction', 'filing_rule', 'hole_exception', 'kit_update', 'plan', 'preset',\
+  \ 'push', 'scope')`; the same for `analysis`. Neither kind has a producer -- which\
+  \ is what `H111` recorded and what this measurement confirms is still true.\n  *\
+  \ WHAT DOES WORK: an ORDINARY work order. `create-task --type analysis --assigned-role\
+  \ project-auditor --allowed-scope docs/audit/` -> `TSK-0003 DRAFT`, `transition\
+  \ READY`, `dispatch` -> a lease with a header (and, since this round, `rung opus`\
+  \ from DEC-0034 rule 5). So the auditor runs only as a normal task that CARRIES\
+  \ A WRITABLE SCOPE -- exactly what the routine route exists to prevent (\"the kernel\
+  \ binds the ROLE and refuses a task whose WORK ORDER claims any `allowed_scope`\"\
+  ), and `create-task` makes `--allowed-scope` mandatory.\n  * `H158` (G4-3) is the\
+  \ neighbouring measurement and stays true for a different reason: in THIS repository,\
+  \ which runs no kit, no occasion makes the audit run due at all -- there is no `session_status`\
+  \ to speak. The pilot shows the notice does fire where a kit IS installed."
+expected: Either `request-approval` gains the `routine` kind (a manifest hashing role,
+  read-only scope, trigger and cadence, as the constitutions already describe) so
+  the auditor can be dispatched without a writable scope, or the constitutions stop
+  describing a route that has no producer and say what the auditor really runs as.
+  Whichever way it goes, the reminder half is already built and measured and needs
+  nothing.
+repro: 'Scaffold a dev-team pilot; empty `project_memory/.audit/hook_events.jsonl`;
+  run `.claude/hooks/session_status.py` with `{"hook_event_name": "SessionStart",
+  "source": "startup"}` -> the ROUTINE DUE sentence. Then `python scripts/harness.py
+  request-approval routine <PR-ID>` -> argparse refuses the kind. Full log: `routine_probe.log.json`
+  of TSK-0130.'
+acceptance_criteria:
+- id: AC-1
+  text: a DEC decides whether the routine approval kind is built or the route is rewritten;
+    the three constitutions and `hooks/_routine.py` say the same thing afterwards
+- id: AC-2
+  text: 'if built: a scaffolded pilot dispatches the auditor with NO allowed_scope
+    on a user-minted routine approval, measured as a process, red-first'
+- id: AC-3
+  text: the reminder half keeps its measured behaviour (due -> cleared by a run ->
+    due again one ISO week later), guarded by the shipped `tools/test_routine_feed.py`
+limits: 'The reminder is real and works, so the run is never silently forgotten: every
+  session start of a kit project names the owed run, and the notice says in its own
+  words that it only proposes. The auditor is also not unrunnable -- it runs today
+  as an ordinary analysis task under the goal''s scope approval, which is a user-minted
+  approval like any other; what is missing is the read-only route, so the cost is
+  a broader scope than the constitution intends, not an unaudited project. The kernel''s
+  own refusal already binds the role and the read-only rule on the routine route the
+  day the kind exists (`dispatch._covering_routine_apr`).'
+source: DEC-0084 (2)(b); routine_probe.log.json of TSK-0130 (2026-09-06 07:26, scaffolded
+  dev pilot, all steps as processes); H111; H158; spec II.2 routines; FR-0038
+hole_number: H184
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-06T07:42:00'

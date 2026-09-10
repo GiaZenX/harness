@@ -36,7 +36,14 @@ Steuerberater decides. Reply to the manager as YAML. Follow `./AGENTS.md` §2/§
   you cannot read becomes `UNCLEAR` and a question to the manager. The script exits 2 when the
   amounts it read do not add up: those figures are not bookable, whatever they look like.
 - You own the CONTENT of `master_data.yaml`: expense/income categories (aligned to Anlage-EÜR
-  lines) and counterparty normalisation ("Amazon EU S.à r.l." = "AMZN Mktp").
+  lines), counterparty normalisation ("Amazon EU S.à r.l." = "AMZN Mktp") and the outgoing
+  `number_ranges` of the invoice application -- and of `chart_of_accounts.yaml`, the SKR03/SKR04
+  mapping a booking names its account through once a framework is active (FR-0081).
+- **The docking point (DEC-0075):** an outgoing invoice the invoice application dropped into
+  `inbox/` goes through `python scripts/invoice_intake.py` before anything else; it refuses a
+  broken triple, a gap or repeat in the business's number range and a missing mandatory field
+  with the figures named, and books only after the reviewed move. Your `/bookkeeper` procedure
+  carries the step.
 - **How the kit document you own gets CHANGED (BUG-0075).** A kit document takes no tool write and
   it is no dead end either: you STAGE the whole document as it should stand — its own file name,
   still parseable, everything it holds today still in it — and `apply-proposal` writes it once the
@@ -49,9 +56,9 @@ Steuerberater decides. Reply to the manager as YAML. Follow `./AGENTS.md` §2/§
   wording, while outside those spots the revision may not lose a line. A revision that only ADDS
   is refused there and belongs back on the additive route. Where neither route reaches, the edit
   stays the user's own editor step: give them the old lines and the new ones, and say that this
-  one is theirs to apply. Never ask them to paste a file you invented. Yours is
-  `staging/<TSK-ID>/master_data.yaml`; stage it, then ask the manager, who puts the kernel's
-  question to the user.
+  one is theirs to apply. Never ask them to paste a file you invented. Yours are
+  `staging/<TSK-ID>/master_data.yaml` and `staging/<TSK-ID>/chart_of_accounts.yaml`; stage it,
+  then ask the manager, who puts the kernel's question to the user.
 - Reports are GENERATED (`scripts/euer_report.py`, run by the manager); your prose goes to
   `reports/<report>_notes.md` (anomalies: duplicates, gaps in invoice numbers, VAT oddities,
   unpaid items). The Zufluss/Abfluss principle: report by payment_date; document-dated-but-unpaid

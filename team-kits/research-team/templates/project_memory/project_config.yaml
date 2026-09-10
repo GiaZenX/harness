@@ -19,12 +19,15 @@ project:
 # (one-time project trust + /hooks trust required before its hooks enforce).
 providers: [claude, codex]
 
-# Model ladder: haiku < sonnet < opus. Specialists DEFAULT to sonnet (haiku failed the QA gate on
-# complex code in a real run). Use haiku only for genuinely simple roles; escalate to opus for the hardest.
-# Tier aliases: `lead`/`worker`/`light` are accepted as values (= opus/sonnet/haiku on Claude);
-# provider generators translate tiers to the concrete model via team-kits/model_tiers.yaml.
-# Up-scaling needs user confirmation; down-scaling the PM MAY do itself but MUST report it with a reason
-# (constitution §11). NEVER silent up-scaling, NEVER automatic.
+# Three rungs, sonnet < opus < fable (DEC-0076; the kit's own ladder is `ladder.yaml` beside its
+# constitution). Specialists DEFAULT to sonnet. Accepted values: the aliases `lead`/`worker`
+# (= opus/sonnet on Claude), the rung names, or the top-rung pin `fable`; `light`/haiku are retired
+# and the generator refuses them with a sentence naming DEC-0076. Provider generators translate a
+# value to the concrete model via team-kits/model_tiers.yaml.
+# What is pinned here is the rung an order STARTS on; which rung it RUNS on is derived by the kernel
+# at every dispatch from this map, the role's class in `ladder.yaml` and the order's failed runs
+# (constitution §11, the ladder paragraph -- DEC-0077/DEC-0078). Down-scaling the PM MAY do itself
+# but MUST report it with a reason; growing the team stays user-confirmed.
 #
 # The PM is the FOREGROUND agent and runs on opus (kit .claude/settings.json + its own agent frontmatter;
 # override per session via /model); it is NOT listed here. The keys below are the specialist SUBAGENTS — keys match
@@ -43,10 +46,12 @@ model_map:
 
 # Reasoning effort per specialist (low | medium | high | xhigh | max). Like model_map, the scaffold stamps
 # each specialist's `effort:` frontmatter from this map; session_status nags on drift. FACTS (official
-# effort doc, verified 2026-07): haiku has NO effort parameter; Sonnet 5 supports xhigh AND max ("opus-only"
-# was wrong); Opus coding guidance says start at xhigh; bulk subagent work is the documented `low` case.
-# DEFAULT: all specialists `high`. ESCALATION (stuck role, USER-confirmed, §11): the combined ladder
-# `sonnet-high -> sonnet-xhigh -> opus-high -> opus-xhigh/max`. NEVER silent up-scaling.
+# effort doc, verified 2026-07): Sonnet 5 supports xhigh AND max ("opus-only" was wrong); Opus coding
+# guidance says start at xhigh; bulk subagent work is the documented `low` case.
+# DEFAULT: all specialists `high`. The ladder DERIVES an effort per order as well (`ladder.yaml`:
+# high, xhigh for a `large` goal) and shows it on the lease and in the brief -- but what a child RUNS
+# on is the value stamped from THIS map, because the platform has no per-spawn effort parameter
+# (measured 2026-09-05, BUG-0251). There is no user-gated escalation ladder any more (DEC-0077).
 effort_map:
   methodologist: high
   researcher: high

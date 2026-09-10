@@ -1,0 +1,7 @@
+# BUG-0088 -- confirming selection, started 2026-09-05 22:58:58 (clock read)
+# tree: C:/Offline Repos/v2-testbed/_worktrees/g5-stock (code b7f282e + TSK-0131)
+# python -B -m pytest tools/test_kitupdate.py::test_a_memory_tree_is_residue_exactly_where_no_installed_role_declares_the_key tools/test_kitupdate.py::test_the_update_report_names_a_memory_tree_no_installed_role_declares -q
+
+..                                                                       [100%]
+2 passed in 15.27s
+

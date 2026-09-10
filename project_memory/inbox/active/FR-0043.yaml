@@ -11,3 +11,7 @@ created: '2026-08-16T14:06:45'
 triage_result: 'USER VERDICT 2026-09-02 (FR survey, asked one by one via AskUserQuestion):
   Spaeter.'
 related_pr: PR-0003
+source: 'RE-MEASURED 2026-09-05 (TSK-0131, PR-0008 AC-2) against b7f282e: still NOT
+  built. `grep -in ''bench|p95|latency'' .github/workflows/*.yml` finds nothing --
+  the shipped workflow carries no latency measurement of any kind. The wish stands
+  as filed; its source describes something that is not built, so it stays TRIAGED.'

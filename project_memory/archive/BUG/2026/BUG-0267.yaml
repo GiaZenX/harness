@@ -1,0 +1,25 @@
+id: BUG-0267
+title: CLAUDE.md sagt "die vier Gates dieses Repos", registriert sind fuenf -- und
+  die Datei ist fuer jede Rolle verbotener Bereich
+related_pr: PR-0008
+observed: SUPERSEDED 2026-09-06 by BUG-0268 (H185), which carries the same measurement
+  as a HOLE item -- kernel-allocated number, `limits`, and therefore visible in the
+  pointer index. This first filing was a plain BUG and the round's own order asks
+  for `capture BUG --hole` for a measured gap (verifier round 2, Pflicht 8).
+expected: The gate section of CLAUDE.md names as many gates as settings.json registers,
+  or it says the count is derived and points at the file instead of repeating it --
+  the same rule the repository applies to every other number.
+repro: Read the heading 'Die vier Gates dieses Repos' in CLAUDE.md and count the PreToolUse
+  entries in .claude/settings.json.
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: CLAUDE.md's gate section agrees with settings.json, measured by reading both
+- id: AC-2
+  text: The correction is made by whoever may write CLAUDE.md -- the user -- because
+    every role's scope forbids it
+status: DUPLICATE
+revision: 1
+approval_ref: null
+created: '2026-09-06T08:02:22'
+closed_at: '2026-09-06T14:46:47'

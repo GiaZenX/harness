@@ -1,0 +1,37 @@
+{
+  "proposal": "DEC-first: correspondence capability of the office kit -- a ROLE or a TEACHABLE WORKFLOW (FR-0033, PR-0009 AC-1)",
+  "stream": "TSK-0132 (G5-3 office package)",
+  "written": "2026-09-05T21:23 (the predecessor agent, stopped by DEC-0081); reviewed and handed to the lead 2026-09-05T22:26, both clock readings",
+  "decides": "the user, through the lead (AskUserQuestion); the stream waits on the ROLE WIRING only and builds the decision-neutral core meanwhile",
+  "question_de": "Wie soll das Büro-Kit Angebote, Mahnungen und Kundenbriefe schreiben: als eigene Rolle (ein weiterer Spezialist, der pro Brief beauftragt wird) oder als beigebrachter Arbeitsablauf (ein Skript plus eine Anleitung, die der Büro-Manager selbst ausführt)? Diese Wahl ist nicht endgültig: Alles, was für den Ablauf gebaut wird, wird bei einer späteren Rolle deren Arbeitsanleitung -- nichts davon wäre verloren.",
+  "options": [
+    {
+      "key": "workflow",
+      "label_de": "Beigebrachter Arbeitsablauf (Empfohlen)",
+      "description_de": "Ein Skript erzeugt Angebot, Mahnung und Kundenbrief aus Buchführung und Stammdaten als Entwurf im Ausgangsfach; der Büro-Manager prüft jeden Entwurf mit der Klartext-Anleitung des Kits, bevor er ihn dir zum Versand vorlegt. Kein weiterer Spezialist, keine zusätzliche Modellstufe, kein Wartezyklus pro Brief.",
+      "cost_measured": {
+        "files_new": ["team-kits/office-team/skills/correspondence/SKILL.md (reference skill, no role owns it)", "team-kits/office-team/templates/repo/scripts/letter_draft.py", "team-kits/office-team/templates/project_memory/correspondence.yaml (kit document; writer = apply-proposal, measured on a pilot)", "tools/test_office_package.py"],
+        "files_touched": ["team-kits/office-team/constitution/AGENTS.md (2 sentences: the route and the review duty)", "team-kits/office-team/skills/office-manager/SKILL.md (one step; SEAM with G5-1)", "README.md (one line)"],
+        "runtime_per_letter": "one script run (< 1 s measured on the shipped tree) + the manager's own review pass; no dispatch, no lease, no spawn",
+        "ladder": "none -- DEC-0078 pins the office-manager at opus already; the humanizer's reference_for already names office-manager, so the plain-language bar reaches the drafts today"
+      },
+      "what_it_does_not_cover": "a second RUN reading the letter before it leaves (the manager reviews its own draft; the user is the second reader and sends); parallel production of many letters at once; a role memory for correspondence craft. Each of these is exactly what a role would add, and each can be added later by dispatching an existing role (bookkeeper for Mahnungen) as the second reader -- the PROC model carries that without a new role."
+    },
+    {
+      "key": "role",
+      "label_de": "Eigene Rolle (correspondence-clerk)",
+      "description_de": "Ein weiterer Spezialist wird pro Brief beauftragt (Arbeitsauftrag, Freigabe der Prozedur, Start, Rückgabe); der Büro-Manager prüft die Rückgabe. Mehr Trennung der Augen, mehr Kosten je Brief und ein Eintrag in der Modell-Leiter, die gerade ein anderer Strom baut.",
+      "cost_measured": {
+        "files_by_analogy": "a thin shipped office role is named in 11 files today (measured 2026-09-05 on the worktree with _round-scratch/TSK-0132/count_role_wiring.py: marketing-planner 11 files, 8 inside the kit; compliance-researcher 7 files): agents/<role>.md, skills/<role>/SKILL.md, constitution sections 5 and 6, templates/project_memory/project_config.yaml (model_map + effort_map), presets.yaml (which preset installs it), skills/humanizer/SKILL.md (reference_for), README.md, tools/test_role_contracts.py (counts the office roles), tools/constitution_section_pins.json (re-pin) -- plus, since DEC-0078, a rung in team-kits/office-team/ladder.yaml, which is TSK-0130's (G5-2) file and does not exist in this worktree yet: a role cut in this stream is a SEAM with G5-2 or waits for the merge",
+        "runtime_per_letter": "one dispatch: create-task, dispatch lease, spawn (sonnet worker, effort medium per DEC-0078), envelope, submit-result -- the measured office pilot shape is minutes per specialist run; then the manager's review",
+        "ladder": "one more pin in the office ladder declaration (DEC-0078 (3)); the humanizer's reference_for gains the role"
+      },
+      "what_it_does_not_cover": "nothing the workflow covers is lost; what it costs is the wiring above and one dispatch per letter. Its gain is a different RUN writing the draft than the one reviewing it."
+    }
+  ],
+  "recommendation": "workflow",
+  "reason": "FR-0033 itself asked to 'measure what the PROC mechanism can already carry before adding a role'; the office kit's design is teach-once (FR-0028), and DEC-0056 says no scaffold larger than the house. The cost asymmetry is measured (11 files plus a ladder seam owned by another stream, versus 4 new files and 3 touched); the plain-language bar (humanizer) already reaches the manager; and the one thing the role adds -- a second run -- the PROC model can add later without a role. If the user chooses the role anyway, the script, the kit document and the skill built now become that role's procedure unchanged.",
+  "rejected_alternative_of_this_proposal": "a hybrid (Mahnungen by the bookkeeper as a role duty, offers and letters by the manager) was considered and dropped: it splits one capability across two procedure texts and two owners, and the review duty would have to be stated twice -- the two-copies defect this repo pays for.",
+  "built_while_the_user_decides": "the decision-neutral core: scripts/letter_draft.py (offer, reminder, letter from ledger + master data + business profile into outbox/), templates/project_memory/correspondence.yaml (the user's terms: dunning levels, offer validity, closing lines), skills/correspondence/SKILL.md as a REFERENCE skill, the pilot measurement and the humanizer-bar measurement on the three rendered texts. NOT built until the answer: the agent definition, the preset entry, the model/effort map entries, the ladder seam.",
+  "sources": ["FR-0033", "PR-0009 AC-1", "DEC-0056", "DEC-0078", "FR-0028", "team-kits/office-team/skills/humanizer/SKILL.md (reference_for)", "team-kits/office-team/presets.yaml", "C:/Offline Repos/v2-testbed/_round-scratch/TSK-0132/count_role_wiring.py"]
+}

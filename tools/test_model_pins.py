@@ -96,13 +96,16 @@ def pinned_model(root, relative_path):
 
 
 def _model_values(provider_table, aliases):
-    """The MODEL entries of one provider's block: the rows whose key is a tier the aliases name.
+    """The MODEL entries of one provider's block: its rung rows.
 
     The block also carries `effort_field`, which is a frontmatter key and not a model -- reading it
-    as one made the tripwire below refuse `effort` on its first run. The tier rows are told apart
-    by their keys being the alias names, which is the same fact the table itself is built on.
+    as one made the tripwire below refuse `effort` on its first run. Which rows are rungs is the
+    generator's own reading (`gen_provider_artifacts.rungs`), asked rather than re-spelled: since
+    DEC-0076 the rows are keyed by rung name and the top rung has no alias, so "key in aliases"
+    would have read two of three rows.
     """
-    return [value for key, value in provider_table.items() if key in aliases]
+    del aliases  # the rows are told apart by the generator's own reader, not by the alias names
+    return list(tiers_reader.rungs({"block": provider_table}, "block").values())
 
 
 def the_table_can_place(value):
@@ -179,8 +182,18 @@ def test_the_reader_refuses_what_the_table_cannot_place_and_demands_no_tier_be_p
     provider's own model id, which is the shape a copied line takes. Direction two: everything the
     table DECLARES is accepted, and a tree that pins a single tier passes -- a tier nobody pins is
     not an error, and the reader must not quietly require one pin per tier.
+
+    AND THE ROW READER ITSELF, because it decides how much direction two covers: `_model_values`
+    claims to return every RUNG row, and the reading it replaced ("key in aliases") returned only
+    the rows an alias names. That mutation weakens this test instead of failing it -- the loop
+    below simply asks about fewer values -- so the count is asserted against the alias count here.
     """
     tiers, aliases = tiers_reader.load_tiers()
+    reference_rows = _model_values(tiers[REFERENCE], aliases)
+    assert len(reference_rows) > len(aliases), (
+        "the row reader returned %d rows for %d aliases: the top rung has no alias, so a reader "
+        "that tells rows apart by the alias names skips it and everything below asks less"
+        % (len(reference_rows), len(aliases)))
     assert not the_table_can_place("opus-4-1-does-not-exist")
     foreign = [value for provider, table in tiers.items() if provider != REFERENCE
                for value in _model_values(table, aliases)]

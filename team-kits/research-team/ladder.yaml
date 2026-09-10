@@ -1,0 +1,69 @@
+# research-team/ladder.yaml -- THIS kit's model ladder, read by `kernel.dispatch.ladder_for_order` at
+# every lease (`create_lease`) and again at every spawn (`validate_dispatch`, the kit dispatch path).
+#
+# WHY A FILE PER KIT (DEC-0078 (3)/(4)): the kernel carries no ladder of its own and no kit-name
+# branch -- a kit without this file is refused at dispatch with a sentence, and a fourth kit declares
+# its own without a kernel change. research-team and dev-team declare alike today; they are two
+# declarations that may diverge, not one shared rule (the user's words in DEC-0078).
+#
+# WHAT THE TWO AXES ARE (DEC-0077 (1)): the RUNG hangs on the role's pin and this kit's endpoints
+# (DEC-0047), the EFFORT on the goal -- `default` unless the goal's `class` is `large`. DEC-0034's
+# T2 rung -- opus at the large-goal effort -- is a point on the two axes, not a rung of its own
+# (DEC-0076 (2)). Rung and effort are never spelled as ONE hyphenated step in a shipped kit file:
+# that spelling is the retired user-gated ladder, and
+# `test_no_shipped_kit_text_still_names_the_retired_user_gated_ladder`
+# (tools/test_model_ladder.py) reads every shipped kit file for it.
+# Rung names are the reference vocabulary of `team-kits/model_tiers.yaml` (DEC-0076); the provider
+# translation stays there. `tools/test_ladder.py` measures every rule below against the kernel, and
+# `tools/test_model_ladder.py::test_the_constitutions_ladder_paragraph_says_what_the_declaration_says`
+# reads this file and the constitution's ladder paragraph together.
+
+rungs: [sonnet, opus, fable]          # ordered low -> high
+top: fable                            # DEC-0047: research climbs to fable
+
+effort:
+  default: high                       # DEC-0077 (1)
+  large: xhigh                        # when the goal's `class` is large
+
+escalation:
+  # DEC-0034 rule 2: after every FAIL one rung up. What COUNTS as a fail is derived by the kernel
+  # (`dispatch.count_failed_run_locked`), not declared here. The value is the user's rule of
+  # 2026-08-10 (one rung per fail); the pilot of TSK-0130 measured the climb with it -- see
+  # project_memory/staging/TSK-0130/stream-protocol.md, AC-6 -- and DEC-0034 names a different
+  # number as a thing pilots may still move. Nothing else reads it.
+  failed_runs_per_rung: 1
+
+# DEC-0034 rules 1 / 4 / 5 as the rung a CLASS starts on: `top` is this kit's top rung, `pin` the
+# role's own pin, anything else a rung name. Planning and the method design (this kit's architecture
+# step, owned by the methodologist) start on the top rung (rule 1); the reviewer is this kit's QA
+# and never runs below opus (rule 5). This kit has no design class (rule 4 has no holder here). The
+# fall of the BUILD to its pin after the scope approval and the accepted method is not declared
+# here: the kernel refuses a build order before that moment, and
+# `test_a_build_order_reaches_the_ladder_only_after_the_phase_its_class_assumes`
+# (tools/test_ladder.py) measures it instead of this sentence claiming it.
+# Rule 3 (a change touching the method lifts back to the top for that change) is the architecture
+# class on the top rung: the rung is derived per ORDER at every lease and stored nowhere else, so the
+# fall back afterwards is what happens by itself.
+classes:
+  planning: top
+  architecture: top
+  qa: opus
+  build: pin
+
+# Every spawnable role of this kit and its class. Both ends are measured by
+# `tools/test_ladder.py::test_every_kit_role_has_a_class_and_every_classed_role_ships`: a role
+# without a class is refused at dispatch, a class for a role the kit does not ship is a dead line.
+roles:
+  project-manager: planning
+  methodologist: architecture
+  reviewer: qa
+  project-auditor: qa
+  researcher: build
+  research-engineer: build
+  data-analyst: build
+  report-writer: build
+
+# Named per-role exceptions: `top` (a higher or lower endpoint for one role), `effort` (a fixed
+# effort that replaces the pair), `rung` (a fixed starting rung that replaces class and pin). None in
+# this kit.
+exceptions: {}

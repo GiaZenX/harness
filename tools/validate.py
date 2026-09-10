@@ -28,7 +28,8 @@ from preset_config import UniqueKeyLoader, load_preset_catalog  # noqa: E402
 import lead_package  # noqa: E402  — the budget and its subject, defined once
 # The one reader of `model_tiers.yaml`, borrowed rather than re-implemented: which model values a
 # kit source may carry is a property of that file (see `provider_neutral_model`).
-from gen_provider_artifacts import load_tiers, provider_neutral_model  # noqa: E402
+from gen_provider_artifacts import (  # noqa: E402
+    load_tiers, provider_neutral_model, table_places, unplaceable_pin_sentence)
 
 _MODEL_TIERS, _MODEL_ALIASES = load_tiers()
 
@@ -206,10 +207,17 @@ for cfg in glob.glob(ROOT + "/team-kits/*/templates/project_memory/project_confi
             continue
         if "model" in afm and not provider_neutral_model(str(afm["model"]),
                                                          _MODEL_TIERS, _MODEL_ALIASES):
-            fails.append("%s: model '%s' — a kit source carries a provider-NEUTRAL model value: a "
-                         "tier alias (%s) or a value model_tiers.yaml maps per provider without "
-                         "being one provider's own model name"
-                         % (rel(ap), afm["model"], "/".join(sorted(_MODEL_ALIASES))))
+            # The generator's own sentence when the TABLE cannot place the value at all (a retired
+            # rung: the DEC-0076 case); the neutrality sentence when it can but a source may not
+            # carry it (an alias target such as `opus`).
+            if not table_places(str(afm["model"]), _MODEL_TIERS, _MODEL_ALIASES):
+                fails.append("%s: %s" % (rel(ap), unplaceable_pin_sentence(
+                    "the role", afm["model"], _MODEL_TIERS, _MODEL_ALIASES)))
+            else:
+                fails.append("%s: model '%s' — a kit source carries a provider-NEUTRAL model value: a "
+                             "rung alias (%s) or a value model_tiers.yaml maps per provider without "
+                             "being an alias target"
+                             % (rel(ap), afm["model"], "/".join(sorted(_MODEL_ALIASES))))
 
 # 9) kit VERSION stamps must match the kit content (forgetting a bump is a CI failure), and the
 #    constitution marker must sit on line 1 (session_status parses only the first line for the kit key —

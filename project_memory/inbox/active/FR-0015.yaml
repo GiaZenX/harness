@@ -1,7 +1,7 @@
 id: FR-0015
 title: 'BuyPlugGo-Ziel: Produktpflege ueber die API durch einen Subagenten -- bisher
   von nichts angearbeitet'
-related_pr: PR-0001
+related_pr: PR-0009
 request_text: 'NUTZERZIEL (2026-08-10), fuer den konkreten BuyPlugGo-Fall im Office-Kit:
   ein Subagent soll die Produkte ueber die (Shop-)API pflegen -- Artikelbeschreibungen
   nach VORLAGE erzeugen, Preise anpassen wenn eine neue Preisliste kommt, Produkte
@@ -43,3 +43,5 @@ created: '2026-08-10T17:18:09'
 triage_result: 'USER VERDICT 2026-09-02 (FR survey, asked one by one via AskUserQuestion):
   JA, BAUEN -- after the office basics; test shop only, live writes need the user''s
   approval like a push.'
+source: RE-POINTED 2026-09-06 (TSK-0131, PR-0008 AC-2) to the office package goal;
+  the status waits for G5-3, which is building against it in a parallel worktree.

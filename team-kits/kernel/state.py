@@ -56,6 +56,7 @@ from .backlog_types import (
     LEGACY_FIELD,
     NON_AUTOMATON_STATUSES,
     NONEMPTY_FIELDS,
+    names_something,
     OPTIONAL_FIELDS,
     area_segments,
     PARENT_FIELDS,
@@ -859,12 +860,14 @@ class ProjectState:
         # NONEMPTY_FIELDS for why an empty list there is the same claim as no field.
         # Capture-only, because the types that have such a field are exactly the ones
         # the edit path refuses wholesale (IMMUTABLE_TYPES).
-        hollow = [k for k in NONEMPTY_FIELDS.get(item_type, ()) if not fields.get(k)]
+        hollow = [k for k in NONEMPTY_FIELDS.get(item_type, ())
+                  if not names_something(fields.get(k))]
         if hollow:
             raise StateError(
-                "capture %s: %s must name something -- an empty list there is the "
-                "same claim as leaving the field out. Remedy: %s"
-                % (item_type, ", ".join(hollow), _NONEMPTY_REMEDY[item_type])
+                "capture %s: %s must name something -- a list of blanks says exactly what "
+                "leaving the field out says. Remedy: %s"
+                % (item_type, ", ".join(hollow),
+                   _NONEMPTY_REMEDY.get(item_type, _NONEMPTY_REMEDY_DEFAULT))
             )
         # A DATE FIELD HAS TO BE A DATE (DEC-0064) -- `_dates_in` is the reader, and it is the SAME
         # one the edit path asks, so what a role may capture and what it may update cannot come
@@ -1718,7 +1721,14 @@ _NONEMPTY_REMEDY = {
            "`--artifact-ref <path>` for the raw proof, state-relative "
            "(`staging/<task-id>/coverage.html`). A verdict with nothing to point at "
            "is an assertion, and the merge gate would open on it.",
+    "TSK": "pass `--expected-output <path or artefact>` for every result the order is "
+           "measured against (or `expected_outputs: [...]` in the body). An order that "
+           "expects nothing is met by any package, so nothing can verify it (BUG-0023).",
 }
+# The sentence for a type the map above does not name -- so widening `NONEMPTY_FIELDS` by a type
+# refuses with a remedy instead of a KeyError (measured red by
+# `test_report.test_validate_names_a_stored_order_that_expects_nothing`, whose second half widens it).
+_NONEMPTY_REMEDY_DEFAULT = "name at least one entry in the field."
 
 # Fields whose value must come from a CLOSED vocabulary, per type. Every one of
 # them is read by a gate to DECIDE something, which is what closing them buys:

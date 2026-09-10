@@ -57,6 +57,9 @@ from .backlog_types import (
     AREA_SEPARATOR,
     BLOCKED_REASON_FIELD,
     BLOCKED_RESULT,
+    CAPTURE_ONLY_REQUIRED,
+    DEC_WORK_FIELD,
+    DEC_WORK_NONE,
     EVIDENCE_KINDS,
     EVIDENCE_RESULTS,
     HOLE_LIMIT_FIELD,
@@ -67,6 +70,7 @@ from .backlog_types import (
     TransitionError,
     area_segments,
     field_elements,
+    work_is_stated,
 )
 from .schemas import load_schema
 from .state import ProjectState, StateError
@@ -442,6 +446,33 @@ def _line_manifest(state: ProjectState, kind: str, builder, args) -> dict:
         raise UsageError(str(exc)) from None
 
 
+def remedy_flags(builder, values) -> str:
+    """The flags a role RETYPES for this line kind, FILLED with the values a refusal already holds.
+
+    The same two statements `_line_manifest` decides on, one function up -- a key a resolver owns
+    is not typed, and a key the builder gave a default may be left out -- rendered with the values
+    instead of with placeholders. Verifier finding F8 was one reader disagreeing with those two:
+    the remedy named `--content` (a resolver-owned key this CLI refuses when typed) and
+    `--destination` (a key whose ABSENCE is how a deletion is requested). A second reader deriving
+    them again in `kernel/filing.py` would be that finding one module over, which is why the
+    derivation lives here and that module asks
+    (`tools/test_office_package.py::test_a_printed_remedy_names_only_the_flags_its_own_line_takes`).
+    """
+    optional = optional_manifest_parameters(builder)
+    parts = []
+    for name in manifest_parameters(builder):
+        if name in LINE_MANIFEST_RESOLVERS:
+            continue
+        value = values.get(name)
+        if name in optional and not value:
+            continue
+        if isinstance(value, (list, tuple)):
+            value = ",".join(str(one) for one in value)
+        parts.append("--%s %s"
+                     % (name.replace("_", "-"), documents.quoted_for_a_command_line(value)))
+    return " ".join(parts)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=INVOCATION, description="V2 state-kernel commands (HARNESS_V2_SPEC.md II.4)"
@@ -456,6 +487,14 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("doctor", help="read-only activation/diagnosis report")
     sub.add_parser("validate", help="fail-closed state validation (exit 1 on errors)")
+    # THE MECHANICAL HALF OF THE COMMENT DUTY (FR-0007), and a command of its own rather than one more
+    # branch of the state validator: its subject is the project's FILES, not its items, and it needs
+    # git to name them -- so a project without one gets a refusal it can read instead of a validation
+    # that silently lost a check. The constitutions name this command where they state the duty.
+    sub.add_parser("sweep-pointers",
+                   help="report every citation in this project's own files that resolves at "
+                        "nothing -- a named test the tree does not define, an item id this store "
+                        "does not hold (exit 1 on findings)")
     # NAMES BOTH ARTEFACTS because the command writes both (`state._regenerate_index_locked`): a
     # help line that mentions only the index is a description one release out of date the moment
     # somebody looks for the human-readable view under `generated/`.
@@ -700,6 +739,17 @@ def build_parser() -> argparse.ArgumentParser:
     lease.add_argument("--worktree", metavar="PATH",
                        help="the checkout this dispatch is granted for; default is the tree the "
                             "state directory lives in")
+    # THE LADDER ANSWER WITHOUT A LEASE (DEC-0077 (5)): the rung and effort a lease would carry,
+    # read-only, so a lead can see what an order gets -- and why -- before it mints, and a pilot
+    # can measure the derivation without spending a lease on it. The neighbouring command is NOT
+    # named in a code span here on purpose: three of them in one block make this block read as a
+    # presentation of the whole command surface, and
+    # `test_every_span_that_presents_the_command_surface_names_all_of_it` (tools/test_hooks.py)
+    # then requires it to name all of it -- measured red on exactly this comment, 2026-09-06.
+    ladder = sub.add_parser(
+        "ladder", help="the rung and effort an order runs on, derived from the kit's ladder.yaml "
+                       "and the state (DEC-0077); read-only, mints nothing")
+    ladder.add_argument("task_id")
     # THE CHECKPOINT PAIR (DEC-0044). Written and read through the kernel for the same reason the
     # result envelope is: the two digests that decide adoption later are MEASUREMENTS, and a record
     # whose integrity data the checked party supplied would verify itself (`kernel/checkpoints.py`).
@@ -1335,7 +1385,47 @@ def main(argv=None) -> int:
                 print("  %s %s (%s): %s" % (row["item"], row["status"],
                                             ", ".join(row["evidence"]),
                                             row["route"] or "no route on this type's chain"))
+            # THE STOCK THAT LIES UPWARD (FR-0058, PR-0008 AC-3): the other question to the same
+            # store -- the item's own CONFIRMING Evidence passes, a regression run included, and
+            # the status has not followed. Beside the findings for the reason the rollup above is.
+            stock = report.stock_rollup(state)
+            print("Stock lies upward: %d item(s) whose confirming Evidence passes while their "
+                  "status still reads open" % len(stock))
+            for row in stock:
+                # THREE STATES OF THE RUN AND NOT TWO (verifier round 1, R1): a record with no
+                # `run_command` at all left `unresolved` empty, which printed exactly like "every
+                # test it names is there" -- so a reader could not tell "nothing repeatable was
+                # recorded" from "all present". The third one is said in words.
+                if not row.get("run_command"):
+                    about = "; its record names no run, so nothing here can be repeated"
+                elif row["unresolved"]:
+                    about = ("; its run names tests the tree no longer defines: %s"
+                             % ", ".join(row["unresolved"]))
+                else:
+                    about = ""
+                print("  %s %s (%s %s%s): %s" % (
+                    row["item"], row["status"], row["kind"], ", ".join(row["evidence"]), about,
+                    row["route"] or "no route on this type's chain"))
             return 1 if errors else 0
+        if args.command == "sweep-pointers":
+            try:
+                findings = report.pointer_sweep(state)
+            except report.PointerSweepUnavailable as unavailable:
+                # A SWEEP WITH NO SUBJECT IS NOT A CLEAN SWEEP. Printing "0 finding(s)" here would
+                # be the reassuring answer to a question nobody asked, which is the exact failure
+                # the duty this command serves is about.
+                print("pointer sweep: %s" % unavailable)
+                return 1
+            for finding in findings:
+                print("[%s] %s: %s -- Remedy: %s" % (
+                    finding["severity"].upper(), finding["item"],
+                    finding["message"], finding["remedy"],
+                ))
+            print("%d dead pointer(s) in this project's own files. What this reads and what it "
+                  "does NOT is `kernel.report.pointer_sweep`; a claim that names no test at all is "
+                  "read by nobody and stays with the role that writes and the role that reviews."
+                  % len(findings))
+            return 1 if findings else 0
         if args.command == "generate-index":
             # EVERY path this call wrote, for the reason the subparser's help gives: the index
             # is what the machines read, the board is what a person opens, the two diagrams are
@@ -1455,6 +1545,32 @@ def main(argv=None) -> int:
             # `capture DEC --hole` walked past it with rc 0.
             if args.hole:
                 state.assert_capturable_as_hole(args.item_type)
+            # THE FIELDS A TYPE OWES AT THE DOOR A ROLE TYPES (DEC-0083), and HERE rather than in
+            # `state.capture_preflight`: down there the duty would also bind the V1 importer and
+            # the run receipt, neither of which can answer it -- and exempting the importer needs a
+            # READER of `IMPORT_MARK`, which `DEC-0021` refused ("a second bolt beside
+            # `approval_ref` is two answers to one question"). Measured: with the clause in the
+            # library, 49 migration tests went red and the mark grew a reader. So the duty binds
+            # the command surface, and its limit is said out loud: a caller reaching
+            # `state.capture` directly is not asked, which is why the STORED half is answered by
+            # the pointer direction (`report._check_decision_carriers`) and not by this line.
+            # ...and "present" has to mean "says something", the same way it does for every other
+            # field this kernel calls non-empty: `work: []`, `""`, `[""]` and `"   "` all passed
+            # this door and then silenced the carrier warning without ever saying `none` (verifier
+            # round 2, N-B2). `work_is_stated` is the one predicate the validator asks too.
+            unsaid = [one for one in CAPTURE_ONLY_REQUIRED.get(args.item_type, ())
+                      if not work_is_stated(body.get(one))]
+            if unsaid:
+                sys.stderr.write(
+                    "capture %s: %s says nothing -- it is missing, or it is empty, and the two are "
+                    "the same claim. A decision says which items carry the work it commits "
+                    "somebody to -- or `%s: %s` when it commits nobody, which is a naming rule or "
+                    "a verdict. Remedy: name the ids (they are resolved like every other binding), "
+                    "or write `%s` -- that exact word, lower case, and it is the ONLY silence "
+                    "(DEC-0083, FR-0012).\n"
+                    % (args.item_type, ", ".join(unsaid), DEC_WORK_FIELD, DEC_WORK_NONE,
+                       DEC_WORK_NONE))
+                return 1
             item = (dispatch.create_task(state, body) if args.item_type == "TSK"
                     else state.capture(args.item_type, body, hole=args.hole))
             # FR-0017: an area nobody uses yet is a NEW outline level, and the FR's rule is that
@@ -1581,6 +1697,24 @@ def main(argv=None) -> int:
             # would make them one paste away from travelling inside the prompt. `create_lease`
             # has already decided whether the header carries the pointer; this only says why.
             sys.stderr.write(dispatch.checkpoint_verdict(state, args.task_id).summary + "\n")
+            # ...AND THE LADDER ANSWER, on the same channel for the same reason (DEC-0077 (5)):
+            # the header above already carries rung and effort; this line carries the WHY.
+            sys.stderr.write(dispatch.ladder_line(lease) + "\n")
+            return 0
+        if args.command == "ladder":
+            task = state.read_item(args.task_id)
+            root = state.read_item(task["product_requirement"])
+            answer = dispatch.ladder_for_order(
+                state, task, root, int(task.get(dispatch.FAILED_RUNS) or 0))
+            # The count on the task is the one the LAST lease wrote; the next lease counts a run
+            # that started since (`dispatch.count_failed_run_locked`), so a task READY again after
+            # a started run shows here what the next dispatch would climb with.
+            pending = dict(task)
+            if dispatch.count_failed_run_locked(pending) != int(task.get(dispatch.FAILED_RUNS) or 0):
+                answer["next_lease_counts"] = pending[dispatch.FAILED_RUNS]
+                answer["next_lease"] = dispatch.ladder_for_order(
+                    state, task, root, pending[dispatch.FAILED_RUNS])
+            print(json.dumps(answer, indent=2, sort_keys=True))
             return 0
         if args.command == "checkpoint":
             stored = checkpoints.record(state, args.task_id, _json_body("checkpoint"))

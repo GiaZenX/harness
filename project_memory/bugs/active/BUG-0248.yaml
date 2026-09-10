@@ -1,0 +1,52 @@
+id: BUG-0248
+title: 'The docking point (scripts/invoice_intake.py) refuses a mixed-VAT-rate outgoing
+  invoice for booking -- a ledger row carries ONE vat_rate, so a document with 7 %
+  and 19 % positions (ordinary in trade: food beside hardware) is accepted by the
+  norm check and then handed back ''by hand'''
+severity: medium
+observed: 'TSK-0132 (PR-0009 AC-2), measured 2026-09-05 on the shipped tree: team-kits/office-team/templates/repo/scripts/invoice_intake.py::vat_of
+  reads the document''s tax breakdown (BG-23) and refuses with ''the document carries
+  2 VAT rates (7, 19); one ledger row carries one rate, so this document is booked
+  by hand'' -- the refusal is correct and the gap is the ledger''s shape: templates/repo/scripts/ledger_add.py::COLUMNS
+  has one net/vat_rate/gross triple per row and validate_row holds net x (1 + rate)
+  = gross over it, so a mixed-rate document cannot be one row without breaking the
+  identity the whole pipeline rests on (BUG-0072 lineage). The same limit already
+  holds for every INCOMING mixed-rate supplier invoice the bookkeeper books today;
+  the docking point only makes it a printed refusal instead of a silent single-rate
+  booking.'
+expected: 'A mixed-rate document books as ONE document with several rate groups --
+  either several rows sharing invoice_no and source with a group marker the duplicate
+  check (validate_cross: counterparty + invoice_no + gross) does not read as a double
+  booking, or a row per rate that the report sums per document -- decided with the
+  user and the Steuerberatung, because the EUeR per-line sums and the § 19 threshold
+  watch both read gross per row.'
+repro: 'In a scaffolded office project with a declared number range: drop a CII invoice
+  whose ApplicableHeaderTradeSettlement carries two ApplicableTradeTax elements (RateApplicablePercent
+  7 and 19) -> python scripts/invoice_intake.py inbox/<file> -> exit 2 ''the document
+  carries 2 VAT rates''. Then try to book it with ledger_add.py: no single --vat-rate
+  reconciles net x (1 + rate) = gross.'
+acceptance_criteria:
+- id: AC-1
+  text: a mixed-rate document has a sanctioned booking shape the validator accepts
+    and the duplicate check does not refuse; red-first on the shipped ledger_add.py
+- id: AC-2
+  text: euer_report.py and tools/finance_dashboard.py sum such a document once per
+    document and once per rate line where the form asks for it -- parity test between
+    report and page
+- id: AC-3
+  text: invoice_intake.py books the accepted shape instead of refusing; the interface
+    contract (docs/office/invoice-app-docking-point.md §7) loses the limit
+related_pr: PR-0009
+limits: 'Until closed, the intake REFUSES rather than books: exit 2 with the rates
+  named, nothing staged, nothing booked (tools/test_office_package.py measures the
+  single-rate path; the refusal branch is invoice_intake.vat_of). The bookkeeper books
+  such a document by hand as the incoming-invoice procedure already does, and the
+  contract names the limit in §7 so the application project does not read it as a
+  defect of its file.'
+source: TSK-0132 stream protocol (project_memory/staging/TSK-0132/stream-protocol.md);
+  DEC-0075; PR-0009 AC-2
+hole_number: H166
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-05T21:58:52'

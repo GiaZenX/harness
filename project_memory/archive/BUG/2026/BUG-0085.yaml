@@ -1,0 +1,34 @@
+id: BUG-0085
+title: 'Research kit: the rendered report (project_memory/reports/*) has NO write
+  route -- section 6 assigns it to the report-writer, section 17 makes it a completeness
+  condition, and gate_write_scope refuses every write there (H94, BUG-0071 class)'
+related_pr: BUG-0071
+observed: 'Stream D + verifier 2026-09-01 on a scaffolded research project: Write
+  project_memory/reports/EXP-0002.tex / .html / .pdf / fzulg_application_RQ-0001.md
+  -> rc 2 each; Write project_memory/staging/TSK-0001/EXP-0002.tex -> rc 0; Write
+  reports/EXP-0002.tex (outside the state dir) -> rc 0. gate_memory_complete blocks
+  the merge on empty evidence_refs (report.py:1543-1560), i.e. on an evidence that
+  stands for the report -- so the report is required and unwritable. apply-proposal
+  (TSK-0092) CANNOT cover it, by its own docstring (documents.py:56-62): both sides
+  must parse as a YAML mapping, and it never creates a document; the same docstring
+  already lists the research kit two report templates as writerless by design.'
+expected: 'A sanctioned route for the rendered report into project_memory/reports/:
+  either a kernel writer for that tray (freeze-style, bound to the TSK and its staged
+  bytes, like freeze-design) or the constitution moves the report tray out of the
+  state directory and section 17 follows. Decided measuring; the freeze-report shape
+  is the likely fit since a report is a delivered artifact, not a proposal.'
+repro: See observed; verifier rig _round-scratch/TSK-0103/vrig/proj.
+severity: high
+acceptance_criteria:
+- id: AC-1
+  text: a research project renders and files its report end to end with no user file
+    operation and no write outside the sanctioned route; red-first reproduces today
+    rc 2
+- id: AC-2
+  text: section 6 and 17 of the research constitution say the route that exists
+status: VERIFIED
+revision: 1
+approval_ref: APR-0003
+created: '2026-09-01T23:18:03'
+approved_hash: bb9a12816b11ce4a3ae805b7b02df3d73c5e30ce95102bca3111d649c2265984
+closed_at: '2026-09-05T21:32:17'

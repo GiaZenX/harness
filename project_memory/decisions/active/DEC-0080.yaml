@@ -1,0 +1,116 @@
+id: DEC-0080
+title: 'Generation 4 verdict (DEC-0070 rules applied, DEC-0067 bundle at the goal,
+  DEC-0068 plan approval): the measured cut held, the merge round found what no stream
+  could see for the third time, the repeated finding class is ''a reader that reads
+  less than its docstring claims'', four host power-offs came from an all-core load
+  rig, and the lead repeated a refuted order sentence -- eight rules for generation
+  5'
+context: 'Generation 4 = four PRODUCT GOALS (PR-0004 test discipline, PR-0005 kernel
+  contracts, PR-0006 procedure, PR-0007 hygiene) cut as one TSK each (DEC-0067), approved
+  by ONE plan approval APR-0005 (DEC-0068 first use), spawned 2026-09-04 05:3x from
+  75a00d1, merged as TSK-0126 = commit b7f282e on feat/harness-v2 (EVD-0084 delivery
+  run 4687 passed / 14 skipped / 0 failed; EVD-0085 verifier PASS), pushed. MEASURED
+  (g), merge-protocol section 9: G4-1 Opus, 1 report + 2 reworks + 2 closings, 5 verifications
+  (FAIL/FAIL/FAIL-no-blocker/FAIL-no-blocker/PASS), ~1.45 M impl (own estimate) /
+  ~2.2 M verif, 54 red measurements; G4-2 Opus, 1 + 3 reworks, 4 verifications (FAIL/FAIL/FAIL-duty-6/PASS),
+  ~750 k / ~1.66 M, 22 red + 2 logged unusable mutations; G4-3 Opus, 1 + 3, 3 verifications
+  (FAIL/PASS/PASS), ~740 k / ~850 k, 55 red; G4-4 Opus, 1 + 2 + closing, 3 verifications
+  (FAIL/FAIL/PASS), ~0.9-1.07 M (estimate) / ~897 k, one re-cut (TSK-0124 -> TSK-0125);
+  merge Opus, 1 report + 3 reworks, 4 verifications (FAIL/FAIL/FAIL-one-finding/PASS)
+  + post-migration measurement, ~15 h 15 wall of which ~10 h suite and rig runs, first
+  full run 435 failed / 4246 passed -> 4687 / 0. Wall-clock: every stream worked 4-13
+  h inside a ~20 h span with ~11 h idle from FOUR hard host power-offs (Windows Kernel-Power
+  41 at 17:38, 22:58, 23:06, 23:14 on 2026-09-04), measured against G4-4''s 16-burner
+  all-core load rig started beside the other streams'' suites (the last two power-offs
+  3 min 27 s and 2 min 10 s after a rig start); the user''s ''other session'' hypothesis
+  refuted; the mild class (8 burners, below normal, 20 s held) ran green in a lead-opened
+  window; the hard class is not run on this host again. REPEATED FINDING CLASSES:
+  (1) ''a reader that reads less than its docstring claims'' / ''a counter instead
+  of an identification'' -- G4-3 five of seven verifier findings, G4-1 the tautological
+  narrowing-option tripwire and a guard test placing its object inside the project,
+  G4-2 the CLI check unmeasured by its named test and hole_type() reading half the
+  contract, G4-4 a test that cannot fail for the pin line; over 80 mentions of the
+  claim class across the sixteen stream verify reports. (2) ''the fix opens the next
+  edge'' -- merge round: the stock reader a `capture SR` switches on, the brace the
+  glob reader does not see, the EVD ref outside the repo (three rounds). (3) ''an
+  enumeration where the file header claims a property'' -- glob.has_magic without
+  `{`, `if item_type == TSK`, the options_that_narrow list. (4) the unrequested full
+  run did NOT recur in the streams (gate 5 built; DEC-0070 (4) delivered) -- but the
+  merge''s first full run found 435 reds from both new kernel refusals hitting suites
+  no stream reads (Z10). ORDER FAILURES (lead), measured: the TSK-0124 line ''measured
+  under 16 CPU burners'' before four power-offs (Z1); the AC-2 line of TSK-0121 repeating
+  a generation-3-refuted sentence (Z2, second time); _kernel.py absent from the seam
+  table (Z3); the merge''s writing steps demanded as results no role may produce (Z4)
+  -- and gate 1 never enforced ''outside Claude Code'' (H11 class, measured in rework
+  3); extrapolated clock labels in the round log (Z5); user/** forbidden vs 52 normalised
+  files (Z6); a fourth constitution sentence nobody handed over (Z7); ''full run before
+  stamp'' producing ~25 false reds (Z8); no seam named for the REACH of a kernel contract
+  across the kits (Z9 -> H163 -> DEC-0074/0079); DEC-0050''s reading suites vs a dispatch
+  rule (Z10). The DEC-0074 wording itself was the lead''s error (corrected as DEC-0079).
+  USER DECISIONS captured during the generation: DEC-0071..0073 (G4-2 proposals),
+  DEC-0074 + DEC-0079 (architect step by kit delivery), DEC-0075 (invoice app own
+  product), DEC-0076 (three rungs), DEC-0077 (two axes + escalation built), DEC-0078
+  (office ladder, per-kit declarations); wishes FR-0088; bugs BUG-0092; holes H151-H165
+  migrated with the other 140 into 155 BUG items (kernel migrate-holes).'
+decision: '(1) The measured cut (DEC-0070 (1)) is KEPT and sharpened: before spawn
+  the lead measures not only file overlap but the REACH of every kernel contract a
+  stream builds across the three kits (a dispatch or lease rule is a seam with every
+  kit''s constitution and template) -- Z9. (2) A stream that changes a DISPATCH or
+  LEASE rule runs, before handover, every suite that READS that rule (a grep over
+  the kernel predicate''s callers, listed in the protocol), not only the reading suites
+  of its files; DEC-0050''s ''reading suites'' is read as ''suites that read what
+  you changed'', and the merge''s full run stays the delivery criterion -- Z10. (3)
+  Order sentences that a measurement refuted stay refuted: before the cut the lead
+  greps the new items'' expected_outputs against DEC-0070''s orchestrator failures
+  and the previous generation''s protocol section ''against the expectation''; a sentence
+  found there is a cut finding before spawn, not after -- Z2. (4) No CPU-saturating
+  measurement in a parallel round: a load rig states burner count (<= half the logical
+  CPUs), priority (below normal) and cap (<= 120 s) IN THE ITEM and runs only in a
+  lead-opened window when nothing else runs; the hard class stays off this host --
+  Z1. (5) Stamp before the full run, not after (Z8); the merge item names the writing
+  steps a role inside the session CAN run (kernel lines) and hands the user only what
+  is truly the user''s (push) -- Z4. (6) ''A reader that reads less than its docstring
+  claims'' is the class the verifier attacks FIRST in generation 5: every new reader/tripwire
+  gets a mutation in the direction its docstring denies before the implementer reports
+  -- the implementer''s protocol carries that mutation per reader; DEC-0063 (5) sharpened.
+  (7) The round log reads the clock (Z5): every entry carries a read time, never an
+  extrapolated label. (8) Tiers for generation 5 per DEC-0077 (4): implementers Fable
+  5.1 (G5-2 and G5-3 xhigh, G5-1 high), verifiers Opus high; the (g) table measures
+  the claim class per tier and the generation-5 retrospective decides the floor. (9)
+  Generation 5 = PR-0010 (watchers, ladders, escalation -- first), PR-0008 (Bestandsbereinigung
+  incl. FR-0007 comment discipline into the kits and FR-0012 decision-without-item
+  catcher), PR-0009 (office package with the docking point for the invoice application,
+  DEC-0075); G5-2 backlog system and G5-4 provider/environment deferred by the user
+  (''need more planning'').'
+consequences: 'Generation 4 delivered: gate 5 on the scope of a test run (repo + kits,
+  measured live in the merge session), the kit-side deadline reader, the design checks
+  on the built app (H139 closed), DEC-0071/0072/0073 as kernel contracts (declared
+  selection verifies a BUG, no order under an inbox item, architect step by goal class
+  -- narrowed by DEC-0074/0079 to kits that ship the step), holes as typed items (155
+  migrated, kernel migrate-holes), overlap refusal + worktree on every lease, the
+  retrospective step and cut critic in three kits, the rejected-alternative duty in
+  three constitutions, DEC-0070 rules 1/2/5 in the lead''s role text, CI reds fixed,
+  line endings pinned (52 files normalised), update-kit naming orphaned memory trees,
+  the gate-3 timing test measured solo and under mild load -- release 2026.09.05-6
+  across the three kits, commit b7f282e. What it cost: ~53 h of stream wall-clock
+  inside ~20 h spans plus the merge''s ~15 h, ~4 M implementer tokens (estimates where
+  the process cannot read its usage) and ~5.6 M verifier tokens, ~11 h of crash idle.
+  What generation 5 pays less for: the reach seam (rule 1) and the reading-suite rule
+  (rule 2) would have caught H163 and the 435 reds before the merge; rule 3 stops
+  the second-time order sentence; rule 4 the power-offs. Enforcement: rules 1-3 and
+  7 by the harness-lead role text (an implementer edits it under PR-0008 or PR-0010;
+  gate 1 refuses the lead), rule 4 in every load-measuring item, rule 5 in the merge
+  item template, rule 6 in the harness-verifier role text, rule 8 by the spawn parameters
+  and the (g) table; the rest by the merge round as before. Open with the user, no
+  hurry: the humanizer taste verdict (FR-0072); the invoice application''s entry interview
+  (DEC-0075); the deferred block''s planning round.'
+source: commit b7f282e; project_memory/staging/generation-4-streams.md (whole round
+  log); project_memory/staging/TSK-0126/merge-protocol.md sections 9, 10, 12-14 and
+  verify-round-1..4.md; the four stream protocols and their sixteen verify reports;
+  DEC-0062, DEC-0063, DEC-0067, DEC-0068, DEC-0070, DEC-0071..DEC-0079; user decisions
+  2026-09-04/05 (all five streams parallel, the load class, generation 5 = three goals,
+  tiers, ladders, the invoice app).
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-05T21:03:51'

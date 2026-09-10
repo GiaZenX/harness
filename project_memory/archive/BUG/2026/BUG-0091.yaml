@@ -1,0 +1,51 @@
+id: BUG-0091
+title: create-task accepts an inbox item (FR) as product_requirement and derives_from
+  -- a work order can hang from a wish that was never triaged into a root, although
+  the constitution (section 4) and the create-task help name only root, BUG, CR, EXP
+related_pr: PR-0005
+observed: '2026-09-03, this repo at e45c0ca: 21 of 119 TSK items (archive + active)
+  carry product_requirement = FR-nnnn (e.g. TSK-0109 from FR-0032, TSK-0115 to TSK-0119
+  from FR-0075/0076/0074/0021/0077); the kernel created every one of them without
+  a word. The dev-team constitution section 4 says FR (inbox) -triage-> PR; a self-standing
+  wish becomes a Draft PR directly; the PM skill step 3 says an FR ends MERGED/CONVERTED/REJECTED
+  at triage. create-task --help: derives-from = the item whose criteria this task
+  serves (root, BUG, CR, EXP). Measured consequence on the board: 14 of 35 active
+  FRs have no related_pr and are worked as long-lived requirements, so the backlog
+  tree shows them as unassigned-no-link for weeks -- the user read it as atypical;
+  in a kit project only PM discipline prevents the same, no gate.'
+expected: 'Either the kernel refuses a TSK whose product_requirement or derives_from
+  is an FR (the inbox is not a root; the remedy names the conversion: triage the FR
+  to CONVERTED with resulting_item = the new PR, then derive the task from that PR)
+  -- or, if a task under an untriaged wish is wanted somewhere, the constitution and
+  the help say so and the board labels it as inbox work. Decided with the cost side
+  (DEC-0056): this repo has 21 such tasks, so a refusal must not invalidate history
+  (only new create-task calls).'
+repro: 'In any state directory: capture an FR (title + request_text only); run create-task
+  --product-requirement FR-0001 --derives-from FR-0001 --type implementation --assigned-role
+  x --acceptance-ref AC-1 --allowed-scope src/ ; observe that the task is created
+  and READY-able; compare with the constitution section 4 hierarchy and the help text
+  of --derives-from.'
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: 'a DEC line decides refuse-or-document; if refuse: create-task with an FR
+    in product_requirement or derives_from is refused with a remedy that names the
+    triage route (CONVERTED + resulting_item), red-first; existing tasks stay valid'
+- id: AC-2
+  text: the backlog tree's message for an FR without related_pr says what it is in
+    kit language (inbox, not yet triaged) rather than unassigned -- or the DEC says
+    why unassigned stays
+- id: AC-3
+  text: 'this repo''s own practice is corrected in the same round or named as its
+    deviation in CLAUDE.md: wishes that get worked become PRs (or hang from one),
+    measured by a check over the index that counts TSKs whose root is an FR'
+source: User question 2026-09-03 (why are some feature requests unassigned, is that
+  normal, is it the same in the kits); measurement in project_memory/staging/generation-3-streams.md
+  log 09:1x and 10:0x; team-kits/dev-team/constitution/AGENTS.md section 4; kernel/backlog_tree.py
+  NO_LINK; kernel/cli.py create-task help
+status: VERIFIED
+revision: 1
+approval_ref: APR-0012
+created: '2026-09-03T09:48:14'
+approved_hash: c2af328e4a80f4960fb40fc6ae97b5e0d50bbd27404c286af5cefa32d14abf19
+closed_at: '2026-09-06T15:55:30'

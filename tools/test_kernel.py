@@ -387,7 +387,7 @@ def test_every_kernel_writer_lands_inside_the_declared_area(tmp_path):
         "product_requirement": "PR-0001", "derives_from": "PR-0001", "type": "implementation",
         "assigned_role": "backend-developer", "acceptance_refs": ["AC-1"],
         "allowed_scope": ["src/"], "forbidden_scope": [], "required_inputs": [],
-        "expected_outputs": [], "dependencies": [],
+        "expected_outputs": ["out"], "dependencies": [],
     })
     state.transition(task["id"], "READY")
     satisfy_the_architect_step(state, state.read_item(task["id"]), state.read_item("PR-0001"))
@@ -406,7 +406,7 @@ def test_every_kernel_writer_lands_inside_the_declared_area(tmp_path):
     mint_via_hook(state, request)
     approvals.revoke(state, state.read_item("PR-0001")["approval_ref"])
     state.archive(state.capture("DEC", {"title": "d", "context": "c", "decision": "d",
-                                        "consequences": "c", "source": "PR-0001"})["id"])
+                                        "consequences": "c", "source": "PR-0001", "work": "none"})["id"])
     assert lease["task_id"] == task["id"]
 
     created = _files_under(root) - before
@@ -559,7 +559,7 @@ def _compositions_outside_the_kernel_package():
 # date the moment the last one goes. The places themselves are named in `L24`; naming them here as
 # well would be the second statement of one fact, which is the failure mode this whole rule exists
 # against.
-_COMPOSITIONS_OUTSIDE_THE_PACKAGE = 7
+_COMPOSITIONS_OUTSIDE_THE_PACKAGE = 8
 
 
 def test_the_path_rule_stops_at_the_kernel_package_and_the_rest_is_counted():
@@ -649,7 +649,7 @@ def _leasable_task(state):
         "product_requirement": "PR-0001", "derives_from": "PR-0001", "type": "implementation",
         "assigned_role": "backend-developer", "acceptance_refs": ["AC-1"],
         "allowed_scope": ["src/"], "forbidden_scope": [], "required_inputs": [],
-        "expected_outputs": [], "dependencies": [],
+        "expected_outputs": ["out"], "dependencies": [],
     })
     state.transition(task["id"], "READY")
     # the architect step the goal's class asks for (FR-0085), through the kernel's own predicate
@@ -887,7 +887,7 @@ def test_a_cross_root_origin_is_refused_at_creation(tmp_path):
             "product_requirement": "PR-0001", "derives_from": "BUG-0001", "type": "bugfix",
             "assigned_role": "backend-developer", "acceptance_refs": ["FIX-1"],
             "allowed_scope": ["src/"], "forbidden_scope": [], "required_inputs": [],
-            "expected_outputs": [], "dependencies": [],
+            "expected_outputs": ["out"], "dependencies": [],
         })
     assert "PR-0002" in str(exc.value) and "PR-0001" in str(exc.value)
     assert [f for f in validate_state(state) if f["severity"] == "error"] == []
@@ -915,7 +915,7 @@ def test_a_task_under_its_own_root_is_still_creatable(tmp_path):
         "product_requirement": "PR-0001", "derives_from": "BUG-0001", "type": "bugfix",
         "assigned_role": "backend-developer", "acceptance_refs": ["FIX-1"],
         "allowed_scope": ["src/"], "forbidden_scope": [], "required_inputs": [],
-        "expected_outputs": [], "dependencies": [],
+        "expected_outputs": ["out"], "dependencies": [],
     })
     assert task["status"] == "DRAFT"
 
@@ -934,7 +934,7 @@ def _research_chain(state, question_title="q", parents="HYP-0001"):
 def _research_task(state, root_id, origin_id):
     return {"product_requirement": root_id, "derives_from": origin_id, "type": "research",
             "assigned_role": "researcher", "acceptance_refs": ["AC-1"], "allowed_scope": ["src/"],
-            "forbidden_scope": [], "required_inputs": [], "expected_outputs": [],
+            "forbidden_scope": [], "required_inputs": [], "expected_outputs": ["out"],
             "dependencies": []}
 
 
@@ -1019,7 +1019,7 @@ def test_a_task_may_not_derive_from_a_ROOT_item_of_another_tree(tmp_path):
             "product_requirement": "PR-0002", "derives_from": "PR-0001", "type": "implementation",
             "assigned_role": "backend-developer", "acceptance_refs": ["AC-1"],
             "allowed_scope": ["src/"], "forbidden_scope": [], "required_inputs": [],
-            "expected_outputs": [], "dependencies": [],
+            "expected_outputs": ["out"], "dependencies": [],
         })
     assert "PR-0001" in str(exc.value) and "PR-0002" in str(exc.value), exc.value
 

@@ -1,0 +1,22 @@
+request_id: 7e2146ad966e4908b6a1be2ab6c76375
+kind: scope
+item: BUG-0025
+revision: 1
+subject_manifest:
+  acceptance_criteria:
+  - id: AC-1
+    text: Ein Checkout mit autocrlf=true (oder eine CRLF-Extraktion) laesst tools/validate.py
+      bestehen -- gemessen an echten Byte-Groessen, nicht angenommen
+  - id: AC-2
+    text: 'Ein Test wird ohne den Fix rot: CRLF-Lead-Package ueber Rekord heute ->
+      danach stabil (extern belegt)'
+  - id: AC-3
+    text: tools/validate.py (inkl. Lead-Package-Groesse) ist Teil der Abnahme, gegen
+      die Gate 3 committen laesst -- eine install-blockierende Roetung wird vor dem
+      Ship sichtbar (Verwandtschaft BUG-0014)
+  item: BUG-0025
+  revision: 1
+subject_manifest_hash: 613f218682b7df7d877475950a3934b6df5ca6da4dc45016a876a2bbef6fbfe6
+created: '2026-09-06T15:35:37'
+expires_at_epoch: 1788788137.5642364
+mint_code: 3f6a2d

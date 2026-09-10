@@ -1,0 +1,17 @@
+id: EVD-0085
+kind: review
+related:
+- TSK-0126
+result: pass
+summary: 'verifier PASS for diff:95cf9e4c1e334437deece714476dc024a4278b689f6ac5fa192e9acad3ea81eb
+  -- generation-4 merge (TSK-0126), four verify rounds (FAIL / FAIL / FAIL one finding
+  / PASS) plus the post-migration measurement: outputs 1-7 PASS with one named deviation
+  (the writing migration is a kernel line, not an outside shell), PR-0004 AC-1/AC-4
+  PASS + AC-2 accepted deviation + AC-3 unmeasured, PR-0005 PASS (DEC-0074/0079),
+  PR-0006 PASS, PR-0007 AC-2/3/4 PASS + AC-1 needs the push; H158, H163 rest, H164,
+  H165 named'
+artifact_refs:
+- staging/TSK-0126/verify-round-4.md
+revision: 1
+approval_ref: null
+created: '2026-09-05T21:01:44'

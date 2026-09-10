@@ -1,0 +1,11 @@
+id: APR-0008
+kind: scope
+item: BUG-0025
+revision: 1
+subject_manifest_hash: 613f218682b7df7d877475950a3934b6df5ca6da4dc45016a876a2bbef6fbfe6
+request_id: 7e2146ad966e4908b6a1be2ab6c76375
+mint_code: 3f6a2d
+minted_via: user_answer_via_approval_hook
+approved_at: '2026-09-06T15:51:47'
+expires: null
+revoked: false

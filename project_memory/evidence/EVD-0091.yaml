@@ -1,0 +1,24 @@
+id: EVD-0091
+kind: test
+related:
+- BUG-0069
+result: fail
+summary: 'PR-0008 AC-6, TSK-0131 2026-09-05: the HOSTED run of b7f282e (gh run 33985882966,
+  started 19:02Z, 43m36s) concludes FAILURE on both runners -- so BUG-0069 is NOT
+  closed by generation 4. But the chain has changed shape and the new one is small
+  enough to name: windows-latest 1 failed / 4618 passed / 78 skipped, ubuntu-latest
+  2 failed / 4579 passed / 116 skipped, against 6+34 failed and ~250 ERRORS on the
+  run this bug was filed on. BOTH remaining classes are identified: (a) tools/test_repo_hygiene.py::test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole
+  -- the hole migration of TSK-0126 removed its two subjects in the same commit, so
+  it is red on both platforms and on every local run too; (b) ubuntu only, tools/test_hooks.py::test_gate_test_scope_says_so_when_it_cannot_place_a_target_at_all
+  -- ''D:/other-project/tests/test_x.py'' was waved through, because on POSIX that
+  is a directory called D: inside the project and not a word the reader cannot place.
+  TSK-0131 repairs both; the line that WAITS is the next hosted run after the merge
+  push.'
+artifact_refs:
+- staging/TSK-0131/ci-b7f282e-failed.log
+run_command: gh run view 33985882966 --log-failed
+run_scope: full
+revision: 1
+approval_ref: null
+created: '2026-09-05T23:00:34'

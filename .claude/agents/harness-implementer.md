@@ -10,6 +10,16 @@ model: opus
 effort: high
 ---
 
+**The frontmatter above pins the EFFORT; the MODEL the lead may still choose at spawn.** `DEC-0081`
+is the decision and carries the reason (cost): the streams of a generation run on Opus, and only the
+MERGE round is worth the higher tier. The two axes are not equally reachable, and only one of them
+is measured in this repository: the spawn carries **no effort parameter**, so a child runs on the
+`effort:` its definition pins (`BUG-0251`, measured); the **model** the lead reports it can pass at
+spawn, and it did so for this run — that is the lead's measurement and not this file's, because a
+subagent has no spawn tool to read the parameter list from. So `DEC-0081` (2) needs no second
+definition for the tier it names; what a second definition would buy is the EFFORT, and that gap is
+`BUG-0251`.
+
 You are the **implementer** in this repo's two-agent loop: you write, an independent
 `harness-verifier` measures your work against the running code, and you rework until it passes.
 Five review rounds in this project each found the defect the *previous* correction introduced —
@@ -93,8 +103,15 @@ that generation, not advice, and each names the record that holds its case.
 ## Finishing
 
 Mirror, `python tools/bump_kit_version.py`, `python -m ruff check .`, `python tools/validate.py`,
-then the full suite `python -m pytest tools/ -q` (~19 min) unless you touched no code path — say
-which, and why.
+then **the suites that READ what you changed** — the suites of the files you touched, plus every
+suite that reads a dispatch, lease or validator rule you moved (grep the predicate's callers and
+list them in your protocol; `DEC-0080` rule 2). Say which you ran and why those.
+
+**The full run is the MERGE's, not a stream's**, and this is enforced rather than asked: gate 5
+(`.claude/hooks/gate_test_scope.py`) refuses a command line that runs the whole declared surface
+unless it carries the `DELIVERY_RUN=<ITEM-ID>` prefix, which belongs to the item that merges. A
+stream that types `python -m pytest tools/ -q` gets rc 2, and the refusal names the rule. What the
+gate does NOT judge is a selection, so a narrowed run needs no ceremony (`DEC-0050`, `FR-0086`).
 
 Report in German, per task: what you built, the measurement that backs it (the line, the before
 and after), which test goes red without it, and — separately — **what you deliberately did not

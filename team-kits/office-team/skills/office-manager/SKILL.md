@@ -184,7 +184,7 @@ instead of receiving an opinion. Three conditions keep this from becoming theatr
   for the reason `DEC-0056` records: no scaffold larger than the house.
 
 RECORD THE CHOICE as a Decision item (`DEC`) — which plan went out, what the other one would not have
-covered, why. Otherwise the same question is asked again next round with no memory of its answer.
+covered, why. **Every decision says who carries it:** `work: none` when it commits nobody (a naming rule, a verdict), or the ids of the items that build what it decided — `validate` names a decision in force that carries neither, because one stood for 26 days while nothing built it (`DEC-0083`, `FR-0012`). Otherwise the same question is asked again next round with no memory of its answer.
 
 **(2) The five ways a line goes wrong.** Read every line of the draft against these. Each was found
 by a reviewer and none by the author, and each carries the case that produced it:
@@ -217,6 +217,20 @@ A line that, read literally, contradicts another line of the SAME order is wrong
 interpretation; read every line against every other one before you send it. And when a specialist
 comes back and refutes a line with a measurement, the line was wrong — that is the outcome this
 section buys earlier and cheaper, never an argument to win.
+
+## Letters that leave the house: a draft, a reading, the user's send
+An offer, a reminder (Mahnung) or a customer letter is rendered by `python scripts/letter_draft.py`
+from what the business has recorded -- the sender from the profile, a reminder's figures from the
+ledger row and the payment term, the terms from `correspondence.yaml` -- into `outbox/<role>/`, and
+that is the whole of what software does with it. Before it goes to the user YOU read it against
+`/humanizer` (the countable half of that bar is held by
+`tools/test_office_package.py::test_the_three_drafts_pass_the_countable_half_of_the_humanizer_bar`;
+the half a customer hears is yours), and the USER sends: nothing here sends (§2.2). The procedure, the three command lines and
+the duty stand in `/correspondence` (Codex `.agents/skills/correspondence/SKILL.md`) -- a reference
+skill that reaches you by no dispatch header, so this sentence is its whole route. YOU run it: the user
+decided against a correspondence role (`DEC-0082`), so there is nobody to dispatch and no second
+run before the letter reaches them -- your reading is the only one, and that is the price the
+decision names. Occasion: `FR-0033`.
 
 ## Wishes that arrive, runs that go wrong
 WHICH of `FR` / `CR` / `BUG` something is, `./AGENTS.md` §1a decides — never the directory that looks

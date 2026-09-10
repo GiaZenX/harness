@@ -492,7 +492,7 @@ def test_dangling_reference_flagged(state):
         "type": "implementation", "assigned_role": "backend-developer",
         "acceptance_refs": ["AC-1"], "required_inputs": [],
         "allowed_scope": ["src/"], "forbidden_scope": [],
-        "expected_outputs": [], "dependencies": ["TSK-1234"],
+        "expected_outputs": ["out"], "dependencies": ["TSK-1234"],
     })
     found = errors(report.validate_state(state))
     assert any("TSK-1234" in f["message"] for f in found)
@@ -511,7 +511,7 @@ def test_a_scalar_dependency_is_reported_once_not_once_per_letter(state):
         "type": "implementation", "assigned_role": "backend-developer",
         "acceptance_refs": ["AC-1"], "required_inputs": [],
         "allowed_scope": ["src/"], "forbidden_scope": [],
-        "expected_outputs": [], "dependencies": "TSK-1234",
+        "expected_outputs": ["out"], "dependencies": "TSK-1234",
     })
     about_dependencies = [f for f in errors(report.validate_state(state))
                           if "dependency" in f["message"]]
@@ -608,6 +608,39 @@ def test_expired_request_not_listed_as_open(state):
     assert brief["budget_status"]["expired_requests"] == 1
 
 
+def test_the_session_brief_shows_the_rung_and_effort_a_lease_wrote_on_the_task(state):
+    """PR-0010 AC-6, the brief half (DEC-0077 (5)): the values the lease wrote on the task reach
+    the row a lead reads, and a task that was never dispatched carries no invented ones.
+
+    MEASURED 2026-09-06 on a dev pilot before this line existed (BUG-0249/H167): the task item
+    carried `rung: fable` / `effort: xhigh` and the freshly generated brief's row carried `id`,
+    `status`, `assigned_role` and nothing else. The stream that built the lease (TSK-0130) was
+    forbidden `kernel/report.py` by its own item, so the line and this test are the merge's.
+
+    The field names are the dispatcher's own (`dispatch.RUNG_KEY` / `EFFORT_KEY`), read rather than
+    spelled here, so a renamed key moves this test with it instead of leaving it green.
+    """
+    from kernel.dispatch import EFFORT_KEY, RUNG_KEY
+    root = state.capture("PR", dict(PR_FIELDS))
+    bug = make_bug(state, root["id"])
+    dispatched = make_task(state, root["id"], bug["id"])
+    idle = make_task(state, root["id"], bug["id"])
+    # the shape `create_lease` leaves behind, written the way the lease writes it -- on the item
+    path = state.active_path(dispatched["id"])
+    stored = state._read_yaml(path)
+    stored[RUNG_KEY], stored[EFFORT_KEY] = "opus", "xhigh"
+    state._write_yaml_atomic(path, stored)
+
+    brief = yaml.safe_load(open(report.generate_session_brief(state, "dev-team", "v", "audited"),
+                                encoding="utf-8"))
+    rows = {row["id"]: row for row in brief["active_tasks"]}
+    assert rows[dispatched["id"]][RUNG_KEY] == "opus", rows[dispatched["id"]]
+    assert rows[dispatched["id"]][EFFORT_KEY] == "xhigh", rows[dispatched["id"]]
+    assert RUNG_KEY not in rows[idle["id"]] and EFFORT_KEY not in rows[idle["id"]], (
+        "a task nobody dispatched shows a rung or an effort it was never given: %s"
+        % rows[idle["id"]])
+
+
 # -- doctor --------------------------------------------------------------------
 
 def test_doctor_reports_lock_leases_and_findings(state):
@@ -625,7 +658,7 @@ def test_doctor_reports_lock_leases_and_findings(state):
         "type": "implementation", "assigned_role": "backend-developer",
         "acceptance_refs": ["AC-1"], "required_inputs": [],
         "allowed_scope": ["src/"], "forbidden_scope": [],
-        "expected_outputs": [], "dependencies": [],
+        "expected_outputs": ["out"], "dependencies": [],
     })
     state.transition(task["id"], "READY")
     satisfy_the_architect_step(state, state.read_item(task["id"]), state.read_item(pr["id"]))
@@ -902,7 +935,7 @@ def test_a_decision_with_invalidation_triggers_asks_for_a_recheck(state):
     no pattern can make, and the user's "maximal härten" decision says heuristics warn and never
     fail closed."""
     state.capture("DEC", {"title": "d", "context": "c", "decision": "use X",
-                          "consequences": "y", "source": "adr",
+                          "consequences": "y", "source": "adr", "work": "none",
                           "premise_invalidation_triggers": ["throughput above 1k/s"]})
     item = state.capture("PR", dict(PR_FIELDS))
     walk_to_status(state, item, "APPROVED")
@@ -914,7 +947,7 @@ def test_recording_the_recheck_clears_it(state):
     """...and recording the outcome — even "nothing changed" — is what clears it. A warning with
     no way to satisfy it is noise, and noise gets filtered out."""
     dec = state.capture("DEC", {"title": "d", "context": "c", "decision": "use X",
-                                "consequences": "y", "source": "adr",
+                                "consequences": "y", "source": "adr", "work": "none",
                                 "premise_invalidation_triggers": ["throughput above 1k/s"]})
     item = state.capture("PR", dict(PR_FIELDS))
     walk_to_status(state, item, "APPROVED")
@@ -967,8 +1000,10 @@ def test_a_converted_fr_naming_a_phantom_result_is_flagged(state):
     assert any(f["item"] == fr["id"] and "PR-9999" in f["message"] for f in found), found
 
 
+# `work` is here because the capture door asks a NEW decision who carries it (DEC-0083); a fixture
+# without it measures the refusal instead of the rule it was written for.
 DEC_FIELDS = {"title": "d", "context": "c", "decision": "use X", "consequences": "y",
-              "source": "adr"}
+              "source": "adr", "work": "none"}
 
 
 def test_a_superseding_decision_marks_the_older_one(state):
@@ -2919,3 +2954,284 @@ def test_a_plan_approved_goal_is_not_reported_as_an_out_of_band_edit(state):
     assert "Remedy" not in errors[0]["message"], (
         "the kernel's sentence carries its own remedy; the finding keeps the two apart")
     assert errors[0]["remedy"]
+
+
+# -- BUG-0023: the validator names a stored order that expects nothing --------------------------
+
+def test_validate_names_a_stored_order_that_expects_nothing(state):
+    """BUG-0023 AC-3: an order the capture door came too late for is named, not tolerated.
+
+    The order is WRITTEN PAST the kernel on purpose -- `capture` refuses it since the same round --
+    because that is the only way such an item can exist in a store today, and the finding is a
+    WARNING for the reason `_check_nonempty_fields` gives.
+
+    THE SAME MAP AT BOTH ENDS, measured rather than promised: widening `NONEMPTY_FIELDS` by one
+    entry makes the capture door refuse AND the validator name the stored item for the same field,
+    with no second edit anywhere -- the reader class DEC-0080 (6) names would be a validator with
+    its own list.
+    """
+    from kernel import backlog_types
+    pr = state.capture("PR", dict(PR_FIELDS))
+    good = make_task(state, pr["id"], pr["id"])
+    assert not [f for f in report.validate_state(state) if f["item"] == good["id"]]
+    # EVERY SHAPE OF "NAMES NOTHING", one stored order each: the container was the wrong question,
+    # and `[""]`, `[None]`, `["   "]` and `[[]]` had no finding at all until the predicate moved to
+    # the elements (`backlog_types.names_something`, measured by the verifier of round 1).
+    shapes = {"TSK-0002": [], "TSK-0003": [""], "TSK-0004": [None], "TSK-0005": ["   "],
+              "TSK-0006": [[]], "TSK-0007": "", "TSK-0008": "   "}
+    for stem, hollow in sorted(shapes.items()):
+        body = dict(good, id=stem, expected_outputs=hollow)
+        with open(state.active_path(stem), "w", encoding="utf-8") as handle:
+            yaml.safe_dump(body, handle, allow_unicode=True)
+    findings = report.validate_state(state)
+    for stem in sorted(shapes):
+        named = [f for f in findings if f["item"] == stem]
+        assert [(f["severity"], "expected_outputs" in f["message"]) for f in named]             == [("warning", True)], (stem, shapes[stem], named)
+    # ...and the other direction, so a predicate that reports everything fails here: one real entry
+    # beside blanks is an order that names something, and so is a scalar
+    for stem, real in (("TSK-0009", ["", "src/x.py"]), ("TSK-0010", "src/y.py")):
+        body = dict(good, id=stem, expected_outputs=real)
+        with open(state.active_path(stem), "w", encoding="utf-8") as handle:
+            yaml.safe_dump(body, handle, allow_unicode=True)
+    for stem in ("TSK-0009", "TSK-0010"):
+        assert not [f for f in report.validate_state(state)
+                    if f["item"] == stem and "expected_outputs" in f["message"]], stem
+    # the other end of the same map: a field added there is refused at capture and named here
+    widened = dict(backlog_types.NONEMPTY_FIELDS, PR=("invariants",))
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(backlog_types, "NONEMPTY_FIELDS", widened)
+        patch.setattr(kernel_state, "NONEMPTY_FIELDS", widened)
+        patch.setattr(report, "NONEMPTY_FIELDS", widened)
+        with pytest.raises(kernel_state.StateError, match="invariants"):
+            state.capture("PR", dict(PR_FIELDS, invariants=[""]))
+        assert [f["item"] for f in report.validate_state(state)
+                if f["severity"] == "warning" and "invariants" in f["message"]] == [pr["id"]]
+
+
+# -- the stock that lies upward (FR-0058, PR-0008 AC-3) ------------------------------------------
+
+def test_a_passing_regression_run_names_the_open_item_as_stock_lying_upward(state, tmp_path):
+    """AC-3: an OPEN bug whose confirming test Evidence passes is named, with the record that closes it.
+
+    RED before `confirmed_but_open` existed: `validate` printed nothing about such a bug, because
+    the only derivation (`delivered_but_open`) asks the DELIVERY question and drops a passing
+    selection. Both halves of the split are held here -- the delivery reading stays silent, the
+    confirmation reading speaks -- plus the terminal exemption, the kind, and the printed line.
+    """
+    root = state.capture("PR", dict(PR_FIELDS))
+    # a review verdict is not the confirming kind of a BUG: silence here, while the DELIVERY
+    # reading -- every kind that names it passes -- does close it; the two answers differ on purpose
+    reviewed = make_bug(state, root["id"])
+    evd(state, kind="review", result="pass", related=(reviewed["id"],))
+    assert reviewed["id"] not in report.confirmed_but_open(state)
+    assert reviewed["id"] in report.delivered_but_open(state)
+    bug = make_bug(state, root["id"])
+    verdict = evd(state, kind="test", result="pass", related=(bug["id"],),
+                  run_command="python -B -m pytest tools/test_x.py::test_the_fix -q",
+                  run_scope="selection")
+    named = report.confirmed_but_open(state)
+    assert named[bug["id"]]["evidence"] == [verdict] and named[bug["id"]]["kind"] == "test"
+    assert bug["id"] not in report.delivered_but_open(state), (
+        "the delivery reading must keep dropping a passing selection (DEC-0061)")
+    rows = {row["item"]: row for row in report.stock_rollup(state)}
+    assert rows[bug["id"]]["status"] == "OPEN"
+    assert "VERIFIED (needs a passing 'test' Evidence)" in rows[bug["id"]]["route"]
+    assert not [f for f in report.validate_state(state) if f["item"] == bug["id"]], (
+        "coverage, not a finding")
+    # a later FAIL of the same kind supersedes: the item is no longer named
+    evd(state, kind="test", result="fail", related=(bug["id"],),
+        created="2099-01-01T00:00:00")
+    assert bug["id"] not in report.confirmed_but_open(state)
+    # ...and a terminal item is never named, whatever its records say
+    other = make_bug(state, root["id"])
+    evd(state, kind="test", result="pass", related=(other["id"],))
+    state.transition(other["id"], "REJECTED")
+    assert other["id"] not in report.confirmed_but_open(state)
+
+    environment = dict(os.environ, PYTHONPATH=TEAM_KITS, PYTHONIOENCODING="utf-8")
+    third = make_bug(state, root["id"])
+    evd(state, kind="test", result="pass", related=(third["id"],), run_scope="selection",
+        run_command="python -B -m pytest tools/test_x.py -q")
+    # THE THIRD STATE OF THE RUN (verifier round 1, R1): a passing record with NO `run_command` left
+    # `unresolved` empty, which printed exactly like "every test it names is there". A reader could
+    # not tell "nothing repeatable was recorded" from "all present"; now the line says which.
+    unrepeatable = make_bug(state, root["id"])
+    evd(state, kind="test", result="pass", related=(unrepeatable["id"],))
+    assert report.confirmed_but_open(state)[unrepeatable["id"]]["run_command"] is None
+    run = subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", state.root,
+                          "validate"], capture_output=True, text=True, encoding="utf-8",
+                         errors="replace", env=environment, cwd=str(tmp_path), timeout=300)
+    assert run.returncode == 0, run.stderr
+    def stock_line(item_id):
+        # SCOPED TO THE STOCK SECTION, because the delivery rollup above prints rows of the same
+        # shape and an id can stand in both -- measured while writing this: two rows started with
+        # the same id, one per rollup, and a reader of either would have been right
+        after = run.stdout.split("Stock lies upward:", 1)[1]
+        rows = [line for line in after.splitlines() if line.strip().startswith(item_id + " ")]
+        assert len(rows) == 1, (item_id, rows)
+        return rows[0]
+
+    assert "[WARNING]" not in stock_line(third["id"])
+    assert "names no run" not in stock_line(third["id"]), stock_line(third["id"])
+    assert "names no run, so nothing here can be repeated" in stock_line(unrepeatable["id"]), (
+        stock_line(unrepeatable["id"]))
+    assert "Stock lies upward: 2 item(s)" in run.stdout, run.stdout
+
+
+def test_the_stock_line_says_when_the_recorded_test_no_longer_exists(state, tmp_path):
+    """The parsed-tree half: a passing record whose run names a test nobody can re-run says so.
+
+    The tree is PARSED through the one reader the invariants use; a node that resolves is silent,
+    one whose file is gone or whose name is not defined is listed, and a file this kernel cannot
+    parse is neither (the reader's limit, H110).
+    """
+    root = state.capture("PR", dict(PR_FIELDS))
+    bug = make_bug(state, root["id"])
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_fix.py").write_text("def test_the_fix():\n    assert True\n", encoding="utf-8")
+    (tests / "rules.test.ts").write_text("it('x', () => {})\n", encoding="utf-8")
+    evd(state, kind="test", result="pass", related=(bug["id"],), run_scope="selection",
+        run_command="python -B -m pytest tests/test_fix.py::test_the_fix "
+                    "tests/test_fix.py::test_renamed_away tests/test_gone.py::test_x "
+                    "tests/rules.test.ts::x -q")
+    row = report.confirmed_but_open(state)[bug["id"]]
+    assert row["unresolved"] == ["tests/test_fix.py::test_renamed_away", "tests/test_gone.py::test_x"], row
+
+
+# -- FR-0012 / DEC-0083: a decision nobody carries -----------------------------------------------
+
+CARRIER_DEC_FIELDS = {"title": "a choice", "context": "why it came up",
+                      "decision": "what was chosen", "consequences": "what it costs",
+                      "source": "the round log"}
+
+
+def test_a_decision_nobody_carries_is_named_and_none_is_the_silence(state):
+    """DEC-0083: the field, the pointer direction, and the one silence that is honest.
+
+    RED before the check existed: `validate` had no line about a DEC at all except the supersedes
+    shape, which is the state `DEC-0034` stood in for 26 days -- VALID, nothing built, no item
+    pointing at it, found by the user and by no review round.
+
+    FOUR ANSWERS, and each is a different question:
+      * a `work` id no item carries -> ERROR (the contract every binding has);
+      * a decision in force with no `work` that NO item names -> WARNING;
+      * `work: none` -> silent, because a naming rule commits nobody;
+      * an item that DOES name it -> silent, even after that item is archived.
+
+    AND TWO NON-CARRIERS, measured here because both would have silenced the case the rule is named
+    after: another DECISION naming it (a `supersedes` link, a decision quoting its predecessor), and
+    a superseded decision, which is not in force and owes nothing.
+    """
+    from kernel.backlog_types import DEC_WORK_FIELD, DEC_WORK_NONE
+
+    def warned(item_id):
+        return [f for f in report.validate_state(state)
+                if f["item"] == item_id and "without a carrier" in f["message"]]
+
+    def errored(item_id):
+        return [f for f in report.validate_state(state)
+                if f["item"] == item_id and f["severity"] == "error"
+                and DEC_WORK_FIELD in f["message"]]
+
+    root = state.capture("PR", dict(PR_FIELDS))
+    alone = state.capture("DEC", dict(CARRIER_DEC_FIELDS, **{DEC_WORK_FIELD: DEC_WORK_NONE}))
+    assert not warned(alone["id"]) and not errored(alone["id"]), "`none` is the honest silence"
+
+    # ONE SILENCE, and every other empty spelling is the same state as no field at all. Measured in
+    # verifier round 2 (N-B2): `[]`, `""`, `[""]` and `"   "` all silenced this line without ever
+    # saying `none`, and `[]` is what a JSON body carries when the author has no ids yet -- the
+    # DEC-0034 case, reopened one file further on.
+    for spelling in ([], "", [""], "   ", [[]], [None]):
+        hollow = state.capture("DEC", dict(CARRIER_DEC_FIELDS, **{DEC_WORK_FIELD: spelling}))
+        assert [f["severity"] for f in warned(hollow["id"])] == ["warning"], (
+            spelling, report.validate_state(state))
+    # ...and a LIST whose entry is the word is not the silence either: it is an id like any other
+    worded = state.capture("DEC", dict(CARRIER_DEC_FIELDS, **{DEC_WORK_FIELD: [DEC_WORK_NONE]}))
+    assert [f["severity"] for f in errored(worded["id"])] == ["error"], report.validate_state(state)
+    # ...and a DECISION is not a carrier, in BOTH directions of this check: the pointer half refuses
+    # to read one decision as another's carrier, so `work` may not accept one either -- measured in
+    # verifier round 3 (R3-4): `work: ['DEC-0001']` was silent, which puts the DEC-0034 state back
+    # one level up.
+    circular = state.capture("DEC", dict(CARRIER_DEC_FIELDS, **{DEC_WORK_FIELD: [alone["id"]]}))
+    named = errored(circular["id"])
+    assert [f["severity"] for f in named] == ["error"], report.validate_state(state)
+    assert "not a carrier" in named[0]["message"], named[0]
+
+    dangling = state.capture("DEC", dict(CARRIER_DEC_FIELDS, **{DEC_WORK_FIELD: ["TSK-9999"]}))
+    assert [f["severity"] for f in errored(dangling["id"])] == ["error"], report.validate_state(state)
+
+    # a decision the door came too late for: no field at all
+    stored = dict(CARRIER_DEC_FIELDS, id="DEC-0003", status="VALID", revision=1, approval_ref=None,
+                  created="2026-01-01T00:00:00")
+    with open(state.active_path("DEC-0003"), "w", encoding="utf-8") as handle:
+        yaml.safe_dump(stored, handle, allow_unicode=True)
+    assert [f["severity"] for f in warned("DEC-0003")] == ["warning"], report.validate_state(state)
+
+    # ...another DECISION naming it is not a carrier -- that is how DEC-0034 would have been hidden
+    quoting = dict(CARRIER_DEC_FIELDS, id="DEC-0004", status="VALID", revision=1, approval_ref=None,
+                   created="2026-01-01T00:00:00", context="follows on from DEC-0003",
+                   supersedes=["DEC-0003"])
+    with open(state.active_path("DEC-0004"), "w", encoding="utf-8") as handle:
+        yaml.safe_dump(quoting, handle, allow_unicode=True)
+    assert [f["severity"] for f in warned("DEC-0003")] == ["warning"], (
+        "a decision quoting another decision was read as its carrier")
+
+    # ...and a superseded decision is not in force, so it owes nothing
+    superseded = dict(quoting, id="DEC-0005", status="SUPERSEDED", supersedes=[])
+    with open(state.active_path("DEC-0005"), "w", encoding="utf-8") as handle:
+        yaml.safe_dump(superseded, handle, allow_unicode=True)
+    assert not warned("DEC-0005"), "a superseded decision was asked for a carrier"
+
+    # ...an ITEM that names it is the carrier, in any field, and it stays one after archival
+    bug = make_bug(state, root["id"])
+    state.update_item(bug["id"], {"observed": "measured against DEC-0003"})
+    assert not warned("DEC-0003"), "an item naming the decision was not read as its carrier"
+    state.transition(bug["id"], "REJECTED")
+    state.archive(bug["id"])
+    assert not warned("DEC-0003"), "the carrier stopped counting when it was archived"
+
+
+def test_capture_asks_a_new_decision_who_carries_it(state, capsys):
+    """DEC-0083 (1): the field is owed at the DOOR and nowhere else.
+
+    THE ASYMMETRY IS THE DECISION, not an oversight: a required field would turn every decision the
+    store already holds into an error no command repairs (the argument DEC-0061 measured for `EVD`),
+    so the door asks a NEW decision and the stored ones are answered by the pointer direction.
+    Both halves are measured here -- the refusal, and the stored item that stays legal.
+    """
+    from kernel.backlog_types import CAPTURE_ONLY_REQUIRED, DEC_WORK_FIELD, DEC_WORK_NONE
+    assert CAPTURE_ONLY_REQUIRED.get("DEC") == (DEC_WORK_FIELD,)
+
+    def capture_dec(body):
+        """The command line a role really types, with its body on stdin."""
+        previous = sys.stdin
+        sys.stdin = io.StringIO(json.dumps(body))
+        try:
+            return cli.main(["--root", state.root, "capture", "DEC"])
+        finally:
+            sys.stdin = previous
+
+    # THE DOOR IS THE COMMAND SURFACE and not `state.capture`: down there the duty would also bind
+    # the V1 importer and the migration receipt, and exempting the importer needs a READER of
+    # `IMPORT_MARK`, which `DEC-0021` refused ("a second bolt beside `approval_ref` is two answers
+    # to one question"). Measured while writing this: the clause in the library turned 49 migration
+    # tests red and grew that reader. So the refusal is measured where a role meets it, and its
+    # limit -- a caller reaching `state.capture` directly is not asked -- is exactly what the
+    # STORED half below answers instead.
+    for spelling in ({}, {DEC_WORK_FIELD: []}, {DEC_WORK_FIELD: ""}, {DEC_WORK_FIELD: [""]},
+                     {DEC_WORK_FIELD: "   "}, {DEC_WORK_FIELD: [[]]}, {DEC_WORK_FIELD: [None]}):
+        assert capture_dec(dict(CARRIER_DEC_FIELDS, **spelling)) == 1, spelling
+        refusal = capsys.readouterr().err
+        assert DEC_WORK_FIELD in refusal and DEC_WORK_NONE in refusal, (spelling, refusal)
+    assert not [stem for stem, _path in state.iter_active_items("DEC")], (
+        "a refused decision still reached the store")
+    assert capture_dec(dict(CARRIER_DEC_FIELDS, **{DEC_WORK_FIELD: DEC_WORK_NONE})) == 0
+    capsys.readouterr()
+    stored = dict(CARRIER_DEC_FIELDS, id="DEC-0009", status="VALID", revision=1, approval_ref=None,
+                  created="2026-01-01T00:00:00", context="carried by TSK-0001")
+    with open(state.active_path("DEC-0009"), "w", encoding="utf-8") as handle:
+        yaml.safe_dump(stored, handle, allow_unicode=True)
+    assert not [f for f in report.validate_state(state)
+                if f["item"] == "DEC-0009" and f["severity"] == "error"], (
+        "a stored decision without the field became an error")

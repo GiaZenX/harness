@@ -1,0 +1,19 @@
+id: EVD-0090
+kind: test
+related:
+- BUG-0091
+result: pass
+summary: 'PR-0008 AC-6, TSK-0131 2026-09-05: BUG-0091 re-measured against b7f282e
+  (2 passed in 27.53 s). A work order under an INBOX item is refused at creation (DEC-0072),
+  and the counter sees an archived work order while the validator only names a live
+  one -- so the 21 historical tasks under an FR stay valid, which is the cost side
+  DEC-0056 asks for.'
+artifact_refs:
+- staging/TSK-0131/ac6-bug-0091.txt
+run_command: python -B -m pytest tools/test_approvals_dispatch.py::test_a_work_order_under_an_inbox_item_is_refused_at_creation
+  tools/test_report.py::test_the_inbox_counter_sees_an_archived_work_order_and_the_validator_only_a_live_one
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-05T23:00:33'

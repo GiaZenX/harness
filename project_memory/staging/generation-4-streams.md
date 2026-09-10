@@ -791,3 +791,21 @@ resume-not-respawn under 429/529; the lead confirms every delivery with ListAgen
   is recorded with `--result pass` and the post-migration numbers (the protocol's `fail` wording
   was true only before the run). Commit chain: git add -A -> gate 3 prints the digest -> evidence
   -> commit -> push (granted in advance).
+- 2026-09-05 (clock read) **GENERATION 4 COMMITTED AND PUSHED**: EVD-0084 (delivery run, run_scope full),
+  EVD-0085 (verifier PASS, digest 95cf9e4c...), commit **b7f282e** on feat/harness-v2, pushed
+  75a00d1..b7f282e to origin (user's advance word). TSK-0126 -> CANCELLED (= delivered). Left to
+  G5-1 AC-6 by design: BUG-0025/0033/0069/0088/0090/0091 VERIFIED against the merged tree,
+  BUG-0083..0086/0089 and the seven G4 stream items archived. Next: the generation-4
+  retrospective DEC, the generation-5 plan approval (PR-0008/0009/0010), the cut.
+- 2026-09-05 (clock read) **DEC-0080 VALID -- the generation-4 retrospective** (nine rules: reach seam, suites that read the changed rule, refuted sentences grepped before the cut, no all-core load in a parallel round, stamp before the full run, the reader class attacked first, clock read, gen-5 tiers, gen-5 = PR-0010 / PR-0008 / PR-0009).
+- 2026-09-05 (clock read) **GENERATION 5 CUT**: plan approval GRANTED (request 7d5d10c2..., "Freigeben
+  [5a1854]"); PR-0010 / PR-0008 / PR-0009 -> APPROVED; worktrees g5-ladders / g5-stock / g5-office
+  at b7f282e; orders created by staging/generation-5/create_tasks.py: **TSK-0127** (PR-0010
+  ladders), **TSK-0128** (PR-0008 stock), **TSK-0129** (PR-0009 office) with seams as fields
+  (cli.py, constitutions, agents/*.md, lead_package_sizes, phase0 journal, README, settings for the
+  trigger), DEC-0080 rules inside every order (reach seam, suites that read a changed rule, reader
+  mutations, kernel-allocated holes, gate 5 live, host rule, clock read), DEC-first proposals
+  named (trigger; decision catcher; correspondence role vs workflow). check-scopes measured before
+  spawn -- result in the next entry. Tiers: TSK-0127 and TSK-0129 Fable xhigh, TSK-0128 Fable high,
+  verifiers Opus high (DEC-0077 (4), DEC-0080 (8)). The generation-5 round log continues in
+  project_memory/staging/generation-5-streams.md from the spawn on.

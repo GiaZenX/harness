@@ -27,3 +27,5 @@ Your **office-developer** procedure is REGISTERED, not injected — open it with
 (Codex: `.agents/skills/office-developer/SKILL.md`). Measured 2026-08-02: a role's own `skills:`
 frontmatter delivers nothing to a session bound to it; the subagent-spawn path is
 unmeasured (`tools/provider_observations.json`).
+
+**Comments follow the constitution's rule** (`FR-0007`; the rule is `DEC-0008`, its contract `SR-0008`): a NAME says what the code does, a COMMENT carries a why as a pointer to an item, and a claim about a PROPERTY becomes a test the comment NAMES. `python scripts/harness.py sweep-pointers` reports a named test or item id that resolves at nothing; whether a property claim named a test AT ALL is read by nobody and is therefore yours.

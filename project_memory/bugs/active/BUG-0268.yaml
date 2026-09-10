@@ -1,0 +1,37 @@
+id: BUG-0268
+title: CLAUDE.md sagt "die vier Gates dieses Repos", registriert sind fuenf -- und
+  die Datei ist fuer jede Rolle verbotener Bereich
+related_pr: PR-0008
+observed: 'MEASURED 2026-09-06 (TSK-0131, verifier round 1 R9): `CLAUDE.md` says ''Die
+  vier Gates dieses Repos'' and ''`.claude/settings.json` registriert vier eigene
+  `PreToolUse`-Hooks aus `.claude/hooks/`''. `.claude/settings.json` registers FIVE
+  of this repo''s own -- gate_lead_write_scope (twice: on the write tools and on the
+  shell), gate_spawn_needs_item, gate_commit_evidence, gate_test_scope (FR-0086, generation
+  4) and gate_todo_items -- plus the KIT''s gate_approval.py on both AskUserQuestion
+  events. The table in the same section lists four rows and gate 5 is not among them,
+  so a reader who meets gate 5''s refusal finds no entry for it in the file that is
+  supposed to explain the refusals. Re-filed as a HOLE 2026-09-06 (verifier round
+  2, Pflicht 8): the first filing was a plain BUG and therefore invisible in the pointer
+  index -- BUG-0267 is its duplicate.'
+expected: The gate section of CLAUDE.md names as many gates as settings.json registers,
+  or it says the count is derived and points at the file instead of repeating it --
+  the same rule this repository applies to every other number.
+repro: Read the heading 'Die vier Gates dieses Repos' in CLAUDE.md and count the PreToolUse
+  entries in .claude/settings.json.
+severity: low
+limits: 'What takes the place of it: every refusal gate 5 prints carries its own remedy
+  and names DEC-0050/FR-0086, so a reader who meets it is not left without the reason
+  -- only the overview in CLAUDE.md is short by one. Nobody in a session may repair
+  it: CLAUDE.md stands in the forbidden_scope of every stream item, so this waits
+  for the user.'
+acceptance_criteria:
+- id: AC-1
+  text: CLAUDE.md's gate section agrees with settings.json, measured by reading both
+- id: AC-2
+  text: The correction is made by whoever may write CLAUDE.md -- the user -- because
+    every role's scope forbids it
+hole_number: H185
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-06T14:46:35'

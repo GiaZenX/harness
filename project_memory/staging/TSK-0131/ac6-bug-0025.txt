@@ -1,0 +1,7 @@
+# BUG-0025 -- confirming selection, started 2026-09-05 22:56:39 (clock read)
+# tree: C:/Offline Repos/v2-testbed/_worktrees/g5-stock (code b7f282e + TSK-0131)
+# python -B -m pytest tools/test_repo_hygiene.py::test_git_decides_binary_by_bytes_and_pins_every_text_file_to_lf tools/test_repo_hygiene.py::test_no_tracked_text_file_checks_out_with_crlf tools/test_repo_hygiene.py::test_a_crlf_blob_in_head_is_not_reported_as_an_uncommitted_change tools/test_context_budget.py::test_every_file_the_package_weighs_checks_out_lf tools/test_context_budget.py::test_no_file_the_package_weighs_carries_crlf_on_disk tools/test_context_budget.py::test_a_lead_package_over_its_record_fails_with_the_two_figures_it_compared -q
+
+......                                                                   [100%]
+6 passed in 8.46s
+

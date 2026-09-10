@@ -1,7 +1,7 @@
 id: FR-0081
 title: 'Wunschliste §5: Kontenrahmen (SKR03/SKR04) + Konto-zu-EUeR-Zeile-Abbildung
   als jahresversionierte Vorlage mit benanntem Rechtsraum'
-related_pr: FR-0032
+related_pr: PR-0009
 request_text: 'Thin FR from the wishlist pass of TSK-0110 (FR-0036), docs/POST_V2_WISHLIST.md
   section 5 (Finanz-Vorlagen), generic half beside FR-0032 (the view). FR-0002 covers
   filing/retention, not the chart of accounts. Relation: FR-0076 (shipped category
@@ -14,3 +14,5 @@ status: OPEN
 revision: 1
 approval_ref: null
 created: '2026-09-02T19:50:11'
+source: RE-POINTED 2026-09-06 (TSK-0131, PR-0008 AC-2) from FR-0032 (a wish is not
+  a goal) to the office package goal. The status waits for G5-3.

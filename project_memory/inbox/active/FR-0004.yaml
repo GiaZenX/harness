@@ -17,3 +17,9 @@ approval_ref: null
 created: '2026-08-04T16:59:52'
 triage_result: 'USER VERDICT 2026-09-02 (FR survey, asked one by one via AskUserQuestion):
   Spaeter.'
+source: 'RE-MEASURED 2026-09-06 (TSK-0131, PR-0008 AC-2): partly built and NOT absorbed
+  by any generation-5 goal. What exists: `docs/reviews/phase0-disposition.md` is the
+  II.12-against-the-built comparison this wish asked for, and it is maintained (this
+  round appended three journal entries to it). What does NOT exist: the second half
+  -- the sideways V2 release candidate. So the wish stays TRIAGED and belongs to a
+  planning round, not to a stream.'

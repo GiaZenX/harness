@@ -14,9 +14,15 @@ expected: Every remedy the kernel prints is a command line the kernel accepts (g
   the approvals it asks for). A test executes the printed remedy shape against the
   running CLI and fails when the line is refused for a missing flag -- the house rule
   'a check must read the part that runs' applied to remedies.
-repro: python scripts/harness.py request-approval document_proposal --kit-document
-  <doc> --proposal <staged> (without --reason) in any scaffolded project -> refusal
-  whose Remedy line is itself missing --reason at documents.py:724-728.
+repro: 'In an office project with the kit documents: `request-approval document_proposal
+  --kit-document content_guidelines.yaml --proposal staging/TSK-0001/content_guidelines.yaml`
+  without `--reason`. RE-MEASURED 2026-09-06 (TSK-0131) against b7f282e, twice: against
+  a project WITHOUT the document, rc 1 -- ''content_guidelines.yaml does not exist
+  in this project, and this command never CREATES a document''; against a project
+  WITH it and an identical proposal, rc 1 -- ''the proposal adds nothing that is not
+  already there''. Neither run reached the remedy line the item is about, so the observed
+  sentence is not re-measured; what IS measured is that both refusals name a route.
+  Kept OPEN with this reading rather than closed on a run that did not reach the case.'
 severity: low
 acceptance_criteria:
 - id: AC-1

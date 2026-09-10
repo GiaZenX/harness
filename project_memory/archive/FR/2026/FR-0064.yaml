@@ -1,0 +1,52 @@
+id: FR-0064
+title: 'Evaluate subagent memory (memory: frontmatter) for the harness roles -- implementer
+  maybe, verifier NO by design'
+request_text: 'Newsletter 2026-08-29: a subagent with memory: project|user|local in
+  its frontmatter gets its own directory under .claude/agent-memory/, reads it at
+  start, writes as it works -- persistent across sessions. Opportunity: harness-implementer
+  re-derives measurement rigs (scaffold recipes, mutation harness patterns, red-test
+  scaffolding) every round; a role memory could cut that cost. Danger, and the reason
+  this is an EVALUATION not an adoption: the harness-verifier''s value IS the fresh
+  eye -- a memory carrying last round''s expectations undermines the independence
+  the three-role loop exists for (the same week''s newsletter praises the no-context
+  adversarial reviewer for exactly that trait). Also to check: where agent-memory
+  lives (.claude/agent-memory/ -- inside the protected area gate 1 derives, so writes
+  by the platform vs writes by tools need distinguishing), what the kits would inherit
+  (specialist roles with memory in customer projects: does the office records-clerk
+  remembering past filings undermine the four-eyes independence of the second reader?
+  the reading gate compares provenance, not blindness -- a shared memory would be
+  a NEW shared-context channel between first and second reader), and the source-format
+  duty (a new frontmatter key the Codex generator must knowingly accept or drop).
+  Decision per role, defaults: verifier none, second-reader roles none, implementer/lead
+  candidates measured first. Source: user-pasted newsletter 2026-08-29.'
+status: MERGED
+revision: 1
+approval_ref: null
+created: '2026-08-29T11:13:16'
+triage_result: 'MEASURED 2026-09-02 in the user real project Canyon_3.4.0 (kit 2026.08.24-7,
+  CLI 2.1.25x): .claude/agent-memory/ EXISTS with ~57 files across five roles -- software-architect
+  (3), frontend-developer (~20), devops-engineer (~17), quality-engineer (~12), project-manager
+  (2), each with a MEMORY.md index. So the platform honours memory: project, the twelve
+  shipped roles that declare it DO remember across dispatches, and the lead earlier
+  claim to the user that specialists have no memory was wrong. What the memories hold,
+  by file name: Shopify craft (block files, JSON-LD merge, scheme vars), tooling quirks
+  (playwright, theme-check, quality.py) -- AND kit-friction workarounds: gate_write_scope_dotclaude_substring,
+  gate_write_scope_fires_on_prose_too, staging_write_via_tool_not_shell, shared_worktree_commit_race,
+  concurrent_dispatch_shared_worktree_no_stash, ratchet_exemption_verified_against_source,
+  harness_artifact_ref_state_relative. Two consequences for the round: (1) judge roles
+  remember gating decisions (quality-engineer: re-gate-by-baseline-diff, gating-a-live-theme-dev-origin,
+  when-a-static-check-is-green-and-the-page-is-red) -- the fresh-eye concern is now
+  a measured fact, not a hypothesis; whether it produced a wrong verdict is unmeasured;
+  (2) the memories are a platform-written kit-gap log the FR-0062 harvester should
+  READ -- the specialists already record where the kit blocked them. Decision per
+  role still owed: reviewer/quality/second-reader roles -> remove the key with a red-first
+  test unless the round measures no verdict drift; implementer-type roles -> keep,
+  measured; research reviewer.md -> remove.'
+related_pr: PR-0003
+resulting_item: TSK-0105
+source: 'MEASURED 2026-09-05 (TSK-0131, PR-0008 AC-2) against b7f282e: the evaluation
+  this wish asked for happened and was acted on -- `memory:` is gone from the three
+  roles that shared a channel with a first reader (dev quality-engineer, research
+  reviewer, office bookkeeper) and kept for nine others; the update path names a residue
+  tree (BUG-0088, EVD-0088). Delivered by TSK-0105.'
+closed_at: '2026-09-05T23:04:31'

@@ -1,0 +1,42 @@
+id: BUG-0088
+title: 'A kit update removes the memory: key from a role but leaves the agent-memory
+  tree an older kit version wrote -- no installer, scaffold or kernel path names agent-memory
+  (stream E verifier F3)'
+related_pr: PR-0007
+observed: 'Measured 2026-09-02 by the TSK-0105 verifier: grep agent-memory over install.sh,
+  install.ps1, scaffold_team.sh, scaffold_team.ps1 and team-kits/kernel/*.py -> no
+  hit. The user real project Canyon_3.4.0 carries .claude/agent-memory/quality-engineer/
+  with 12 files (MEMORY.md + 11 topics incl. re-gate-by-baseline-diff, gating-a-live-theme-dev-origin).
+  Stream E (TSK-0105) removes memory: project from quality-engineer, research reviewer
+  and office bookkeeper (FR-0064, measured shared channel between first and second
+  reader). After an update to that kit the frontmatter key is gone but the eleven
+  topic files stay; whether the provider loads an existing agent-memory directory
+  WITHOUT the key is not measured (needs a real CLI session in an updated project).
+  H105 first said GESCHLOSSEN fuer das Laden -- corrected by the rework to: closed
+  for NEW installations, for existing ones loading is switched off at the frontmatter
+  and unmeasured at the provider.'
+expected: 'The update path (kitupdate / the scaffold twins) treats a role memory tree
+  as part of what the role definition declares: when the shipped role no longer carries
+  memory:, the update REMOVES (or quarantines under the backup snapshot, restorable)
+  that role agent-memory directory, and says so in the update report; plus the provider
+  behaviour measured once (does a key-less role load an existing tree?). Red-first
+  on a scaffolded project updated from a memory-carrying to a memory-less role definition.'
+repro: Install kit 2026.09.02-10 with a memory-carrying quality-engineer, run a dispatch
+  so the tree appears (or copy the Canyon tree read-only), update to the stream-E
+  stand -> key gone, tree present.
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: 'after an update that drops memory: from a role, no agent-memory tree for
+    that role remains readable in the project (removed or quarantined, restorable),
+    measured red-first in both twins'
+- id: AC-2
+  text: 'the provider question is measured once and recorded: does a role without
+    the key load an existing tree? -- the answer decides whether AC-1 is safety or
+    hygiene'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0010
+created: '2026-09-02T12:35:16'
+approved_hash: 6d5a38dadfa883a1b952afe30ffdfeae9d893ef0c2ec2a11f04cee8d11a1d9e4
+closed_at: '2026-09-06T15:54:08'

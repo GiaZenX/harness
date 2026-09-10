@@ -1,0 +1,32 @@
+request_id: 7d5d10c219394069a777e620eb437907
+kind: plan
+item: null
+revision: null
+subject_manifest:
+  goals:
+  - item: PR-0008
+    title: 'G5-1 Bestandsbereinigung: every open BUG and wish of this repo measured
+      against the running code and closed through the kernel or kept with its chain
+      (FR-0058), plus a derivable notion of ''done'' so the stock cannot lie upward
+      again'
+    revision: 1
+    scope_hash: 23f7651f0e06a4d76dd3e6280991a34a81af5ef82bae28adca34be7d34a9e9ae
+  - item: PR-0009
+    title: 'G5-3 Office package: correspondence capability (FR-0033), the docking
+      point for the external invoice application (intake, validation, filing, booking),
+      a year-versioned chart of accounts with EUeR mapping (FR-0081), the eight takeovers
+      from a real operation (FR-0002), and the four open office bugs (BUG-0070/0071/0072/0079)'
+    revision: 1
+    scope_hash: 551d89b2b58bf2f536c83573ea76f6e3ed138341df70946de55f9a3675603668
+  - item: PR-0010
+    title: 'G5-2 Watchers, ladders and escalation: the radar/codex watcher duo runs
+      on a real trigger, the first codex report exists, the ladders are three rungs
+      per provider (fable/opus/sonnet = astra/sol/terra, DEC-0076), effort is high
+      by default and xhigh for large goals, and DEC-0034''s escalation mechanic is
+      BUILT in the dispatcher (two axes, from state)'
+    revision: 1
+    scope_hash: 657b5be45d5847bec8af8e3d93a5012e83b57f31781bfc5dfe468c2bf1c20d00
+subject_manifest_hash: 3f5b5c9091a5650624144b639d0a948fb47da5bb322e68f3544d4da5f84696da
+created: '2026-09-05T21:04:32'
+expires_at_epoch: 1788721472.7675812
+mint_code: 5a1854

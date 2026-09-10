@@ -5425,9 +5425,12 @@ def test_gen_provider_config_defaults_absent_providers_to_both(tmp_path):
     assert empty.returncode != 0 and "must not be empty" in empty.stderr
 
 
-def test_gen_accepts_fable_as_lead_tier_pin(tmp_path):
-    # `fable` is a legitimate Claude-side §11 pin (a real synaipse map carried it): Claude keeps
-    # the literal value, the Codex artifact maps it to the provider's LEAD tier.
+def test_gen_accepts_fable_as_the_top_rung_pin(tmp_path):
+    # `fable` is a legitimate Claude-side pin (a real synaipse map carried it): Claude keeps the
+    # literal value, the Codex artifact maps it to that PROVIDER'S OWN TOP ROW. Until DEC-0076 the
+    # table had no top row and the generator sent `fable` to the LEAD row, so this test asserted
+    # the lead model id; the row is read off `model_tiers.yaml` here for the same reason the
+    # generator reads it -- an id spelled in this file would pin the table to today's lineup.
     repo = _provider_test_repo(tmp_path)
     write(str(repo / ".claude" / "agents" / "backend-developer.md"),
           "---\nname: backend-developer\ndescription: backend\nmodel: fable\neffort: high\n"
@@ -5436,7 +5439,12 @@ def test_gen_accepts_fable_as_lead_tier_pin(tmp_path):
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stderr
     toml = (repo / ".codex" / "agents" / "backend-developer.toml").read_text(encoding="utf-8")
-    assert 'model = "gpt-5.6-sol"' in toml
+    tiers_reader = load_kit_module("gen_provider_artifacts_for_fable_pin", GEN)
+    tiers, aliases = tiers_reader.load_tiers()
+    top = tiers_reader.rungs(tiers, "codex")["fable"]
+    lead = tiers_reader.provider_model("lead", "codex", tiers, aliases)
+    assert top != lead, "the codex block maps the top rung and the lead rung to one model"
+    assert 'model = "%s"' % top in toml, toml
 
     config = repo / "project_memory" / "project_config.yaml"
     write(str(config), "project:\n  preset: mini\nproviders: [claude, codex]\n"
@@ -8225,8 +8233,15 @@ def _installer_scripts():
 # both installers, for both platforms.
 
 
-def _project_the_installers_produce(tmp_path):
+def _project_the_installers_produce(tmp_path, monkeypatch=None):
     """Scaffold a real project with the shipped installers; return (repo, every path created).
+
+    PASS `monkeypatch` WHEN THE TEST GOES ON TO MINT A LEASE. Since DEC-0078 (4) a lease reads the
+    kit's `ladder.yaml` out of the store the RUNNING home directory names
+    (`kernel.dispatch.kit_installation`), and this helper installs from a store under `tmp_path`.
+    Without the redirection the lease asks the developer's own `~/.claude` and is refused --
+    measured 2026-09-06 on the three tests below that dispatch. The path is composed once, here,
+    so no caller spells the store a second time.
 
     THE MEASUREMENT, as opposed to the text reader above: what the installers PUT ON DISK answers
     "does a role get a `harness` command" without needing any rule about how a shell script spells
@@ -8269,6 +8284,9 @@ def _project_the_installers_produce(tmp_path):
     for base, dirs, files in os.walk(str(repo)):
         dirs[:] = [d for d in dirs if d != ".git"]
         created += [os.path.join(base, name) for name in files]
+    if monkeypatch is not None:
+        monkeypatch.setenv("HOME", str(home))
+        monkeypatch.setenv("USERPROFILE", str(home))
     return repo, created
 
 
@@ -14260,7 +14278,7 @@ def _mint_question_in_project(repo, question):
     return state
 
 
-def test_the_four_commands_spec_ii4_named_are_runnable_by_the_role_that_needs_them(tmp_path):
+def test_the_four_commands_spec_ii4_named_are_runnable_by_the_role_that_needs_them(tmp_path, monkeypatch):
     """`capture`, `create-task`, `dispatch`, `submit-result` -- through the gates, then executed.
 
     Both halves, for the reason the Evidence measurement gives: a command the gates refuse is no
@@ -14275,7 +14293,7 @@ def test_the_four_commands_spec_ii4_named_are_runnable_by_the_role_that_needs_th
     II.4 asks for; it is bounded by the plan fields freezing outside DRAFT and by the dispatch
     still needing a user approval on the root, both of which are asserted below.
     """
-    repo, _created = _project_the_installers_produce(tmp_path / "surface")
+    repo, _created = _project_the_installers_produce(tmp_path / "surface", monkeypatch)
     body = json.dumps(PR_BODY)
 
     capture_line = "python scripts/harness.py capture PR <<'EOF'\n%s\nEOF" % body
@@ -14292,7 +14310,7 @@ def test_the_four_commands_spec_ii4_named_are_runnable_by_the_role_that_needs_th
     task_arguments = ["create-task", "--product-requirement", "PR-0001",
                       "--derives-from", "PR-0001", "--type", "implementation",
                       "--assigned-role", "backend-developer", "--acceptance-ref", "AC-1",
-                      "--allowed-scope", "src/"]
+                      "--allowed-scope", "src/", "--expected-output", "src/x.py"]
     _every_shell_gate_allows(repo, "python scripts/harness.py " + " ".join(task_arguments))
     planned = _entry_point(repo, *task_arguments)
     assert planned.returncode == 0, planned.stdout + planned.stderr
@@ -14456,7 +14474,7 @@ def test_a_staged_proposal_reaches_a_kit_document_in_a_project_the_installers_bu
         assert handle.read() == proposed
 
 
-def test_a_shell_less_specialists_result_reaches_the_kernel(tmp_path):
+def test_a_shell_less_specialists_result_reaches_the_kernel(tmp_path, monkeypatch):
     """AC-2 of BUG-0048, end to end in a scaffolded project: the architect has no shell.
 
     Pilot 3 measured the dead end three times — the role was asked for a `submit-result` it could
@@ -14475,7 +14493,7 @@ def test_a_shell_less_specialists_result_reaches_the_kernel(tmp_path):
     The counter-measurement is in the same run: a role WITH a shell gets `hand_back: self`, so the
     header is answering per role rather than saying one thing to everybody.
     """
-    repo, _created = _project_the_installers_produce(tmp_path / "handback")
+    repo, _created = _project_the_installers_produce(tmp_path / "handback", monkeypatch)
     sys.path.insert(0, os.path.join(ROOT, "team-kits"))
     from kernel import dispatch as dispatch_module
     from kernel.state import ProjectState
@@ -14485,7 +14503,7 @@ def test_a_shell_less_specialists_result_reaches_the_kernel(tmp_path):
     planned = _entry_point(repo, "create-task", "--product-requirement", "PR-0001",
                            "--derives-from", "PR-0001", "--type", "architecture",
                            "--assigned-role", "software-architect", "--acceptance-ref", "AC-1",
-                           "--allowed-scope", "docs/")
+                           "--allowed-scope", "docs/", "--expected-output", "docs/arc.md")
     assert planned.returncode == 0, planned.stdout + planned.stderr
     _entry_point(repo, "transition", "TSK-0001", "READY")
     _mint_in_project(repo, "scope", "PR-0001")
@@ -14576,7 +14594,7 @@ def _refusing_write_gates(repo, payload):
     return refusals
 
 
-def test_a_role_writes_its_own_craft_memory_and_only_its_own(tmp_path):
+def test_a_role_writes_its_own_craft_memory_and_only_its_own(tmp_path, monkeypatch):
     """BUG-0047: the role-memory duty becomes dischargeable, and stays narrow while it does.
 
     MEASURED BEFORE THE WINDOW, in this same fixture: a bound backend-developer writing
@@ -14606,7 +14624,7 @@ def test_a_role_writes_its_own_craft_memory_and_only_its_own(tmp_path):
     open where that guard has judged nothing. Those two together are what makes "the window widens
     WHO may write, not WHAT may land there" a sentence this test earns.
     """
-    repo, _created = _project_the_installers_produce(tmp_path / "memory")
+    repo, _created = _project_the_installers_produce(tmp_path / "memory", monkeypatch)
     sys.path.insert(0, os.path.join(ROOT, "team-kits"))
     from kernel import dispatch as dispatch_module
     from kernel.state import ProjectState
@@ -14615,7 +14633,7 @@ def test_a_role_writes_its_own_craft_memory_and_only_its_own(tmp_path):
     planned = _entry_point(repo, "create-task", "--product-requirement", "PR-0001",
                            "--derives-from", "PR-0001", "--type", "implementation",
                            "--assigned-role", "backend-developer", "--acceptance-ref", "AC-1",
-                           "--allowed-scope", "src/")
+                           "--allowed-scope", "src/", "--expected-output", "src/x.py")
     assert planned.returncode == 0, planned.stdout + planned.stderr
     _entry_point(repo, "transition", "TSK-0001", "READY")
     _mint_in_project(repo, "scope", "PR-0001")
@@ -16883,7 +16901,7 @@ def test_a_document_finding_and_a_validator_finding_get_different_remedies(tmp_p
         "product_requirement": "PR-0001", "derives_from": "PR-0001", "type": "bugfix",
         "root_revision": 1, "assigned_role": "backend-developer", "acceptance_refs": ["FIX-1"],
         "allowed_scope": ["src/"], "forbidden_scope": [], "required_inputs": [],
-        "expected_outputs": [], "dependencies": [],
+        "expected_outputs": ["out"], "dependencies": [],
     }))
     task["derives_from"] = "BUG-0001"
     project._write_yaml_atomic(project.active_path(task["id"]), task)
@@ -18398,7 +18416,22 @@ def test_gate_test_scope_lets_the_LAST_occurrence_of_an_option_decide(prd_repo, 
 
 
 def test_gate_test_scope_says_so_when_it_cannot_place_a_target_at_all(prd_repo):
-    """F8, kit half: the fail-closed branch carries its own sentence."""
+    """F8, kit half: the fail-closed branch carries its own sentence.
+
+    WINDOWS ONLY, and that is the branch's own shape rather than this test's convenience: the words
+    it is about are a DRIVE the project is not on, a UNC share and a drive-relative path, and the
+    gate's own remedy says so ("a word on another drive"). MEASURED on the hosted runners of
+    b7f282e (`BUG-0069`): ubuntu-latest reported `'D:/other-project/tests/test_x.py' was waved
+    through` -- on POSIX that word is a directory called `D:` inside the project, a place the reader
+    CAN find, so the line is a selection and rc 0 is the right answer. The run stopped at the first
+    case, so the other two are the same class and unmeasured there. A red that means "this host has
+    no drives" says nothing about the gate; an explicit skip that names its reason is what
+    `BUG-0069` AC-1 asks for in its place.
+    """
+    if os.name != "nt":
+        pytest.skip("a drive letter, a UNC share and a drive-relative path are WINDOWS path "
+                    "shapes; the drive case was measured on the POSIX runner as an ordinary name "
+                    "inside the project, which is not the fail-closed branch (BUG-0069)")
     _scoped_repo(prd_repo)
     # `tests/../../tests` is NOT here since the round-3 narrowing: it lands on a place this reader
     # CAN find, and a place that is not this project is a selection, not an unplaceable word.
@@ -18466,3 +18499,142 @@ def test_gate_test_scope_still_sees_a_link_from_outside_into_the_declared_surfac
         assert "WHOLE declared test surface" in result.stderr, result.stderr[:300]
     finally:
         os.rmdir(link)
+
+
+# ---------------- BUG-0022: the CR type, reached on a real pilot ------------------------------
+
+def _cr_paragraph(kit="dev-team"):
+    """The paragraph of a kit's constitution that answers for the CR route -- read by its POINTER.
+
+    Keyed on the item the rule was measured on (`BUG-0022`) and not on a phrase, so a rewording of
+    the sentence keeps the reader while a paragraph that drops its measured occasion loses it --
+    which is the direction the comment duty asks for anyway.
+    """
+    path = os.path.join(ROOT, "team-kits", kit, "constitution", "AGENTS.md")
+    with io.open(path, encoding="utf-8") as handle:
+        text = handle.read()
+    units = [unit for unit in re.split(r"(?m)^(?=- \*\*)", text) if "BUG-0022" in unit]
+    assert len(units) == 1, "%s: %d paragraphs answer for BUG-0022, expected one" % (kit, len(units))
+    return units[0].split("\n\n")[0]
+
+
+def _kits_whose_root_can_be_replaced():
+    """The kits whose ROOT type reaches `SUPERSEDED` -- the ones the BUG-0022 class is reachable in.
+
+    DERIVED and not listed: `backlog_types.ROOT_TYPE_BY_KIT` says which type is a kit's root and
+    `AUTOMATA` says where that type can go. Measured 2026-09-06: `PR` and `RQ` carry the same
+    automaton (`_PR_LIKE`, `SUPERSEDED` among its terminals) while the office root `PROC` ends in
+    `RETIRED` and has no replacement route at all -- so the office constitution owes this paragraph
+    nothing, and a round protocol claiming it already carried the same question was wrong (verifier
+    round 1, R6).
+    """
+    sys.path.insert(0, os.path.join(ROOT, "team-kits"))
+    from kernel.backlog_types import AUTOMATA, ROOT_TYPE_BY_KIT
+    return sorted(kit for kit, root in ROOT_TYPE_BY_KIT.items()
+                  if "SUPERSEDED" in AUTOMATA[root].terminals)
+
+
+def test_every_kit_whose_root_can_be_replaced_says_when_to_replace_it():
+    """R6: the rule belongs where the route exists, and nowhere else -- both halves measured.
+
+    The dev kit got the one question in this round; the research kit reaches the same class through
+    `RQ`, whose automaton is `PR`'s. The office root cannot be superseded at all, so a paragraph
+    there would describe a route the kernel does not have -- which is the same defect in the other
+    direction, and the direction a round protocol had already claimed its way into.
+    """
+    owed = _kits_whose_root_can_be_replaced()
+    assert len(owed) >= 2, owed
+    for kit in owed:
+        paragraph = _cr_paragraph(kit)
+        assert "SUPERSEDED" in paragraph, (
+            "%s can replace its root and its constitution never says so" % kit)
+    sys.path.insert(0, os.path.join(ROOT, "team-kits"))
+    from kernel.backlog_types import ROOT_TYPE_BY_KIT
+    silent = 0
+    for path in sorted(glob.glob(os.path.join(ROOT, "team-kits", "*", "constitution",
+                                              "AGENTS.md"))):
+        kit = os.path.basename(os.path.dirname(os.path.dirname(path)))
+        if kit in owed:
+            continue
+        silent += 1
+        with io.open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        # A kit ABSENT from `ROOT_TYPE_BY_KIT` has no root item at all (the office kit's own case),
+        # so it has no root to replace either -- and a constitution naming the status anyway would
+        # describe a route its kernel does not have.
+        assert "SUPERSEDED" not in text, (
+            "%s describes a replacement its root (%s) cannot reach"
+            % (kit, ROOT_TYPE_BY_KIT.get(kit, "none -- this kit has no root item")))
+    assert silent, "no kit was measured for the silence half, so it says nothing"
+
+
+def test_a_change_to_something_built_walks_the_CR_route_the_constitution_names(tmp_path):
+    """BUG-0022 AC-1/AC-2/AC-3: the type is REACHED, and the text that sends a PM there is the map.
+
+    THE DEFECT, measured in pilot 4 (2026-08-11): a persona raised two concrete changes to a running
+    game, `changes/active/` stayed empty across two sessions, and the PM replaced the product root
+    twice instead (PR-0001 -> PR-0002 -> PR-0003). The type was fully built -- automaton, fields,
+    approval binding, V1 migration -- and no text told the PM WHEN it applies, so nothing ever
+    walked it.
+
+    TEXT TO BEHAVIOUR, in that order and with nothing typed twice: the ROUTE is read out of the
+    SHIPPED dev constitution (the statuses it prints in backticks, and the approval kind it names),
+    it is compared with the KERNEL's own contract (`AUTOMATA`, `APPROVAL_TRANSITIONS`), and then it
+    is WALKED on a project the real installers produced -- capture through the installed entry
+    point, the approval question composed by the kernel and minted through the project's own hook,
+    the transitions the paragraph names. A rewording that promises a route the kernel does not have
+    fails at the comparison; a kernel change that drops the route fails at the walk.
+
+    AND THE OTHER HALF OF AC-3: replacing the root stays possible and RECORDS the replacement --
+    the old goal walks to SUPERSEDED, which is the status the same paragraph names for it.
+    """
+    sys.path.insert(0, os.path.join(ROOT, "team-kits"))
+    from kernel.approvals import APPROVAL_TRANSITIONS
+    from kernel.backlog_types import ACTIVE_DIRS, AUTOMATA
+
+    paragraph = _cr_paragraph()
+    printed = re.findall(r"`([A-Z][A-Z_]+)`", paragraph)
+    # `\s+` and not a space: the sentence WRAPS between the kind and the word, and a reader
+    # that depended on where an editor broke the line would be silent on the shipped text.
+    kind = re.findall(r"`([a-z]+)`\s+approval", paragraph)
+    assert kind, "the paragraph names no approval kind, so a PM cannot know who signs a CR"
+    walked = [status for status in printed if status in AUTOMATA["CR"].chain]
+    assert walked == list(AUTOMATA["CR"].chain), (
+        "the constitution prints the CR route as %s while the kernel's chain is %s -- one of the "
+        "two is a map of a country that does not exist" % (walked, list(AUTOMATA["CR"].chain)))
+    assert APPROVAL_TRANSITIONS[("CR", kind[0])] == (walked[0], walked[1]), (
+        "the paragraph says a %r approval carries %s -> %s; the kernel binds %s"
+        % (kind[0], walked[0], walked[1], APPROVAL_TRANSITIONS.get(("CR", kind[0]))))
+    assert "SUPERSEDED" in printed, (
+        "the paragraph names no status for the REPLACED root, so the other route records nothing")
+
+    repo, _created = _project_the_installers_produce(tmp_path / "pilot")
+    built = _entry_point(repo, "capture", "PR", body=json.dumps(PR_BODY))
+    assert built.returncode == 0, built.stdout + built.stderr
+    assert "PR-0001 DRAFT" in built.stdout, built.stdout
+
+    change = _entry_point(repo, "capture", "CR", body=json.dumps({
+        "title": "the Account button comes back",
+        "target_pr": "PR-0001", "target_revision": 1,
+        "change_description": "the delivered screen dropped a visible element the user asks for",
+        "acceptance_criteria": [{"id": "AC-1", "text": "the element is back and pinned by a test"}],
+    }))
+    assert change.returncode == 0, change.stdout + change.stderr
+    assert "CR-0001 %s" % walked[0] in change.stdout, change.stdout
+    assert os.path.isfile(os.path.join(str(repo), "project_memory",
+                                       *(ACTIVE_DIRS["CR"].split("/") + ["CR-0001.yaml"]))), (
+        "the type has a directory nothing writes into -- which is the whole of BUG-0022")
+
+    _mint_in_project(repo, kind[0], "CR-0001")
+    sys.path.insert(0, os.path.join(ROOT, "team-kits"))
+    from kernel.state import ProjectState
+    state = ProjectState(os.path.join(str(repo), "project_memory"))
+    assert state.read_item("CR-0001")["status"] == walked[1], state.read_item("CR-0001")
+    applied = _entry_point(repo, "transition", "CR-0001", walked[2])
+    assert applied.returncode == 0, applied.stdout + applied.stderr
+    assert state.read_item("CR-0001")["status"] == walked[2]
+
+    # the OTHER route still exists and records the replacement
+    replaced = _entry_point(repo, "transition", "PR-0001", "SUPERSEDED")
+    assert replaced.returncode == 0, replaced.stdout + replaced.stderr
+    assert state.read_item("PR-0001")["status"] == "SUPERSEDED"

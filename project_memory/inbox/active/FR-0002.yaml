@@ -1,6 +1,6 @@
 id: FR-0002
 title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
-related_pr: PR-0003
+related_pr: PR-0009
 request_text: 'Vollstaendige Analyse in docs/office-kit-from-field.md (gemessen 2026-08-04
   an der BuyPlugGo-Kopie, Kit 2026.07.17-8, vier Wochen Betrieb). Acht Punkte F1 bis
   F8; die Prosa bleibt dort, dieses Item traegt nur Stand.
@@ -25,3 +25,9 @@ created: '2026-08-04T16:59:50'
 triage_result: 'USER VERDICT 2026-09-02 (FR survey, asked one by one via AskUserQuestion):
   JA, BAUEN -- F1 is done via FR-0031/TSK-0102; F2-F6 as one template round, F7/F8
   as own packages.'
+source: 'RE-POINTED 2026-09-06 (TSK-0131, PR-0008 AC-2) from the generic PR-0003 bucket
+  to the goal that carries the office package. The POINTER is written now and the
+  STATUS is not: G5-3 (TSK-0132) is building against this goal in a parallel worktree,
+  so a status this stream wrote would be a verdict on somebody else''s unfinished
+  work. Whether the eight field points F1-F8 of docs/office-kit-from-field.md are
+  built is measured by that stream, not by this one.'

@@ -1,0 +1,36 @@
+id: BUG-0253
+title: 'A project without a scaffold record -- this repository''s own harness -- dispatches
+  with `ladder: absent`: no rung is derived and no spawn is held, because there is
+  no kit declaration to read (new, TSK-0130, PR-0010 AC-6, DEC-0078 (4))'
+related_pr: PR-0010
+severity: low
+observed: '**Mechanism.** `kernel.dispatch.kit_installation` answers None when `.claude/team_kit_roles.txt`
+  does not exist at all; `ladder_for_order` then writes `{"absent": ...}` on the lease,
+  no rung, no effort, and `spawn_model_refusal` holds nothing. That is deliberate
+  (DEC-0078 (4) forbids a default ladder in the kernel; a project no kit installed
+  has none to read) and it is the shape this repository runs in: its implementer and
+  verifier are dispatched by the kernel directly (CLAUDE.md), with `model: opus` /
+  `effort: high` pins and no `ladder.yaml`. MEASURED 2026-09-05: `tools/test_ladder.py::test_a_project_without_a_scaffold_record_gets_no_rung_and_no_refusal`
+  (the header of such a lease carries no `rung`), and every fixture of the suite is
+  such a project.'
+expected: Either this repository declares its own ladder for its three roles (a `ladder.yaml`
+  the kit-less kernel is pointed at by a config value, not by a kit record) or the
+  harness roles' pins are recorded as the rung with the FR-0047 visibility resting
+  on the header's `absent` line -- a DEC-first question for the lead.
+repro: 'In this repository: `PYTHONPATH=team-kits python -B -m kernel.cli --root project_memory
+  ladder TSK-0130` -> `{"absent": "no scaffold record (.claude/team_kit_roles.txt)
+  names a kit for this project ..."}`.'
+acceptance_criteria:
+- id: AC-1
+  text: a DEC decides whether the kit-less kernel reads a declaration from a config
+    value; if yes, this repository's roles get one and `test_ladder` gains the case
+limits: the harness roles' pins are the user's decision for generation 5 (DEC-0077
+  (4), DEC-0080 (8)) and stand in the role files; the lease says `absent` rather than
+  pretending a rung, so a reader of the header sees that nothing was derived
+regression_tests:
+- tools/test_ladder.py::test_a_project_without_a_scaffold_record_gets_no_rung_and_no_refusal
+hole_number: H171
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-05T22:20:27'

@@ -13,8 +13,11 @@ expected: 'The prose matches the measured behavior: either it names the re-match
   (and the design decides whether that exit is WANTED -- a rolled-back change silently
   re-trusting is itself worth a decision), or the code refuses the exit and the comment
   becomes true. Mirrored copies stay byte-identical across the three kits.'
-repro: 'PYTHONPATH with a kit copy: python -c invoking kit_trust_state.transition({''state'':''hooks_trust_required'',''hook_bundle_hash'':''AAA''},
-  ''AAA'') -> returns ''active'' while the docstring above it says nothing leads out.'
+repro: 'Read `kit_trust_state.py`''s prose beside its transition table. RE-MEASURED
+  2026-09-06 (TSK-0131) against b7f282e: `kit_trust_state.transition(hooks_trust_required,
+  same hash)` returns `(''active'', None)` -- so a route OUT of `hooks_trust_required`
+  does exist, exactly as the item observed, and the prose that says nothing leads
+  out of it is still the shipped text. REPRODUCES.'
 severity: low
 acceptance_criteria:
 - 'AC-1: prose and measured behavior agree, with the re-match exit either named or

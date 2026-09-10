@@ -1,0 +1,53 @@
+id: BUG-0249
+title: 'The session brief does not show the rung and the effort the dispatcher derived:
+  `report.generate_session_brief` builds each `active_tasks` row from a fixed field
+  set (id/status/assigned_role/blocked_by), so DEC-0077 (5) and PR-0010 AC-6 ("shown
+  in the session brief") are unbuilt while the values sit on the task item (new, TSK-0130,
+  PR-0010 AC-6)'
+related_pr: PR-0010
+severity: medium
+observed: '**Mechanism.** `kernel.dispatch.create_lease` writes `rung` and `effort`
+  on the lease, into the dispatch header and onto the TASK ITEM. `kernel.report.generate_session_brief`
+  composes each `active_tasks` row by naming its fields one by one -- `id`, `status`,
+  `assigned_role`, plus `blocked_by` when set -- so a field added to the task item
+  never reaches the brief. MEASURED 2026-09-05 22:18:14 on the scaffolded dev pilot
+  (`C:/Offline Repos/v2-testbed/_round-scratch/TSK-0130/pilots/dev`): `project_memory/tasks/active/TSK-0001.yaml`
+  carries `rung: fable` and `effort: xhigh`; `python scripts/harness.py generate-session-brief
+  --kit dev-team --kit-version 2026.09.05-7 --enforcement hard` then wrote `active_tasks:
+  [{id: TSK-0001, status: READY, assigned_role: software-architect}, ...]` -- neither
+  key present. The brief''s schema (`kernel/schemas/session_brief.yaml`) lists `item_required:
+  [id, status, assigned_role]` and refuses no extra key, so the gap is the writer''s
+  alone. `team-kits/kernel/report.py` is in TSK-0130''s forbidden_scope, which is
+  why this stream measured the gap instead of closing it.'
+expected: '`generate_session_brief` copies `rung` and `effort` onto the `active_tasks`
+  row when the task carries them (a kit-less project carries neither and the row is
+  unchanged), and a test reads a brief of a leased order for both keys -- one line
+  in `report.py`, one test. Until then a project sees the two values in the dispatch
+  header and in `python scripts/harness.py ladder <TSK-ID>`, never in the brief a
+  new session opens with.'
+repro: 'In the pilot above: `cat project_memory/tasks/active/TSK-0001.yaml | grep
+  -E ''^(rung|effort):''` -> `rung: fable` / `effort: xhigh`; `python scripts/harness.py
+  generate-session-brief --kit dev-team --kit-version <v> --enforcement hard` then
+  `sed -n ''/active_tasks/,/open_approvals/p'' project_memory/generated/session_brief.yaml`
+  -> three keys per row, neither of them.'
+acceptance_criteria:
+- id: AC-1
+  text: the brief's `active_tasks` row carries `rung` and `effort` for a task that
+    has them, measured on a scaffolded pilot, and stays unchanged for a task that
+    has none
+- id: AC-2
+  text: a shipped test is red when the row loses them again (the row is built from
+    a fixed field set, so it can)
+limits: 'The values are not lost, only unshown: `create_lease` writes them on the
+  lease, the dispatch header carries them into the specialist''s prompt, the task
+  item stores them, and `ladder <TSK-ID>` prints the whole derivation with its reason.
+  What FR-0047 called the silent downgrade is therefore visible to whoever reads the
+  header or asks the command, and invisible only to a session that reads the brief
+  alone.'
+source: TSK-0130 stream protocol AC-6; measurement 2026-09-05 22:18:14 on pilots/dev;
+  kernel/report.py:227-235; kernel/schemas/session_brief.yaml
+hole_number: H167
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-05T22:20:06'

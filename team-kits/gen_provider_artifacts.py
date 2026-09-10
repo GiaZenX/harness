@@ -58,7 +58,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # among the tools, in the paragraph that says how a tool is declared, and no tool declaration
 # covers it:
 #   Agent|Task  — Codex exposes SubagentStart, but it cannot stop a spawn and does not carry the
-#                 Claude work-order payload. Built-in Codex roles also remain available.
+#                 Claude work-order payload; upstream closed the request for that payload as
+#                 "not planned" (openai/codex#32753, radar/2026-09-05-codex.md item 4), so the gap
+#                 is durable rather than pending. Built-in Codex roles also remain available.
 #   AskUserQuestion — Codex asks via request_user_input (root-only, different payload shape);
 #                 guard_question_context cannot hook it, so the self-contained-question rule
 #                 binds Codex PMs through the SKILL alone (audit: the fallthrough used to
@@ -134,6 +136,12 @@ def codex_matchers(matcher):
 
 CODEX_EVENTS = ("SessionStart", "PreToolUse", "PostToolUse", "SubagentStart",
                 "SubagentStop", "Stop")
+# A CODEX-ONLY EVENT HAS NO VEHICLE IN THE SOURCE FORMAT, and that is tolerated, not translated: a
+# kit source registers hooks in Claude's `settings.json` vocabulary, and an event Claude Code does
+# not have (`Interrupt`, Codex CLI 0.150.0 -- radar/2026-09-05-codex.md item 4) cannot be named
+# there, so nothing here emits it and nothing here refuses a kit for not naming it. The `codex:`
+# frontmatter overlay reaches per-agent TOML fields only, never a hook registration; the day a kit
+# needs such an event is the neutral-source trip-wire of HARNESS_LOG 2026-07-14.
 
 # WHAT A MATCHER SELECTS ON IS A PROPERTY OF THE EVENT, not of the string. The tool events match on
 # TOOL NAMES; every other event matches in a vocabulary of its own, and the kits ship one:
@@ -258,33 +266,70 @@ REFERENCE_PROVIDER = "claude"
 
 
 def tier_of(model, aliases):
-    """Canonical claude-vocabulary tier of a model_map/frontmatter value."""
-    return aliases.get(model, model)  # lead->opus etc.; opus/sonnet/haiku pass through
+    """Canonical claude-vocabulary rung of a model_map/frontmatter value."""
+    return aliases.get(model, model)  # lead->opus etc.; a rung name passes through
+
+
+# The one row of a provider block that is not a rung: the frontmatter key that provider reads its
+# effort from. Named so `rungs` can leave it out by its own name instead of by a list of rung names.
+EFFORT_FIELD_KEY = "effort_field"
+
+
+def rungs(tiers, provider):
+    """rung name -> model id for `provider`: its block minus the effort-field row."""
+    return {key: value for key, value in tiers.get(provider, {}).items()
+            if key != EFFORT_FIELD_KEY}
 
 
 def provider_model(model, provider, tiers, aliases):
-    canon = tier_of(model, aliases)             # opus | sonnet | haiku | fable
-    # fable (Mythos-class, above opus) is a legitimate Claude-side pin the PM may set per §11;
-    # for every OTHER provider it maps to that provider's LEAD tier (a real map broke here).
-    rev = {"opus": "lead", "sonnet": "worker", "haiku": "light", "fable": "lead"}
-    tier = rev.get(canon)
-    if not tier:
-        return model  # unknown/explicit model id — pass through untouched
+    """The model id `provider` runs for a model_map/frontmatter value -- or the value untouched.
+
+    THE ROW IS THE RUNG, read off the table and not off a map kept here: an alias becomes its
+    canonical rung (`tier_of`), the reference platform keeps the literal value, every other
+    provider answers with its row for that rung. Until DEC-0076 a dict in this function said
+    which row each canonical name meant and sent `fable` to the LEAD row, because the table had no
+    top row to point at; the table now carries one per provider. A value that is no rung and no
+    alias comes back unchanged, which is what `provider_neutral_model` and
+    `tools/test_model_pins.the_table_can_place` read as "the table cannot place this".
+    """
+    canon = tier_of(model, aliases)
     if provider == REFERENCE_PROVIDER:
         return model  # claude keeps the literal value (incl. fable)
-    return tiers.get(provider, {}).get(tier, model)
+    return rungs(tiers, provider).get(canon, model)
+
+
+def table_places(model, tiers, aliases):
+    """Can the table turn this value into a rung EVERY provider it knows has a row for?
+
+    The question the generator asks of an INSTALLED frontmatter value (already alias-resolved
+    by the scaffold, so `opus`/`sonnet` are ordinary here) and the one `tools/test_model_pins`
+    asks of a shipped pin. A retired rung (`light`, `haiku`, `luna`) is not a row anywhere and
+    is refused with `unplaceable_pin_sentence` naming DEC-0076.
+    """
+    canon = tier_of(str(model), aliases)
+    return bool(tiers) and all(canon in rungs(tiers, provider) for provider in tiers)
+
+
+def unplaceable_pin_sentence(where, model, tiers, aliases):
+    """The refusal for a pin no provider block has a row for -- one sentence, one decision."""
+    top = [name for name in rungs(tiers, REFERENCE_PROVIDER) if name not in set(aliases.values())]
+    return ("%s pins model %r, which team-kits/model_tiers.yaml does not place: the ladder has "
+            "exactly three rungs per provider and no `light`/haiku row (DEC-0076). Pin an alias (%s)"
+            "%s. Provider artifacts were left untouched"
+            % (where, model, ", ".join(sorted(aliases)),
+               (" or the top rung %s" % ", ".join(sorted(top))) if top else ""))
 
 
 def provider_neutral_model(model, tiers=None, aliases=None):
     """May a KIT SOURCE carry this model value — does it still resolve on every provider?
 
-    TWO WAYS TO QUALIFY, both read off `model_tiers.yaml` instead of listed. The value is a tier
-    ALIAS (`aliases:`), or it is no reference-platform model name of its own AND `provider_model`
-    still translates it for every other provider. The second half is what lets the §11 escalation
-    pin `fable` stand in a kit source — Claude keeps it literally, every other provider gets its
-    LEAD tier — while keeping the reference platform's own `opus`/`sonnet`/`haiku` out: those are
-    the aliases' TARGETS, and a kit source carrying one hands every non-Claude project a Claude
-    model name at install time.
+    TWO WAYS TO QUALIFY, both read off `model_tiers.yaml` instead of listed. The value is a rung
+    ALIAS (`aliases:`), or it is no alias TARGET AND `provider_model` still translates it for every
+    other provider. The second half is what lets the top-rung pin `fable` stand in a kit source —
+    Claude keeps it literally, every other provider gets its own top row (DEC-0076) — while keeping
+    `opus`/`sonnet` out of a SOURCE: a kit source spells the rung the way the project's `model_map`
+    does, so the scaffold's rewrite and the map agree in one vocabulary, and a literal target in a
+    source is a second spelling of the same rung.
 
     `tools/validate.py` is the caller; the derivation lives here because this module is the one
     that reads the tiers file, and the enumeration it replaces ("lead/worker/light") was a list
@@ -295,7 +340,7 @@ def provider_neutral_model(model, tiers=None, aliases=None):
     value = str(model)
     if value in aliases:
         return True
-    if value in set(tiers.get(REFERENCE_PROVIDER, {}).values()):
+    if value in set(aliases.values()):
         return False
     others = [provider for provider in tiers if provider != REFERENCE_PROVIDER]
     return bool(others) and all(
@@ -384,14 +429,18 @@ def providers_from_project_config(path):
         # This map is stamped into Claude frontmatter and Codex TOML, so accept only the shared
         # effort vocabulary documented by the kits rather than a provider-only value such as ultra.
         allowed_efforts = {"low", "medium", "high", "xhigh", "max"}
-        portable_models = {"lead", "worker", "light", "opus", "sonnet", "haiku", "fable"}
-        if any(not isinstance(role, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", role)
-               or not isinstance(value, str)
-               or (map_name == "model_map" and value not in portable_models)
-               or (map_name == "effort_map" and value not in allowed_efforts)
-               for role, value in values.items()):
-            raise SystemExit("project_config.yaml %s contains an invalid role/value; provider "
-                             "artifacts were left untouched" % map_name)
+        # ...and only a model value the TABLE places (DEC-0076): an alias or a rung name. This was
+        # a set of seven spellings that still knew `light` and `haiku`.
+        tiers, aliases = load_tiers()
+        for role, value in values.items():
+            if (not isinstance(role, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", role)
+                    or not isinstance(value, str)
+                    or (map_name == "effort_map" and value not in allowed_efforts)):
+                raise SystemExit("project_config.yaml %s contains an invalid role/value; provider "
+                                 "artifacts were left untouched" % map_name)
+            if map_name == "model_map" and not table_places(value, tiers, aliases):
+                raise SystemExit(unplaceable_pin_sentence(
+                    "project_config.yaml model_map role %s" % role, value, tiers, aliases))
     return [item for item in normalized if item == "codex"]
 
 
@@ -1264,10 +1313,9 @@ def main():
                 if meta.get("name") != role_name:
                     raise SystemExit("Agent frontmatter name/source mismatch for %s; provider "
                                      "artifacts were left untouched" % role_name)
-                if meta.get("model") not in {"lead", "worker", "light", "opus", "sonnet", "haiku",
-                                             "fable"}:
-                    raise SystemExit("Agent %s uses a non-portable model tier; provider artifacts "
-                                     "were left untouched" % role_name)
+                if not table_places(meta.get("model"), tiers, aliases):
+                    raise SystemExit(unplaceable_pin_sentence(
+                        "Agent %s" % role_name, meta.get("model"), tiers, aliases))
                 if meta.get("effort") not in {"low", "medium", "high", "xhigh", "max"}:
                     raise SystemExit("Agent %s uses an unsupported shared effort; provider artifacts "
                                      "were left untouched" % role_name)

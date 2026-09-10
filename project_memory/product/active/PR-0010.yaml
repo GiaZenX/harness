@@ -94,7 +94,7 @@ out_of_scope:
 - A six-rung ladder or any escalation that is not derived from state (rejected by
   the two-axes DEC)
 priority: high
-status: DRAFT
+status: APPROVED
 revision: 1
-approval_ref: null
+approval_ref: APR-0007
 created: '2026-09-05T10:11:09'

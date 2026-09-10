@@ -451,6 +451,51 @@ def label_rows(rows):
             for number, row in enumerate(rows, start=2)]
 
 
+# THE CHART OF ACCOUNTS (FR-0081): a project document, read at the WRITE and not in `--validate`.
+# The account is not a column of the row -- it is derived from the category through
+# `project_memory/chart_of_accounts.yaml` and re-derived by `euer_report.py`, so the ledger schema
+# is unchanged and an old ledger stays valid the day a framework is switched on. What the switch
+# changes is the booking: with a framework named, a category no account of it maps to is refused
+# HERE, with the accounts named, instead of landing in the report's "ohne Konto" group.
+CHART_REL = os.path.join("project_memory", "chart_of_accounts.yaml")
+
+
+def account_for(category):
+    """(account, label, framework) the ACTIVE chart maps `category` to; None while no chart is active.
+
+    Refuses -- does not guess -- a category that maps to no account or to two of the active
+    framework: `tools/test_office_package.py::test_a_booking_names_its_account_and_a_category_the_chart_does_not_map_is_refused`.
+    """
+    path = os.path.join(ROOT, CHART_REL)
+    if not os.path.isfile(path):
+        return None
+    try:
+        import yaml
+    except ImportError as exc:
+        refuse("%s exists but PyYAML is missing (%s): pip install -r requirements-office.txt"
+               % (CHART_REL, exc))
+    try:
+        with open(path, encoding="utf-8") as handle:
+            chart = yaml.safe_load(handle) or {}
+    except Exception as exc:            # noqa: BLE001 -- any parse failure is one refusal
+        refuse("%s cannot be read (%s); a booking cannot name its account" % (CHART_REL, exc))
+    active = chart.get("active") if isinstance(chart, dict) else None
+    if not active:
+        return None
+    entries = (chart.get("accounts") or {}).get(active)
+    if not isinstance(entries, list):
+        refuse("%s names `active: %s` but carries no `accounts.%s` list" % (CHART_REL, active, active))
+    hits = [entry for entry in entries if isinstance(entry, dict)
+            and category in [str(one) for one in (entry.get("categories") or [])]]
+    if len(hits) != 1:
+        refuse("category %r maps to %d account(s) of %s (%s) -- one is needed. Remedy: map it in "
+               "%s through `apply-proposal` (a new account or a category added to one), never "
+               "by hand." % (category, len(hits), active,
+                             ", ".join(str(hit.get("account")) for hit in hits) or "none",
+                             CHART_REL.replace(os.sep, "/")))
+    return str(hits[0].get("account")), str(hits[0].get("label_de") or ""), str(active)
+
+
 def new_problems(existing, incoming, year):
     """What the INCOMING rows break that was not already broken.
 
@@ -548,6 +593,8 @@ def run_import(argv):
         if problems:
             refuse("the import would make the ledger invalid — NOTHING was written:\n"
                    + "\n".join("  - " + p for p in problems))
+        for row in incoming:
+            account_for((row.get("category") or "").strip())
 
         for row in incoming:
             for field in ("net", "gross", "vat_rate"):
@@ -635,6 +682,7 @@ def main():
         if problems:
             refuse("this entry would make the ledger invalid — NOTHING was written:\n"
                    + "\n".join("  - " + p for p in problems))
+        mapped = account_for(args.category)
 
         net, gross = read_amount(args.net)[0], read_amount(args.gross)[0]
         vat_rate = read_amount(args.vat_rate)[0]
@@ -646,9 +694,10 @@ def main():
     finally:
         unlock(held)
 
-    print("[ledger_add] appended %s: %s %s %.2f EUR gross (%s, %s)"
+    print("[ledger_add] appended %s: %s %s %.2f EUR gross (%s, %s%s)"
           % (entry_id, args.direction, args.counterparty, gross,
-             payment_date or "OPEN/unpaid", args.category))
+             payment_date or "OPEN/unpaid", args.category,
+             ", account %s %s (%s)" % mapped if mapped else ""))
 
 
 if __name__ == "__main__":

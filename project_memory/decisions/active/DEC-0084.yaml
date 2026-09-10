@@ -1,0 +1,50 @@
+id: DEC-0084
+title: 'Radar-Ausloeser entschieden: die Watcher laufen ueber eine CLAUDE-ROUTINE
+  -- ''so wie auch der Project Auditor laufen sollte'' -- und ob der Auditor in den
+  Kits ueberhaupt laeuft, wird zuerst gemessen; kein Windows-Task, keine Sitzungsstart-Pflicht
+  des Leads als Mechanismus'
+context: 'USER DECISION 2026-09-06 on the DEC-first proposal of stream G5-2 (TSK-0130,
+  staging/TSK-0130/dec-trigger.json), which offered (A) a lead session-start routine
+  and (B) a Windows Task Scheduler entry running `claude -p` headless (probe task
+  measured). The user chose NEITHER as offered: ''Wie jetzt auch: ueber eine Claude
+  Routine! So wie auch der Project Auditor laufen sollte! Macht er das ueberhaupt?''.
+  Measured facts the stream and the lead hold: no mechanism has ever started a watcher
+  (14 dated reports, all human-started; no cron in the session, no OS task); the kits
+  carry a ROUTINE mechanism (spec II.2: a routine bound to a role, hooks/_routine.py
+  + session_status.py -- ''the hook reports, the PM spawns'', FR-0038 / TSK-0112 run
+  record; the project-auditor routine declared ''weekly + after kit update''); H158
+  (G4-3) measured that no occasion makes the AUDIT run due in this repo; Claude Code''s
+  own session cron (CronCreate) does not outlive the session; the platform also offers
+  scheduled routines outside a session (RemoteTrigger / cloud routines) -- NOT measured
+  yet on this host.'
+decision: '(1) The mechanism is the platform''s ROUTINE, the same shape the kits use
+  for the project-auditor: a routine declared in the repo (role, trigger, cadence)
+  that the platform surfaces as due and that starts the watcher -- not a Windows task,
+  not a prose duty. (2) TSK-0130 MEASURES FIRST, before building: (a) what a ''Claude
+  routine'' is on this host today -- the kits'' _routine.py / session_status.py feed
+  (surfaced at session start, dispatched by the lead role), Claude Code''s session
+  cron, and the platform''s scheduled routines outside a session (RemoteTrigger /
+  cloud) -- which of them survives a session end and a week without a session, with
+  a probe each; (b) the user''s question: does the project-auditor routine actually
+  RUN in a scaffolded kit project -- is it declared, does session_status report it
+  due after its cadence, does the PM spawn it -- measured on a dev pilot as a process,
+  the answer written into the protocol and, if it does not run, captured as a hole
+  item with the chain. (3) Then the watchers get the routine that the measurement
+  shows works: declared in this repo (radar/ or tools/, plus the lead''s registration
+  where the platform needs one), a test refusing any schedule sentence the declaration
+  does not back, one end-to-end run started by the mechanism. (4) If no platform routine
+  survives a week without a session, the stream reports that as the measured limit
+  and proposes ONE more time (with the auditor''s real behaviour on the table) rather
+  than building option B silently.'
+consequences: 'Watchers and auditor share one trigger shape -- one mechanism to maintain,
+  one class of claim to test; the user''s question about the auditor gets a measured
+  answer instead of a shrug. Cost: one more measurement round in TSK-0130 before the
+  build. Rejected by the user: the OS task (B) and the lead''s session-start duty
+  (A) as the mechanism.'
+source: staging/TSK-0130/dec-trigger.json; user answer 2026-09-06; FR-0088; PR-0010
+  AC-1; DEC-0080; H158 (BUG item of the migration); spec II.2 routines; FR-0038 /
+  TSK-0112
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-06T07:23:11'

@@ -1,0 +1,7 @@
+# BUG-0033 -- confirming selection, started 2026-09-05 22:56:49 (clock read)
+# tree: C:/Offline Repos/v2-testbed/_worktrees/g5-stock (code b7f282e + TSK-0131)
+# python -B -m pytest .claude/hooks/test_gates.py::test_gate1_answers_before_its_registration_gives_up .claude/hooks/test_gates.py::test_gate3_answers_before_its_registration_however_costly_the_line_is_to_judge -q
+
+..                                                                       [100%]
+2 passed in 64.87s (0:01:04)
+

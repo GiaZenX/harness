@@ -1,0 +1,17 @@
+id: EVD-0084
+kind: test
+related:
+- TSK-0126
+result: pass
+summary: 'generation-4 merge delivery run after rework 3 and the kernel migrate-holes
+  command: pytest tools/ 4687 passed, 14 skipped, 0 failed in 46:24 (DELIVERY_RUN=TSK-0126);
+  .claude/hooks/test_gates.py 548 passed / 0 failed after the writing hole migration
+  (155 items; before it 7 failed = the migrated judges); ruff clean; validate.py green;
+  stamp 2026.09.05-6 x3, --check unchanged'
+artifact_refs:
+- staging/TSK-0126/run-full-suite.txt
+run_command: DELIVERY_RUN=TSK-0126 python -B -m pytest tools/ -q
+run_scope: full
+revision: 1
+approval_ref: null
+created: '2026-09-05T21:01:42'

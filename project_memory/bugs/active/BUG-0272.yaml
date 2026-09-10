@@ -1,0 +1,65 @@
+id: BUG-0272
+title: 'Gate 1 refuses a READ-ONLY grep as a write to the drive root when its double-quoted
+  pattern carries escaped backticks AND a space: `grep -c "\`a\`, \`b\`" README.md`
+  is rc 2 with ''no tool call in this repo may write C:\'' (over-refusal, measured
+  2026-09-06 in the generation-5 merge, TSK-0133)'
+related_pr: PR-0008
+severity: low
+observed: "MEASURED 2026-09-06 (TSK-0133, generation-5 merge), each line as a Bash\
+  \ tool call in the main checkout, so the hook itself judged it:\n  * `cd \"C:/Offline\
+  \ Repos/AgentAndSkills\" && grep -c \"\\`a\\`, \\`b\\`\" README.md` -- REFUSED by\
+  \ `.claude/hooks/gate_lead_write_scope.py`: 'no tool call in this repo may write\
+  \ C:\\. this path is refused for what stands UNDER it ... carried with its measured\
+  \ chain as H19'. The same refusal hit the merge twice before on longer lines whose\
+  \ grep pattern had the same shape (`\"\\`dispatch\\`, \\`ladder\\`, \\`submit-result\\\
+  `.*\\`migrate-holes\\`, \\`sweep-pointers\\`\"`); one of those lines also carried\
+  \ the `git add` that staged five resolved conflict files, and the add did not run\
+  \ -- noticed only because the next check found the files unstaged.\n  * Three neighbours\
+  \ PASS THE GATE (the hook let them run; what grep then returned is grep's own exit\
+  \ code -- `grep -c` exits 1 when the count is 0, which two of them were, corrected\
+  \ after verify round 1, P2): `grep -c \"\\`ladder\\`\" README.md` (ran, printed\
+  \ 1, rc 0), `grep -c \"\\`a\\`.*\\`b\\`\" README.md` (ran, printed 0, rc 1 -- a\
+  \ wildcard but no space), `grep -c \"a.*b, c\" README.md` (ran, printed 0, rc 1\
+  \ -- a space but no backticks).\n  * So the trigger is a double-quoted word that\
+  \ carries BOTH an escaped backtick (a literal backtick to bash: inside double quotes\
+  \ `\\`` is not a command substitution) and a space. Which piece of that word the\
+  \ reader resolves to `C:\\` was NOT isolated: the reader is `_harness` in `.claude/hooks/`,\
+  \ forbidden to this round, and the refusal text names the drive root and not the\
+  \ word it read."
+expected: A read-only `grep` is never refused as a write. The reader tells a literal
+  backtick inside a double-quoted word (`\``) from a command substitution, or -- where
+  it cannot -- its refusal names the WORD it could not place instead of the drive
+  root, so the person retyping the line knows what to change. A real command substitution
+  inside quotes stays refused.
+repro: 'In a Bash tool call of this repo: `cd "C:/Offline Repos/AgentAndSkills" &&
+  grep -c "\`a\`, \`b\`" README.md` -> hook error rc 2 naming `C:\`, grep never runs.
+  Control: the same line with `"\`a\`.*\`b\`"` or with `"a.*b, c"` -> the hook lets
+  it run (grep prints 0 and exits 1, its own answer for no match).'
+acceptance_criteria:
+- id: AC-1
+  text: the grep line of the repro is rc 0 (the file is only read), measured as a
+    hook process
+- id: AC-2
+  text: a double-quoted word carrying a REAL command substitution (unescaped backticks
+    or `$(...)`) is still refused, so the correction narrows the reading and does
+    not open it
+- id: AC-3
+  text: a refusal of this reader names the word it could not place, never a path it
+    derived from it
+limits: 'An over-refusal, no hole in the protection: nothing gets through, a read-only
+  line is turned away. What it costs is measured on this round -- two refused lines,
+  one of which silently dropped a `git add` that stood behind the grep in the same
+  command, so the cost is not only a retyped line but a step that did not happen and
+  had to be noticed. What takes its place meanwhile: spell such a check as a Python
+  script in the round''s scratch (this round''s `check_surface_lines.py`), or write
+  the pattern without backticks; and put a write step never BEHIND a grep in one command
+  line, so a refusal of the grep cannot swallow it.'
+source: TSK-0133 merge protocol (project_memory/staging/TSK-0133/merge-protocol.md),
+  section 'merge findings'; the hook refusals of 2026-09-06 20:3x and 21:1x in the
+  merge session; H19 (the gate's own pointer in the refusal); CLAUDE.md 'Die vier
+  Gates dieses Repos' (the over-refusal paragraph)
+hole_number: H188
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-06T21:18:15'

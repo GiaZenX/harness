@@ -19,9 +19,11 @@ expected: A word whose path-like part this reader cannot resolve -- parameter ex
   ($..., ${...}, $(...)), glob metacharacters (*?[), brace expansion -- is Unplaceable
   and refused fail-closed, the same answer the tilde prefix already gets. The kit
   gate reaches the same verdict for the literal and the expanded spelling.
-repro: 'In a scaffolded dev-team project: `python .cla*de/hooks/gate_approval.py <
-  payload.json` against gate_write_scope -> rc 0; the literal spelling -> rc 2. Verifier
-  rig: v2-testbed/_round-scratch/TSK-0098/verify/.'
+repro: 'Send both spellings to the KIT''s `gate_write_scope` as a real hook process.
+  RE-MEASURED 2026-09-06 (TSK-0131) against b7f282e: `python .claude/hooks/gate_approval.py
+  < payload.json` rc 2 (refused), and the glob-expanded twin `python .cla*de/hooks/gate_approval.py
+  < payload.json` rc 0. REPRODUCES exactly as observed: the enforcement-layer reader
+  does not see a path the shell expands.'
 severity: low
 acceptance_criteria:
 - id: AC-1

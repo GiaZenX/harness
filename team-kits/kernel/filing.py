@@ -263,6 +263,26 @@ def uncovered_document_sources(state: ProjectState) -> list:
     return uncovered
 
 
+def remedy_flags(manifest: dict) -> str:
+    """The `request-approval` flags for THIS rule -- ASKED of the CLI, never derived a second time.
+
+    Until 2026-09-05 the refusal in `apply` printed the kind and no flag, so the line it told the
+    role to run was one `_line_manifest` refuses (BUG-0079's class, one module over). The first
+    repair derived the flags HERE from the builder's signature, which is a second answer to a
+    question `kernel/cli.py` already answers -- and it answered it differently: it would have named
+    a resolver-owned key the CLI refuses when typed, and an omittable key whose absence carries the
+    decision. That is verifier finding F8's shape, and this repo has paid for a second copy of a
+    definition before (see `RULE_ID_RX` in the field table above).
+
+    IMPORTED AT CALL TIME because `cli` imports this module at its own import: the cycle is only
+    ever closed on the refusal path, which is the one place the sentence is needed. What comes back
+    is executed against the shipped entry point by
+    `tools/test_office_package.py::test_every_remedy_the_kernel_prints_for_a_document_write_is_a_line_the_kernel_accepts`.
+    """
+    from .cli import remedy_flags as flags_of
+    return flags_of(approvals.LINE_MANIFEST_BUILDERS[KIND], manifest)
+
+
 def rule_from(manifest: dict) -> dict:
     """The rule as it will stand in the plan, built from the manifest the USER signed.
 
@@ -420,10 +440,10 @@ def apply(state: ProjectState, manifest: dict) -> dict:
             raise StateError(
                 "no user approval covers this filing rule, so nothing was changed. What it would "
                 "do: file %s under %s. Remedy: ask for it first -- `python scripts/harness.py "
-                "request-approval %s` prints the question the kernel composed, the USER approves "
-                "by answering it, and then this command writes exactly what they approved."
+                "request-approval %s %s` prints the question the kernel composed, the USER "
+                "approves by answering it, and then this command writes exactly what they approved."
                 % (", ".join(rule["document_types"]) or "documents",
-                   rule["path_template"], KIND))
+                   rule["path_template"], KIND, remedy_flags(manifest)))
         path = plan_path(state)
         before = read_text(path)
         state._write_text_atomic(path, _with_rule(before, rule))

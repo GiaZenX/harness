@@ -138,6 +138,38 @@ nicht den Satz.
 | F7 | **offen, eigenes Paket** | zwei Verfahrensvorlagen (Eingangsroutine, unabhaengige Projektpruefung). Braucht PROC-Vorlagen im Kit und einen Rollentext, der sie nennt -- beides ausserhalb von TSK-0107 |
 | F8 | **offen, eigenes Paket** | die Jahresansicht. Liegt beim Dashboard-Strom, nicht bei der Vorlagenarbeit; die Bedingung aus Abschnitt 5 der Wunschliste gilt weiter (nach `generated/`, nicht committet, Quelle und Stichtag genannt) |
 
+## Urteil je Punkt (2026-09-05, TSK-0132 -- Generation 5, PR-0009 AC-4)
+
+`PR-0009` AC-4 verlangt fuer jeden der acht Punkte ein Urteil: **gebaut** mit eigener Abnahmezeile,
+**aufgenommen** von einem benannten Item, oder **abgelehnt** mit Grund -- keiner bleibt Prosa ohne
+Urteil. Die Tabelle oben traegt den Stand von Generation 2; diese traegt das Urteil, gemessen am
+Baum von `b7f282e` plus dem Strom `g5/office`.
+
+| Punkt | Urteil | Item / Stelle | Abnahmezeile bzw. Grund |
+|---|---|---|---|
+| F1 | **gebaut** | FR-0031 / TSK-0102 | `tools/test_hooks.py::test_a_fresh_office_project_files_its_first_document_without_the_user_editing_yaml` -- ein frisches Projekt legt sein erstes Dokument ab, ohne dass der Nutzer YAML tippt; seit TSK-0132 auch auf einem Altbestand ohne `rules:`-Schluessel ueber den Einstiegspunkt (`tools/test_office_package.py::test_add_filing_rule_creates_the_rules_list_on_an_old_stock_plan_through_the_entry_point`, BUG-0070) |
+| F2 | **gebaut** | TSK-0107 (FR-0002), TSK-0116 (F6) | `retention` traegt Spanne und Rechtsgrundlage, der Kopf den Ehrlichkeitsvermerk; eine Spanne, die der Fristenleser nicht zaehlen kann, wird beim Schreiben verweigert (`tools/test_kernel.py::test_a_retention_the_deadline_register_cannot_read_is_refused_before_it_reaches_the_plan`) |
+| F3 | **gebaut** | TSK-0107 | `filename_template` je Regel, drei benannte Abweichungen im Kopf; der Entwurf (`filing_plan.py --draft`) traegt die Vorlage in jede vorgeschlagene Regel (`tools/test_hooks.py::test_the_filing_plan_draft_derives_one_rule_per_class_the_owner_named`) |
+| F4 | **gebaut** | TSK-0107 | Eingang neben dem Archiv ohne Unterordner, Klaerungsknoten innerhalb (`archive/_unsorted/`), als Definition mit Grund im Plan-Kopf; die Andockstelle der Rechnungs-App liest flach aus `inbox/` und legt nach dem Plan ab -- gemessen von `tools/test_office_package.py::test_the_docking_point_files_through_the_registered_chain_and_books` (Ablauf ueber die registrierte Kette) und `::test_two_documents_never_render_one_filing_destination` (zwei Dokumente, ein Ziel: verweigert) |
+| F5 | **gebaut** | TSK-0107, TSK-0116 (H125) | Quarantaeneknoten `archive/_quarantine/` als Regel `FP-901`; die Wand darunter ist `guard_fs_tripwire`, dessen Reichweite seit TSK-0116/TSK-0120 die Klassen "genannt / Vorfahre / cd" deckt (`tools/test_hooks.py::test_fs_tripwire_blocks_archive_delete`, `::test_fs_tripwire_blocks_move_out_of_archive`, `::test_fs_tripwire_reads_a_source_deleting_copier_as_a_move_out_of_the_archive`) |
+| F6 | **gebaut (gemessen)** | TSK-0107 | `tools/test_hooks_v2.py::test_the_office_gitignore_still_lets_the_tray_seeds_into_a_fresh_clone` misst die `dir/*`-plus-Negation-Falle mit `git check-ignore` in beide Richtungen; die GDPR-Abwaegung steht im `.gitignore` der Vorlage |
+| F7a Eingangsroutine | **aufgenommen** | FR-0049 / TSK-0078, Verfassung §2.5 | Die Schleife "oeffnen, klassifizieren, umbenennen, buchen / parken / Quarantaene" ist die REVIEWED PIPELINE der Verfassung (Clerk schlaegt vor, Reviewer urteilt, zwei Lesungen, `gate_filing` + `gate_second_reading`) und nicht eine PROC-Vorlage. **Eine ausgelieferte PROC-YAML-Vorlage ist abgelehnt:** der Kernel erzeugt PROCs je Projekt (`capture PROC`), und eine Datei neben den Items waere eine zweite Autoritaet, die niemand liest -- derselbe Grund, aus dem BUG-0075 eine Datei neben einem Kit-Dokument verwirft |
+| F7b Unabhaengige Projektpruefung | **aufgenommen** | die Rolle `project-auditor` (Verfassung §5, Preset `core`) | Wiederkehrende, read-only Stichprobe ueber Ablage, Ledger und Berichte gegen die Quellen, ein Evidence-Item (`kind: audit`) je Lauf -- als ROLLE gebaut statt als PROC-Vorlage; ihre Dispatch-Route ist als `H111` benannt und nicht walkable, das ist der offene Rest und steht dort, nicht hier |
+| F8 Jahresansicht | **aufgenommen** | FR-0032 / TSK-0116 (`tools/finance_dashboard.py` -> `dashboards/finanzen.html`) | Einnahmen und Ausgaben des Jahres, offene Posten, EUeR je Quartal, § 19-Wache aus dem Ledger; die Bedingung aus Abschnitt 5 gilt gemessen: nicht committet (`.gitignore`: `dashboards/*` mit Negation fuer `ABOUT.txt`, `tools/test_hooks_v2.py::test_the_office_gitignore_keeps_the_generated_dashboard_out_of_git`), Quelle und Stichtag im Kopf der Seite (`tools/test_finance_dashboard.py::test_the_dashboard_and_euer_report_agree_on_every_quarter`). **Abgelehnt** bleibt eine zweite Seite `yearly_overview.html` neben ihr: zwei Renderer ueber ein Ledger sind die zweite Wahrheit, die Abschnitt 5 ausschliesst |
+
+Was dieser Strom (TSK-0132) selbst zu den acht Punkten baute, ist nur die Andockstelle an F4 und der
+Altbestandsfall an F1; alles andere ist Urteil ueber Gebautes.
+
+**Was die Tabelle traegt und was nicht**, weil der Satz davor bis 2026-09-06 mehr behauptete als sie
+haelt (Pruefrunde 1, N3): die sechs **gebauten** Punkte nennen je einen Test, und dass jeder dieser
+Namen aufloest, misst
+`tools/test_office_package.py::test_every_test_the_field_report_verdicts_name_is_one_that_exists`
+-- **nicht** der repo-weite Zeiger-Test, der diese Datei ab ihrem ersten Code-Zaun nicht mehr liest
+(`BUG-0263` / `H181`, mit der Messung). Die drei **aufgenommenen** Punkte (F7a, F7b, F8) nennen
+kein Testverfahren fuer sich selbst, sondern das Item, das sie traegt: ihre Messung liegt dort, und
+F7b nennt zusaetzlich `H111` als den offenen Rest. Die beiden **Ablehnungen** (eine ausgelieferte
+PROC-Vorlage, eine zweite Jahresseite) tragen einen Grund und keinen Test, weil nichts gebaut wurde.
+
 ## Reihenfolge
 
 **F1 zuerst und allein blockierend** — solange der Aktenplan leer ausgeliefert wird, verweigert

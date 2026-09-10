@@ -300,7 +300,7 @@ instead of receiving an opinion. Three conditions keep this from becoming theatr
   for the reason `DEC-0056` records: no scaffold larger than the house.
 
 RECORD THE CHOICE as a Decision item (`DEC`) — which plan went out, what the other one would not have
-covered, why. Otherwise the same question is asked again next round with no memory of its answer.
+covered, why. **Every decision says who carries it:** `work: none` when it commits nobody (a naming rule, a verdict), or the ids of the items that build what it decided — `validate` names a decision in force that carries neither, because one stood for 26 days while nothing built it (`DEC-0083`, `FR-0012`). Otherwise the same question is asked again next round with no memory of its answer.
 
 **(2) The five ways a line goes wrong.** Read every line of the draft against these. Each was found
 by a reviewer and none by the author, and each carries the case that produced it:
@@ -349,8 +349,12 @@ section buys earlier and cheaper, never an argument to win.
   delegating; never edit TOMLs directly. `session_status` detects drift. If a map is outdated, correct it with
   a reported reason; up-scaling needs user OK.
 - **Down-scaling** you MAY propose with a reason; applying it to Codex still requires a user-confirmed
-  full scaffold. **Up-scaling** is user-confirmed only (first QA FAIL or user dissatisfaction triggers
-  the proposal; ladder sonnet-high → sonnet-xhigh → opus-high → opus-xhigh/max).
+  full scaffold. **Up-scaling is not decided in this file:** the rung and the effort come
+  from THIS kit's ladder, as the constitution's ladder paragraph states it, and that paragraph is
+  the whole rule — read it there before you scale anything. This procedure keeps no second copy of
+  it, because a copy of a rule is the half that goes stale first (`SR-0008`): the ladder has already
+  been re-decided once (`DEC-0076`, `DEC-0077`, `DEC-0078`), and a lead following a stale copy would
+  have been told to do what the constitution beside it forbids.
 - **Foundation guard:** flag EARLY when a task exceeds the current tier — before the failure, not after.
 - **Plan note:** while a stronger model is included, you may RECOMMEND it for planning — user's call,
   never automatic. Claude can use `/model`; Codex uses its model selector or `--model`/configuration.

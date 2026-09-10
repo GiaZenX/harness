@@ -165,6 +165,8 @@ import yaml
 from . import layout
 from .backlog_types import (
     ACTIVE_DIRS,
+    DEC_WORK_FIELD,
+    DEC_WORK_NONE,
     IMPORT_MARK,
     LEGACY_FIELD,
     OPTIONAL_FIELDS,
@@ -2849,7 +2851,14 @@ def _receipt_fields(plan: dict, created: list, digest: str, interrupted: str = N
               "context": long_context,
               "decision": decision_with(long_breakdown, long_tail),
               "consequences": long_consequences,
-              "source": "spec II.10; plan digest %s" % digest}
+              "source": "spec II.10; plan digest %s" % digest,
+              # The receipt records what a run DID and decides nothing anybody has to build, so
+              # it is the one decision the kernel may answer DEC-0083's carrier question for
+              # itself (`work: none`, the only silence the validator accepts). Written HERE and
+              # not at the capture door, which the importer never passes (DEC-0021 refused a
+              # reader of the import mark). Handed to the merge by TSK-0131 (N11):
+              # `tools/test_migrate.py::test_the_run_receipt_carries_work_none_and_owes_no_carrier_warning`.
+              DEC_WORK_FIELD: DEC_WORK_NONE}
     # EVERY GROWING PART, GROUPED BY WHAT IT POINTS AT. The loop re-measures the whole item after
     # each step and stops at the first shape that fits, so the ORDER of the steps carries nothing
     # about correctness -- only about which sentence survives longest, and the one that says the

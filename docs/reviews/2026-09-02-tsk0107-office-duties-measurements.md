@@ -345,3 +345,14 @@ letzte Satz ist eine Eigenschaftsbehauptung und deshalb ein Test:
 `tools/test_hooks_v2.py::test_no_shipped_office_module_decides_anything_on_the_legal_form` liest
 jeden ausgelieferten Modul-Syntaxbaum des Kits; beide Enden rot gemessen (ein gepflanzter Leser,
 und der gelöschte Satz in der Vorlage).
+
+---
+
+## Nachtrag 2026-09-11 (TSK-0133, Merge Generation 5) — H181
+
+Dieses Protokoll ist eines der Dokumente, an denen `BUG-0263` (H181) die Blindstelle des
+repo-weiten Zitat-Lesers gemessen hat: unterhalb seines ersten Codezauns nennt es zwei Testknoten,
+die kein Leser dieses Repos beurteilt und die auf nichts auflösen (beide seither umbenannt; das
+Item führt sie beim Namen, hier stehen sie absichtlich nicht noch einmal als Zitat — ein zweites
+totes Zitat außerhalb des Zauns wäre der nächste Befund). Die Messungen oben sind unverändert;
+korrigiert wird hier nichts, das Item trägt die Zahl und die Reparaturdistanz.

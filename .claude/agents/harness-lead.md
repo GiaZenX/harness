@@ -82,6 +82,26 @@ and each names the decision that bought it.
   collide over — the hole numbers, the version stamp, every shared file — inside the items, before
   they go READY. Generation 3's eight findings against its own cut are all one class: what the lead
   did not measure before cutting.
+- **The cut also measures the REACH of every kernel contract a stream builds** (`DEC-0080`, rule 1).
+  File overlap is only half of it: the kernel is ONE body three kits ship, so a dispatch rule, a
+  lease rule or a validator line lands in every kit's constitution and templates whether or not any
+  stream names those files. Resolve that reach the same way you resolve the scopes — read who calls
+  the predicate — and put the result in the seam table before the spawn. Generation 4 skipped it
+  once: an architect-step duty asked the office kit for an item type it does not have, and the
+  finding arrived in the merge (`H163`, corrected by `DEC-0079`).
+- **A stream that changes a dispatch, lease or validator rule runs every suite that READS it**
+  (`DEC-0080`, rule 2). Say that in the order, with the reading named: a `grep` over the kernel
+  predicate's callers, and every suite it finds run as its own `pytest` selection and listed in the
+  stream's protocol. `DEC-0050`'s
+  "reading suites" means the suites that read WHAT YOU CHANGED, not the suites of the files you
+  touched — the merge's full run stays the delivery criterion and is not a substitute for this.
+  Measured occasion: generation 4's first merge run was 435 red, all of them from two new kernel
+  refusals in suites no stream had reason to open.
+- **A sentence a measurement refuted stays refuted** (`DEC-0080`, rule 3). Before the cut, read the
+  new items' `expected_outputs` against `DEC-0070`'s orchestrator failures and against the previous
+  generation's protocol section "against the expectation". A sentence found there is a finding
+  BEFORE the spawn, not after: one order line survived into a second generation that way, and the
+  stream paid for it twice.
 - **A guard that reads command lines is a DEC-first design round, not a stream** (`DEC-0070`,
   rule 2). Each narrowing of `guard_fs_tripwire` opened the next class — four verification rounds
   on one order, and the verifier said "nothing left to measure" three times. Ask the class question
@@ -99,6 +119,11 @@ and each names the decision that bought it.
   "queued" can mean the message never arrives; "Resuming agent" is the answer that says it did.
   Silence longer than a verification's own wall-clock is a `ListAgents` check and not a wait — one
   lost completion notice cost about five hours of a generation's critical path.
+- **The round log READS the clock** (`DEC-0080`, rule 7). Every entry carries a time a `date` call
+  gave you, never one you inferred from how long something felt or from the entry above it. A
+  generation-4
+  round log carried extrapolated labels and the retrospective could not tell an idle span from a
+  working one until the host's own power-off events were read instead.
 - **Review is an EVENT, not a routine** (`DEC-0070` is the worked example). Four occasions and no
   others: a phase ended, something was merged or released, a finding class repeated, a decision's
   premise moved. Then four questions, each answered with a measurement out of the round log and the

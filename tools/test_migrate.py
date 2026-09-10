@@ -737,7 +737,7 @@ def test_a_run_that_dies_with_a_long_message_still_leaves_a_receipt_that_fits(v1
     # A HALF-FINISHED RUN LEAVES ITS SOURCE WHERE IT IS (SR-0005), so the validator's ONE finding
     # is SR-0001's: the store is still in the project beside the items that came out of it. That is
     # the state this test is about, and anything else in the list would be a real defect.
-    findings = report.validate_state(v1_state)
+    findings = findings_beside_the_receipts_carrier(v1_state)
     assert [finding["item"] for finding in findings] == ["process_definitions.yaml"], findings
     receipts = [name for name, _p in v1_state.iter_active_items("DEC")]
     assert len(receipts) == 1, "a half-finished run left no receipt"
@@ -755,7 +755,6 @@ def test_the_receipt_fits_in_one_item_however_many_documents_were_carried(v1_sta
     `consequences` alone 20 070 characters -- while the docstring claimed the item always fits.
     The check is the validator's own verdict, not a byte count copied into this file.
     """
-    from kernel import report
     for n in range(310):
         io.open(os.path.join(v1_state.root, "carried_%03d.txt" % n), "w", encoding="utf-8",
                 newline="\n").write("a business document with a long enough name to matter\n")
@@ -764,7 +763,7 @@ def test_the_receipt_fits_in_one_item_however_many_documents_were_carried(v1_sta
     # the document set by it (SR-0005)
     carried = len(migrate.build_plan(v1_state)["documents"]) - 1   # minus the one source it read
     assert _migrated(v1_state) == 0
-    findings = report.validate_state(v1_state)
+    findings = findings_beside_the_receipts_carrier(v1_state)
     assert not findings, findings
     receipt = v1_state.read_item("DEC-0001")
     assert "does not fit in one item" in receipt["context"]
@@ -989,7 +988,7 @@ def test_the_receipt_fits_however_many_source_documents_were_translated(v1_state
             "    steps: [\"a\"]\n"
             "    status: ACTIVE\n" % (500 + n, n))
     assert _migrated(v1_state) == 0
-    findings = report.validate_state(v1_state)
+    findings = findings_beside_the_receipts_carrier(v1_state)
     assert not findings, findings
     receipts = [v1_state.read_item(name) for name, _p in v1_state.iter_active_items("DEC")]
     receipt = [item for item in receipts if migrate.LEGACY_FIELD not in item]
@@ -1310,8 +1309,7 @@ def test_a_record_whose_end_only_an_approval_could_have_reached_is_not_archived(
     assert item[migrate.LEGACY_FIELD]["written_to"] == "active"
     # ...and the binding was rewritten to the id the requirement actually got, not the V1 one
     assert item["target_pr"] == [name for name, _p in v1_state.iter_active_items("PR")][0]
-    from kernel import report
-    assert not report.validate_state(v1_state)
+    assert not findings_beside_the_receipts_carrier(v1_state)
     # the kernel's own refusal says WHY, in the terms spec II.10 uses
     from kernel.state import StateError, migration_archive_status
     with pytest.raises(StateError) as refusal:
@@ -1353,8 +1351,7 @@ def test_a_v1_task_that_is_done_is_archived_at_done_and_not_reopened_as_a_draft(
         "the archived task does not carry the state V1 recorded (%r)" % item["status"])
     assert item[migrate.LEGACY_FIELD]["legacy_status"] == "DONE"
     assert "allowed_scope" in item[migrate.LEGACY_FIELD]["missing_required_fields"]
-    from kernel import report
-    assert not report.validate_state(v1_state)
+    assert not findings_beside_the_receipts_carrier(v1_state)
 
 
 def test_a_finished_record_with_no_date_refuses_rather_than_choosing_a_year(v1_state):
@@ -1722,8 +1719,7 @@ def test_the_migrated_state_passes_the_validator(v1_state):
     """The whole point of writing through `capture`: what the import leaves behind is state the
     harness's own validator accepts, with no findings of any severity."""
     assert _migrated(v1_state) == 0
-    from kernel import report
-    findings = report.validate_state(v1_state)
+    findings = findings_beside_the_receipts_carrier(v1_state)
     assert not findings, findings
 
 
@@ -2375,7 +2371,6 @@ def test_a_fully_absorbed_v1_store_moves_to_legacy_with_its_hash_in_the_receipt(
     items that came out of it and `validate` reports SR-0001 for ever, because nothing else in this
     harness removes a V1 record from a kit document.
     """
-    from kernel import report
     source = os.path.join(v1_state.root, "process_definitions.yaml")
     before = hashlib.sha256(open(source, "rb").read()).hexdigest()
     assert _migrated(v1_state) == 0
@@ -2386,7 +2381,7 @@ def test_a_fully_absorbed_v1_store_moves_to_legacy_with_its_hash_in_the_receipt(
     receipt = v1_state.read_item("DEC-0001")
     assert before in receipt["consequences"], receipt["consequences"]
     assert "legacy/process_definitions.yaml" in receipt["consequences"], receipt["consequences"]
-    assert not report.validate_state(v1_state)
+    assert not findings_beside_the_receipts_carrier(v1_state)
 
 
 def _retirement_state(tmp_path, name):
@@ -2759,12 +2754,11 @@ def test_validate_reports_a_kit_document_that_still_holds_v1_backlog_records(v1_
     back -- from git, or by copying an old kit template in -- holds the same records twice and
     every rollup counts one of the two, with nothing anywhere saying which is the state.
     """
-    from kernel import report
     assert _migrated(v1_state) == 0
-    assert not report.validate_state(v1_state)
+    assert not findings_beside_the_receipts_carrier(v1_state)
     shutil.copyfile(os.path.join(v1_state.root, "legacy", "process_definitions.yaml"),
                     os.path.join(v1_state.root, "process_definitions.yaml"))
-    findings = report.validate_state(v1_state)
+    findings = findings_beside_the_receipts_carrier(v1_state)
     restored = [one for one in findings if one["item"] == "process_definitions.yaml"]
     assert len(restored) == 1, findings
     assert restored[0]["severity"] == "error"
@@ -3868,6 +3862,122 @@ def _reads_recorded(monkeypatch):
 
     monkeypatch.setattr(migrate_module, "_read_document", recording)
     return seen
+
+
+def _receipt_source_prefix():
+    """The `source` a run RECEIPT carries, asked of the function that writes it.
+
+    Not a string typed here: `migrate._receipt_fields` is the one producer, so a receipt that starts
+    naming itself differently moves this reader with it. The digest is the only variable part, so a
+    sample with a known digest gives the constant half.
+    """
+    sample = migrate._receipt_fields(
+        {"records": [], "documents": [], "field_map": {}, "moved": [], "carried": [],
+         "sources": []}, [], "DIGEST")
+    return sample["source"].split("DIGEST")[0]
+
+
+def test_the_receipt_filter_drops_the_receipt_and_nothing_else(v1_state):
+    """N3-B1: the filter above must NARROW the check, not switch it off.
+
+    MEASURED before this test existed: the filter read `iter_active_items(migrate.RECEIPT_TYPE)`,
+    and `RECEIPT_TYPE` is `"DEC"` -- so every active decision counted as a receipt and a second
+    carrier-less decision disappeared with the run's own. The ten `assert not findings` sites of this
+    suite then measured nothing at all.
+
+    BOTH DIRECTIONS IN ONE STORE: after a real import there is a receipt (silenced) and a
+    hand-written decision with no carrier (reported).
+    """
+    assert _migrated(v1_state) == 0
+    receipts = [stem for stem, _path in v1_state.iter_active_items("DEC")]
+    assert receipts, "the run wrote no receipt, so this test measures nothing"
+
+    other = v1_state.capture("DEC", {
+        "title": "a decision nobody carries", "context": "c", "decision": "d",
+        "consequences": "y", "source": "a round log, not a plan digest"})
+    from kernel import report
+    warned = {one["item"] for one in report.validate_state(v1_state)
+              if "without a carrier" in one["message"]}
+    assert other["id"] in warned, warned
+    survived = {one["item"] for one in findings_beside_the_receipts_carrier(v1_state)
+                if "without a carrier" in one["message"]}
+    assert survived == {other["id"]}, (
+        "the filter must drop the receipt and keep every other carrier-less decision: %s" % survived)
+
+    # AND IT IS NARROWED ON THE MESSAGE, not on the item (verifier round 4, N4-1): the assertions
+    # above read carrier warnings only, so a filter that dropped EVERY finding about the receipt
+    # would satisfy them while switching this suite off again. A second finding about the SAME
+    # receipt -- `supersedes` naming an id no item carries, which is `report._check_dec_supersedes`
+    # and not the carrier line -- has to come through.
+    from kernel.backlog_types import DEC_SUPERSEDES_FIELD
+    v1_state.update_item(receipts[0], {DEC_SUPERSEDES_FIELD: ["DEC-9999"]})
+    beside = [one for one in findings_beside_the_receipts_carrier(v1_state)
+              if one["item"] == receipts[0]]
+    assert beside, (
+        "every finding about the receipt was dropped, not only its carrier warning -- the filter "
+        "reads the item and not the message")
+    assert all("without a carrier" not in one["message"] for one in beside), beside
+
+
+def test_the_run_receipt_carries_work_none_and_owes_no_carrier_warning(v1_state):
+    """The seam TSK-0131 handed to the merge (N11), closed: the receipt answers DEC-0083 itself.
+
+    `report._check_decision_carriers` asks every decision in force who carries its work; the import's
+    own RECEIPT records what a run did and commits nobody, so its honest answer is `work: none` -- and
+    `migrate._receipt_fields` is the one place that may write it, because the importer never passes
+    the capture door that asks a role (DEC-0021 refused a reader of the import mark there).
+
+    RED without the line in `_receipt_fields`: the receipt carries no `work`, and the validator names
+    it as a decision without a carrier. Read off `validate_state` directly, NOT through
+    `findings_beside_the_receipts_carrier` below -- that filter would hide exactly this regression.
+    """
+    from kernel import report
+    from kernel.backlog_types import DEC_WORK_FIELD, work_is_none
+    assert _migrated(v1_state) == 0
+    prefix = _receipt_source_prefix()
+    receipts = [stem for stem, _path in v1_state.iter_active_items(migrate.RECEIPT_TYPE)
+                if str(v1_state.read_item(stem).get("source") or "").startswith(prefix)]
+    assert receipts, "the run wrote no receipt, so this test measures nothing"
+    for stem in receipts:
+        assert work_is_none(v1_state.read_item(stem).get(DEC_WORK_FIELD)), (
+            "%s does not say `%s: none`" % (stem, DEC_WORK_FIELD))
+    carrier = [one for one in report.validate_state(v1_state)
+               if one["item"] in receipts and "without a carrier" in one["message"]]
+    assert not carrier, carrier
+
+
+def findings_beside_the_receipts_carrier(state):
+    """`validate_state` minus a carrier warning about the run receipt -- which, since the merge
+    wrote `work: none` into `migrate._receipt_fields`, the shipped receipt no longer produces.
+
+    WHY IT STAYS: the ten `assert not findings` sites of this suite were written against this
+    reader, and `test_the_receipt_filter_drops_the_receipt_and_nothing_else` above measures its
+    NARROWNESS in both directions (verifier rounds 3 and 4) by planting the warning it would drop.
+    What it must not become is a place that hides a regression of the receipt's own line: that line
+    is held by `test_the_run_receipt_carries_work_none_and_owes_no_carrier_warning`, which reads
+    `validate_state` without this filter.
+
+    THE RECEIPT IS FOUND BY ITS IDENTITY, NOT BY ITS TYPE, and that correction is verifier round 3
+    (N3-B1): `iter_active_items(migrate.RECEIPT_TYPE)` reads `RECEIPT_TYPE == "DEC"`, so the first
+    version dropped the warning for EVERY active decision -- measured with a receipt plus a second
+    carrier-less decision in the store, the filter returned `[]` and this suite's ten `assert not
+    findings` sites were switched off rather than narrowed. A receipt is now the decision whose
+    `source` is the one `migrate._receipt_fields` writes.
+
+    THIS FILTER IS NARROW: it drops the carrier warning for the receipts of this run and nothing
+    else. Any other finding -- a SECOND decision without a carrier, a second finding about the
+    receipt itself -- comes through, and the claim is held by
+    `tools/test_migrate.py::test_the_receipt_filter_drops_the_receipt_and_nothing_else` above, which
+    fails in BOTH directions -- a filter that keeps too much and one that drops everything.
+    """
+    from kernel import report
+    prefix = _receipt_source_prefix()
+    receipts = set()
+    for stem, _path in state.iter_active_items(migrate.RECEIPT_TYPE):
+        if str(state.read_item(stem).get("source") or "").startswith(prefix):
+            receipts.add(stem)
+    return [one for one in report.validate_state(state)
+            if not (one["item"] in receipts and "without a carrier" in one["message"])]
 
 
 def test_a_document_too_large_to_search_is_reported_as_unsearched_and_not_read(v1_state,

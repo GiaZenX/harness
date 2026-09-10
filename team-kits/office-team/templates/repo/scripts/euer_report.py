@@ -143,6 +143,116 @@ def read_vocabulary(root):
     return found
 
 
+# THE CHART OF ACCOUNTS (FR-0081), the second project document this report reads and the one
+# that maps a category to an ACCOUNT of the framework the business books against. Shipped
+# inactive (`active: null`); with a framework named, the account's line is the one the per-line
+# table uses for its categories, and a category whose two lines disagree is PRINTED, not averaged.
+CHART_REL = os.path.join("project_memory", "chart_of_accounts.yaml")
+NO_ACCOUNT = "ohne Konto"
+
+
+def read_chart(root):
+    """{"active", "form_year", "by_category": {key: (account, label, line)}, "problems": [..]}.
+
+    `read_vocabulary`'s contract, for the same reason: NEVER RAISES, an unreadable chart costs the
+    account table and says so where the table would stand. The shipped state -- `active: null` --
+    is an empty answer and no problem: which chart a business uses is the Steuerberatung's.
+    """
+    found = {"active": None, "form_year": None, "by_category": {}, "problems": []}
+    path = os.path.join(root, CHART_REL)
+    if not os.path.isfile(path):
+        return found
+    try:
+        import yaml
+    except ImportError as problem:
+        found["problems"].append("PyYAML fehlt (%s), also konnte %s nicht gelesen werden."
+                                 % (problem, CHART_REL.replace(os.sep, "/")))
+        return found
+    try:
+        with open(path, encoding="utf-8") as handle:
+            document = yaml.safe_load(handle) or {}
+    except Exception as problem:            # noqa: BLE001 — any parse failure is one sentence
+        found["problems"].append("%s ist nicht lesbar (%s)." % (CHART_REL.replace(os.sep, "/"),
+                                                               problem))
+        return found
+    if not isinstance(document, dict) or not document.get("active"):
+        return found
+    found["active"] = str(document.get("active"))
+    found["form_year"] = document.get("form_year")
+    entries = (document.get("accounts") or {}).get(document.get("active"))
+    if not isinstance(entries, list):
+        found["problems"].append("%s nennt `active: %s`, führt aber keine Kontenliste `accounts.%s`."
+                                 % (CHART_REL.replace(os.sep, "/"), found["active"],
+                                    found["active"]))
+        return found
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        account = str(entry.get("account") or "").strip()
+        label = str(entry.get("label_de") or "").strip()
+        line = line_number(entry.get("euer_line"))
+        for key in entry.get("categories") or []:
+            key = str(key)
+            if key in found["by_category"]:
+                found["problems"].append(
+                    "Kategorie %s ist zwei Konten zugeordnet (%s und %s) — die Buchung verweigert "
+                    "das, der Bericht zeigt das erste." % (key, found["by_category"][key][0],
+                                                            account))
+                continue
+            found["by_category"][key] = (account, label, line)
+    return found
+
+
+def apply_chart(vocabulary, chart):
+    """The chart's line WINS for every category it maps, and every disagreement is printed.
+
+    Two documents state one fact -- which form line a category belongs to -- and this is the one
+    place they meet. Silently taking either would hide a correction made in the other; taking the
+    chart's is the documented rule (its own header says so) and the vocabulary's figure travels
+    beside it as a problem line, in the section the Steuerberatung reads.
+    """
+    if not chart["active"]:
+        return
+    if (chart["form_year"] not in (None, "") and vocabulary["year"] not in (None, "")
+            and str(chart["form_year"]) != str(vocabulary["year"])):
+        vocabulary["problems"].append(
+            "Formularjahr %s im Kontenrahmen, %s im Vokabular — eine der beiden Dateien ist "
+            "veraltet; die Zeilennummern unten stammen aus dem Kontenrahmen."
+            % (chart["form_year"], vocabulary["year"]))
+    for key, (account, label, line) in sorted(chart["by_category"].items()):
+        if line is None:
+            continue
+        old = vocabulary["lines"].get(key)
+        if old is not None and old[0] != line:
+            vocabulary["problems"].append(
+                "Zeile für %s: %d laut Kontenrahmen %s (Konto %s), %d laut Vokabular — der "
+                "Kontenrahmen zählt hier; bitte klären." % (key, line, chart["active"], account,
+                                                            old[0]))
+        vocabulary["lines"][key] = (line, old[1] if old else label)
+
+
+def by_account(entries, chart):
+    """[(account, label, line, income, expense)] — the paid entries grouped by account, NO_ACCOUNT last.
+
+    Same money as `by_form_line` and the per-category table (one sign convention, one entry list);
+    what differs is the grouping key, which is what the Steuerberatung's own software groups by.
+    """
+    grouped = defaultdict(lambda: [0.0, 0.0])
+    meta = {}
+    for entry in entries:
+        account, label, line = chart["by_category"].get(entry.get("category") or "",
+                                                        (NO_ACCOUNT, "", None))
+        meta.setdefault(account, (label, line))
+        index = 0 if entry.get("direction") == "income" else 1
+        grouped[account][index] = round(
+            grouped[account][index] + float(entry["gross"]) * sign_of(entry), 2)
+    rows = []
+    for account in sorted(grouped, key=lambda a: (1, "") if a == NO_ACCOUNT else (0, a)):
+        label, line = meta[account]
+        rows.append((account, label, line, grouped[account][0], grouped[account][1]))
+    return rows
+
+
 def by_form_line(entries, vocabulary):
     """[(sort key, heading, income, expense)] — the paid entries grouped by Anlage-EÜR line.
 
@@ -287,6 +397,8 @@ def main():
     # sum to the same money -- `tools/test_finance_dashboard.py::
     # test_the_per_line_sums_and_the_per_category_sums_are_the_same_money` measures that.
     vocabulary = read_vocabulary(ROOT)
+    chart = read_chart(ROOT)
+    apply_chart(vocabulary, chart)
     lines += ["", "## Nach Zeile der Anlage EÜR%s" % form_year_suffix(vocabulary), ""]
     if vocabulary["source"]:
         lines += ["Herkunft der Zeilennummern: %s. Die Zuordnung steht in "
@@ -304,6 +416,28 @@ def main():
                       "eingerechnet.", ""]
     else:
         lines += ["keine bezahlte Buchung in diesem Quartal", ""]
+
+    # THE THIRD GROUPING, only while the business books against a chart (FR-0081): the same paid
+    # entries under the ACCOUNT their category maps to, which is the key the Steuerberatung's
+    # software carries. `tools/test_office_package.py::test_the_euer_rollup_reads_the_chart_and_prints_a_disagreement`
+    # holds this table, the per-line override above and the printed disagreement together.
+    if chart["active"] or chart["problems"]:
+        lines += ["", "## Nach Konto (%s, Formularjahr %s)"
+                  % (chart["active"] or "kein Kontenrahmen aktiv", chart["form_year"] or "?"), ""]
+        for problem in chart["problems"]:
+            lines += ["> %s" % problem, ""]
+        by_acc = by_account(paid, chart) if chart["active"] else []
+        if by_acc:
+            lines += ["| Konto | Bezeichnung | Zeile | Einnahmen | Ausgaben |", "|---|---|---|---|---|"]
+            for account, label, line, income_sum, expense_sum in by_acc:
+                lines.append("| %s | %s | %s | %.2f | %.2f |"
+                             % (account, label, line if line is not None else "—",
+                                income_sum, expense_sum))
+            lines += ["", "Konten und Zeilen aus `project_memory/chart_of_accounts.yaml`; "
+                          "korrigiert wird dort, nicht im Skript. Eine Kategorie ohne Konto steht "
+                          "unter %r." % NO_ACCOUNT, ""]
+        elif chart["active"]:
+            lines += ["keine bezahlte Buchung in diesem Quartal", ""]
 
     # AfA AS A HINT AND NOTHING MORE (FR-0076, the user's own boundary: "ich will kein Gerüst für
     # ein Haus bauen das noch nicht existiert"). No asset register, no depreciation arithmetic, no

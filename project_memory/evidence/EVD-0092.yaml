@@ -1,0 +1,26 @@
+id: EVD-0092
+kind: test
+related:
+- TSK-0133
+result: pass
+summary: 'TSK-0133 generation-5 merge, delivery run of the full tools/ suite on the
+  merged tree (stamps dev/research 2026.09.06-1, office 2026.09.10-1), 2026-09-10
+  23:13:05 -> 23:51:26: 4843 passed / 14 skipped / 1 failed in 2299.29 s. The one
+  red, test_repo_hygiene::test_no_tracked_text_file_checks_out_with_crlf, named two
+  generation-4 staging files of the main checkout (project_memory/staging/TSK-0126/run-*.txt)
+  carrying CRLF in the working copy against an LF index blob -- outside the merge
+  item''s scope; they were normalised with tools/normalise_line_endings.py --apply
+  after that run (measured LF 2026-09-11 01:24:45) and tools/test_repo_hygiene.py
+  re-ran in full green (32 passed, 01:24:26, merge-protocol.md section 10; verify
+  round 2 measured 32 passed with everything staged). The first delivery attempt (2026-09-06
+  22:35 -> 00:29, 3 failed / 4841 passed) found two cross-stream defects, fixed red-first
+  (merge-protocol.md section 5, M9-M11). Verify round 1 FAIL (B1-B4) -> rework ->
+  round 2 PASS (verify-round-2.md)'
+artifact_refs:
+- staging/TSK-0133/run-full-suite.txt
+run_command: DELIVERY_RUN=TSK-0133 timeout 14400 python -B -m pytest tools/ -q -p
+  no:cacheprovider
+run_scope: full
+revision: 1
+approval_ref: null
+created: '2026-09-11T01:48:21'

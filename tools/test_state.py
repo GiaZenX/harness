@@ -179,7 +179,7 @@ def test_dec_capture_starts_valid(state):
         "context": "S3 spike",
         "decision": "bind lease at SubagentStart",
         "consequences": "no PostToolUse dependency",
-        "source": "phase0-disposition",
+        "source": "phase0-disposition", "work": "none",
     })
     assert dec["status"] == "VALID"
 
@@ -367,7 +367,7 @@ def test_archive_moves_terminal_item_deterministically(state):
 def test_archive_non_automaton_item_without_terminal_check(state):
     dec = state.capture("DEC", {
         "title": "t", "context": "c", "decision": "d",
-        "consequences": "q", "source": "s",
+        "consequences": "q", "source": "s", "work": "none",
     })
     target = state.archive(dec["id"])
     assert os.path.exists(target)
@@ -720,7 +720,7 @@ def test_a_write_that_fails_leaves_no_temp_file_in_the_item_directory(state):
     before = sorted(os.listdir(directory))
     with pytest.raises(Exception):
         state.capture("DEC", {"title": object(), "context": "c", "decision": "d",
-                              "consequences": "q", "source": "s"})
+                              "consequences": "q", "source": "s", "work": "none"})
     for item_dir in (directory, state.active_dir("DEC")):
         if not os.path.isdir(item_dir):
             continue
@@ -1275,3 +1275,62 @@ def test_only_the_type_a_hole_is_can_be_captured_as_one(tmp_path):
     with pytest.raises(StateError, match="a hole is a"):
         state.capture("FR", {"title": "a wish", "request_text": "please"}, hole=True)
     assert state.next_hole_number() == "H1", "a refused capture still moved the counter"
+
+
+# -- BUG-0023: an order that expects nothing is refused at both entrances --------------------------
+
+def _order_body(root_id, expected_outputs):
+    return {"product_requirement": root_id, "derives_from": root_id, "type": "implementation",
+            "assigned_role": "backend-developer", "acceptance_refs": ["AC-1"],
+            "required_inputs": [], "allowed_scope": ["src/"], "forbidden_scope": [],
+            "expected_outputs": expected_outputs, "dependencies": []}
+
+
+def test_a_work_order_that_expects_nothing_is_refused_at_both_entrances(state, capsys):
+    """BUG-0023: `create-task` and `capture TSK` end in one door, and that door names the field.
+
+    RED before the fix (measured in a copy outside the repo with `NONEMPTY_FIELDS` carrying no
+    TSK entry): all three entrances below created a DRAFT order with `expected_outputs: []`. The
+    two producers are asked through the running code -- `dispatch.create_task` (what `create-task`
+    and `capture TSK` both call) and `state.capture` (what everything else reaches) -- and the CLI
+    line once more, because the refusal has to arrive on the surface a role types.
+
+    EVERY SHAPE OF "NAMES NOTHING", not the empty container alone. The first cut asked `not value`,
+    which is a question about the CONTAINER, and the verifier measured what walked through it:
+    `--expected-output ""` was rc 0 with a DRAFT order created, and `[""]`, `[None]`, `["   "]` and
+    `[[]]` were all accepted by `dispatch.create_task` while `[]` was refused. The property is the
+    one the refusal always claimed -- at least one entry that carries text -- and it lives in ONE
+    predicate (`backlog_types.names_something`) that this door and the validator both ask.
+
+    AND THE OTHER DIRECTION, because a predicate that refuses everything would pass every line
+    above: a scalar that says something is legal (`field_elements`, BUG-0015), and so is a list
+    whose first entry is blank and whose second is not.
+    """
+    from kernel import cli, dispatch
+    pr = make_pr(state)
+    for hollow in ([], [""], [None], ["   "], [[]], "", "   ", None, ["", None, "  "]):
+        with pytest.raises(StateError, match="expected_outputs") as refused:
+            dispatch.create_task(state, _order_body(pr["id"], hollow))
+        assert "--expected-output" in str(refused.value), (hollow, str(refused.value))
+        with pytest.raises(StateError, match="expected_outputs"):
+            state.capture("TSK", dict(_order_body(pr["id"], hollow), root_revision=1))
+    assert cli.main(["--root", state.root, "create-task", "--product-requirement", pr["id"],
+                     "--derives-from", pr["id"], "--type", "implementation",
+                     "--assigned-role", "backend-developer", "--acceptance-ref", "AC-1",
+                     "--allowed-scope", "src/"]) == 1
+    assert "expected_outputs" in capsys.readouterr().err
+    # ...and the same line WITH a blank value, which is the one word that reached the store
+    assert cli.main(["--root", state.root, "create-task", "--product-requirement", pr["id"],
+                     "--derives-from", pr["id"], "--type", "implementation",
+                     "--assigned-role", "backend-developer", "--acceptance-ref", "AC-1",
+                     "--allowed-scope", "src/", "--expected-output", ""]) == 1
+    assert "expected_outputs" in capsys.readouterr().err
+    assert not [stem for stem, _path in state.iter_active_items("TSK")], (
+        "a refused order still reached the store")
+
+    created = dispatch.create_task(state, _order_body(pr["id"], ["src/x.py"]))
+    assert created["status"] == "DRAFT" and created["expected_outputs"] == ["src/x.py"]
+    scalar = dispatch.create_task(state, _order_body(pr["id"], "src/y.py"))
+    assert scalar["expected_outputs"] == "src/y.py", "a scalar that says something was refused"
+    mixed = dispatch.create_task(state, _order_body(pr["id"], ["", "src/z.py"]))
+    assert mixed["expected_outputs"] == ["", "src/z.py"], "one real entry is enough"

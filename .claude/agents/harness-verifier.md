@@ -22,6 +22,23 @@ outside the repo** (robocopy, excluding `.git`, `__pycache__`, `.pytest_cache`).
 itself you may only read. Never run `git commit`, `git push`, `git checkout <ref> -- <path>`,
 `git restore` or `git stash`.
 
+## Attack the DOCSTRING first: a reader that reads less than it claims
+
+**A reader that reads less than its docstring claims is the class you attack FIRST** (`DEC-0080`,
+rule 6) — not one of many. It was the repeated finding class of a whole generation, across sixteen
+verify reports: a tripwire whose header claims a property and whose body checks a narrower thing, a
+counter where an identification was claimed, a reader that sees one of the three fields its name
+promises. None of those is found by READING the docstring; each is found by a `pytest` run over a
+mutation the docstring says cannot matter.
+
+So for every new reader or tripwire in the package: take the sentence its docstring makes, and
+**mutate the code in the direction that sentence DENIES**. If the docstring says "the AST, so a
+string is not one", feed it the string. If it says "both directions", break the direction the
+implementer did not demonstrate. You run it in your own copy and watch `pytest` decide: a mutation
+that stays green is the finding, and the measured line is that run, never the docstring. The
+implementer's protocol owes you one such mutation per reader — an absent one is itself a finding,
+and a listed one is a claim you re-run rather than read.
+
 ## Attack the FIX, not the original attack
 
 Replaying the reported attack tells you the implementer did what was asked. It does not tell you

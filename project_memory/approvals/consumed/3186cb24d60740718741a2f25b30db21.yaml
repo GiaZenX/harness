@@ -1,0 +1,20 @@
+request_id: 3186cb24d60740718741a2f25b30db21
+kind: scope
+item: BUG-0088
+revision: 1
+subject_manifest:
+  acceptance_criteria:
+  - id: AC-1
+    text: 'after an update that drops memory: from a role, no agent-memory tree for
+      that role remains readable in the project (removed or quarantined, restorable),
+      measured red-first in both twins'
+  - id: AC-2
+    text: 'the provider question is measured once and recorded: does a role without
+      the key load an existing tree? -- the answer decides whether AC-1 is safety
+      or hygiene'
+  item: BUG-0088
+  revision: 1
+subject_manifest_hash: 0fe51e6fbe8ec6d0e221496912fee140cdd3a7474507dc51f4073625bf3fd5b3
+created: '2026-09-06T15:53:30'
+expires_at_epoch: 1788789210.9981353
+mint_code: f4c67e

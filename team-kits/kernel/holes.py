@@ -282,23 +282,47 @@ GENERATED_HEADER = (
     "test_the_hole_index_in_the_document_is_the_one_the_items_generate reports. -->")
 
 
+def _prose_link(repo, holes_dir, number):
+    """The first cell of a row: a LINK where the prose file is there, the bare number where it is not.
+
+    THE MEASURED DEFECT: this cell used to be a link unconditionally. Only the MIGRATION writes a
+    prose file (`migrate`, above); `capture --hole` writes an item and nothing else -- so from the
+    first hole captured after the migration on, the shipped index pointed at files that do not
+    exist. Measured 2026-09-05 in this repository's own document: 164 rows, 155 files, nine dead
+    links (H166-H173, plus H174 the moment it was captured). A pointer nobody can follow is the
+    class this repository keeps re-learning, and the index is read by humans, so the honest cell
+    for a hole whose full text lives in its ITEM is the number without a link.
+    `tools/test_migrate_holes.py::test_a_hole_with_no_prose_file_is_a_row_without_a_link` holds
+    both directions; `tools/test_repo_hygiene.py::test_every_hole_is_one_index_row_one_prose_file
+    _and_one_item` holds the result over this repository's own document.
+    """
+    relative = "%s/%s.md" % (holes_dir, number)
+    if os.path.isfile(os.path.join(repo, relative.replace("/", os.sep))):
+        return "[%s](%s)" % (number, relative)
+    return number
+
+
 def render_index(state, holes_dir=DEFAULT_HOLES_DIR):
     """The generated section that replaces the entries in the document."""
+    repo = os.path.dirname(os.path.abspath(state.root))
     lines = [
         "## 12. Loecherliste der Repo-Gates -- GENERIERTER ZEIGERINDEX",
         "",
         GENERATED_HEADER,
         "",
-        "Jedes Loch ist ein Item (`BUG` mit `hole_number`); der Volltext eines Eintrags liegt "
-        "unter `%s/`. Neue Nummern vergibt der Kernel (`capture --hole`), nicht die Hand."
-        % holes_dir,
+        "Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die Nummer "
+        "verlinkt ist, liegt unter `%s/` zusaetzlich der Volltext, den die Migration aus dem "
+        "frueheren Dokument uebernommen hat; ein spaeter erfasstes Loch hat keinen und ist "
+        "deshalb nicht verlinkt. Neue Nummern vergibt der Kernel (`capture --hole`), nicht die "
+        "Hand." % holes_dir,
         "",
         "| Loch | Item | Stand | Titel |",
         "|---|---|---|---|",
     ]
     for number, item_id, status, title in index_rows(state):
-        lines.append("| [%s](%s/%s.md) | %s | %s | %s |"
-                     % (number, holes_dir, number, item_id, status, title.replace("|", "/")))
+        lines.append("| %s | %s | %s | %s |"
+                     % (_prose_link(repo, holes_dir, number), item_id, status,
+                        title.replace("|", "/")))
     lines.append("")
     return lines
 
@@ -331,8 +355,13 @@ def _write_index(doc, lines, start, end, state, holes_dir):
 
 
 def _index_row_count(section):
-    """How many pointer rows the section carries -- read off the shape `render_index` writes."""
-    return len([line for line in section if re.match(r"^\| \[H\d+\]\(", line)])
+    """How many pointer rows the section carries -- read off the shape `render_index` writes.
+
+    The link is OPTIONAL here for the reason `_prose_link` gives: a hole with no prose file is a
+    row without one, and counting only the linked rows would let the empty-index refusal above
+    read a document of unlinked rows as empty -- which is the loss it exists to refuse.
+    """
+    return len([line for line in section if re.match(r"^\| (?:\[)?H\d+\b", line)])
 
 
 def migrate(state, doc, related_pr, holes_dir=DEFAULT_HOLES_DIR, apply=False):

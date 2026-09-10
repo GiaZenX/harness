@@ -1,0 +1,57 @@
+id: BUG-0260
+title: 'A QA fail classified narrow/mechanical still climbs the rung: the constitutions
+  offer that classification as the alternative to escalating, and the built mechanic
+  counts FAILED RUNS, which no classification is part of -- so the one lever the rule
+  gave QA no longer reaches the model (new, TSK-0130, PR-0010 AC-6, DEC-0034 rule
+  2 vs parity matrix row 43/45)'
+related_pr: PR-0010
+severity: low
+observed: '**Mechanism.** Before this round the model escalation was USER-GATED and
+  the dev/research constitutions gave QA a way out of it: ''QA may classify a fail
+  as `narrow-mechanical` instead; silently ignoring `escalation: true` is never an
+  option'' (dev/research AGENTS.md 11 at b7f282e; docs/reviews/phase0-disposition.md
+  parity matrix row 43 classified the whole ladder ''behalten''). DEC-0077 built the
+  climb: `kernel.dispatch.count_failed_run_locked` counts a run that ended in FAILED
+  -- derived from the TSK automaton, not from any field a role writes -- and `ladder_for_order`
+  climbs one rung per counted run. MEASURED 2026-09-05 23:0x: the words `narrow-mechanical`
+  / `narrow/mechanical` occur in exactly three shipped files, all of them TEXT for
+  roles (dev and research constitution 11, dev quality-engineer SKILL.md line 151);
+  `grep -rn narrow team-kits/kernel/` returns no occurrence of the classification
+  at all. So the classification is invisible to the dispatcher: a fail QA calls purely
+  mechanical raises the next lease''s rung exactly like any other. The constitutions
+  now SAY this (the restored bullet states it in both kits), so nothing claims otherwise
+  -- but the rule''s lever is gone and no decision retired it.'
+expected: 'A DEC decides one of two: (a) the climb is unconditional and the classification
+  is documentation only -- then parity matrix row 45''s lever is formally retired
+  and the QA skills stop offering it as an alternative to escalating; or (b) a fail
+  the QA role classifies as mechanical does not count, which needs a FIELD the dispatcher
+  can read on the order and a declaration key for it (`escalation.counts_mechanical_fails:
+  false`), plus the measurement that the field cannot be set by the role whose work
+  is being judged.'
+repro: '`grep -rn "narrow" team-kits/kernel/` -> no hit for the classification; `grep
+  -rln "narrow-mechanical\|narrow/mechanical" team-kits/` -> three role texts. Then
+  in a scaffolded dev pilot: FAIL an order, `transition ... READY --approved-retry`,
+  `python scripts/harness.py ladder <TSK-ID>` -> `next_lease.rung` is one rung higher
+  whatever the fail was called.'
+acceptance_criteria:
+- id: AC-1
+  text: a DEC records (a) or (b) with the user's answer; parity matrix row 43/45 and
+    the QA skills of dev and research say the same thing afterwards
+- id: AC-2
+  text: 'if (b): the field is on the ORDER, written by the QA role and not by the
+    role under judgement, the declaration key carries its DEC line, and a red-first
+    test shows a mechanical fail not climbing while an ordinary one does'
+limits: 'The climb is bounded and cheap in the wrong direction: it goes UP one rung
+  per failed run and is capped at the role''s top (`ladder_for_order`, measured on
+  all three pilots), so the failure mode of an over-eager count is a more expensive
+  model on a retry, never a weaker one. The constitutions of both affected kits state
+  the behaviour in the restored bullet, so no shipped text promises a lever that is
+  not there.'
+source: TSK-0130 stream protocol, section 2 (the shortening net finding); docs/reviews/phase0-disposition.md
+  parity matrix rows 43 and 45; dev/research constitution 11 at b7f282e; DEC-0034
+  rule 2; DEC-0077
+hole_number: H178
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-05T23:03:17'

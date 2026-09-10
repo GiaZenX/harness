@@ -1,0 +1,39 @@
+# correspondence.yaml — owned by: Office-Manager (grows through apply-proposal on a user approval;
+# a changed term through revise-document — constitution §6)
+# THE TERMS EVERY OUTGOING LETTER CARRIES (FR-0033): the form of address, the closing, how long an
+# offer stands, and the dunning ladder — YOUR terms, read by `scripts/letter_draft.py` and by nobody
+# else. The SENDER comes from `business_profile.yaml` (`business.name`, `business.billing_address`),
+# the VAT treatment of an offer from `tax.kleinunternehmer` there, the tone from
+# `content_guidelines.yaml`, and a reminder's figures from the ledger row it names — this file adds
+# nothing the business has already said elsewhere.
+#
+# WHAT THE SCRIPT WRITES IS A DRAFT, in `outbox/<role>/`, and nothing else: the kit sends nothing
+# (constitution §2.2). Before a draft leaves the house the manager reads it against `/humanizer`
+# and hands it to the USER, who sends — that is a duty and not a gate, and it says so in
+# `skills/correspondence/SKILL.md`.
+#
+# THE LADDER SHIPS EMPTY, for the reason the whole kit ships its lists empty (FR-0028): a step is
+# a decision of THIS business -- after how many days it writes, what it calls the letter, and
+# whether it charges anything (§ 288 BGB names interest, not a flat fee). A ladder the kit made
+# up would stand in a letter to a customer that nobody chose. `scripts/letter_draft.py reminder`
+# therefore refuses until the ladder is declared, and its refusal names the route: the manager
+# stages this document with the steps and `apply-proposal` writes them on the user's approval.
+# `days_after_due` counts from the day the payment term (`business_profile.yaml` ->
+# `receivables.payment_terms_days`) ran out; the script picks the highest level whose days have
+# passed, and `--level` overrides it.
+
+address: "Sie"                  # Sie | du — one form for every letter; the script refuses a mix
+closing: "Mit freundlichen Grüßen"
+
+offer:
+  valid_days: 14                # how long an offer stands from its date
+
+reminders: []
+#- level: 1
+#  title: "Zahlungserinnerung"    # what the letter calls itself
+#  days_after_due: 0              # days after the payment term ran out
+#  fee: 0.00                      # a fee the user and their advisor decided on
+#- level: 2
+#  title: "1. Mahnung"
+#  days_after_due: 14
+#  fee: 0.00

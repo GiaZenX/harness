@@ -1186,42 +1186,102 @@ if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__]))
 
 
-# ---------------- the hole list is answerable to its own summary table --------------------------
+# ---------------- a hole lives in three places, and they answer to each other -------------------
 
-_HOLE_ENTRY_RX = re.compile(r"^###\s+(H\d+)\b", re.MULTILINE)
-# A row of the summary table: the first cell is one H-number, or the closed-list row's several.
-_HOLE_ROW_RX = re.compile(r"^\|\s*(H\d+(?:\s*,\s*H\d+)*)\s*\|", re.MULTILINE)
+# One row of the hole index: the first cell as the renderer writes it -- a linked H-number where a
+# prose file exists, the bare number where none does (`kernel.holes._prose_link`) -- and the item id.
+_HOLE_ROW_RX = re.compile(
+    r"^\|\s*(\[H\d+\]\(docs/holes/H\d+\.md\)|H\d+)\s*\|\s*(BUG-\d+)\s*\|", re.MULTILINE)
+_HOLE_LINK_RX = re.compile(r"^\[(H\d+)\]\(docs/holes/(H\d+)\.md\)$")
 
 
-def test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole():
-    """The overview table of `docs/POST_V2_WISHLIST.md`, against the entries it summarises.
+def _hole_order(name):
+    """H10 must not sort before H2 in a message a human reads."""
+    return int(name[1:])
 
-    THE MEASURED DRIFT: the table calls itself "Die offenen Einträge auf einen Blick", and a reader
-    who opens it to see what is still open gets an answer that is short by whatever the last rounds
-    appended. On 2026-09-02 it was short by FIFTEEN -- H82 from TSK-0099 and everything four
-    parallel streams wrote (H83-H95, H99) -- because appending an entry and adding a row are two
-    acts and only the first one is obvious. Nothing could say so, which is why this exists rather
-    than a rule that somebody remembers.
 
-    HELD IN BOTH DIRECTIONS, since either half alone rots: an entry without a row is a hole missing
-    from the overview, and a row without an entry is an overview promising a section that is gone.
-    The subject is DERIVED from the document both times -- every `### H<n>` heading, every first
-    table cell that is H-numbers -- so a renumbering moves the check with it.
+def _holes_in_the_store():
+    """{hole number: item id} over every BUG this store holds, active or archived.
+
+    Off the KERNEL's own layout for the reason `_decisions_in_the_store` gives, and reading the
+    FIELD rather than the id: `hole_number` is what makes a bug a hole (`backlog_types`), so a
+    renumbering or a re-filing moves this reader with it.
+    """
+    sys.path.insert(0, os.path.join(ROOT, "team-kits"))
+    import yaml
+    from kernel.state import ProjectState
+    store = ProjectState(os.path.join(ROOT, "project_memory"))
+    found = {}
+    for pattern in (os.path.join(store.active_dir("BUG"), "BUG-*.yaml"),
+                    os.path.join(store.archive_root(), "BUG", "*", "BUG-*.yaml")):
+        for path in sorted(glob.glob(pattern)):
+            with io.open(path, encoding="utf-8") as handle:
+                body = yaml.safe_load(handle) or {}
+            if body.get("hole_number"):
+                found[str(body["hole_number"])] = body.get("id")
+    return found
+
+
+def test_every_hole_is_one_index_row_one_prose_file_and_one_item():
+    """The hole index of `docs/POST_V2_WISHLIST.md`, its prose files, and the items -- all three ways.
+
+    WHY THIS SUBJECT AND NOT THE OLD ONE: until the migration (TSK-0126, `migrate-holes`) a hole was
+    a `### H<n>` section of that document plus a row in a summary table, and the guard here compared
+    those two. The migration made every hole an ITEM (`BUG` with `hole_number`), moved the full text
+    to `docs/holes/H<n>.md` and replaced the table with an index of links -- so the old guard's two
+    subjects both stopped existing, it found zero entries against a floor of 90, and it was red on
+    every run from b7f282e on. Measured on that commit: 0 `### H<n>` headings, 155 index rows.
+
+    HELD IN FOUR DIRECTIONS, since any one alone rots: a row that LINKS at a prose file which is
+    gone points into nothing, a prose file with no row is invisible in the index a reader opens, an
+    item with no row is a gap nobody sees there, and a row naming a different item than the item
+    itself claims is two answers to one question. The subjects are DERIVED each time -- the rows out
+    of the document, the files out of the directory, the numbers out of the items' own `hole_number`
+    field -- so nothing here is a list that has to be maintained.
+
+    AN UNLINKED ROW IS NOT A FINDING, and that is the second half of this round's repair: only the
+    migration writes a prose file, so a hole captured afterwards has none and its row carries the
+    bare number (`kernel.holes._prose_link`). Measured before that repair: nine rows of this
+    document linked at files that were never written (H166-H173).
     """
     path = os.path.join(ROOT, "docs", "POST_V2_WISHLIST.md")
     with io.open(path, encoding="utf-8") as handle:
         text = handle.read()
-    entries = set(_HOLE_ENTRY_RX.findall(text))
-    rows = {name.strip() for cell in _HOLE_ROW_RX.findall(text) for name in cell.split(",")}
-    assert len(entries) >= 90, (
-        "only %d hole entries found — the reader stopped matching the document" % len(entries))
-    missing = sorted(entries - rows, key=lambda name: int(name[1:]))
-    assert not missing, (
-        "these holes have an entry but no row in the summary table, so the overview is short by "
-        "them: %s" % ", ".join(missing))
-    orphans = sorted(rows - entries, key=lambda name: int(name[1:]))
-    assert not orphans, (
-        "the summary table has rows for holes that have no entry any more: %s" % ", ".join(orphans))
+    rows, linked, mislinked = {}, set(), []
+    for hit in _HOLE_ROW_RX.finditer(text):
+        link = _HOLE_LINK_RX.match(hit.group(1))
+        number = link.group(1) if link else hit.group(1)
+        rows[number] = hit.group(2)
+        if link:
+            linked.add(number)
+            if link.group(1) != link.group(2):
+                mislinked.append(number)
+    files = {os.path.basename(name)[:-len(".md")]
+             for name in glob.glob(os.path.join(ROOT, "docs", "holes", "H*.md"))}
+    items = _holes_in_the_store()
+    assert len(rows) >= 90, (
+        "only %d index rows found -- the reader stopped matching the document" % len(rows))
+    assert not mislinked, (
+        "these rows link at a prose file of another hole: %s" % ", ".join(sorted(mislinked)))
+    assert not sorted(linked - files, key=_hole_order), (
+        "these index rows link at a prose file that does not exist: %s"
+        % ", ".join(sorted(linked - files, key=_hole_order)))
+    assert not sorted(files - set(rows), key=_hole_order), (
+        "these prose files have no row in the index, so a reader of it never finds them: %s"
+        % ", ".join(sorted(files - set(rows), key=_hole_order)))
+    assert not sorted(files - linked, key=_hole_order), (
+        "these prose files exist while their row does not link at them: %s"
+        % ", ".join(sorted(files - linked, key=_hole_order)))
+    assert not sorted(set(items) - set(rows), key=_hole_order), (
+        "these hole ITEMS have no row in the index: %s"
+        % ", ".join("%s (%s)" % (name, items[name]) for name in sorted(set(items) - set(rows),
+                                                                       key=_hole_order)))
+    disagreeing = sorted((name for name, bug in rows.items() if items.get(name) != bug),
+                         key=_hole_order)
+    assert not disagreeing, (
+        "the index and the store name different items for these holes: %s"
+        % ", ".join("%s: index %s, store %s" % (name, rows[name], items.get(name))
+                    for name in disagreeing))
 
 
 # ---------------- prose under docs/ that nothing reads any more (FR-0036) ----------------------
@@ -2076,3 +2136,37 @@ def test_a_corpus_that_cannot_be_listed_says_so_instead_of_reading_as_empty(monk
                         type("_Stub", (), {"run": staticmethod(lambda *a, **k: _Failed())}))
     with pytest.raises(AssertionError, match="git could not list"):
         _carried_files()
+
+
+# -- BUG-0087: an assertion that cannot be false claims coverage --------------------------------
+
+def _assert_statements_that_cannot_fail(tree):
+    """The `assert` nodes whose test is statically true -- `assert True`, `assert x or True`."""
+    def truthy(node):
+        if isinstance(node, ast.Constant):
+            return bool(node.value)
+        if isinstance(node, ast.BoolOp) and isinstance(node.op, ast.Or):
+            return any(truthy(value) for value in node.values)
+        return False
+    return [node for node in ast.walk(tree) if isinstance(node, ast.Assert) and truthy(node.test)]
+
+
+def test_no_assertion_in_the_suites_is_statically_true():
+    """BUG-0087: `assert <x> or True` stood in the hook time-budget family and was true for every input.
+
+    MEASURED RED before the line was removed: the sweep below named
+    `tools/test_hooks_v2.py` at the `TOTAL_BUDGET + VALIDATE_TIMEOUT <= 60 or True` line, and nothing
+    else in either suite tree. The reader is the AST, so an `assert True` inside a STRING a test
+    writes into a fixture file is not one (three such strings stand in the suites today).
+    """
+    offenders = []
+    for path in sorted(glob.glob(os.path.join(ROOT, "tools", "test_*.py"))
+                       + glob.glob(os.path.join(ROOT, ".claude", "hooks", "test_*.py"))):
+        with io.open(path, encoding="utf-8") as handle:
+            tree = ast.parse(handle.read(), filename=path)
+        for node in _assert_statements_that_cannot_fail(tree):
+            offenders.append("%s:%d" % (os.path.relpath(path, ROOT).replace(os.sep, "/"), node.lineno))
+    assert not offenders, "assertions that cannot be false:\n  " + "\n  ".join(offenders)
+    # the reader's floor: it sees both shapes, and it does not see a string
+    probe = ast.parse("assert x or True\nassert True\nassert x\nwrite('assert True')\n")
+    assert [node.lineno for node in _assert_statements_that_cannot_fail(probe)] == [1, 2]

@@ -25,7 +25,7 @@
   tool, never a shell, never another role's, and only for a craft topic `guard_memory_budget` can
   judge (`gate_write_scope` rule 6).
 - **The state directory is WRITE-LOCKED against every tool write of a session that LOADS this project's settings, and has exactly ONE writer:** `gate_write_scope` refuses every tool write under `project_memory/` bar `staging/<task-id>/`, and makes no exception for the plain config/reference files §6 assigns to a role. That lock reaches exactly as far as its registration: a client start mode that does not load this project's settings starts no hook of this kit at all, so there the ordinary file tools reach `project_memory/` unrefused, and `scripts/harness.py` with them. What still limits such a session depends on the mode and is not assured here (`hooks/ENFORCEMENT.md` §0). The kernel that IS allowed to write is reached through the installed entry point, and it has ONE spelling: **`python scripts/harness.py <command>`**, run from the project root. The scaffold installs it kit-owned in every project, the same three tokens work in bash and in PowerShell, and it resolves the state directory itself — so never add `--root`, which that same gate refuses as naming the state directory and which the entry point also refuses off its own parser.
-  **The surface is PARTIAL, and that is what to report rather than work around.** `python scripts/harness.py --help` is the authority on what exists; today that is `doctor`, `validate`, `generate-index`, `verify-invariants`, `generate-session-brief`, `capture`, `request-approval`, `create-task`, `dispatch`, `submit-result`, `evidence`, `transition`, `update`, `archive`, `check-scopes`, `sweep-leases`, `sweep-requests`, `checkpoint`, `checkpoint-status`, `set-preset`, `update-kit`, `add-filing-rule`, `apply-proposal`, `revise-document`, `freeze-architecture`, `freeze-wireframe`, `freeze-design`, `freeze-report`, `migrate`, `migrate-holes`, `report-gap`, `pin-kit`, `unpin-kit`, `rollback-kit`. Of spec II.4's twelve only `approve` has no command, and it is SPLIT rather than missing: `request-approval <kind> <ITEM-ID>` opens the kernel-generated question (phase 1) and the USER mints it by ANSWERING — no command mints, which is what makes the approval provable. `migrate --dry-run` reports what a V1 import would do and prints a digest; `migrate --plan <digest>` runs only that same plan. An import mints no approval (`approval_ref: null` on every imported item), so nothing it writes opens a gate that requires one. At which STATUS a record arrives is answered per record, by the dry run, before anything is written: a record V1 had already finished lands in `archive/<TYPE>/<year>/` at its MAPPED status. What no command CREATES either way: `product/masterplan.md` and `project_config.yaml` are not typed items. WRITTEN they can be where a route says so — `set-preset` owns `project.preset`, `apply-proposal` adds to any kit document the kernel can compare, `revise-document` replaces or deletes a spot in one — every spot in the approval question, old and new, all three on a user-minted approval (§11, §6); the masterplan is prose and has neither. Naming the missing command in your report is the step; writing state by hand is not (§2.10).
+  **The surface is PARTIAL, and that is what to report rather than work around.** `python scripts/harness.py --help` is the authority on what exists; today that is `doctor`, `validate`, `generate-index`, `verify-invariants`, `generate-session-brief`, `capture`, `request-approval`, `create-task`, `dispatch`, `ladder`, `submit-result`, `evidence`, `transition`, `update`, `archive`, `check-scopes`, `sweep-leases`, `sweep-requests`, `checkpoint`, `checkpoint-status`, `set-preset`, `update-kit`, `add-filing-rule`, `apply-proposal`, `revise-document`, `freeze-architecture`, `freeze-wireframe`, `freeze-design`, `freeze-report`, `migrate`, `migrate-holes`, `sweep-pointers`, `report-gap`, `pin-kit`, `unpin-kit`, `rollback-kit`. Of spec II.4's twelve only `approve` has no command, and it is SPLIT rather than missing: `request-approval <kind> <ITEM-ID>` opens the kernel-generated question (phase 1) and the USER mints it by ANSWERING — no command mints, which is what makes the approval provable. `migrate --dry-run` reports what a V1 import would do and prints a digest; `migrate --plan <digest>` runs only that same plan. An import mints no approval (`approval_ref: null` on every imported item), so nothing it writes opens a gate that requires one. At which STATUS a record arrives is answered per record, by the dry run, before anything is written: a record V1 had already finished lands in `archive/<TYPE>/<year>/` at its MAPPED status. What no command CREATES either way: `product/masterplan.md` and `project_config.yaml` are not typed items. WRITTEN they can be where a route says so — `set-preset` owns `project.preset`, `apply-proposal` adds to any kit document the kernel can compare, `revise-document` replaces or deletes a spot in one — every spot in the approval question, old and new, all three on a user-minted approval (§11, §6); the masterplan is prose and has neither. Naming the missing command in your report is the step; writing state by hand is not (§2.10).
   The same gate also refuses every write-capable shell pipeline that merely NAMES `.claude` or `team-kits` — the `init_project_memory` run the startup gate asks for is one, and so is starting a scaffold by hand. TWO operations have a route instead: a preset change (`set-preset`, §11) and a kit update (`update-kit`, §15) run the installer through the KERNEL on a user-minted approval, and neither line names the enforcement layer. The rest is the USER's to run outside this session; ask, and never reach for a spelling the gate does not recognise. The gate decides by READING a command line, which is enforcement and not arithmetic, so a spelling that gets past it is a defect to report, never a route to take.
 - **Draft pickup:** if the install session left a DRAFT plan (`product/masterplan.md` + a DRAFT `PR-nnnn`), read it and summarise it to the user — never restart discovery from zero. The ITEM you may refine, because the kernel captures items; `product/masterplan.md` you can only read and discuss, since the kernel captures typed items ONLY and nothing writes that file after the install — a wanted change of direction there is an infrastructure gap you report (§2.10), and the change itself rides on a `CR`.
 - **Hard gate:** no specialist spawn before `project_config.yaml` exists with a user-confirmed
@@ -253,6 +253,29 @@ that skipped the line — no gate reads a specialist's prose — so it is carrie
 and by the role that reviews; that the rule stands in all three of these constitutions is
 `tools/test_review_procedure.py::test_every_constitution_asks_a_plan_for_the_way_it_rejected`.
 
+**A comment points at an ITEM, and a claim about a PROPERTY becomes a test the comment NAMES.** Code
+is written so that its names and its shape say WHAT it does; no comment restates that, and a
+docstring that repeats the signature is the same defect. What is left is read in three steps, in this
+order: a sentence that says WHAT the code does goes, after a better name if one is needed; a sentence
+that claims a PROPERTY — „this cannot happen“, „only X reaches Y“ — becomes a TEST and the
+sentence names it, so the claim rots visibly instead of quietly; a sentence that holds a WHY — a
+measurement, a discarded alternative, the defect the line answers to — stays, cut down to the item it
+points at (a Decision item, a `BUG`), never retold. No sentence may claim a check the code does not
+build, and that cuts BOTH ways: an over-alarming comment is as wrong as a reassuring one. A NUMBER
+lives in exactly one place — needed by the code it is one constant with an item beside it; measured
+for a round it belongs in that round's record and never in a second comment. HALF of this is
+mechanical and half is not, and the difference is the whole point: `python scripts/harness.py
+sweep-pointers` reads your project's own files and reports a test name that does not resolve in the
+tree and an item id this store does not hold — a report you run and read, not a gate, so a dead
+pointer costs a reader a minute and stops nothing. WHAT IT READS AND WHAT IT DELIBERATELY DOES NOT
+is `kernel.report.pointer_sweep`: a test cited by bare file name, a node through a class and a test
+file in a language this kernel does not parse are not read, so a green sweep says „no pointer of the
+two readable kinds is dead“ and never „every claim here is covered“. Whether a property claim named a test AT ALL
+is read by nobody; that half belongs to the role that writes and the role that reviews, and it is
+where this rule is actually lost. The rule is `DEC-0008`, its contract is `SR-0008`, the wish that
+brought it into the kits is `FR-0007`, and that all three constitutions carry this one text is
+`tools/test_review_procedure.py::test_every_constitution_carries_the_comment_discipline_duty`.
+
 ## 6. Items + ownership (the kernel WRITES; these roles own the CONTENT)
 
 | Item / artifact | Owner of the content |
@@ -285,6 +308,20 @@ Decision item); QA owns test COMPLETENESS — every component tested, per-area c
 ## 7. Evolution: CR / BUG — explicit, never silent
 
 (FR triage: §4.)
+- **Is the approved GOAL still what we want to build?** That one question decides between a `CR`
+  and a new root, and it is about the goal, never about the size of the change. **YES** — the goal
+  still says the right thing and only what it covers should change: that is a `CR` against the
+  approved revision (`changes/active`). It names the `PR` revision it targets, what replaces it and
+  its own acceptance criteria, and it walks its own automaton, `DRAFT` → `APPROVED` (a `scope`
+  approval the USER mints) → `APPLIED` — so the change carries its own history and its own sign-off.
+  **NO** — the goal itself turned out wrong, the direction moved, the user wants something else:
+  then the root is REPLACED, and the replacement is recorded in the state: a new `PR` captured, the
+  old one transitioned to `SUPERSEDED`, and the new one naming it. What must not happen is the third
+  route, and it is the one that really happened: a change to something already BUILT walked as a
+  root replacement plus a work order, because that is fewer commands. Then the change has no item of
+  its own, and "what was changed after delivery, and who approved it" has no answer left. Measured
+  in pilot 4 (`BUG-0022`): a persona raised two concrete changes to a running game, `changes/active/`
+  stayed empty through two sessions, and the PM replaced the product root twice instead.
 - **CR** (change to an APPROVED revision): **Removing/replacing/renaming a VISIBLE UI element is
   ALWAYS a CR** (a real run deleted the Account button unasked; the UI inventory snapshot test
   fails without one).
@@ -334,10 +371,28 @@ turn the tree over.
   session role's `model:` frontmatter really does decide the foreground model, AND an explicit model
   choice by the user overrides it. No hook holds the pin — if the user switches, say which model is
   running instead of claiming the rung (numbers: docs/reviews/2026-08-21-tsk0078-measurements.md).
-- **Effort:** all `high`. Facts: haiku has no effort; Sonnet 5 supports xhigh AND max. Escalation
-  ladder (user-gated, triggered by the FIRST QA fail or user dissatisfaction):
-  `sonnet-high → sonnet-xhigh → opus-high → opus-xhigh/max`. QA may classify a fail as
-  `narrow-mechanical` instead; silently ignoring `escalation: true` is never an option.
+- **The ladder is BUILT, not prose (DEC-0077, DEC-0078; the rules are DEC-0034's, the endpoints
+  DEC-0047's):** this kit declares it in `ladder.yaml` beside this file — three rungs
+  `sonnet < opus < fable` (DEC-0076), top rung **fable**, effort **high** by default and **xhigh**
+  when the goal's `class` is `large`. At every `dispatch` the kernel derives the RUNG from the
+  role's pin, its class in the declaration and the order's failed runs (planning and architecture
+  start on the top rung; design and QA never below opus; the build on its pin; after every FAILED
+  run one rung up, capped at the top) and the EFFORT from the goal, writes both on the lease, the
+  header and the task item, and derives again at the spawn (`kernel.dispatch.ladder_for_order`;
+  `python scripts/harness.py ladder <TSK-ID>` shows the answer without minting). **What you do
+  with it:** when the header's `rung` is not the role's own pin, pass it as the Agent call's
+  `model:` — the spawn gate refuses any spawn whose `model` is not the rung, a higher one
+  included (measured 2026-09-05: the parameter overrides the child's pin, so a spawn that
+  names none would silently drop back to it). **What it does not do:** the effort is derived and
+  shown, never forced — the platform has no per-spawn effort parameter, so the child runs on the
+  `effort:` its installed definition carries. There is no user-gated escalation ladder any more.
+- **A QA FAIL and the `escalation: true` flag of §14a:** the flag stays and is still yours to set on
+  the first FAIL — but the CLIMB no longer waits for it or for the user. What the dispatcher counts
+  is the FAILED RUN itself (`kernel.dispatch.count_failed_run_locked`), so the retry's lease comes
+  back one rung higher on its own. QA may classify a fail as `narrow-mechanical` instead of a model
+  problem, and saying so still matters — it decides what YOU re-order — but it does not hold the
+  climb back, because the count is of runs and not of classifications. Silently ignoring
+  `escalation: true` is never an option.
 - The scaffold stamps Claude `model:`/`effort:` frontmatter and Codex TOML
   `model`/`model_reasoning_effort`; Codex agent TOMLs are read-only harness output. After the user
   confirms a sync, run the full scaffold with explicit filesystem permission escalation when needed,
@@ -373,18 +428,6 @@ a defect (a real file grew +666 lines the day its split-flag was logged). The au
 - **A place you name is a place you wrote to.** Tell the user where a file is only by the path
   the TOOL reported — you cannot see their Desktop, and a lead that named one had written into
   the profile root (`P4-5`).
-
-- **A comment says what the code cannot.** Code is written so that its names and its shape say
-  WHAT a function, a loop or a rule does; no comment restates that, and a docstring that repeats
-  the signature is the same defect. A comment carries exactly two things: a WHY the code cannot
-  express — the discarded alternative, the defect a line answers to — as a pointer to the item
-  that holds it (a Decision item, a `BUG`), never retold; and a MEASURED limit — what this code
-  does NOT cover, with its measurement. Everything else costs output tokens on the way out and is
-  a place for a false claim on the way in: a sentence promising a protection the code does not
-  build is caught by whoever judges the change or by nobody. No gate holds this rule — a check
-  over prose would be a heuristic, and none is built — so whoever judges the change (the reviewing
-  role where the kit ships one, the writer's own self-check where it does not) reads every changed
-  comment against it before the change passes. Occasion: `FR-0007`.
 
 ## 14a. Loops & failures
 

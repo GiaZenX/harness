@@ -45,6 +45,15 @@ CENT = Decimal("0.01")
 UNRECONCILED = "(UNRECONCILED - do not book)"
 
 
+# THE TWO SYNTAXES THIS READER KNOWS, by the local name of their root element. ONE declaration,
+# TWO readers: `parse_xml` branches on it to decide which spellings to read, and `_is_an_einvoice`
+# asks whether an embedded attachment is an invoice at all. Written here because a second answer to
+# "is this an e-invoice" was measured to be wider than this one and to refuse a legitimate PDF.
+CII_ROOT = "CrossIndustryInvoice"
+UBL_ROOTS = ("Invoice", "CreditNote")
+EINVOICE_ROOTS = (CII_ROOT,) + UBL_ROOTS
+
+
 def _local(el):
     """The element name without the namespace ElementTree expands into the tag."""
     return el.tag.rsplit("}", 1)[-1]
@@ -62,6 +71,11 @@ def _child(parent, name):
         if _local(el) == name:
             return el
     return None
+
+
+def _count(root, name):
+    """How many elements ANYWHERE under root carry this local name (BR-16: at least one line)."""
+    return sum(1 for el in root.iter() if _local(el) == name) if root is not None else 0
 
 
 def _anchor(root, name):
@@ -192,7 +206,7 @@ def parse_xml(data):
         return None
     tag = _local(root)
     out = {"syntax": tag}
-    if tag == "CrossIndustryInvoice":            # CII (ZUGFeRD/XRechnung-CII)
+    if tag == CII_ROOT:                          # CII (ZUGFeRD/XRechnung-CII)
         document = _anchor(root, "ExchangedDocument")
         # ExchangedDocument's own ID. The first ID in the document is the guideline URN in
         # `GuidelineSpecifiedDocumentContextParameter` — a confidently WRONG invoice number that
@@ -214,7 +228,24 @@ def parse_xml(data):
             # `reconciliation_failure` explains, made the same way in the UBL branch below.
             out["gross"] = _pick(totals, "DuePayableAmount", currency=out["currency"])
             out["rounding"] = _pick(totals, "RoundingAmount", currency=out["currency"])
-    elif tag in ("Invoice", "CreditNote"):        # UBL (XRechnung-UBL)
+        # THE DOCKING POINT'S FIELDS (DEC-0075, `scripts/invoice_intake.py`), read here so the
+        # app-produced invoice goes through the ONE reader BUG-0072 hardened; `main` prints none
+        # of them, so the bookkeeper's output stays what it was.
+        out["guideline"] = _pick(_anchor(root, "GuidelineSpecifiedDocumentContextParameter"), "ID")
+        out["type_code"] = _pick(document, "TypeCode")
+        seller = _anchor(root, "SellerTradeParty")
+        buyer = _anchor(root, "BuyerTradeParty")
+        out["buyer"] = _pick(buyer, "Name")
+        out["seller_country"] = _pick(_child(seller, "PostalTradeAddress"), "CountryID")
+        out["buyer_country"] = _pick(_child(buyer, "PostalTradeAddress"), "CountryID")
+        out["line_count"] = _count(root, "IncludedSupplyChainTradeLineItem")
+        out["preceding_invoice"] = _pick(_child(settlement, "InvoiceReferencedDocument"),
+                                         "IssuerAssignedID")
+        out["tax_categories"] = [
+            (_pick(tax, "CategoryCode"), _pick(tax, "RateApplicablePercent"))
+            for tax in (settlement if settlement is not None else ())
+            if _local(tax) == "ApplicableTradeTax"]
+    elif tag in UBL_ROOTS:                        # UBL (XRechnung-UBL)
         out["invoice_no"] = _pick(root, "ID")     # the invoice's own ID, not a party's
         out["issue_date"] = _pick(root, "IssueDate")
         out["seller"] = _pick(_anchor(root, "AccountingSupplierParty"),
@@ -233,6 +264,23 @@ def parse_xml(data):
             # reconstructing a figure the document never states.
             out["gross"] = _pick(totals, "PayableAmount", currency=out["currency"])
             out["rounding"] = _pick(totals, "PayableRoundingAmount", currency=out["currency"])
+        # the docking point's fields, UBL spelling -- see the CII branch
+        out["guideline"] = _pick(root, "CustomizationID")
+        out["type_code"] = _pick(root, "InvoiceTypeCode", "CreditNoteTypeCode")
+        supplier = _anchor(root, "AccountingSupplierParty")
+        customer = _anchor(root, "AccountingCustomerParty")
+        out["buyer"] = _pick(customer, "RegistrationName", "Name", deep=True)
+        out["seller_country"] = _pick(_anchor(supplier, "PostalAddress"),
+                                      "IdentificationCode", deep=True)
+        out["buyer_country"] = _pick(_anchor(customer, "PostalAddress"),
+                                     "IdentificationCode", deep=True)
+        out["line_count"] = _count(root, "InvoiceLine") + _count(root, "CreditNoteLine")
+        out["preceding_invoice"] = _pick(_anchor(root, "InvoiceDocumentReference"), "ID")
+        out["tax_categories"] = [
+            (_pick(_child(subtotal, "TaxCategory"), "ID"),
+             _pick(_child(subtotal, "TaxCategory"), "Percent"))
+            for total in root if _local(total) == "TaxTotal"
+            for subtotal in total if _local(subtotal) == "TaxSubtotal"]
     else:
         sys.stderr.write("[einvoice] unknown root element <%s> — not a known e-invoice syntax\n" % tag)
         return None
@@ -242,23 +290,71 @@ def parse_xml(data):
     return out
 
 
+def _is_an_einvoice(data):
+    """The root element name when `data` IS one of the two syntaxes this reader knows, else None.
+
+    The PROPERTY, not a list of file names: an attachment is the invoice when it IS one. The
+    alternative was a table of the names the norms prescribe (`factur-x.xml`, `zugferd-invoice.xml`,
+    `xrechnung.xml`, `order-x.xml`), and a table would have to grow with every profile while saying
+    nothing about a file that carries a prescribed name and something else inside.
+
+    THE PROPERTY IS `EINVOICE_ROOTS`, which is the same statement `parse_xml` branches on twenty
+    lines down -- not a second one. The first cut asked only whether the bytes PARSE as XML, and
+    that is a different question: measured 2026-09-06, a PDF/A-3 carrying `factur-x.xml` plus an
+    ordinary `<note>hello</note>` attachment (which PDF/A-3 allows) was refused as "carries 2
+    embedded e-invoice XML files", while the contract page promises the app project that the kit
+    "takes the one that IS an e-invoice"
+    (`tools/test_office_package.py::test_a_pdf_carrying_two_invoice_attachments_is_refused_not_guessed`).
+    """
+    try:
+        tag = _local(ET.fromstring(data))
+    except Exception:                       # noqa: BLE001 -- anything unparseable is not one
+        return None
+    return tag if tag in EINVOICE_ROOTS else None
+
+
 def extract_pdf_xml(path):
-    """Embedded XML from a ZUGFeRD/Factur-X PDF via pypdf (optional dependency)."""
+    """The embedded e-invoice XML of a PDF, or None -- and never a guess between two of them.
+
+    WHICH ATTACHMENT, decided by what it is. Until 2026-09-06 this returned the first `.xml`
+    attachment pypdf handed back, and pypdf hands them back in NAME-TREE order, not attachment
+    order: measured that day with `factur-x.xml` (the real figures) attached first and
+    `aaa-invoice.xml` (999.00) attached second, the second one won and the run was accepted with
+    its figures. That is BUG-0072's class -- a wrong figure passing silently -- reached through a
+    file name. Now every attachment is parsed, exactly one that IS an e-invoice is taken, and two
+    are refused with both names, because which of them the PDF is about is not this reader's guess
+    (`tools/test_office_package.py::test_a_pdf_carrying_two_invoice_attachments_is_refused_not_guessed`).
+    """
     try:
         from pypdf import PdfReader  # type: ignore[import-untyped]
     except ImportError:
         sys.stderr.write("[einvoice] pypdf not installed (pip install pypdf) — cannot check the "
                          "PDF for embedded e-invoice XML\n")
         return None
+    if ET is None:
+        # The SELECTION parses, so it needs the same parser `parse_xml` refuses to work
+        # without -- and a missing dependency must not read as "this PDF carries no
+        # e-invoice", which is what returning None on its own would say.
+        sys.stderr.write("[einvoice] defusedxml not installed (pip install -r "
+                         "requirements-office.txt) — refusing to parse untrusted "
+                         "supplier XML with an XXE-vulnerable parser\n")
+        return None
+    found = []
     try:
         reader = PdfReader(path)
         for name, f in (reader.attachments or {}).items():
-            if name.lower().endswith(".xml"):
-                data = f[0] if isinstance(f, list) else f
-                return bytes(data)
+            data = bytes(f[0] if isinstance(f, list) else f)
+            if _is_an_einvoice(data):
+                found.append((name, data))
     except Exception as e:
         sys.stderr.write("[einvoice] PDF attachment read failed: %s\n" % e)
-    return None
+        return None
+    if len(found) > 1:
+        sys.stderr.write("[einvoice] this PDF carries %d embedded e-invoice XML files (%s); which "
+                         "one the document is about is not this reader's guess — refused\n"
+                         % (len(found), ", ".join(name for name, _ in found)))
+        return None
+    return found[0][1] if found else None
 
 
 def main():

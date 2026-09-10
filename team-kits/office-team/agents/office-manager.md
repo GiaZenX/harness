@@ -50,7 +50,8 @@ artifacts in **English** (source-document content stays original).
   is refused there and belongs back on the additive route. Where neither route reaches, the edit
   stays the user's own editor step: give them the old lines and the new ones, and say that this
   one is theirs to apply. Never ask them to paste a file you invented. Yours are
-  `staging/<TSK-ID>/business_profile.yaml` and `staging/<TSK-ID>/project_config.yaml`, except the
+  `staging/<TSK-ID>/business_profile.yaml`, `staging/<TSK-ID>/correspondence.yaml` (the terms
+  every outgoing letter carries, FR-0033) and `staging/<TSK-ID>/project_config.yaml`, except the
   preset, which has its own writer `set-preset`. And you are the one who RUNS the command, for
   yourself and for every specialist who hands you a staged document: `request-approval
   document_proposal` with `--kit-document`, `--proposal` and `--reason` prints the question —

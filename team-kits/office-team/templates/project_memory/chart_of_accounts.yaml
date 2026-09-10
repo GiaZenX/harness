@@ -1,0 +1,167 @@
+# chart_of_accounts.yaml — owned by: Bookkeeper
+# THE CHART OF ACCOUNTS (Kontenrahmen) AND ITS MAPPING TO THE ANLAGE EÜR (FR-0081). One document,
+# three readers: `scripts/ledger_add.py` names the account a booking's category maps to and refuses
+# a category the active framework has no account for; `scripts/euer_report.py` sums per account and
+# takes a category's form line from the ACCOUNT while a framework is active; `apply-proposal` is the
+# writer that grows it (an account added, a category mapped) and `revise-document` the one that
+# corrects it — both on a user-minted approval, never a text editor (constitution §6).
+#
+# LEGAL SPACE AND YEAR, because both are facts about the numbers below and not about this kit:
+# the frameworks are the two standard German chart-of-accounts numberings SKR03 and SKR04 (the kit
+# names no bookkeeping vendor: FR-0028, and `tools/test_kit_neutrality.py::
+# test_no_shipped_office_template_names_a_platform_or_the_pilot_business` measures that over every
+# shipped template), and `euer_line` is a line of
+# the German Anlage EÜR for the form year named here — the same year `master_data.yaml` names in
+# `euer_form.year`, and the report reads BOTH files, so the two must agree
+# (`tools/test_office_package.py::test_the_chart_of_accounts_and_the_vocabulary_name_one_form_year`).
+# A business outside Germany, or one that keeps books (a GmbH, see `business_profile.yaml`), is not
+# served by this file at all; `legal_space` says so rather than letting the numbers travel.
+#
+# WHAT THE KIT READ, STATED AS WHAT IT IS. The account numbers were taken from public overviews of
+# the two charts on 2026-09-05; no publisher's own list was read and none is shipped, and the line numbers
+# are the ones `master_data.yaml` carries for the same categories, read from public filling aids —
+# not from the official form. So this is a STARTING POINT for the conversation with the
+# Steuerberatung, exactly like the retention spans in `filing_plan.yaml`: correct an account or a
+# line here and both scripts follow; nothing in the kit has to change.
+#
+# HOW IT IS USED. `active` names the framework this business books against, or `null` — shipped
+# `null`, because which chart a business uses is the Steuerberatung's answer and a guessed one would
+# stand under every booking. With `null` the ledger takes any category the vocabulary knows and the
+# report prints no account. With a framework named, EVERY booked category must map to exactly one
+# account of that framework (`categories:` on the account); one that maps to none, or to two, is
+# refused at the booking with the account list named. A category's `euer_line` in
+# `master_data.yaml` and its account's `euer_line` here are two statements of one fact: where they
+# differ the report prints both and the account's wins in the per-line table, so a disagreement is
+# visible in the document the Steuerberatung reads instead of being averaged away.
+#
+# `account` is a STRING, deliberately: a leading zero is part of an account number, and YAML would
+# read a bare 0800 as an octal literal or a plain 800.
+
+legal_space: "DE"
+frameworks_source: "SKR03 / SKR04, Kontonummern aus öffentlichen Kontenrahmen-Übersichten gelesen 2026-09-05 — keine Herausgeber-Originalliste gelesen; Zeilennummern wie master_data.yaml (Ausfüllhilfen, kein amtlicher Vordruck)"
+form_year: 2025
+active: null                    # SKR03 | SKR04 | null — the Steuerberatung's answer, not the kit's
+
+accounts:
+  SKR03:
+  - account: "8400"
+    label_de: "Erlöse 19 % USt"
+    euer_line: 15
+    categories: [sales_taxable]
+  - account: "8195"
+    label_de: "Erlöse als Kleinunternehmer i. S. d. § 19 Abs. 1 UStG"
+    euer_line: 12
+    categories: [sales_kleinunternehmer]
+  - account: "8100"
+    label_de: "Steuerfreie Umsätze § 4 Nr. 8 ff. UStG"
+    euer_line: 16
+    categories: [sales_tax_free]
+  - account: "3400"
+    label_de: "Wareneingang 19 % Vorsteuer"
+    euer_line: 27
+    categories: [goods]
+  - account: "3100"
+    label_de: "Fremdleistungen"
+    euer_line: 29
+    categories: [external_services]
+  - account: "4210"
+    label_de: "Miete (unbewegliche Wirtschaftsgüter)"
+    euer_line: 39
+    categories: [rent]
+  - account: "4920"
+    label_de: "Telefon"
+    euer_line: 43
+    categories: [telecom]
+  - account: "4670"
+    label_de: "Reisekosten Unternehmer"
+    euer_line: 44
+    categories: [travel]
+  - account: "4360"
+    label_de: "Versicherungen"
+    euer_line: 53
+    categories: [insurance]
+  - account: "4380"
+    label_de: "Beiträge"
+    euer_line: 53
+    categories: [dues_fees]
+  - account: "4600"
+    label_de: "Werbekosten"
+    euer_line: 54
+    categories: [advertising]
+  - account: "4650"
+    label_de: "Bewirtungskosten"
+    euer_line: 63
+    categories: [hospitality]
+  - account: "4930"
+    label_de: "Bürobedarf"
+    euer_line: 60
+    categories: [office_supplies]
+  - account: "4910"
+    label_de: "Porto"
+    euer_line: 60
+    categories: [postage]
+  - account: "4806"
+    label_de: "Wartungskosten für Hard- und Software"
+    euer_line: 60
+    categories: [software]
+  SKR04:
+  - account: "4400"
+    label_de: "Erlöse 19 % USt"
+    euer_line: 15
+    categories: [sales_taxable]
+  - account: "4185"
+    label_de: "Erlöse als Kleinunternehmer i. S. d. § 19 Abs. 1 UStG"
+    euer_line: 12
+    categories: [sales_kleinunternehmer]
+  - account: "4100"
+    label_de: "Steuerfreie Umsätze § 4 Nr. 8 ff. UStG"
+    euer_line: 16
+    categories: [sales_tax_free]
+  - account: "5400"
+    label_de: "Wareneingang 19 % Vorsteuer"
+    euer_line: 27
+    categories: [goods]
+  - account: "5900"
+    label_de: "Fremdleistungen"
+    euer_line: 29
+    categories: [external_services]
+  - account: "6310"
+    label_de: "Miete (unbewegliche Wirtschaftsgüter)"
+    euer_line: 39
+    categories: [rent]
+  - account: "6805"
+    label_de: "Telefon"
+    euer_line: 43
+    categories: [telecom]
+  - account: "6670"
+    label_de: "Reisekosten Unternehmer"
+    euer_line: 44
+    categories: [travel]
+  - account: "6400"
+    label_de: "Versicherungen"
+    euer_line: 53
+    categories: [insurance]
+  - account: "6420"
+    label_de: "Beiträge"
+    euer_line: 53
+    categories: [dues_fees]
+  - account: "6600"
+    label_de: "Werbekosten"
+    euer_line: 54
+    categories: [advertising]
+  - account: "6640"
+    label_de: "Bewirtungskosten"
+    euer_line: 63
+    categories: [hospitality]
+  - account: "6815"
+    label_de: "Bürobedarf"
+    euer_line: 60
+    categories: [office_supplies]
+  - account: "6800"
+    label_de: "Porto"
+    euer_line: 60
+    categories: [postage]
+  - account: "6495"
+    label_de: "Wartungskosten für Hard- und Software"
+    euer_line: 60
+    categories: [software]

@@ -53,7 +53,7 @@
         "hooks": []
       },
       "0. Authority & who you are (READ FIRST)": {
-        "digest": "e80380d6e63f4fbe",
+        "digest": "12bac459d802f0b2",
         "hooks": [
           "gate_write_scope",
           "guard_harness_selfmod",
@@ -65,7 +65,7 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "c95abbb02200da49",
+        "digest": "842ca8369213a4e7",
         "hooks": [
           "session_status"
         ]
@@ -77,7 +77,7 @@
         ]
       },
       "14. Behavior (all roles)": {
-        "digest": "a6402b6456c18bfd",
+        "digest": "c630c560f3f29a18",
         "hooks": []
       },
       "14a. Loops & failures": {
@@ -137,7 +137,7 @@
         "hooks": []
       },
       "5a. Your work loop — the SEQUENCE, and the duties that have no gate behind them": {
-        "digest": "f8796ff5411f1410",
+        "digest": "dec8e48e95e9f88d",
         "hooks": [
           "gate_design_sighted",
           "gate_write_scope",
@@ -154,7 +154,7 @@
         ]
       },
       "7. Evolution: CR / BUG — explicit, never silent": {
-        "digest": "b255b32aefdb6461",
+        "digest": "ee8afbe6068ac596",
         "hooks": []
       },
       "8. Git": {
@@ -221,7 +221,7 @@
         "hooks": []
       },
       "Before the order goes out: a smaller plan, and the five ways a line goes wrong": {
-        "digest": "7e7bd725b1a4059b",
+        "digest": "15fb5e12163436e8",
         "hooks": [
           "gate_dispatch"
         ]
@@ -248,7 +248,7 @@
         ]
       },
       "Models & escalation (constitution §11 — full mechanics)": {
-        "digest": "5a372ee93ab996cd",
+        "digest": "493dbef57e559099",
         "hooks": [
           "session_status"
         ]
@@ -311,7 +311,7 @@
         "hooks": []
       },
       "What you are and are not": {
-        "digest": "3f64c18ed9d0152a",
+        "digest": "a38be7035118c4a6",
         "hooks": [
           "gate_filing"
         ]
@@ -327,7 +327,7 @@
         "hooks": []
       },
       "0. Authority & who you are (READ FIRST)": {
-        "digest": "15a00a6c8ae857f6",
+        "digest": "ccc73c4b35f787ca",
         "hooks": [
           "gate_write_scope",
           "guard_memory_budget"
@@ -387,7 +387,7 @@
         ]
       },
       "4a. Your work loop — the SEQUENCE, and the duties that have no gate behind them": {
-        "digest": "7c871eab34b9783b",
+        "digest": "95a66e4a9cc35ece",
         "hooks": [
           "gate_write_scope",
           "guard_agent_spawn",
@@ -395,28 +395,29 @@
         ]
       },
       "5. Roles (presets: `core` = records-clerk + filing-reviewer + bookkeeper; `commerce` adds": {
-        "digest": "e2803677240df386",
+        "digest": "c2de325af330a5f2",
         "hooks": [
+          "gate_filing",
           "gate_second_reading",
           "gate_write_scope"
         ]
       },
       "6. Items + ownership (the kernel WRITES the items; these roles own the CONTENT)": {
-        "digest": "15f75ba1aaac6842",
+        "digest": "6005b862af2ecbc7",
         "hooks": [
           "gate_dispatch",
           "gate_subagent_output"
         ]
       },
       "7. Models & presets": {
-        "digest": "71a45c5d9042e82b",
+        "digest": "9c8ce750f9b14cc6",
         "hooks": [
           "gate_filing",
           "session_status"
         ]
       },
       "8. Behavior": {
-        "digest": "e659be6c8447e81d",
+        "digest": "ee46c9b92e43d23b",
         "hooks": []
       },
       "9. Git & data": {
@@ -482,7 +483,7 @@
         "hooks": []
       },
       "Before the order goes out: a smaller plan, and the five ways a line goes wrong": {
-        "digest": "7e7bd725b1a4059b",
+        "digest": "15fb5e12163436e8",
         "hooks": [
           "gate_dispatch"
         ]
@@ -492,6 +493,10 @@
         "hooks": [
           "gate_write_scope"
         ]
+      },
+      "Letters that leave the house: a draft, a reading, the user's send": {
+        "digest": "5b104dff711ba8aa",
+        "hooks": []
       },
       "The Aktenplan at onboarding: a binding DRAFT, and a tree the user can see": {
         "digest": "8821690cf78edd8d",
@@ -572,7 +577,7 @@
         "hooks": []
       },
       "0. Authority & who you are (READ FIRST)": {
-        "digest": "a05d7717beb6b960",
+        "digest": "7b4de3dbf3072e9e",
         "hooks": [
           "gate_write_scope",
           "guard_harness_selfmod",
@@ -584,7 +589,7 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "a270a4ca106bfdf0",
+        "digest": "1faec96a907f9c2c",
         "hooks": [
           "session_status"
         ]
@@ -596,7 +601,7 @@
         ]
       },
       "14. Behavior (all roles)": {
-        "digest": "301e08aab5f8ae0b",
+        "digest": "2488899f1f341929",
         "hooks": []
       },
       "14a. Loops & failures": {
@@ -657,7 +662,7 @@
         "hooks": []
       },
       "5a. Your work loop — the SEQUENCE, and the duties that have no gate behind them": {
-        "digest": "e8da7c412529f144",
+        "digest": "00d1c549334cd879",
         "hooks": [
           "gate_write_scope",
           "guard_agent_spawn",
@@ -672,7 +677,7 @@
         ]
       },
       "7. Evolution: CR / BUG — explicit, never silent": {
-        "digest": "35c8ae714ad43818",
+        "digest": "0735cce27aeb183a",
         "hooks": []
       },
       "8. Git": {
@@ -736,7 +741,7 @@
         "hooks": []
       },
       "Before the order goes out: a smaller plan, and the five ways a line goes wrong": {
-        "digest": "7e7bd725b1a4059b",
+        "digest": "15fb5e12163436e8",
         "hooks": [
           "gate_dispatch"
         ]
@@ -765,7 +770,7 @@
         ]
       },
       "Models & escalation (constitution §11 — full mechanics)": {
-        "digest": "2f1ce28fc5fc58cc",
+        "digest": "fc23fafb876a69e7",
         "hooks": [
           "session_status"
         ]

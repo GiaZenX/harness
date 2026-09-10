@@ -1,0 +1,20 @@
+id: EVD-0093
+kind: test
+related:
+- TSK-0133
+result: pass
+summary: 'TSK-0133 generation-5 merge, the declared gate surface .claude/hooks/test_gates.py
+  in full on the merged tree after verify round 1, 2026-09-11 01:24:49 -> 01:35:38:
+  548 passed / 0 failed in 648.04 s (the run of 00:16 -> 00:26 was 548 passed as well);
+  the first gate run (00:01, 2 failed / 546 passed) found the DEC-0083 door in the
+  gate-2 archive test and a hole-prose reader that read only migrated holes, both
+  fixed red-first, and round 1 then pinned the gate-2 subject to DEC (merge-protocol.md
+  section 5, M13-M15 and R1-B2); verify round 2 re-ran m23 RED'
+artifact_refs:
+- staging/TSK-0133/run-gates-suite.txt
+run_command: DELIVERY_RUN=TSK-0133 timeout 2400 python -B -m pytest .claude/hooks/test_gates.py
+  -q -p no:cacheprovider
+run_scope: full
+revision: 1
+approval_ref: null
+created: '2026-09-11T01:48:26'

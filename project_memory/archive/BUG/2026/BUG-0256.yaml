@@ -1,0 +1,37 @@
+id: BUG-0256
+title: 'Doppelt zu BUG-0251: was am Spawn fehlt, ist der EFFORT -- das Modell ist
+  waehlbar'
+related_pr: PR-0008
+observed: 'CORRECTED 2026-09-06 (TSK-0131, verifier round 1 finding B4). The first
+  version of this item claimed ''a caller cannot pick either value at spawn time''
+  and ''exactly one way ... a SECOND definition''. That was UNMEASURED in the model
+  half and it is now measured to be false: the lead reports the Agent tool carries
+  a `model` parameter and used it for the TSK-0131 spawn (lead''s measurement 2026-09-06;
+  a subagent has no spawn tool and can read no parameter list, which is why the attribution
+  stands in the sentence). What IS measured in this repository is the other half:
+  the spawn carries no per-spawn EFFORT parameter, so a child runs on the `effort:`
+  its own definition pins -- that is BUG-0251 (H169), filed by TSK-0130 with its own
+  measurement. DEC-0081 (2) asks for the merge implementer on Fable; the MODEL axis
+  reaches that today without any new file. Nothing is left of this item that BUG-0251
+  does not already carry.'
+expected: The effort axis of a spawn is selectable, or the round log says which definition
+  pinned it -- BUG-0251 is that item.
+repro: Read .claude/agents/harness-implementer.md frontmatter (`model:`/`effort:`);
+  ask the lead which parameters its spawn call takes; compare with BUG-0251.
+severity: low
+limits: Superseded by BUG-0251, which carries the measured half; nothing here limits
+  anything on its own.
+acceptance_criteria:
+- id: AC-1
+  text: A merge implementer starts on the tier DEC-0081 (2) names, and the file that
+    decides it is named in the round log
+- id: AC-2
+  text: The sentence in harness-implementer.md about the missing second definition
+    is removed in the same round the definition appears -- a document may not keep
+    describing a gap that is closed
+hole_number: H174
+status: DUPLICATE
+revision: 1
+approval_ref: null
+created: '2026-09-05T22:23:44'
+closed_at: '2026-09-06T07:29:02'

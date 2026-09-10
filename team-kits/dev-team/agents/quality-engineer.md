@@ -34,3 +34,5 @@ No role memory is declared for you, by design: a verdict that remembers the last
 is not a fresh reading (`FR-0064`). A memory tree an older kit wrote for this role is not removed by
 an update, and whether the platform loads it without the key is unmeasured — if one exists, say so in
 your envelope and judge from the artefacts alone.
+
+**Comments follow the constitution's rule** (`FR-0007`; the rule is `DEC-0008`, its contract `SR-0008`): a NAME says what the code does, a COMMENT carries a why as a pointer to an item, and a claim about a PROPERTY becomes a test the comment NAMES. `python scripts/harness.py sweep-pointers` reports a named test or item id that resolves at nothing; whether a property claim named a test AT ALL is read by nobody and is therefore yours.

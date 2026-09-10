@@ -1,0 +1,21 @@
+id: EVD-0087
+kind: test
+related:
+- BUG-0033
+result: pass
+summary: 'PR-0008 AC-6, TSK-0131 2026-09-05: BUG-0033 re-measured against b7f282e.
+  Both timing tests pass on an idle host (2 passed in 64.87 s): gate 1 and gate 3
+  answer before their registration gives up, and the noise-vs-slowness question is
+  now decided by the test itself rather than by the host''s mood. WHAT REMAINS is
+  named and not hidden: the LOAD half of the gate-3 timing measurement is unmeasured
+  and carries its own item (H162 / BUG-0244), because DEC-0080 (4) keeps the hard
+  load class off this host.'
+artifact_refs:
+- staging/TSK-0131/ac6-bug-0033.txt
+run_command: python -B -m pytest .claude/hooks/test_gates.py::test_gate1_answers_before_its_registration_gives_up
+  .claude/hooks/test_gates.py::test_gate3_answers_before_its_registration_however_costly_the_line_is_to_judge
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-05T23:00:29'

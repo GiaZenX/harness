@@ -1,0 +1,81 @@
+# office-team/ladder.yaml -- THIS kit's model ladder, read by `kernel.dispatch.ladder_for_order` at
+# every lease (`create_lease`) and again at every spawn (`validate_dispatch`, the kit dispatch path).
+#
+# WHY A FILE PER KIT (DEC-0078 (3)/(4)): the kernel carries no ladder of its own and no kit-name
+# branch -- a kit without this file is refused at dispatch with a sentence, and a fourth kit declares
+# its own without a kernel change.
+#
+# THIS KIT RUNS THE LOWER LADDER ON PURPOSE (DEC-0078 (1)/(2), refining DEC-0047): the top rung is
+# opus for every office role except the office-developer, which climbs to fable like a dev-team
+# builder because code is where the cheap rung fails; the effort pair is medium / high instead of
+# high / xhigh, and xhigh is not an office effort. The sonnet-LOW filing floor of DEC-0047 (records
+# clerk + filing reviewer: two roles read every document and `gate_filing` decides the move) is
+# EXACTLY two things below, and the difference matters: `sonnet` is the pair's PIN, reached through
+# `classes: reading: pin`, and `low` is the named exception. So the pair STARTS on sonnet at low
+# effort -- and a FAILED run still climbs its rung to opus, because DEC-0034 rule 2 knows no
+# exception and this declaration names none. Whether the pair should climb at all is an open
+# question for the user; the answer would be a `top: sonnet` line under `exceptions:` here.
+# `tools/test_ladder.py::test_the_filing_pair_starts_on_its_pin_at_low_effort_and_still_climbs`
+# measures the sentence above against the kernel, in both halves.
+#
+# WHAT THE TWO AXES ARE (DEC-0077 (1)): the RUNG hangs on the role's pin and this kit's endpoints,
+# the EFFORT on the goal -- `default` unless the goal's `class` is `large`. This kit's root type
+# (`PROC`) carries no `class` field today, so `large` is reachable here only for a goal type that
+# does; the gap is named as a hole item in TSK-0130's protocol rather than papered over by a class
+# the kernel would invent. Rung names are the reference vocabulary of `team-kits/model_tiers.yaml`
+# (DEC-0076); the provider translation stays there. `tools/test_ladder.py` measures every rule below
+# against the kernel, and
+# `tools/test_model_ladder.py::test_the_constitutions_ladder_paragraph_says_what_the_declaration_says`
+# reads this file and the constitution's ladder paragraph together.
+
+rungs: [sonnet, opus, fable]          # ordered low -> high; fable is reachable by one role only
+top: opus                             # DEC-0078 (1): opus is the office top rung
+
+effort:
+  default: medium                     # DEC-0078 (2)
+  large: high                         # when the goal's `class` is large
+
+escalation:
+  # DEC-0034 rule 2: after every FAIL one rung up, capped at the role's top. What COUNTS as a fail
+  # is derived by the kernel (`dispatch.count_failed_run_locked`), not declared here. The value is
+  # the user's rule of 2026-08-10 (one rung per fail); the pilot of TSK-0130 measured the climb with
+  # it -- see project_memory/staging/TSK-0130/stream-protocol.md, AC-6. Nothing else reads it.
+  failed_runs_per_rung: 1
+
+# DEC-0034 rules 1 / 5 as the rung a CLASS starts on: `top` is this kit's top rung, `pin` the role's
+# own pin, anything else a rung name. The shape is shared across kits (DEC-0047: QA never on the
+# cheapest rung), so the project-auditor starts on opus here too. Reading roles keep their pin. The
+# fall of the BUILD to its pin after the scope approval is not declared here: the kernel refuses a
+# build order before that moment, and
+# `test_a_build_order_reaches_the_ladder_only_after_the_phase_its_class_assumes`
+# (tools/test_ladder.py) measures it instead of this sentence claiming it.
+classes:
+  planning: top
+  qa: opus
+  build: pin
+  reading: pin
+
+# Every spawnable role of this kit and its class. Both ends are measured by
+# `tools/test_ladder.py::test_every_kit_role_has_a_class_and_every_classed_role_ships`: a role
+# without a class is refused at dispatch, a class for a role the kit does not ship is a dead line.
+roles:
+  office-manager: planning
+  office-developer: build
+  bookkeeper: build
+  product-editor: build
+  shop-curator: build
+  compliance-researcher: build
+  marketing-planner: build
+  project-auditor: qa
+  records-clerk: reading
+  filing-reviewer: reading
+
+# Named per-role exceptions: `top` (a higher or lower endpoint for one role), `effort` (a fixed
+# effort that replaces the pair), `rung` (a fixed starting rung that replaces class and pin).
+exceptions:
+  office-developer:
+    top: fable                        # DEC-0078 (1): the one office role that may climb to fable
+  records-clerk:
+    effort: low                       # DEC-0047: the filing floor -- pure reading, double control
+  filing-reviewer:
+    effort: low                       # DEC-0047: the second pair of eyes on the same floor

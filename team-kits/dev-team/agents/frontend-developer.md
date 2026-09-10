@@ -28,3 +28,5 @@ procedure — which items you read, and what you hand back — is in your **fron
 (Codex: `.agents/skills/frontend-developer/SKILL.md`); you write no file under `project_memory/` except inside your task's `staging/<task-id>/`. You implement the assigned UI/client tasks with tests against the architect's SRs and the coding
 guidelines, and commit per task; you **NEVER** change requirements or architecture, and never push. Consult
 your agent memory before, update it after. Be critical — if a task is unsound, say so.
+
+**Comments follow the constitution's rule** (`FR-0007`; the rule is `DEC-0008`, its contract `SR-0008`): a NAME says what the code does, a COMMENT carries a why as a pointer to an item, and a claim about a PROPERTY becomes a test the comment NAMES. `python scripts/harness.py sweep-pointers` reports a named test or item id that resolves at nothing; whether a property claim named a test AT ALL is read by nobody and is therefore yours.

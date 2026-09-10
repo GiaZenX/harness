@@ -105,6 +105,19 @@ class DocumentError(StateError):
     """A proposal this kernel will not apply -- the message carries the remedy."""
 
 
+def quoted_for_a_command_line(value) -> str:
+    """One flag value as a remedy line may print it: double-quoted, an inner `"` swapped for `'`.
+
+    The remedy is a line a role RETYPES, so it has to survive both shells the kit is gated in;
+    a value carrying a double quote is the reason of a proposal at most, and the swap changes
+    the suggested reason, never anything an approval binds. Both document remedies and the
+    filing-rule one print through this, and what they print is EXECUTED by
+    `tools/test_office_package.py::test_every_remedy_the_kernel_prints_for_a_document_write_is_a_line_the_kernel_accepts`
+    (BUG-0079: the printed line lacked `--reason` and was refused by the kernel that printed it).
+    """
+    return '"%s"' % str(value if value is not None else "").replace('"', "'")
+
+
 def read_text(path: str) -> str:
     """The file exactly as it stands: no newline translation, no BOM stripped.
 
@@ -933,14 +946,15 @@ def apply_revision(state: ProjectState, manifest: dict) -> dict:
             raise DocumentError(
                 "no live user approval covers revising %s from %s%s -- nothing was changed. What "
                 "it would do: %s. Remedy: ask for it first -- `python scripts/harness.py "
-                "request-approval %s --kit-document %s --proposal %s` prints the question the "
-                "kernel composed, the USER approves by answering it, and then this command writes "
-                "exactly what they approved."
+                "request-approval %s --kit-document %s --proposal %s --reason %s` prints the "
+                "question the kernel composed, the USER approves by answering it, and then this "
+                "command writes exactly what they approved."
                 % (manifest["kit_document"], manifest["proposal"],
                    " (the document or the revision has changed since the question was asked: %s)"
                    % ", ".join(moved) if moved else "",
                    ", ".join(derived["deletions"] + derived["replacements"]) or "nothing",
-                   REVISION_KIND, manifest["kit_document"], manifest["proposal"]))
+                   REVISION_KIND, manifest["kit_document"], manifest["proposal"],
+                   quoted_for_a_command_line(manifest.get("reason"))))
         before = read_text(plan["document"])
         after = read_text(plan["staged"])
         state._write_text_atomic(plan["document"], after)
@@ -1004,14 +1018,15 @@ def apply(state: ProjectState, manifest: dict) -> dict:
             raise DocumentError(
                 "no live user approval covers applying %s to %s%s -- nothing was changed. What it "
                 "would do: %s. Remedy: ask for it first -- `python scripts/harness.py "
-                "request-approval %s --kit-document %s --proposal %s` prints the question the "
-                "kernel composed, the USER approves by answering it, and then this command writes "
-                "exactly what they approved."
+                "request-approval %s --kit-document %s --proposal %s --reason %s` prints the "
+                "question the kernel composed, the USER approves by answering it, and then this "
+                "command writes exactly what they approved."
                 % (manifest["proposal"], manifest["kit_document"],
                    " (the document or the proposal has changed since the question was asked: %s)"
                    % ", ".join(moved) if moved else "",
                    ", ".join(plan["changes"]), KIND,
-                   manifest["kit_document"], manifest["proposal"]))
+                   manifest["kit_document"], manifest["proposal"],
+                   quoted_for_a_command_line(manifest.get("reason"))))
         before = read_text(plan["document"])
         after = read_text(plan["staged"])
         state._write_text_atomic(plan["document"], after)

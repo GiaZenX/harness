@@ -249,6 +249,8 @@ def test_e2e_capture_stores_umlaut_body_as_utf8_bytes_whatever_the_stdin_codepag
         "decision": "der Kernel dekodiert den Body selbst als UTF-8",
         "consequences": "kein Mojibake mehr für Müller",
         "source": "docs/reviews/2026-08-10-tsk0028-measurements.md",
+        # the capture door asks every decision who carries it (DEC-0083); this one commits nobody
+        "work": "none",
     }, ensure_ascii=False).encode("utf-8")
     r = _capture_cli(tmp_path, "DEC", body)
     assert r.returncode == 0, r.stderr.decode("utf-8", "replace")
@@ -294,6 +296,8 @@ def test_e2e_capture_accepts_a_bom_prefixed_body_and_stores_it_without_bom(tmp_p
         "decision": "der Kernel dekodiert den Body mit utf-8-sig",
         "consequences": "kein exit 2 mehr für Müller, kein BOM im Item",
         "source": "docs/reviews/2026-08-11-tsk0044-measurements.md",
+        # the capture door asks every decision who carries it (DEC-0083); this one commits nobody
+        "work": "none",
     }, ensure_ascii=False).encode("utf-8")
     r = _capture_cli(tmp_path, "DEC", body)
     assert r.returncode == 0, r.stderr.decode("utf-8", "replace")

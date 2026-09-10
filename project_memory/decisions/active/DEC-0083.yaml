@@ -1,0 +1,38 @@
+id: DEC-0083
+title: 'FR-0012 entschieden: eine Entscheidung sagt in einem Feld `work`, welche Items
+  sie tragen (oder `none`), und der Validator nennt jede geltende Entscheidung, auf
+  die kein Item zeigt -- Feld plus Zeiger-Erkennung (A)'
+context: 'USER DECISION 2026-09-06 on the DEC-first proposal of stream G5-1 (TSK-0131,
+  staging/TSK-0131/dec-decision-catcher.json). The measured case: DEC-0034 stood VALID
+  for 26 days while nothing built it and no item pointed at it (DEC-0080). Measured
+  at b7f282e: validate has no line about a DEC except the supersedes shape; a DEC
+  has no automaton, no parent binding and no field saying whether it commits anyone
+  to work. Options: (A) a field `work: none | [item ids]` -- required for new captures,
+  optional for stored items, ids resolved like every other binding; validator: `work`
+  naming a missing id = error; a DEC in force with no `work` and no item naming it
+  = warning ''decision without a carrier''; `work: none` is silent; (B) a phrase class
+  over prose -- rejected (no heuristic over prose, FR-0010); (C) pointer direction
+  only, no field -- no honest silence for a decision that demands nothing. The user
+  chose (A).'
+decision: '(1) OPTIONAL_FIELDS[''DEC''] gains `work`; capture DEC requires it (`none`
+  or a list of item ids the kernel resolves); stored decisions stay valid without
+  it. (2) validate: (a) a `work` id no item carries -> error; (b) a DEC in force,
+  `work` absent, and no item anywhere names the DEC -> warning ''decision without
+  a carrier'' with the DEC id; (c) `work: none` silences (b). (3) Built red-first
+  in kernel/report.py + backlog_types.py + the capture surface by TSK-0131; shipped
+  to the three kits as kernel code; the lead skills say the field in the DEC step.
+  (4) What stays human, said in the text: a `work: none` on a decision that does demand
+  work. (5) The decisions of generation 4/5 that DO demand work (DEC-0071..0079, DEC-0081,
+  DEC-0082, this one) get their `work` written by the stream through `update` once
+  the field exists -- the survey of G5-1 feeds it.'
+consequences: 'The DEC-0034 class is caught by both halves (no field, no carrier).
+  Cost: one field, one validator line, a capture duty. Rejected: (B) prose heuristics;
+  (C) no silence.'
+source: staging/TSK-0131/dec-decision-catcher.json; user answer 2026-09-06 'A -- Feld
+  + Zeiger-Erkennung'; FR-0012; PR-0008 AC-7; DEC-0080; DEC-0034
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-06T07:23:06'
+work:
+- TSK-0131

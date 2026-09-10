@@ -89,8 +89,9 @@ generates `.codex/config.toml`, `.codex/hooks.json`, `.codex/agents/*.toml` and 
 removal and preset downgrades remove only outputs
 recorded in generated manifests. Both providers reuse the same `.claude/hooks/*.py` sources;
 `hooks/_compat.py` absorbs payload and documented stop-output differences. Models are tier-mapped per provider
-(`team-kits/model_tiers.yaml`; kit sources carry only the neutral aliases `lead`/`worker`/`light`,
-resolved per provider at install time). A namespaced `codex:` frontmatter overlay merges
+(`team-kits/model_tiers.yaml`: three rungs per provider, DEC-0076; kit sources carry only the
+neutral aliases `lead`/`worker` and the top-rung pin `fable`, resolved per provider at install
+time). A namespaced `codex:` frontmatter overlay merges
 Codex-only TOML keys the Claude-native source format cannot express — the sanctioned divergence
 valve; both watchers flag when either platform outgrows it (trip-wire criteria in HARNESS_LOG).
 Copilot support was removed 2026-07-14 (unused, live-unverified); stale generated `.github`
@@ -280,7 +281,7 @@ enforcement requires external server/tool restrictions or admin policy).
 |---|---|---|
 | **Office Manager** | `office-manager` (foreground lead; Claude: opus + role memory; Codex: mapped lead tier + checked-in project memory) | Onboarding interview, business profile/masterplan, `PROC` lifecycle + approvals, inbox routing, report runs, git |
 | **Records Clerk** | `records-clerk` | Filing plan (+ retention) — the single machine-readable filing truth, move-only migrations |
-| **Bookkeeper** | `bookkeeper` | E-invoice-first extraction, ledger entries via `scripts/ledger_add.py` (validated, append-only), master data, report commentary — **no tax advice** |
+| **Bookkeeper** | `bookkeeper` | E-invoice-first extraction, ledger entries via `scripts/ledger_add.py` (validated; names the SKR03/SKR04 account once `chart_of_accounts.yaml` is active), master data, the docking point for an external invoice application (`scripts/invoice_intake.py`: norm subset, reconciling triple, number-range continuity, refused with the figures — contract in `docs/office/invoice-app-docking-point.md`), report commentary — **no tax advice** |
 | **Product Editor** | `product-editor` | Catalog + content guidelines, article texts, supplier-query drafts (single writer for product copy) |
 | **Shop Curator** | `shop-curator` | Read/audit-only SEO/GEO/content audits with sourced findings; page drafts |
 | **Compliance Researcher** | `compliance-researcher` | Sourced regulation register per category × market (CE, RoHS, RED, Ökodesign …) with review dates — **no legal advice** |
@@ -330,10 +331,10 @@ entry point asks the shipped parser rather than matching text).
 **Its command surface, and what is still missing from it.** `python scripts/harness.py --help` is the
 authority: today `doctor`, `validate`, `generate-index`, `verify-invariants`,
 `generate-session-brief`, `capture`,
-`request-approval`, `create-task`, `dispatch`, `submit-result`, `evidence`, `transition`, `update`,
+`request-approval`, `create-task`, `dispatch`, `ladder`, `submit-result`, `evidence`, `transition`, `update`,
 `archive`, `check-scopes`, `sweep-leases`, `sweep-requests`, `checkpoint`, `checkpoint-status`, `set-preset`, `update-kit`, `add-filing-rule`, `apply-proposal`, `revise-document`,
 `freeze-architecture`, `freeze-wireframe`, `freeze-design`, `freeze-report`,
-`migrate`, `migrate-holes`, `report-gap`, `pin-kit`, `unpin-kit`, `rollback-kit`. Of the twelve
+`migrate`, `migrate-holes`, `sweep-pointers`, `report-gap`, `pin-kit`, `unpin-kit`, `rollback-kit`. Of the twelve
 spec II.4 asks for, one is absent under that name: `approve` is SPLIT —
 `request-approval <kind> <ITEM-ID>` opens the kernel-generated question (phase 1), and the USER mints it
 by ANSWERING, which is the whole of why the approval is provable; no command mints, and the mint also
@@ -354,6 +355,8 @@ frozen by `freeze-architecture`/`freeze-wireframe`/`freeze-design`, each taking 
 parameters as a JSON object on stdin. Until 2026-07-31 it did not, and `gate_packaging_decision`
 — which refuses every push and merge until some active `ARC` states a `packaging.method` — was
 therefore a block with no exit in every scaffolded project.
+
+**`sweep-pointers` is the MECHANICAL half of the comment duty** (`FR-0007`, and the rule itself in `DEC-0008`/`SR-0008`). The duty asks a comment to carry its WHY as a pointer and a claim about a PROPERTY to become a test the comment NAMES; both halves rot the same way, and a pointer that resolves at nothing is worse than none because it reads as covered. The command asks git for the project's own files, reads every backtick citation in them, and reports the ones that resolve at nothing: a `<path>::<test>` the tree does not define, an item id the store holds neither active nor archived. It is a REPORT, not a gate -- it exits 1 and nothing waits on it -- because the two things it cannot tell apart are an ILLUSTRATION and a POINTER (a document teaching by example, a log about another project's store), and because the half that matters most is not mechanical at all: whether a property claim named a test AT ALL is read by nobody. What it reads and what it deliberately does not is `kernel.report.pointer_sweep`; the three constitutions state the duty in their section on the duties no gate carries.
 
 **`migrate` is the V1 import (II.10), and the lead runs it itself** — the alternative was a tool
 beside the harness, which would have been the one write route into canonical state that no gate
@@ -495,23 +498,31 @@ opens by double-click.
   removed by the scaffold. Changing it later is the LEAD's step and stays inside the chat:
   `request-approval preset --preset <name>` asks the user (the question names every role added and
   removed), `set-preset <name>` records it and installs those roles, and the lead then asks for a
-  session restart. Escalation is user-gated only.
-- **Models:** portable `lead`/`worker`/`light` tiers use canonical Claude aliases
-  `opus`/`sonnet`/`haiku`; Codex maps them to Sol/Terra IDs. PM/judgment roles default to lead and
-  implementers to worker, controlled via `project_config.yaml` — the scaffold stamps the shared Claude agent
-  frontmatter and generates the Codex TOMLs from it; `session_status` nags on drift. Under Codex,
-  re-sync only through a user-confirmed full scaffold run (which invokes the generator), request
-  explicit filesystem permission escalation for read-only harness paths when needed, verify the
-  TOMLs, re-review/re-trust the changed hook bundle in `/hooks`, and start a new session. Never run
-  the generator alone or edit one TOML/isolated provider source. Specialist upgrades only after
-  user OK; portable ladder: worker-high → worker-xhigh → lead-high → lead-xhigh/max, only when the
-  selected concrete model supports that effort.
+  session restart. Growing the TEAM is user-gated only — the MODEL rung is not, and has not been
+  since DEC-0077: the dispatcher derives it (**The ladder is the kernel's**, below).
+- **Models:** three rungs per provider (`team-kits/model_tiers.yaml`, DEC-0076) -- `fable` /
+  `opus` / `sonnet` on Claude, `gpt-6-astra` / `gpt-5.6-sol` / `gpt-5.6-terra` on Codex; kit
+  sources pin the aliases `lead`/`worker` or the top rung `fable`. PM/judgment roles default to
+  lead and implementers to worker, controlled via `project_config.yaml` — the scaffold stamps the
+  shared Claude agent frontmatter and generates the Codex TOMLs from it; `session_status` nags on
+  drift. Under Codex, re-sync only through a user-confirmed full scaffold run (which invokes the
+  generator), request explicit filesystem permission escalation for read-only harness paths when
+  needed, verify the TOMLs, re-review/re-trust the changed hook bundle in `/hooks`, and start a new
+  session. Never run the generator alone or edit one TOML/isolated provider source.
+- **The ladder is the kernel's (DEC-0077, DEC-0078):** every kit declares its own in
+  `team-kits/<kit>/ladder.yaml` -- rungs, top rung, effort pair, role classes, named exceptions --
+  and `kernel.dispatch.ladder_for_order` derives at every `dispatch` the RUNG (the role's pin, its
+  class, the order's failed runs -- DEC-0034 rules 1-5, endpoints per kit DEC-0047) and the EFFORT
+  (the goal's `class`), writes both on the lease, the header and the task item, derives again at
+  the spawn and refuses a spawn that names no `model` for a climbed order or the wrong one
+  (`python scripts/harness.py ladder <TSK-ID>` shows the answer). A kit without a declaration is
+  refused at dispatch; the kernel carries no default.
 - **Reasoning effort:** each role also carries an `effort:` (`low|medium|high|xhigh|max`), set per repo via an
   **`effort_map`** in `project_config.yaml` (Claude syncs specialist frontmatter directly; Codex uses
-  the same user-confirmed full-scaffold flow as `model:`). Default: **all specialists + the PM run
-  `high`**. `xhigh`/`max` are used only when the concrete provider/model supports them; there is no
-  blanket provider-independent Sonnet ceiling. Escalation is one combined, user-gated model+effort ladder. Deep effort is reserved for hard cases
-  (architect / reviewer-QA / a dev stuck on a bug), never a baseline.
+  the same user-confirmed full-scaffold flow as `model:`). The ladder DERIVES an effort per order
+  (dev/research `high`, `xhigh` for a large goal; office `medium` / `high`) and shows it; what the
+  child RUNS on is the installed `effort:`, because the platform has no per-spawn effort
+  parameter (measured 2026-09-05).
 
 ### Memory
 

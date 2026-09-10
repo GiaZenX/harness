@@ -1,0 +1,60 @@
+# Handover prompt for the next session (write nothing from memory -- the state on disk is the authority; this file only points)
+
+Weiter mit Generation 5. Stand: Generation 4 ist gemergt, geprüft, committet und GEPUSHT (Merge
+`b7f282e` auf `feat/harness-v2`, EVD-0084 Lieferlauf, EVD-0085 Prüfurteil; Kits `2026.09.05-6`;
+155 Löcher als BUG-Items migriert über `kernel.cli migrate-holes`). Die Rückschau steht als
+**DEC-0080**. Generation 5 läuft: drei Ströme gespawnt am 2026-09-05 (Fable 5.1, effort high) aus
+`b7f282e`, Plan-Freigabe erteilt, Schnitt vor READY gemessen (disjunkt).
+
+Lies in dieser Reihenfolge, bevor du etwas tust:
+
+1. `project_memory/decisions/active/DEC-0080.yaml` -- die Rückschau von Generation 4, neun Regeln
+   (Reichweiten-Naht, Suiten die eine geänderte Regel lesen, widerlegte Sätze vor dem Schnitt
+   greppen, keine Volllast, Stempel vor Volllauf, Leser-Klasse zuerst angreifen, Uhr lesen, Stufen,
+   der Gen-5-Schnitt). Dazu DEC-0075 (Rechnungs-App = eigenes Produkt), DEC-0076/0077/0078
+   (Leitern, zwei Achsen, Büro-Leiter je Kit), DEC-0079 (DEC-0074 präzisiert).
+2. `project_memory/staging/generation-5-streams.md` -- das Logbuch von Generation 5 (Ziele,
+   Dateihoheit, Nähte, Spawn) und `project_memory/staging/generation-4-streams.md` (das ganze
+   Gen-4-Logbuch mit allen Messungen; die Uhrzeit-Korrektur beachten).
+3. Die drei Aufträge: `project_memory/tasks/active/TSK-0130.yaml` (PR-0010 Watcher, Leitern,
+   Eskalation), `TSK-0131.yaml` (PR-0008 Bestandsbereinigung), `TSK-0132.yaml` (PR-0009 Büro-Paket);
+   ihre Protokolle unter `project_memory/staging/TSK-013x/stream-protocol.md`, Patches unter
+   `C:/Offline Repos/v2-testbed/_round-scratch/TSK-013x/stream-*.patch`, Worktrees
+   `C:/Offline Repos/v2-testbed/_worktrees/g5-ladders|g5-stock|g5-office`.
+4. `project_memory/generated/index.yaml` -- der Zustand.
+
+Laufende Agenten: KEINE, die eine neue Sitzung fortsetzen koennte -- Subagenten sind an die Sitzung
+gebunden; nach einem Neustart (oder einer Nutzer-Pause, die als Stopp gilt: Resume wird verweigert,
+neue Agenten nur auf ausdrueckliches 'weiter') werden sie NEU gespawnt, mit 'Vorgefunden' zuerst:
+den Plattenstand messen (Protokoll, verify-round-*.md, Worktree git status, Patch), dann weiterbauen.
+Stand 2026-09-06 (clock read): TSK-0132 CLOSED (PASS Runde 3); TSK-0131 an der Abschlusszeile
+(N3-B1/N3-B2, Kernel-Zahlen, work auf DEC-0085/0086, Umfragetabelle, (g)-Zeile) -> danach kurze
+Prueferrunde 4 (neuer Opus-Pruefer); TSK-0130 zeichnet die Desktop-Aufgabe als vierte Form auf und
+wartet auf die zwei Cloud-Routinen aus der claude.ai-Oberflaeche (Prompts: scratchpad
+radar_describe.json bzw. `python tools/radar_routine.py --describe` im Worktree g5-ladders) -> der Lead
+schreibt radar/routine.json aus RemoteTrigger list/get, faehrt einmal, uebergibt Ids/Log -> Runde 3.
+STAND 20:12 (clock read): alle drei Stroeme CANCELLED (= geliefert in den Merge, Konvention Gen 3/4); TSK-0133 READY, Fable-Umsetzer gespawnt (Merge-Protokoll: staging/TSK-0133/merge-protocol.md); danach Opus-Merge-Pruefer, EVD, Commit; Push nur auf Wort des Nutzers. Nach dem Merge: radar/routine.json durch den Lead auf dem gemergten Baum (Daten), Runde 3 = PR-0010 AC-1 unter PR-0010/TSK-0133, Abnahme-Mints PR-0004..0010, Archiv der TSK-0130..0133, Gen-5-Retrospektive-DEC, Neustart wenn der Nutzer zu Hause ist. DEC-0087/0088:
+die leichte Arbeitsform ist Generation 6, Generation 5 laeuft unveraendert zu Ende.
+
+Was ansteht: die drei DEC-first-Vorschläge der Ströme an den Nutzer (Watcher-Auslöser;
+Entscheidungs-ohne-Item-Fänger; Schriftverkehr Rolle oder Ablauf) -- je eine AskUserQuestion, dann
+Capture als DEC; die Berichte -> Prüfer (Opus) -> Nacharbeiten -> Abschlusszeilen; dann die
+Merge-Runde als eigener Auftrag (Reihenfolge nach Nähten: G5-1 Kernel/Validator zuerst? -- MESSEN:
+wer empfängt Sätze, kommt zuletzt; Stempel VOR dem Volllauf, DEC-0080 (5); ein Volllauf mit
+`DELIVERY_RUN=<merge-TSK>`; die Migrations-Reindex-Zeile `kernel.cli migrate-holes --reindex` nach
+neuen Löchern). Nach dem Merge-Commit: Push nur auf Wort des Nutzers; der Neustart (Gate 5 und
+Rollentexte für den Lead) sobald der Nutzer zuhause ist; der Rollout in seine Projekte
+(Kit-Speicher-Installation, update-kit beim nächsten Sitzungsstart) ebenfalls dann.
+
+Offen beim Nutzer, ohne Eile: Humanizer-Geschmacksurteil (FR-0072); das Einstiegs-Interview der
+Rechnungs-App (DEC-0075, eigenes Repo mit dem Entwickler-Kit); die Planungsrunde des
+zurückgestellten Blocks (Backlog/Kanban FR-0024/0019/0022; Provider/Container FR-0023/0025/0020);
+zwei fremde interaktive Claude-Sitzungen auf dem Rechner („waive-92", „waive-b1") -- Lastverdacht.
+
+Aufräumen beim Rundenabschluss (CLAUDE.md): die g4-Worktrees und `_round-scratch/TSK-0121..0126`
+nach dem Gen-5-Merge entfernen, sobald kein Protokoll mehr auf ihre Rigs zeigt (die Prüfberichte
+tun es -- vorher die Rig-Skripte, die zitiert werden, nach `staging/` kopieren oder den Zeiger
+korrigieren).
+
+
+STAND 2026-09-10 23:47 (clock read): der Nutzer ist weg und hat DEC-0093 gegeben -- Gen 5 eigenstaendig abschliessen (Merge TSK-0133 laeuft, Fable, nach Wochenlimit fortgesetzt; Volllauf 3 rot / 4841 gruen liegt in staging/TSK-0133/run-full-suite.txt), Opus-Merge-Pruefer, EVD, COMMIT ohne Rueckfrage, KEIN PUSH; danach Gen 6 auf dem committeten Baum starten: PR-0011 (DRAFT, 12 ACs) nach DEC-0087 (7) schneiden -- EIN Bauer (Fable, high) mit dem ganzen Ziel, zweiter Auftrag nur bei gemessen disjunkten Mengen, check-scopes, READY, spawn; die Plan-/Scope-Frage zu PR-0011 und die Abnahmen PR-0004..0010 als EIN Buendel bei seiner Rueckkehr. Neue DECs heute: 0089 (lokale Desktop-Routine ist der Mechanismus), 0090 (claude-/codex-watcher, opus-Sprosse, vier Routinen), 0091 (Stufe je Auftrag), 0092 (Fakten-Checkpoint statt Begruendungsfeld + Struktur-Gate), 0093. BUG-0271 (Freigabe-Frage Maschinendeutsch, Schwester BUG-0073). TSK-0134 (Watcher) haengt an PR-0011. Updates an den Nutzer: 2-3 Saetze.

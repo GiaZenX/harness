@@ -56,9 +56,14 @@ from .backlog_types import (
     AUTOMATA,
     BLOCKED_REASON_FIELD,
     DEC_SUPERSEDES_FIELD,
+    DEC_WORK_FIELD,
+    DEC_WORK_NONE,
     HASHED_FIELDS,
     NON_AUTOMATON_STATUSES,
+    NONEMPTY_FIELDS,
     area_segments,
+    names_something,
+    work_is_none,
     PARENT_FIELDS,
     PARTIAL_RUN_SCOPE,
     PASSING_RESULT,
@@ -74,6 +79,7 @@ from .backlog_types import (
     parse_id,
     single_value_offences,
 )
+from .dispatch import EFFORT_KEY, RUNG_KEY
 from .hashing import HASH_SCHEMA_VERSION, hook_bundle_hash
 from .lock import LOCK_SCHEMA_VERSION, PORTABLE_PATH_MAX_CHARS, ext_path
 from .schemas import validate
@@ -232,6 +238,15 @@ def generate_session_brief(
                 }
                 if item.get("blocked_by"):
                     row["blocked_by"] = item["blocked_by"]
+                # The rung and the effort the dispatcher derived are written on the task by the
+                # lease (`dispatch.create_lease`), and the brief is where a lead meets them
+                # (DEC-0077 (5), PR-0010 AC-6). A task never dispatched carries neither, and its
+                # row says nothing rather than a default. Measured missing 2026-09-06 and filed as
+                # BUG-0249 because the stream that built the lease was forbidden this file;
+                # `tools/test_report.py::test_the_session_brief_shows_the_rung_and_effort_a_lease_wrote_on_the_task`.
+                for key in (RUNG_KEY, EFFORT_KEY):
+                    if item.get(key):
+                        row[key] = item[key]
                 tasks.append(row)
             elif item_type == "DEC":
                 decs[item.get("id", stem)] = item
@@ -509,8 +524,10 @@ def validate_state(state: ProjectState, _locked: bool = False) -> list:
     findings.extend(_check_premise_recheck(state, active_items))
     findings.extend(_check_fr_result_link(state, active_items))
     findings.extend(_check_dec_supersedes(state, active_items))
+    findings.extend(_check_decision_carriers(state, active_items))
     findings.extend(_check_reference_list_shape(active_items))
     findings.extend(_check_single_value_fields(active_items))
+    findings.extend(_check_nonempty_fields(active_items))
     findings.extend(_check_design_refs_resolve(state, active_items))
     findings.extend(_check_ui_delivery_sequence(active_items))
     findings.extend(_check_dispatch_approval_presented(state, active_items))
@@ -1597,7 +1614,7 @@ def qa_verdicts(state: ProjectState, target_id: str,
         if evidence_covers(state, evidence, target_id))
 
 
-def qa_verdicts_by_subject(state: ProjectState) -> dict:
+def qa_verdicts_by_subject(state: ProjectState, question: str = DELIVERY_QUESTION) -> dict:
     """The current verdict per kind for EVERY item Evidence names: {subject: {kind: entry}}.
 
     The answer for a caller that could not determine an item -- a merge on a branch named
@@ -1613,9 +1630,12 @@ def qa_verdicts_by_subject(state: ProjectState) -> dict:
     grouped under its own id rather than dropped -- it judges only itself, but a `fail`
     pinned to nothing is still a `fail`, and dropping it would make the emptiest record the
     most permissive one.
+
+    `question` is the same switch `qa_verdicts` takes and defaults the same way, so every caller
+    that had none keeps the delivery reading; `confirmed_but_open` is the one that asks the other.
     """
     groups = {}
-    for evidence, order in _delivery_evidence(state):
+    for evidence, order in _delivery_evidence(state, question):
         # the second of the two `or []` spellings -- see `evidence_covers` for why neither is
         # folded into `backlog_types.field_elements`
         related = evidence.get("related") or []
@@ -1925,6 +1945,438 @@ def delivery_closure_rollup(state: ProjectState) -> list:
             "route": _route_sentence(item_type, item.get("status")),
         })
     return rows
+
+
+# -- the stock that lies upward (FR-0058, PR-0008 AC-3) --------------------------------------
+
+def _test_nodes_the_tree_no_longer_defines(state: ProjectState, run_command, parsed_names: dict):
+    """The `<file>::<test>` words of a recorded run whose test the project's tree does not define.
+
+    THE SAME READER `invariant_check_resolution` uses, fed one word at a time as if it were a
+    check ref -- so what counts as "defined" has one definition in this module. A word this
+    kernel cannot read (a non-Python file) is not reported: that is the reader's limit, not a
+    stale record.
+    """
+    stale = []
+    for word in str(run_command or "").split():
+        if INVARIANT_REF_SEPARATOR not in word:
+            continue
+        resolved, _reason = invariant_check_resolution(
+            state, {"check": {"ref": word.strip("\"'")}}, parsed_names)
+        if resolved is False:
+            stale.append(word)
+    return stale
+
+
+def confirmed_but_open(state: ProjectState, active_items: dict = None) -> dict:
+    """{item id: {kind, evidence, run_command, unresolved}} -- items whose CONFIRMING Evidence
+    passes while their status still reads open.
+
+    THE SECOND QUESTION TO THE ONE DERIVATION, and the reason `delivered_but_open` is not enough:
+    that one asks the DELIVERY question -- every kind that names the item passes, a declared
+    selection dropped -- while the run that closes a defect is a regression run, a selection by
+    nature (DEC-0071, `CONFIRMATION_QUESTION`). Measured on this repository's store before this
+    existed: the four bugs walked to VERIFIED in generation 3 had exactly such a record (EVD-0079),
+    and no line of `validate` could say so about a bug that still read TRIAGED. This is what the
+    survey of FR-0058 feeds and what makes 'done' derivable: the store holds the measurement, the
+    status has not followed, and the line names both.
+
+    WHICH TYPES ARE ASKED is `state.CONFIRMING_EVIDENCE` -- the types whose confirming edge demands
+    an Evidence kind at all -- so a type the kernel does not confirm by evidence cannot be named
+    here on a rule this function invented (`contradicted_confirmations` refuses the same
+    invention for the same reason).
+
+    WHAT "ABOUT THE ITEM" MEANS, said as `accepted_without_a_verdict` says it: the ids an Evidence
+    WRITES (`qa_verdicts_by_subject`), one pass over the store, without the graph walk
+    `state._assert_confirmed` takes through `qa_verdicts`. So this is NARROWER than the edge: an
+    item named here can walk its edge, while one the edge would accept through a task hanging
+    under it is not named here.
+
+    THE TEST TREE IS PARSED, NEVER RUN. A passing record whose `run_command` names a test node the
+    tree no longer defines is a measurement nobody can repeat, and the row says so (`unresolved`);
+    whether a test still PASSES is a run, and a run is a new Evidence, never a validator line --
+    `validate_state` runs on the merge/push line of `gate_memory_complete`, where a test run would
+    outlive the hook's window.
+
+    COVERAGE, NOT A FINDING, for `delivery_closure_rollup`'s reason: the route from here to the
+    confirmed status needs a mint the project may not be able to run (`closing_route`).
+    `test_report.test_a_passing_regression_run_names_the_open_item_as_stock_lying_upward` holds
+    the delivery/confirmation split, the terminal exemption and the kind; the parsed-tree half is
+    `test_report.test_the_stock_line_says_when_the_recorded_test_no_longer_exists`.
+    """
+    if active_items is None:
+        active_items = _active_map(state)
+    by_subject = qa_verdicts_by_subject(state, CONFIRMATION_QUESTION)
+    parsed_names: dict = {}
+    found = {}
+    for item_id, (item_type, item) in sorted(active_items.items()):
+        kind = CONFIRMING_EVIDENCE.get(item_type)
+        auto = AUTOMATA.get(item_type)
+        if not kind or auto is None or item.get("status") in auto.terminals:
+            continue
+        verdict = (by_subject.get(item_id) or {}).get(kind)
+        if not verdict or verdict.get("result") != PASSING_RESULT:
+            continue
+        try:
+            evidence = state.read_item(str(verdict.get("id")))
+        except Exception:  # noqa: BLE001 -- an unreadable record is the validator's own finding
+            evidence = {}
+        run_command = evidence.get("run_command")
+        found[item_id] = {
+            "kind": kind,
+            "evidence": [str(verdict.get("id"))],
+            "run_command": run_command,
+            "unresolved": _test_nodes_the_tree_no_longer_defines(state, run_command, parsed_names),
+        }
+    return found
+
+
+def stock_rollup(state: ProjectState) -> list:
+    """`confirmed_but_open` as rows: {item, type, status, kind, evidence, run_command, unresolved, route}.
+
+    Printed beside the findings by `kernel.cli`'s `validate` and carried in `doctor`'s payload,
+    exactly as `delivery_closure_rollup` is and for its reason.
+
+    THE ROW IS A DICT DISPLAY, spelled out field by field exactly as that sibling's is, and that is
+    not style. `tools/test_approvals_dispatch.py::test_no_direct_status_write_can_produce_a_status_an_approval_commits`
+    reads every place in this kernel that BINDS a `status` key on an existing mapping -- a subscript
+    assignment, an `.update({...})`, a `dict(..., status=...)` -- and refuses a value it cannot
+    bound, because that is the shape the old `mint` wrote an approval-bound status with. Both of the
+    first two spellings stood here and turned it red, correctly. A display builds a NEW mapping for a
+    report and can persist nothing, which is why the reader does not read one.
+    """
+    active_items = _active_map(state)
+    rows = []
+    for item_id, found in sorted(confirmed_but_open(state, active_items).items()):
+        item_type, item = active_items[item_id]
+        rows.append({
+            "item": item_id,
+            "type": item_type,
+            "status": item.get("status"),
+            "kind": found["kind"],
+            "evidence": found["evidence"],
+            "run_command": found["run_command"],
+            "unresolved": found["unresolved"],
+            "route": _route_sentence(item_type, item.get("status")),
+        })
+    return rows
+
+
+# -- the pointer sweep: a citation that resolves at nothing (FR-0007, PR-0008 AC-7) --------------
+
+# The files the KIT INSTALLER copies to the project ROOT. An enumeration, because the kernel holds
+# no other reader for them -- so it carries the tripwire at BOTH ends the house rule asks for:
+# `tools/test_pointer_sweep.py::test_the_root_files_the_sweep_skips_are_installed_and_would_be_noisy`
+# scaffolds a pilot per kit and measures that every name here really is written by that scaffold
+# (the entry is not dead) AND that reading it really would report citations of the kit's own
+# repository against this store (the entry is not needless).
+SCAFFOLDED_ROOT_FILES = ("AGENTS.md", "AGENTS.override.md", "CLAUDE.md")
+
+# The DIRECTORIES the installer fills with kit-owned scripts. The first entry is not typed: it is
+# the directory the kernel's own `ENTRY_POINT` lies in, asserted below, so a kit that moves its
+# entry point moves this with it. The rest is the same unavoidable enumeration as the line above and
+# carries the same two-ended tripwire in the same test: every entry is written by at least one kit's
+# real scaffold (not dead) and reading it would really report the kit's own citations (not
+# needless). WHAT IT COSTS, named rather than implied: a project that puts its OWN scripts in one of
+# these directories has them unswept, and that limit is `H183`.
+INSTALLER_SCRIPT_DIRS = ("scripts", "tools")
+
+# A citation is a BACKTICK SPAN -- the same thing this kit's source repository reads in its own
+# mechanical half (`.claude/hooks/test_gates.py::_points_into_this_file`) and the same shape every
+# constitution asks a comment to write its pointer in. What is NOT read is said in `pointer_sweep`.
+_CITATION_RX = re.compile(r"`([^`]+)`", re.DOTALL)
+# A LINE BREAK inside a span is glued out, with the continuation markers around it -- a long name
+# wraps, the next line opens with `#` or `*`, and a name read as two halves resolves at nothing,
+# which would make this sweep depend on where an editor happened to break the line. A SPACE that is
+# not a line break is NOT glued out, and that half is measured: pasted runner output (`FAILED
+# tools/test_board.py::test_x`) inside one span became `FAILEDtools/test_board.py::test_x` and was
+# reported as a dead pointer in five review documents -- a span carrying a space is prose ABOUT a
+# node, not a citation of one, and the shape below then lets it pass unread.
+_CITATION_GLUE_RX = re.compile(r"[ \t#*]*[\r\n]+[ \t#*]*")
+# A TEST NODE citation, as a SHAPE the reader must match rather than as a span it hopes is one: a
+# path carrying at least one separator, a file name with a suffix, `::`, and a name. Every part of
+# that is what `invariant_check_resolution` needs to answer at all -- it resolves the path against
+# the project root -- so a span this shape rejects is one the resolver could only guess about.
+# MEASURED over this repository before the shape was required: the resolver was handed
+# `deselectdoes::not::exist` and `MEMORY.md::$DATA` (example strings inside code, not pointers) and
+# a 900-character span glued out of an unbalanced backtick in a test file, and reported all three as
+# dead pointers. What the shape costs is named in `pointer_sweep`: a citation by BARE file name is
+# not read.
+_TEST_NODE_RX = re.compile(r"^[\w.\-/]*/[\w.\-]+\.[A-Za-z0-9]+" + re.escape(INVARIANT_REF_SEPARATOR)
+                           + r"[\w.\-]+$")
+
+
+class PointerSweepUnavailable(RuntimeError):
+    """The sweep has no subject -- git could not list the project.
+
+    Its own class rather than an empty list, because "no files" and "no findings" print the same and
+    mean the opposite things, and the empty one is the reassuring one.
+    """
+
+
+def _undecorated_citation(span: str) -> str:
+    """A citation with the decoration around it taken off -- a DEFINITION, not a list of spellings.
+
+    THE RIGHT END: a character that is neither alphanumeric nor `_` cannot END an item id or a test
+    name, so a run of such characters comes off there. THE LEFT END is narrower, and that asymmetry
+    is measured rather than tidy: a path may BEGIN with `.` or `/`, so stripping every non-word
+    character from the left turned `.claude/hooks/test_gates.py::x` into `claude/hooks/...` and the
+    sweep reported its own docstring as a dead pointer. Only the characters that open a decoration
+    come off the left. A parametrised node id is cut at the bracket pytest opens the case with,
+    because the definition is the name before it.
+    """
+    span = span.split("[")[0]
+    trailing = "".join(sorted({character for character in span
+                               if not (character.isalnum() or character == "_")}))
+    span = span.rstrip(trailing) if trailing else span
+    leading = "".join(sorted({character for character in span
+                              if not (character.isalnum() or character in "_./")}))
+    return span.lstrip(leading) if leading else span
+
+
+def installed_kit_paths(repo_root: str) -> set:
+    """The repo-relative path PREFIXES a project's own roles did not write -- the kit installed them.
+
+    THREE READERS THE PROJECT ITSELF HOLDS, and not a list of directory names in this module. The
+    first cut was such a list -- the kit's home plus three root files -- and it was measured short
+    by four trees: a freshly scaffolded project with no line of its own code answered the shipped
+    `sweep-pointers` with 39 (dev), 27 (office) and 30 (research) dead pointers, every one of them
+    inside `.agents/`, `.codex/`, `scripts/` or office's `tools/`, and none of them anything the
+    project may edit (`gate_write_scope` refuses all of them). That is the failure this reader's own
+    docstring claimed was excluded.
+
+      * THE ENFORCEMENT LAYER, as the SHIPPED gate defines it: `gate_write_scope._ENFORCEMENT_PATHS`,
+        imported through `scopes._hooks_dir()` -- the same import `scopes.matcher()` makes, and for
+        the same reason. A second spelling here would answer a different question than the gate the
+        roles really meet.
+      * THE PROVIDER LAYER, as the PROJECT records it: `.claude/provider_artifacts.json` names every
+        `dirs`/`files` entry the generator wrote. A provider layer that gains a directory therefore
+        moves this reader without anyone editing it.
+      * THE INSTALLER'S ROOT FILES AND SCRIPT DIRECTORIES: `SCAFFOLDED_ROOT_FILES` and
+        `INSTALLER_SCRIPT_DIRS`, the two enumerations with their two-ended tripwire.
+
+    A MISSING READER IS NOT SILENCE: a project with no gate beside its kernel and no manifest still
+    gets the two enumerations, and the sweep then reports what it reports -- the caller sees the
+    findings, not an empty answer. The one case that must never read as "clean" is "no files at
+    all", and that is `PointerSweepUnavailable`.
+
+    THE FIRST TWO READERS OVERLAP, and saying otherwise would be the claim this file is about.
+    MEASURED on a scaffolded dev pilot (2026-09-06, verifier round 2): dropping the gate alone or the
+    manifest alone leaves the sweep at 0 findings on a clean project -- each covers `.agents/` and
+    `.codex/` on its own -- and only dropping BOTH brings the 41 back. So neither is individually
+    necessary today and no test can show one going red without the other; they are defence in depth,
+    and what each buys is a project where the OTHER is absent (a kit that ships no provider layer,
+    a project whose gate is missing). The third group, the two enumerations, IS individually
+    load-bearing and its tripwire shows it.
+    """
+    prefixes = set(SCAFFOLDED_ROOT_FILES)
+    # THE SCRIPT DIRECTORIES ONLY WHERE A KIT IS INSTALLED, and the condition is the installer's own
+    # artefact: the entry point. Without it there is no scaffold, so `scripts/` and `tools/` are
+    # whatever the project put there -- which is the case of the kit's SOURCE repository, whose
+    # `tools/` is its whole test suite. Measured: excluding them unconditionally cost that repo
+    # seven of its own findings.
+    from .cli import ENTRY_POINT   # local: `cli` imports this module, so the pair is a cycle
+    if os.path.isfile(ext_path(os.path.join(repo_root, *ENTRY_POINT.split("/")))):
+        prefixes |= set(INSTALLER_SCRIPT_DIRS)
+    try:
+        from .scopes import _hooks_dir
+        hooks = _hooks_dir()
+        if hooks not in sys.path:
+            sys.path.insert(0, hooks)
+        import gate_write_scope
+        prefixes |= {str(one).replace("\\", "/").strip("/")
+                     for one in gate_write_scope._ENFORCEMENT_PATHS}
+    except Exception:  # noqa: BLE001 -- see "A MISSING READER IS NOT SILENCE" above
+        pass
+    manifest = os.path.join(repo_root, ".claude", "provider_artifacts.json")
+    try:
+        with open(ext_path(manifest), encoding="utf-8-sig") as handle:
+            recorded = json.load(handle)
+        for key in ("dirs", "files"):
+            prefixes |= {str(one).replace("\\", "/").strip("/")
+                         for one in (recorded.get(key) or [])}
+    except Exception:  # noqa: BLE001 -- same reason
+        pass
+    return {one for one in prefixes if one}
+
+
+def _lies_in_a_kit_tree(repo_root: str, rel: str, cache: dict) -> bool:
+    """True where an ANCESTOR directory of this file holds a kit -- so the file is kit material.
+
+    `hashing.is_kit_dir` is the kernel's own answer to "is this a kit", and a directory that HOLDS
+    one is a kits root: its whole content is the kit's, shared half included (that is the same
+    reading `hashing.kit_hash_inputs` makes of the tree it hashes). Cached per directory, because a
+    kits root carries hundreds of files and the predicate goes to the filesystem.
+    """
+    from .hashing import is_kit_dir
+    parts = rel.split("/")[:-1]
+    for depth in range(len(parts)):
+        directory = "/".join(parts[:depth + 1])
+        if directory not in cache:
+            absolute = os.path.join(repo_root, *directory.split("/"))
+            try:
+                children = sorted(os.listdir(ext_path(absolute)))
+            except OSError:
+                children = []
+            cache[directory] = any(
+                is_kit_dir(os.path.join(absolute, child)) for child in children)
+        if cache[directory]:
+            return True
+    return False
+
+
+def _swept_files(repo_root: str, state_root: str, kit_home: str):
+    """(relative path, text) for every file of the project GIT tracks that this sweep judges.
+
+    THE SUBJECT IS ASKED OF GIT, not walked off the filesystem: "the project's own code" is exactly
+    what the project committed, and a walk would have to decide by hand which dependency tree, build
+    output or tool cache is not the project's. `git ls-files` is that decision already made, by the
+    running tool rather than by a list here.
+
+    FOUR GROUPS ARE LEFT OUT and each for its own reason, none of them "it is noisy":
+      * the canonical STATE tree -- the citations of an ITEM are `validate_state`'s subject, and its
+        answers are typed findings about the item rather than about a file;
+      * everything the KIT INSTALLED -- its home directory, the enforcement layer as the shipped
+        gate defines it, the provider layer as the project's own manifest records it, the root files
+        and the script directories. `installed_kit_paths` is that derivation and carries the
+        measurement that a list of directory names here was short by four trees. Those files cite
+        the items and tests of the kit's SOURCE repository, which this store does not hold and this
+        project may not edit -- `gate_write_scope` refuses every write to them, so a finding there
+        names nobody who could act on it. Keeping THOSE pointers honest belongs to the kit's own
+        repository, where the store answers;
+      * a KIT TREE lying in the project itself -- the case of the kit's own source repository, where
+        the kits are checked out rather than installed. Decided with the kernel's own predicate
+        (`hashing.is_kit_dir`): a directory that HOLDS a kit is a kits root, and everything under it
+        is kit material for the same reason `.claude/` is. MEASURED without this rule, over the kit
+        source repository: 100 of 118 findings were the placeholder ids of an EXAMPLE project in
+        kernel docstrings (`PROC-0001`, `WFR-0001`, `RQ-0001`), which no store is meant to answer;
+      * a file that does not decode as UTF-8 -- which is how "text" is decided here, rather than by
+        a list of suffixes that is wrong for the next project's language.
+    """
+    try:
+        listed = subprocess.run(
+            ["git", "ls-files", "-z"], cwd=repo_root, capture_output=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as error:
+        raise PointerSweepUnavailable(
+            "git could not list this project's files (%r), so this sweep has no subject and its "
+            "silence would mean nothing" % (error,))
+    if listed.returncode != 0:
+        raise PointerSweepUnavailable(
+            "git could not list this project's files (rc %d: %s), so this sweep has no subject and "
+            "its silence would mean nothing"
+            % (listed.returncode,
+               (listed.stderr or b"").decode("utf-8", "replace").strip()[:200]))
+    state_rel = os.path.relpath(os.path.abspath(state_root), repo_root).replace(os.sep, "/")
+    kit_roots: dict = {}
+    installed = installed_kit_paths(repo_root) | {kit_home, state_rel}
+    for raw in listed.stdout.split(b"\0"):
+        rel = raw.decode("utf-8", "replace").strip()
+        if not rel:
+            continue
+        if any(rel == one or rel.startswith(one + "/") for one in installed):
+            continue
+        if _lies_in_a_kit_tree(repo_root, rel, kit_roots):
+            continue
+        try:
+            with open(ext_path(os.path.join(repo_root, *rel.split("/"))),
+                      encoding="utf-8") as handle:
+                yield rel, handle.read()
+        except (OSError, UnicodeDecodeError):
+            continue
+
+
+def pointer_sweep(state: ProjectState) -> list:
+    """Every citation in the project's OWN files that points at nothing, as findings.
+
+    THE DUTY THIS IS THE MECHANICAL HALF OF (`FR-0007`, and the rule itself in `DEC-0008` /
+    `SR-0008`): a comment carries the WHY as a POINTER, and a claim about a PROPERTY becomes a test
+    the comment NAMES. Both halves rot the same way -- the test is renamed, the item is re-filed --
+    and a pointer that resolves at nothing is worse than none, because it reads as covered. What no
+    machine can decide is whether a property claim named a test AT ALL; that half stays with the
+    role that writes and the role that reviews, and the constitutions say so in the same breath.
+
+    WHAT IS READ, deliberately narrow: a backtick span carrying `::` is a TEST NODE and is resolved
+    against the tree by `invariant_check_resolution` -- the same reader the invariants use, so
+    "defined" has ONE definition in this module; a span that is a kernel item ID (`parse_id`
+    decides, so the vocabulary is `ACTIVE_DIRS` and not a pattern typed here) is resolved against
+    the store, active and archived alike, because an archived item is still a place a reader can go.
+
+    WHAT IS NOT READ, named rather than implied: a test cited by BARE FILE NAME with no directory
+    (`_TEST_NODE_RX` demands a separator, because the resolver reads the path from the project root
+    and would otherwise have to guess where the file should live); a node id through a class; a test
+    file in a language this kernel does not parse (`invariant_check_resolution`'s third answer,
+    `H110`); and every span that is neither shape -- a path, a command, a field name. So a green
+    sweep says "no pointer of the two readable kinds is dead", never "every claim here is covered".
+
+    WHAT IT CANNOT TELL APART, and the reason this is a REPORT and not a gate: an ILLUSTRATION and a
+    POINTER are the same shape. A document that teaches by example (`write it as
+    tests/perf/test_pricing.py::test_p95`) and a report about ANOTHER project's store (a pilot log
+    naming that pilot's `PROC-0001`) both read as dead pointers here, and no property of the span
+    separates them from a citation that rotted. Measured over the kit's own source repository, where
+    the majority of the findings turned out to be of exactly those two kinds; the mechanism and that
+    measurement are `H175`. So the answer belongs to whoever reads the report -- which is why this
+    exits 1 and no hook waits on it.
+
+    `tools/test_pointer_sweep.py::test_a_dead_test_pointer_and_a_dead_item_pointer_are_both_reported`
+    holds the two finding classes and the silences beside them.
+    """
+    from . import presets
+    repo_root = os.path.dirname(os.path.abspath(state.root))
+    kit_home = presets.KIT_VERSION_FILE.replace(os.sep, "/").split("/")[0]
+    parsed_names: dict = {}
+    known: dict = {}
+    findings = []
+    for rel, text in _swept_files(repo_root, state.root, kit_home):
+        findings.extend(findings_in_text(state, rel, text, parsed_names, known))
+    return findings
+
+
+def findings_in_text(state: ProjectState, where: str, text: str,
+                     parsed_names: dict = None, known: dict = None) -> list:
+    """The dead pointers of ONE text -- the loop `pointer_sweep` runs, callable on its own.
+
+    ONE reader, because a second one drifts: the pilot tripwire in
+    `tools/test_pointer_sweep.py::test_the_root_files_the_sweep_skips_are_installed_and_would_be_noisy`
+    has to ask "would reading this file really produce a finding", and it asked that with its own
+    copy of the loop. A copy answers for itself: narrow `pointer_sweep` and the copy stays wide, so
+    the tripwire keeps saying "this entry is needed" about a reader that no longer reads that way.
+
+    `parsed_names` and `known` are the two caches of a whole sweep; a caller with none pays per call,
+    which is right for a single file.
+    """
+    parsed_names = {} if parsed_names is None else parsed_names
+    known = {} if known is None else known
+    findings = []
+    for span in _CITATION_RX.findall(text):
+        glued = _undecorated_citation(_CITATION_GLUE_RX.sub("", span))
+        if INVARIANT_REF_SEPARATOR in glued:
+            if not _TEST_NODE_RX.match(glued):
+                continue
+            resolved, reason = invariant_check_resolution(
+                state, {"check": {"ref": glued}}, parsed_names)
+            if resolved is False:
+                findings.append(_finding(
+                    "error", where,
+                    "names the test `%s`, and it does not resolve: %s" % (glued, reason),
+                    "point the statement at a test that exists, or drop the claim it carries -- "
+                    "a named test that resolves at nothing reads as covered while nothing "
+                    "measures it (SR-0008).",
+                ))
+            continue
+        try:
+            parse_id(glued)
+        except ValueError:
+            continue
+        if glued not in known:
+            known[glued] = state.exists_anywhere(glued)
+        if not known[glued]:
+            findings.append(_finding(
+                "error", where,
+                "names the item `%s`, which this store holds neither active nor archived" % glued,
+                "name the item that really carries the reason, or write the reason out -- a "
+                "pointer nobody can follow is a claim nobody can check (SR-0008).",
+            ))
+    return findings
 
 
 def _check_bug_system_link(state: ProjectState, active_items: dict) -> list:
@@ -2351,6 +2803,124 @@ def _holding_decisions(dec_items: dict) -> set:
             if d not in superseded and it.get("status") == _DEC_IN_FORCE_STATUS}
 
 
+# -- a decision nobody carries (FR-0012, DEC-0083) ------------------------------------------------
+
+_DEC_ID_IN_TEXT_RX = re.compile(r"\bDEC-\d{4}\b")
+
+
+def _decisions_items_name(state: ProjectState, active_items: dict) -> set:
+    """Every DEC id some NON-DECISION item names, anywhere in its fields -- the pointer direction.
+
+    THE CARRIER IS AN ITEM THAT DOES THE WORK, so another decision is not one: a `supersedes` link
+    and a decision quoting its predecessor are decisions talking to each other, and the case
+    FR-0012 was filed on (`DEC-0034`, VALID for 26 days with nothing built) would have been silenced
+    by exactly that. So DEC items are read as subjects here, never as carriers.
+
+    THE WHOLE STORE and not only the active part: a decision carried by an item that has since been
+    archived was carried, and reporting it as uncarried would send a reader after work that is done.
+
+    THE FIELDS, not a file: this reads the values of stored items, which is the same subject
+    `validate_state` judges everywhere else. A citation in a document under `docs/` is NOT a carrier
+    -- that is the difference between an item and prose, and it is the difference FR-0012 is about.
+    """
+    named = set()
+    for item in state._iter_every_stored_item():
+        item_id = str(item.get("id") or "")
+        if item_id.startswith("DEC-"):
+            continue
+        for value in item.values():
+            for one in field_elements(value):
+                named.update(_DEC_ID_IN_TEXT_RX.findall(str(one)))
+    for item_id, (item_type, item) in active_items.items():
+        if item_type == "DEC":
+            continue
+        for value in item.values():
+            for one in field_elements(value):
+                named.update(_DEC_ID_IN_TEXT_RX.findall(str(one)))
+    return named
+
+
+def _check_decision_carriers(state: ProjectState, active_items: dict) -> list:
+    """DEC-0083: a decision says which items carry its work, and one nobody carries is named.
+
+    TWO LINES, and they answer two different questions:
+
+      * `work` naming an id NO item carries is an ERROR -- the same contract every other binding
+        has, and a pointer nobody can follow is worse than none;
+      * a decision IN FORCE that carries no `work` and that no item anywhere names is a WARNING,
+        "decision without a carrier". `work: none` silences it, and that silence is the point: a
+        naming rule or a verdict commits nobody, and a validator that could not be told so would be
+        a validator nobody reads (`delivery_closure_rollup`'s own argument).
+
+    THE MEASURED CASE is `DEC-0034`: a model-escalation ladder that stood VALID for 26 days while
+    nothing built it and no item pointed at it, found by the user and by no review round (DEC-0080).
+    Both halves catch it -- no field, and no carrier.
+
+    WHAT STAYS HUMAN, and the decision says so itself: a `work: none` on a decision that DOES demand
+    work is caught by nobody. That is the same half of `FR-0007` the comment duty leaves to the role
+    that writes and the role that reviews.
+
+    `tools/test_report.py::test_a_decision_nobody_carries_is_named_and_none_is_the_silence` holds
+    both lines, the silence and the archived-carrier case.
+    """
+    subjects = {item_id: item for item_id, (item_type, item) in active_items.items()
+                if item_type == "DEC"}
+    if not subjects:
+        return []
+    findings = []
+    named = None
+    for item_id, item in sorted(subjects.items()):
+        work = item.get(DEC_WORK_FIELD)
+        if work_is_none(work):
+            continue        # the ONE silence DEC-0083 (2)(c) names
+        if names_something(work):
+            for ref in field_elements(work):
+                ref = str(ref).strip()
+                if not ref:
+                    continue    # a blank BESIDE a real id says nothing; the real one is read
+                if ref not in active_items and not _in_archive(state, ref):
+                    findings.append(_finding(
+                        "error", item_id,
+                        "%s names %s, which no item carries" % (DEC_WORK_FIELD, ref),
+                        "point `%s` at the ids of the items that really build what this decision "
+                        "commits, or write `%s: %s` when it commits nobody"
+                        % (DEC_WORK_FIELD, DEC_WORK_FIELD, DEC_WORK_NONE),
+                    ))
+                elif ref.startswith("DEC-"):
+                    # A DECISION IS NOT A CARRIER, and the two halves of this check have to agree:
+                    # `_decisions_items_name` refuses to read one decision as another's carrier,
+                    # because the case FR-0012 was filed on would have been silenced by exactly that.
+                    # Measured (verifier round 3, R3-4): `work: ['DEC-0001']` was silent, so the same
+                    # DEC-0034 state was reachable one level up.
+                    findings.append(_finding(
+                        "error", item_id,
+                        "%s names %s, and a decision is not a carrier -- somebody has to BUILD what "
+                        "this one commits" % (DEC_WORK_FIELD, ref),
+                        "name the items that do the work (a `TSK`, a goal), or write `%s: %s` when "
+                        "it commits nobody" % (DEC_WORK_FIELD, DEC_WORK_NONE),
+                    ))
+            continue
+        # ...and everything else -- absent, `[]`, `""`, `[""]`, `"   "` -- is the SAME state: the
+        # field says nothing. Reading an empty container as an answer was the defect (verifier
+        # round 2, N-B2): four spellings silenced this line without ever saying `none`, and `[]` is
+        # exactly what a JSON body carries when the author does not have the ids yet.
+        if item.get("status") in NON_AUTOMATON_STATUSES.get("DEC", ())[1:]:
+            continue        # superseded: it is not in force, so nobody owes it work
+        if named is None:
+            named = _decisions_items_name(state, active_items)
+        if item_id not in named:
+            findings.append(_finding(
+                "warning", item_id,
+                "decision without a carrier -- it names no `%s` and no item in this store names "
+                "it, so nothing says whether anybody is building what it decided" % DEC_WORK_FIELD,
+                "record the items that carry it (`python scripts/harness.py update %s` with `%s: "
+                "[ITEM-nnnn]`), or `%s: %s` when it commits nobody -- a decision that demands work "
+                "and has no carrier is the DEC-0034 case (FR-0012, DEC-0083)"
+                % (item_id, DEC_WORK_FIELD, DEC_WORK_FIELD, DEC_WORK_NONE),
+            ))
+    return findings
+
+
 def _check_dec_supersedes(state: ProjectState, active_items: dict) -> list:
     """BUG-0009(b): a decision that supersedes older ones names them, each named id exists and is a
     DEC, and a still-active decision that has been superseded is flagged for archival.
@@ -2427,6 +2997,34 @@ def _check_reference_list_shape(active_items: dict) -> list:
                 "write it as a list through the kernel edit path "
                 "(`python scripts/harness.py update %s`)" % item_id,
             ))
+    return findings
+
+
+def _check_nonempty_fields(active_items: dict) -> list:
+    """A `NONEMPTY_FIELDS` field stored empty -- the items that door came too late for (BUG-0023).
+
+    THE SAME MAP AND THE SAME PREDICATE THE CAPTURE DOOR READS (`state.capture_preflight` refuses
+    with `backlog_types.names_something`, and so does this), so what a new item is refused for and
+    what a stored one is named for cannot become two readings. Both used to ask `not value`, which
+    is a question about the CONTAINER: `[""]`, `[None]` and `["   "]` were stored and named by
+    nobody. A WARNING and not an error: the stored orders are history, an error would block the
+    merge of a repository for items no command can repair once they left DRAFT (`TSK_PLAN_FIELDS`
+    freezes the field), and the finding says what such an order costs -- nothing can verify it.
+    `test_report.test_validate_names_a_stored_order_that_expects_nothing` holds the door and this
+    line to one map and one predicate, over every shape.
+    """
+    findings = []
+    for item_id, (item_type, item) in sorted(active_items.items()):
+        for field in NONEMPTY_FIELDS.get(item_type, ()):
+            if field in item and not names_something(item.get(field)):
+                findings.append(_finding(
+                    "warning", item_id,
+                    "%s names nothing -- a list of blanks says exactly what leaving the field "
+                    "out says, and nothing can be measured against it" % field,
+                    "re-plan the order with the %s it is measured against (DRAFT: `python "
+                    "scripts/harness.py update %s`; past DRAFT the field is frozen and the order "
+                    "is cancelled and re-created)" % (field, item_id),
+                ))
     return findings
 
 
@@ -3382,6 +3980,7 @@ def doctor(state: ProjectState, kit: str = None, kit_version: str = None) -> dic
     # reads open (DEC-0051): a row whose route needs a mint the project cannot run is not something
     # `validator.warnings` may carry, because nothing a project does would clear it.
     report["delivery_closure"] = delivery_closure_rollup(state)
+    report["stock_lies_upward"] = stock_rollup(state)
     repo_root = os.path.dirname(state.root)
     holes, holes_source = _known_hole_capabilities()
     matrix, reasons = capability_matrix(state, repo_root, (holes, holes_source))

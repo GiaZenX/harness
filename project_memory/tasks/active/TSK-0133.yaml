@@ -1,0 +1,175 @@
+id: TSK-0133
+product_requirement: PR-0008
+derives_from: PR-0008
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-1
+allowed_scope:
+- team-kits/**
+- tools/**
+- docs/**
+- radar/**
+- .claude/agents/radar-watcher.md
+- .claude/agents/codex-watcher.md
+- .claude/agents/harness-lead.md
+- .claude/agents/harness-implementer.md
+- .claude/agents/harness-verifier.md
+- .claude/hooks/test_gates.py
+- NOTICES.md
+- README.md
+- CLAUDE.md
+forbidden_scope:
+- scaffold_team.*
+- install.*
+- init_project_memory.*
+- user/**
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- project_memory/**
+required_inputs:
+- 'project_memory/staging/generation-5-streams.md -- the round log: goals, ownership,
+  seams, every report / verdict / rework entry with measured lines, the user decisions
+  (DEC-0081 tiers, DEC-0082 correspondence workflow, DEC-0083 `work` field, DEC-0084/DEC-0085
+  routine, DEC-0086 bug-closing route), the five scope mints and four delivery mints,
+  the routine creation through the claude.ai web UI (the API shape is undocumented
+  -- measured)'
+- 'project_memory/staging/TSK-0130/stream-protocol.md + verify-round-1..3.md + dec-trigger.json
+  / dec-trigger-2.json (G5-2 ladders/watchers/escalation: three ladder.yaml, dispatch.py
+  ladder reader + escalation rules 1-5, model_tiers.yaml three rungs, generator light-pin
+  refusal, constitutions'' ladder paragraphs, tools/radar_routine.py (--due/--run/--describe,
+  cloud spec) + tools/test_radar_trigger.py, radar/routine.json record shape, the
+  two watcher definitions; seams: STALE_LADDER_TEXTS must drop the two PM skills once
+  G5-1''s step lands; three project_config.yaml templates still teach the retired
+  ladder (nobody''s scope -- the merge rewrites them); the session-brief half of AC-6
+  = BUG-0249/H167 (report.py, an item defect of PR-0010 -- the merge writes the one
+  line + test); H167-H173/H178/H182/H184 items)'
+- 'project_memory/staging/TSK-0131/stream-protocol.md + survey-table.md + verify-round-1..4.md
+  (G5-1 stock: report.py stock rollup + decision-carrier validator + installed_kit_paths
+  sweep, backlog_types names_something / work_is_none / work_is_stated, cli capture
+  DEC `work` door, sweep-pointers command, the comment-discipline duty x3 + 9 role
+  definitions, the CR question in the dev constitution + PM skill step, harness-*.md
+  (DEC-0080 rules, DEC-0081 pins); seams: the one-line _receipt_fields change in kernel/migrate.py
+  handed to the merge; the PM-skill ladder step reads the constitution paragraph --
+  after the merge G5-2''s paragraph is the target; `migrate-holes --reindex` after
+  the last hole; DEC-0085/0086 `work` set)'
+- 'project_memory/staging/TSK-0132/stream-protocol.md + verify-round-1..3.md (G5-3
+  office: correspondence workflow (letter_draft.py, correspondence.yaml, skills/correspondence,
+  DEC-0082), the invoice docking point (invoice_intake.py, docs/office/invoice-app-docking-point.md
+  -- the contract for the invoice-app project, DEC-0075), chart_of_accounts.yaml +
+  writer, add-filing-rule creation, category writer, einvoice_extract EINVOICE_ROOTS
+  + reconciliation, remedy lines executed by tests; merge lines: `git add -N` for
+  seven new files, office stamp provisional, two inherited reds (H176; DEC pointer
+  test against the b7f282e store), five dead-citation sites; H166/H176/H177/H181 items)'
+- 'the three patches, each PASS by its own verifier, each WITHOUT VERSION and project_memory
+  hunks: C:/Offline Repos/v2-testbed/_round-scratch/TSK-0130/stream-ladders.patch
+  (31 files), TSK-0131/stream-stock.patch (37 files), TSK-0132/stream-office.patch
+  (28 files, 270 991 B); worktrees g5-ladders / g5-stock / g5-office READ-ONLY references
+  -- merged from PATCHES only'
+- 'DEC-0080 (the generation-4 retrospective: rules 1-9 -- rule 5: STAMP BEFORE THE
+  FULL RUN; rule 2: suites that read a changed rule), DEC-0081..DEC-0086, DEC-0076..0079,
+  DEC-0070, DEC-0063, DEC-0050; PR-0008 / PR-0009 / PR-0010 (the merge verifier reports
+  per goal and AC)'
+- 'the live state: bugs/active with the migrated holes (H1-H185 as BUG items; the
+  survey table), the five VERIFIED/archived bugs and four DELIVERED goals of generation
+  4, EVD-0084..0091; radar/routine.json once the lead records the two claude.ai routines;
+  the hosted CI run after b7f282e (BUG-0069''s evidence)'
+- 'forbidden_scope project_memory/** EXCEPTS project_memory/staging/(this task id)/;
+  canonical state through the kernel only (the lead''s lines: evidence, transitions,
+  `migrate-holes --reindex`)'
+- 'TSK-0131 round 4 (verify-round-4.md, 2026-09-06): FAIL without a blocking finding;
+  the four residues N4-1 (tools/test_migrate.py: a second finding about the receipt
+  must pass the receipt filter -- built, mutation RED), N4-2 (tools/test_review_procedure.py:
+  _own_block reads the PARAGRAPH, not the lead-in span -- seam N18 tightened: a kit
+  owes ONE bold statement carrying BOTH axes in itself), N4-3, N4-4 were fixed by
+  the implementer WITHOUT a fifth stream round (lead decision per DEC-0088 (c), round
+  log 19:50) -- the MERGE VERIFIER measures N4-1 and N4-2 on the merged tree (mutation
+  red-first, one change each); final patch stream-stock.patch 258 531 B / 37 files
+  (20:07); TSK-0131''s verifier tokens for rounds 1-3 are unknown (the reports name
+  none) -- the (g) table says so, nothing is estimated'
+- 'TSK-0130 state at the merge cut: steps (1)/(2) done, package consistent (patch
+  31 files / 4287 lines, cut_check consistent: true, 19:04), verify round 3 PENDING
+  the two cloud routines (RemoteTrigger list empty five times on 2026-09-06; the user
+  creates them in the claude.ai UI) -- radar/routine.json is recorded by the LEAD
+  when they exist and is NOT a merge blocker (data, no code); this generation''s new
+  holes beyond H185: BUG-0269/H186 (desktop scheduled task, suffix-less report), BUG-0270/H187
+  (the pointer sweep reads docs and the kits tree only, 39 unread test pointers under
+  tools/, depends on H175); `migrate-holes --reindex` was already run by G5-2 at 17:36
+  (176 holes; the index rows link docs/holes/H<n>.md that exist only to H165 -- BUG-0258/H176
+  class) -- run again after the merge''s own H188+'
+expected_outputs:
+- 'The three patches applied on feat/harness-v2 (base b7f282e, main checkout) in SEAM
+  ORDER measured before the first apply (who receives sentences comes last -- expected:
+  G5-2 ladders (kernel dispatch + constitutions'' ladder paragraphs) first, then G5-3
+  office (kernel documents/filing + office texts), then G5-1 stock (report/state/backlog_types
+  + the comment duty and CR rule into the constitutions + PM skills that point at
+  G5-2''s paragraph) LAST; if the measured file lists say otherwise, the protocol
+  says why); `git apply --check` (--3way where a seam needs it) before each, the reading
+  pin tests after EVERY patch; a hunk failing on a seam file resolved BY HAND and
+  listed; `git add -N` for every new file the patches carry; a patch carrying a VERSION
+  hunk is a cut finding.'
+- 'Every seam the round log and the three protocols name resolved BY HAND with resolution
+  + arbiter: (1) team-kits/kernel/cli.py -- three command blocks (ladder, sweep-pointers
+  / capture DEC work door, office writers) present, AST diff = the union, no definition
+  lost; (2) the three constitutions -- G5-2''s ladder paragraphs, G5-1''s comment-discipline
+  duty (byte-identical x3) + the CR question (dev; office/research as G5-1''s round-2
+  residue decided) + the DEC `work` step, G5-3''s office correspondence and docking-point
+  duties; the section pins rewritten ONCE after all land; arbiter test_a_paragraph_the_constitutions_share_is_one_text
+  + test_shortening_net + the pointer sweeps; (3) team-kits/*/agents/*.md -- G5-1''s
+  duty sentence in 9 implementing roles + G5-2''s model/effort pins consistent with
+  each kit''s ladder.yaml; (4) the two PM skills'' ladder step points at G5-2''s paragraph
+  NAME and STALE_LADDER_TEXTS drops them (G5-2''s two-sided tripwire stays true both
+  ways); (5) the three templates/project_memory/project_config.yaml no longer teach
+  the retired user ladder (G5-2''s replacement wording; red-first with the tripwire);
+  (6) kernel/migrate.py: G5-1''s one-line _receipt_fields change applied with its
+  test; (7) office-manager/SKILL.md: G5-1''s step + G5-3''s workflow step both present;
+  (8) tools/lead_package_sizes.json and docs/reviews/phase0-disposition.md recorded
+  (three streams grew packages), never overwritten; README.md command surface names
+  every new command (the tripwire); (9) the session-brief half of PR-0010 AC-6 (BUG-0249/H167):
+  report.py shows rung + effort of a lease in the brief -- built HERE red-first (the
+  item forbade report.py to G5-2: an item defect, closed in the merge, said so); (10)
+  `.claude/hooks/test_gates.py` if any stream touched it -- union by AST; (11) every
+  DEC/H/test pointer the merged tree writes resolves against the LIVE store (the DEC-0082/0083
+  citations that were red against the b7f282e store go green here).'
+- 'The hole items in one order after `migrate-holes --reindex` (H166-H185 new this
+  generation: H166/H176/H177/H181 office, H167-H173/H178/H182/H184 ladders, H174-H175/H179-H180/H183/H185
+  stock), every entry with mechanism, chain, verdict and bound; H186+ for the merge
+  round''s own findings (kernel-allocated, `capture BUG --hole`); the generated index
+  in docs/POST_V2_WISHLIST.md equal to the store.'
+- 'Merge findings: everything the seams reveal that no stream could see -- fixed red-first
+  in a copy outside the repo or captured as hole items; the cut findings collected
+  for the generation-5 retrospective (known: the lead sent G5-2 a build order while
+  its round-2 verification ran (one writer / one measurement violated); the routine
+  API is undocumented -- the declaration-then-UI route; xhigh not reachable from the
+  spawn surface; the Fable predecessors'' work discarded after minutes (DEC-0081)
+  -- G5-3''s had 46 min of kept work; PR-0010''s item forbade the file its AC-6 required;
+  the `update` of PR delivery fields silent).'
+- 'STAMP BEFORE THE FULL RUN (DEC-0080 (5)): ONE release stamp across the three kits
+  after the last change (tools/bump_kit_version.py; the streams'' provisional stamps
+  superseded), THEN the full tools/ suite ONCE with `DELIVERY_RUN=(this task id)`
+  (gate 5 is live: the bare line is refused -- measure that once as a process, do
+  not fight it), plus .claude/hooks/test_gates.py in full (with the prefix -- it is
+  a declared surface too), plus ruff and validate.py; every red is a finding, not
+  a skip; if the full run yields findings, their fixes are followed by full runs of
+  every suite that reads the changed files (DEC-0063 (4)), then ONE more stamp and
+  ONE more full run.'
+- 'HOST RULE: one pytest at a time, every run with a timeout, no CPU-saturating rig;
+  the full tools/ suite takes ~45-60 min here -- background with a timeout, nothing
+  beside it; clock read in every protocol time (DEC-0080 (7)).'
+- 'Protocol in project_memory/staging/(this task id)/merge-protocol.md: seam table
+  with resolution + arbiter per seam, pointer table, the hole list, the full-suite
+  numbers, the completed (g) table per stream (tier, rounds, verification rounds,
+  tokens impl/verif, wall-clock worked vs span, own findings on the own build, the
+  Fable predecessor line), the cut-findings table, the two EVD lines for the lead
+  (state-relative artifact refs INSIDE the repo, no digest), the user lines (push;
+  the acceptance mints of PR-0004..0007 and later PR-0008..0010; BUG-0069''s hosted
+  run; the routines'' first cloud run), and the one-line rejected alternative of the
+  merge plan. No commit, no push: the lead records the EVD and commits after the merge
+  verifier''s PASS; the push is the user''s word.'
+dependencies: []
+root_revision: 1
+status: READY
+revision: 1
+approval_ref: null
+created: '2026-09-06T16:03:54'

@@ -22,8 +22,11 @@ request_text: 'User wish 2026-09-02 during the FR survey: es waere gut, wenn wir
   and a refuse-on-reissue), (4) shape: script vs role duty vs taught PROC, per FR-0028.
   Not a separate product: the kit line is one apparatus, and a separate project would
   be a second place for business_profile and master_data to drift.'
-related_pr: FR-0033
+related_pr: PR-0009
 status: OPEN
 revision: 1
 approval_ref: null
 created: '2026-09-02T07:42:11'
+source: RE-POINTED 2026-09-06 (TSK-0131, PR-0008 AC-2) from FR-0033 (a wish is not
+  a goal) to the office package goal, which carries the docking point for the invoice
+  application (DEC-0075). The status waits for G5-3.

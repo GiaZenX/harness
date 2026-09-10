@@ -1623,35 +1623,48 @@ def test_gate2_refuses_an_archived_item_whose_type_declares_no_terminals(project
     skip the only case this branch decides.
     """
     sys.path.insert(0, TEAM_KITS)
-    from kernel.backlog_types import ACTIVE_DIRS, AUTOMATA, REQUIRED_FIELDS
+    from kernel.backlog_types import (ACTIVE_DIRS, AUTOMATA, CAPTURE_ONLY_REQUIRED, DEC_WORK_NONE,
+                                      REQUIRED_FIELDS)
+    # `work` is what the CAPTURE DOOR asks of a decision on top of its required fields (DEC-0083,
+    # `CAPTURE_ONLY_REQUIRED`): a body without it was rc 1 here on the generation-5 merge's gate run,
+    # the door having reached this suite from a stream that never ran it in full (TSK-0133, M13).
+    # The probe decision commits nobody, so it says the one silence the door accepts.
     fields = {"title": "probe", "context": "c", "decision": "d", "consequences": "x",
-              "source": "probe", "scope": "probe", "check": "probe"}
-    # the type is CHOSEN by what this body can fill, so a type list that changes shape makes the
-    # test pick another subject instead of failing on a body written for the old one
+              "source": "probe", "scope": "probe", "check": "probe", "work": DEC_WORK_NONE}
+    # the types are CHOSEN by what this body can fill, so a type list that changes shape makes the
+    # test pick other subjects instead of failing on a body written for the old one -- and EVERY
+    # candidate is walked, with `DEC` required among them: choosing `candidates[0]` let a body that
+    # no longer filled the decision's door fall silently to the next type and stay green (TSK-0133
+    # verify round 1, B2: with `work` the candidates were DEC and INV, without it INV alone).
     candidates = [name for name in sorted(REQUIRED_FIELDS)
                   if name in ACTIVE_DIRS and name not in AUTOMATA
-                  and set(REQUIRED_FIELDS[name]) <= set(fields)]
+                  and set(REQUIRED_FIELDS[name]) | set(CAPTURE_ONLY_REQUIRED.get(name, ()))
+                  <= set(fields)]
     assert candidates, "no automaton-less type can be captured -- the branch is unreachable"
-    item_type = candidates[0]
-    work = str(tmp_path / "archived")
-    shutil.copytree(project, work)
-    environment = dict(os.environ, PYTHONPATH=os.path.join(work, "team-kits"))
-    body = json.dumps({key: value for key, value in fields.items()
-                       if key in REQUIRED_FIELDS[item_type]})
-    done = subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory",
-                           "capture", item_type], input=body, cwd=work, env=environment,
-                          capture_output=True, text=True)
-    assert done.returncode == 0, done.stderr[-600:]
-    item_id = done.stdout.split()[0]
-    rc, _err = run(work, "gate_spawn_needs_item.py",
-                   spawn_payload(work, "harness-implementer", "Auftrag: " + item_id))
-    assert rc == 0, "%s was refused while still active -- wrong precondition" % item_id
-    subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory",
-                    "archive", item_id], cwd=work, env=environment, check=True,
-                   capture_output=True, text=True)
-    rc, err = run(work, "gate_spawn_needs_item.py",
-                  spawn_payload(work, "harness-implementer", "Auftrag: " + item_id))
-    assert rc == 2, "an ARCHIVED %s still counted as open work: %s" % (item_type, err[:400])
+    assert "DEC" in candidates, (
+        "the decision type dropped out of the candidates -- the body no longer fills what its "
+        "capture door asks, so the archive branch would be measured on %s alone" % candidates)
+    for item_type in candidates:
+        work = str(tmp_path / ("archived-" + item_type))
+        shutil.copytree(project, work)
+        environment = dict(os.environ, PYTHONPATH=os.path.join(work, "team-kits"))
+        body = json.dumps({key: value for key, value in fields.items()
+                           if key in REQUIRED_FIELDS[item_type]
+                           or key in CAPTURE_ONLY_REQUIRED.get(item_type, ())})
+        done = subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root",
+                               "project_memory", "capture", item_type], input=body, cwd=work,
+                              env=environment, capture_output=True, text=True)
+        assert done.returncode == 0, (item_type, done.stderr[-600:])
+        item_id = done.stdout.split()[0]
+        rc, _err = run(work, "gate_spawn_needs_item.py",
+                       spawn_payload(work, "harness-implementer", "Auftrag: " + item_id))
+        assert rc == 0, "%s was refused while still active -- wrong precondition" % item_id
+        subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory",
+                        "archive", item_id], cwd=work, env=environment, check=True,
+                       capture_output=True, text=True)
+        rc, err = run(work, "gate_spawn_needs_item.py",
+                      spawn_payload(work, "harness-implementer", "Auftrag: " + item_id))
+        assert rc == 2, "an ARCHIVED %s still counted as open work: %s" % (item_type, err[:400])
 
 
 def test_the_types_a_task_list_carries_work_in_are_the_ones_the_derivation_accepts():
@@ -4693,12 +4706,26 @@ def test_the_hole_index_in_the_document_is_the_one_the_items_generate():
 
 
 def _hole_prose(number):
-    """The full text of one hole -- the file the item's `source` points at."""
+    """The full text of one hole: its prose file where the MIGRATION wrote one, else the item itself.
+
+    Only the migration writes `docs/holes/<n>.md` (`kernel.holes.migrate`); `capture --hole` writes
+    an item and nothing else, and its `source` is prose (a protocol section, a DEC, a log file) or
+    empty. Read as a path, that prose was a FileNotFoundError on the generation-5 merge's first gate
+    run (H166, TSK-0133 M14) -- and the 22 holes captured since generation 4 had never been read by
+    this helper at all, because every caller happened to name a migrated one. What decides is
+    whether the file `docs/holes/<n>.md` exists -- the same question the kernel's index renderer
+    asks before it links a row (`holes._prose_link`), asked here of the path directly, not through
+    that function, which answers with a table cell -- so a captured hole is judged on the fields its
+    measured chain lives in.
+    """
     _backlog_types, _state, holes = _holes()
     item = holes[number]
-    path = os.path.join(ROOT, str(item.get("source") or "").replace("/", os.sep))
-    with open(path, encoding="utf-8") as handle:
-        return handle.read()
+    path = os.path.join(ROOT, "docs", "holes", "%s.md" % number)
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as handle:
+            return handle.read()
+    return "\n\n".join(str(item.get(field) or "")
+                       for field in ("title", "observed", "expected", "repro", "limits", "source"))
 
 
 # The hole that says what the cross table's OVER-REFUSAL is made of, and the paragraph it says it

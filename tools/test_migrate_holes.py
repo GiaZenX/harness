@@ -351,6 +351,12 @@ def test_a_hole_captured_after_the_migration_reaches_the_generated_index(tmp_pat
 
     BOTH ROUTES ARE MEASURED, because both are printed to a reader: `--apply` over a document with
     no entries left, and the `--reindex` the capture surface names.
+
+    WHAT IT ASKS OF THE ROW is that the NUMBER and the ITEM are in it, not that the number is a
+    link: only the migration writes a prose file, so a hole captured afterwards has none and is
+    rendered unlinked (`_prose_link`, and `test_a_hole_with_no_prose_file_is_a_row_without_a_link`
+    is that rule's own measurement). Until 2026-09-05 this line asked for the link, and the shipped
+    document carried nine rows pointing at files nobody had written.
     """
     repo, state, doc = project(tmp_path)
     migrate_holes.migrate(state, doc, "PR-0001", apply=True)
@@ -363,13 +369,13 @@ def test_a_hole_captured_after_the_migration_reaches_the_generated_index(tmp_pat
 
     migrate_holes.migrate(state, doc, "PR-0001", apply=True)
     text = io.open(doc, encoding="utf-8").read()
-    assert "[%s](" % fresh[HOLE_NUMBER_FIELD] in text, text[-400:]
+    assert "| %s | %s |" % (fresh[HOLE_NUMBER_FIELD], fresh["id"]) in text, text[-400:]
     lines, start, end = migrate_holes.read_section(doc)
     assert lines[start:end] == migrate_holes.render_index(state)
 
     # ...and the flag the capture surface points at does the same thing on its own
     io.open(doc, "w", encoding="utf-8", newline="\n").write(
-        text.replace("| [%s](" % fresh[HOLE_NUMBER_FIELD], "| [H999](", 1))
+        text.replace("| %s |" % fresh[HOLE_NUMBER_FIELD], "| H999 |", 1))
     result = _kernel_reindex(repo)
     assert result.returncode == 0, result.stdout + result.stderr
     lines, start, end = migrate_holes.read_section(doc)
@@ -453,7 +459,7 @@ def test_only_a_hole_can_be_filed_as_one_from_the_command_surface(tmp_path):
     assert "a hole is a BUG" in wish.stderr, wish.stderr
 
     decision = capture("DEC", {"title": "a decision", "context": "c", "decision": "d",
-                               "consequences": "x", "source": "s"})
+                               "consequences": "x", "source": "s", "work": "none"})
     assert decision.returncode != 0, decision.stdout + decision.stderr
 
     # ...and a work order, which never reaches `state.capture` at all. THE TEXT AND THE STORE ARE
@@ -477,7 +483,7 @@ def test_only_a_hole_can_be_filed_as_one_from_the_command_surface(tmp_path):
 TSK_FIELDS_FOR_HOLE_TEST = {
     "product_requirement": "PR-0001", "derives_from": "PR-0001", "type": "implementation",
     "assigned_role": "backend-developer", "acceptance_refs": ["AC-1"], "required_inputs": [],
-    "allowed_scope": ["src/**"], "forbidden_scope": [], "expected_outputs": [], "dependencies": []}
+    "allowed_scope": ["src/**"], "forbidden_scope": [], "expected_outputs": ["out"], "dependencies": []}
 
 
 def test_an_empty_store_does_not_empty_a_full_index(tmp_path):
@@ -491,10 +497,19 @@ def test_an_empty_store_does_not_empty_a_full_index(tmp_path):
     THE REFUSAL IS NARROW ON PURPOSE, and the other end is measured here too: an index that shrinks
     because a hole was ARCHIVED out of the active store is a legitimate rewrite and still goes
     through. What is refused is the one case where the new index is empty and the old one is not.
+
+    AND IT COUNTS UNLINKED ROWS, which is why the prose file of one hole is removed below before
+    the refusal is asked for. A row is only linked where its prose file exists (`_prose_link`), so
+    a reader that counted `| [H<n>](` rows would read a document of freshly captured holes as empty
+    and let the very loss through that this refusal exists for.
     """
     repo, state, doc = project(tmp_path)
     migrate_holes.migrate(state, doc, "PR-0001", apply=True)
+    os.remove(os.path.join(repo, "docs", "holes", "H2.md"))
+    lines, start, end = migrate_holes.read_section(doc)
+    migrate_holes._write_index(doc, lines, start, end, state, migrate_holes.DEFAULT_HOLES_DIR)
     full = io.open(doc, "rb").read()
+    assert b"| H2 |" in full and b"[H2](" not in full, "the premise of the unlinked row is gone"
     assert migrate_holes._index_row_count(
         migrate_holes.read_section(doc)[0][slice(*migrate_holes.read_section(doc)[1:])]) == 3
 
@@ -518,3 +533,41 @@ def test_an_empty_store_does_not_empty_a_full_index(tmp_path):
     lines, start, end = migrate_holes.read_section(doc)
     assert migrate_holes._index_row_count(lines[start:end]) == 3, (
         "an archived hole keeps its row -- the index reads the whole store")
+
+
+def test_a_hole_with_no_prose_file_is_a_row_without_a_link(tmp_path):
+    """The index links a number only where the prose file behind it EXISTS.
+
+    THE MEASURED DEFECT (2026-09-05, this repository's own document): only `migrate` writes a file
+    under `docs/holes/`; `capture --hole` writes an item and nothing else. The renderer linked every
+    row regardless, so from the first hole captured after the one-time migration the shipped index
+    pointed at nine files that had never been written (H166-H173). A pointer nobody can follow is
+    the class this repo keeps paying for, and the index is what a human opens.
+
+    BOTH DIRECTIONS, on ONE store, so neither half can be satisfied by the other: the migrated hole
+    keeps its link, the captured one loses it, and deleting the migrated hole's file takes its link
+    away on the next render -- the renderer asks the filesystem, it does not remember.
+    """
+    repo, state, doc = project(tmp_path)
+    migrate_holes.migrate(state, doc, "PR-0001", apply=True)
+    captured = state.capture("BUG", {
+        "title": "measured after the migration", "related_pr": "PR-0001", "observed": "o",
+        "expected": "e", "repro": "r", "severity": "low",
+        "acceptance_criteria": [{"id": "AC-1", "text": "t"}], HOLE_LIMIT_FIELD: "the lead reads it",
+    }, hole=True)
+    number = str(captured[HOLE_NUMBER_FIELD])
+    assert not os.path.isfile(os.path.join(repo, "docs", "holes", number + ".md")), (
+        "the capture door wrote a prose file after all -- this test's premise is gone")
+
+    migrate_holes.reindex(state, doc)
+    text = io.open(doc, encoding="utf-8").read()
+    assert "| [H1](docs/holes/H1.md) |" in text, "the migrated hole lost its link"
+    assert "| %s | %s |" % (number, captured["id"]) in text, text[-500:]
+    assert "docs/holes/%s.md" % number not in text, (
+        "the row links at a prose file nobody wrote: %s" % number)
+
+    os.remove(os.path.join(repo, "docs", "holes", "H1.md"))
+    migrate_holes.reindex(state, doc)
+    text = io.open(doc, encoding="utf-8").read()
+    assert "docs/holes/H1.md" not in text, "the link outlived the file it points at"
+    assert "| H1 |" in text, text[-500:]

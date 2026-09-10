@@ -101,6 +101,29 @@ HAND_BACK_LEAD = "lead"
 # grants nothing; `kernel.references` computes it from the task.
 REFERENCES_KEY = "references"
 
+# -- the model ladder (DEC-0034 rules 1-5, DEC-0047, DEC-0076, DEC-0077, DEC-0078) ---------------
+# The declaration a kit ships beside its constitution, and the store file the rung vocabulary and
+# its aliases live in. Both are read out of the KIT STORE through the same reading as the architect
+# step (`_the_kit_delivery_of_the_architect_step`): the scaffold record names the kit, the store
+# says what that kit ships. The derivation is `ladder_for_order`.
+LADDER_FILE = "ladder.yaml"
+TIERS_FILE = "model_tiers.yaml"
+# What the derivation writes: the two values on the lease, in the header and on the task item, and
+# the whole derivation beside them on the lease so a reader can see WHY (DEC-0077 (5)).
+RUNG_KEY = "rung"
+EFFORT_KEY = "effort"
+LADDER_KEY = "ladder"
+# The two words a class or an exception in the declaration may use instead of a rung name: the
+# kit's top rung, or the role's own pin.
+CLASS_TOP = "top"
+CLASS_PIN = "pin"
+# The goal class that switches the effort pair to its `large` value (DEC-0077 (1)). The field is
+# the root's `class`; which values exist is the schema's business, this names the one the rule reads.
+LARGE_CLASS = "large"
+# DEC-0034 rule 2, counted on the task: how many runs of this order ended in FAILED -- see
+# `count_failed_run_locked` for what counts and where it is counted.
+FAILED_RUNS = "failed_runs"
+
 
 class DispatchError(StateError):
     """Dispatch-gate violation -- fail-closed, message carries the remedy."""
@@ -425,6 +448,20 @@ def create_lease(state: ProjectState, task_id: str, ttl: float = DEFAULT_LEASE_T
             task.get("assigned_role"), task.get("type"))
         if reference_skills:
             lease[REFERENCES_KEY] = reference_skills
+        # ...AND THE RUNG AND EFFORT (DEC-0077 (2)), derived here for the fourth time for the same
+        # reason: this is the one moment a dispatch is composed, and the STATE decides -- the kit's
+        # declaration, the role's pin, the goal's class and how many runs of this order have failed.
+        # The failed run is counted first, on the task this lease is for, so a retry climbs
+        # (DEC-0034 rule 2). A refusal out of `ladder_for_order` leaves the count unwritten: the
+        # task is written once, below, and only when the lease is.
+        ladder = ladder_for_order(state, task, root, count_failed_run_locked(task))
+        lease[LADDER_KEY] = ladder
+        if RUNG_KEY in ladder:
+            lease[RUNG_KEY] = task[RUNG_KEY] = ladder[RUNG_KEY]
+            lease[EFFORT_KEY] = task[EFFORT_KEY] = ladder[EFFORT_KEY]
+        else:
+            task.pop(RUNG_KEY, None)
+            task.pop(EFFORT_KEY, None)
         state._write_yaml_atomic(lease_path, lease)
         task["status"] = LEASE_MINTED_STATUS
         task["leased_at"] = _now_iso()
@@ -463,17 +500,13 @@ def agents_dir(repo_root: str) -> str:
     return os.path.join(repo_root, AGENTS_DIR)
 
 
-def role_tools(definitions: str, role: str):
-    """The tools `role`'s definition grants, or None when it cannot be read.
+def _role_frontmatter(definitions: str, role: str):
+    """The YAML frontmatter of `role`'s definition in `definitions`, or None when it cannot be read.
 
-    `definitions` is the DIRECTORY the role definitions live in -- `agents_dir(repo_root)` in an
-    installed project, `<kit>/agents` for the shipped source, which is how the suite judges a kit
-    before anybody installs it.
-
-    None is NOT "no tools": it means the question could not be asked -- an uninstalled kit, a
-    role name nobody ships, a definition without frontmatter. Every caller has to distinguish
-    the two, because "this role has no shell" is a statement about a contract and "I could not
-    look" is a statement about this process.
+    ONE reader for the two questions asked of an installed role definition -- which tools it grants
+    (`role_tools`) and which model it pins (`role_pin`) -- so the two cannot answer differently
+    about what a readable definition is. None means the question could not be asked: an
+    uninstalled kit, a role name nobody ships, a definition without frontmatter.
     """
     import yaml
 
@@ -496,7 +529,38 @@ def role_tools(definitions: str, role: str):
         front = yaml.safe_load(text[3:end])
     except yaml.YAMLError:
         return None
-    if not isinstance(front, dict):
+    return front if isinstance(front, dict) else None
+
+
+def role_pin(definitions: str, role: str):
+    """The `model:` a role's installed definition pins, or None when it cannot be read or pins none.
+
+    The pin is the role's BASE on the ladder (DEC-0077 (1): the rung hangs on the role pin and the
+    kit endpoint). In an installed project the scaffold has already rewritten a tier alias to the
+    concrete name; in a kit's own source tree the alias still stands, and `ladder_for_order`
+    resolves it through the store's `model_tiers.yaml` rather than through a map kept here.
+    """
+    front = _role_frontmatter(definitions, role)
+    if front is None:
+        return None
+    pin = front.get("model")
+    return None if pin in (None, "") else str(pin)
+
+
+def role_tools(definitions: str, role: str):
+    """The tools `role`'s definition grants, or None when it cannot be read.
+
+    `definitions` is the DIRECTORY the role definitions live in -- `agents_dir(repo_root)` in an
+    installed project, `<kit>/agents` for the shipped source, which is how the suite judges a kit
+    before anybody installs it.
+
+    None is NOT "no tools": it means the question could not be asked -- an uninstalled kit, a
+    role name nobody ships, a definition without frontmatter. Every caller has to distinguish
+    the two, because "this role has no shell" is a statement about a contract and "I could not
+    look" is a statement about this process.
+    """
+    front = _role_frontmatter(definitions, role)
+    if front is None:
         return None
     granted = front.get("tools")
     if granted is None:
@@ -563,6 +627,13 @@ def dispatch_header(lease: dict) -> str:
     reference_skills = lease.get(REFERENCES_KEY)
     if reference_skills:
         body[REFERENCES_KEY] = reference_skills
+    # ...AND THE RUNG AND EFFORT THIS ORDER RUNS ON (DEC-0077 (5)), so the lead sees them where it
+    # copies the header from and the specialist sees what it was dispatched on. The same standing
+    # as the three above: `parse_header` does not read them, and what `validate_dispatch` compares
+    # is the LEASE, so an edited header changes nothing about the answer.
+    for key in (RUNG_KEY, EFFORT_KEY):
+        if lease.get(key):
+            body[key] = lease[key]
     return HEADER_PREFIX + json.dumps(body, sort_keys=True)
 
 
@@ -728,9 +799,51 @@ def reconcile_unstarted_dispatches(state: ProjectState) -> list:
     return released
 
 
+# The value `validate_dispatch` takes for `spawn_model` when the caller has NO spawn payload at all
+# (the entry point, the suite's library calls): then the rung is not held against a model nobody
+# named. A spawn that names no model passes `None`, which is a different answer -- see
+# `spawn_model_refusal`.
+NOT_A_SPAWN = object()
+
+
+def spawn_model_refusal(lease: dict, requested):
+    """None, or the sentence that refuses a spawn whose model is not the lease's rung (DEC-0077 (2)).
+
+    MEASURED 2026-09-05, both halves (project_memory/staging/TSK-0130/stream-protocol.md, AC-6):
+    the Agent tool's `tool_input` carries `model` when the lead passes it, and a child pinned
+    `sonnet` spawned with `model: opus` ran on opus. So the RUNG axis is enforceable at the spawn,
+    and this is where. The tool has no `effort` parameter (the same measurement), so that axis is
+    derived, written and shown -- never held; BUG-0251 carries what that costs.
+
+    THREE CASES: no rung on the lease (a kit-less project) -> nothing to hold; no `model` on the
+    spawn -> fine exactly when the rung IS the role's own pin, because the pin is what the child
+    runs on then; a `model` on the spawn -> it has to be the rung, spelled as the rung is (the
+    alias the platform reads, which is the same vocabulary the frontmatter pin uses).
+    `tools/test_ladder.py::test_a_spawn_below_the_lease_rung_is_refused_and_one_that_names_it_passes`
+    """
+    ladder = lease.get(LADDER_KEY)
+    if not isinstance(ladder, dict) or RUNG_KEY not in ladder:
+        return None
+    rung = ladder[RUNG_KEY]
+    if requested is None:
+        if ladder.get("base") == rung:
+            return None
+        return ("the lease for %s says rung %s but the spawn names no model, so the child would run "
+                "on the role's own pin (%s) -- the climb the state derived would not happen "
+                "(DEC-0077 (2), DEC-0034). Remedy: pass `model: %s` on the Agent call; the header "
+                "carries the value."
+                % (lease.get("task_id"), rung, ladder.get("pin"), rung))
+    if str(requested) != rung:
+        return ("the spawn names model %r but the lease for %s says rung %s -- dispatch blocked "
+                "(DEC-0077 (2): the rung is derived from the state, not chosen at the spawn). "
+                "Remedy: pass `model: %s`, or leave the parameter out when the rung is the role's "
+                "own pin." % (requested, lease.get("task_id"), rung, rung))
+    return None
+
+
 def validate_dispatch(state: ProjectState, header: dict, subagent_type: str,
                       claim: bool = False, prompt_id: str = None,
-                      session_id: str = None) -> dict:
+                      session_id: str = None, spawn_model=NOT_A_SPAWN) -> dict:
     """The full gate-layer-2 check (spec II.4), re-run at SPAWN time.
 
     `create_lease` checked the same ground when the lease was made, but that was
@@ -795,6 +908,7 @@ def validate_dispatch(state: ProjectState, header: dict, subagent_type: str,
             )
         _assert_dispatch_authorised_locked(state, task, root)
         _assert_the_architect_step_happened_locked(state, task, root)
+        _assert_the_ladder_answer_holds_locked(state, task, root, lease)
         _assert_dependencies_met_locked(state, task)
         if task.get("blocked_by"):
             raise DispatchError(
@@ -872,6 +986,12 @@ def validate_dispatch(state: ProjectState, header: dict, subagent_type: str,
                     "promotion path, or correct %s's design_refs."
                     % (root["id"], ", ".join(missing), root["id"])
                 )
+        # THE MODEL THE SPAWN NAMES, held against the rung LAST and before the claim, so a refusal
+        # here spends nothing: the lead corrects the Agent call and the same lease serves.
+        if spawn_model is not NOT_A_SPAWN:
+            refusal = spawn_model_refusal(lease, spawn_model)
+            if refusal:
+                raise DispatchError(refusal)
         if claim:
             lease["dispatched_at"] = _now_iso()
             _open_bind_window(lease, prompt_id, session_id)
@@ -2234,6 +2354,340 @@ def _assert_the_architect_step_happened_locked(state: ProjectState, task: dict, 
         % (task["id"], root["id"], root.get("class"), ARCHITECT_STEP_TYPE, accepted,
            ARCHITECT_STEP_TYPE, root["id"], accepted, ", ".join(sorted(SR_EXEMPT_CLASSES)))
     )
+
+
+# -- the model ladder: rung and effort derived from the state ------------------------------------
+
+def kit_installation(state: ProjectState):
+    """(kit, kit_dir) for the kit this project runs, None when NO scaffold record exists at all.
+
+    THE SAME READING AS THE ARCHITECT STEP (`_the_kit_delivery_of_the_architect_step`, DEC-0079):
+    the scaffold's ownership record names the kit, the kit store says what that kit ships. The
+    difference is what the three unreadable cases mean for a ladder, and it is drawn at the FILE:
+      * no record file at all -> None. No kit installed this project; the kernel is being driven
+        directly, as this repository drives its own state and as every suite fixture does. There
+        is no declaration to read and the kernel invents none (DEC-0078 (4) forbids a default).
+      * a record file that is present but unreadable, or a kit the store this process reads does
+        not hold -> REFUSED. A project that WAS scaffolded has a ladder somewhere; not finding it is
+        the fail-closed direction of DEC-0079 (4), stated in the remedy.
+    `tools/test_ladder.py::test_a_project_without_a_scaffold_record_gets_no_rung_and_no_refusal`
+    `tools/test_ladder.py::test_a_record_that_is_present_but_unreadable_is_refused_not_ignored`
+    """
+    from . import presets
+
+    repo = os.path.dirname(os.path.abspath(state.root))
+    if not os.path.exists(os.path.join(repo, presets.ROLES_MANIFEST)):
+        return None
+    try:
+        kit = presets.installation(repo)["kit"]
+    except Exception as exc:  # noqa: BLE001 -- the record's own refusal, in the dispatch vocabulary
+        raise DispatchError(
+            "this project's scaffold record (%s) is present but cannot be read, so which kit's "
+            "ladder applies to this order could not be decided -- dispatch blocked (DEC-0079 (4): "
+            "unreadable means asked, not skipped). The record's own reason: %s"
+            % (presets.ROLES_MANIFEST.replace(os.sep, "/"), exc)) from None
+    try:
+        directory = presets.kit_dir(kit)
+    except Exception as exc:  # noqa: BLE001 -- the store's own refusal, same vocabulary
+        raise DispatchError(
+            "the kit %r this project records is not in the kit store this process reads (%s), so "
+            "its ladder declaration could not be read -- dispatch blocked (DEC-0079 (4)). The kit "
+            "store is the RUNNING home directory's, so a project moved to another machine or "
+            "account needs its kit staged there. The store's own reason: %s"
+            % (kit, presets.staging_root(), exc)) from None
+    return kit, directory
+
+
+def _read_yaml_mapping(path: str, what: str) -> dict:
+    """A YAML mapping off disk, or a DispatchError naming what could not be read."""
+    import yaml
+
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = yaml.safe_load(handle)
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+        raise DispatchError("%s could not be read (%s: %s) -- dispatch blocked rather than guessed "
+                            "at. Remedy: repair the file in the kit store and restage the kit."
+                            % (what, exc.__class__.__name__, exc)) from None
+    if not isinstance(data, dict):
+        raise DispatchError("%s is not a YAML mapping -- dispatch blocked rather than guessed at. "
+                            "Remedy: repair the file in the kit store and restage the kit." % what)
+    return data
+
+
+# The keys a per-role exception may carry (DEC-0078 (3): "named exceptions"): a different endpoint
+# for that role, a fixed effort that replaces the pair, a fixed start that replaces class and pin.
+EXCEPTION_KEYS = frozenset((CLASS_TOP, EFFORT_KEY, RUNG_KEY))
+
+
+def _valid_ladder(kit: str, raw: dict) -> dict:
+    """The declaration with every field checked, or a refusal naming the field (DEC-0078 (4)).
+
+    Checked at the LEASE and not once at install, because the store is the running home
+    directory's and a kit restaged in between is exactly the case that would otherwise carry a
+    broken declaration into a dispatch. A refusal names the field so the remedy is a line, not a
+    search. `tools/test_ladder.py::test_a_malformed_declaration_names_the_field_it_refuses` walks
+    one mutation per rule below.
+    """
+    def refuse(why):
+        raise DispatchError(
+            "%s of kit %r %s -- dispatch blocked rather than guessed at (DEC-0078 (4): the kernel "
+            "carries no ladder of its own to fall back on). Remedy: correct the declaration in the "
+            "kit store and restage the kit." % (LADDER_FILE, kit, why))
+
+    rungs = raw.get("rungs")
+    if (not isinstance(rungs, list) or not rungs
+            or not all(isinstance(rung, str) and rung for rung in rungs)
+            or len(set(rungs)) != len(rungs)):
+        refuse("needs `rungs:` as a non-empty list of distinct names, low to high")
+    top = raw.get(CLASS_TOP)
+    if top not in rungs:
+        refuse("names a `top:` (%r) that is not one of its rungs" % (top,))
+    effort = raw.get(EFFORT_KEY)
+    if (not isinstance(effort, dict)
+            or not all(isinstance(effort.get(key), str) and effort.get(key)
+                       for key in ("default", LARGE_CLASS))):
+        refuse("needs `effort:` with a `default` and a `%s` value" % LARGE_CLASS)
+    escalation = raw.get("escalation")
+    per_rung = escalation.get("failed_runs_per_rung") if isinstance(escalation, dict) else None
+    if isinstance(per_rung, bool) or not isinstance(per_rung, int) or per_rung < 1:
+        refuse("needs `escalation.failed_runs_per_rung:` as a whole number of at least 1 "
+               "(DEC-0034 rule 2)")
+    classes = raw.get("classes")
+    if not isinstance(classes, dict) or not classes:
+        refuse("needs `classes:` -- the rung each role class starts on (DEC-0034 rules 1/4/5)")
+    for name, start in classes.items():
+        if start not in (CLASS_TOP, CLASS_PIN) and start not in rungs:
+            refuse("gives class %r the start %r, which is neither `%s`, `%s` nor one of its rungs"
+                   % (name, start, CLASS_TOP, CLASS_PIN))
+    roles = raw.get("roles")
+    if not isinstance(roles, dict) or not roles:
+        refuse("needs `roles:` -- every spawnable role of the kit and its class")
+    for role, name in roles.items():
+        if name not in classes:
+            refuse("gives role %r the class %r, which `classes:` does not declare" % (role, name))
+    exceptions = raw.get("exceptions")
+    exceptions = {} if exceptions is None else exceptions
+    if not isinstance(exceptions, dict):
+        refuse("needs `exceptions:` as a mapping of role -> rule (or an empty mapping)")
+    for role, rule in exceptions.items():
+        if role not in roles:
+            refuse("excepts role %r, which `roles:` does not list" % (role,))
+        if not isinstance(rule, dict) or not rule or set(rule) - EXCEPTION_KEYS:
+            refuse("excepts role %r with keys other than %s"
+                   % (role, ", ".join(sorted(EXCEPTION_KEYS))))
+        for key in (CLASS_TOP, RUNG_KEY):
+            if key in rule and rule[key] not in rungs:
+                refuse("excepts role %r with a `%s` (%r) that is not one of its rungs"
+                       % (role, key, rule[key]))
+        if EFFORT_KEY in rule and not (isinstance(rule[EFFORT_KEY], str) and rule[EFFORT_KEY]):
+            refuse("excepts role %r with an `%s` that is not a name" % (role, EFFORT_KEY))
+    return {
+        "rungs": [str(rung) for rung in rungs],
+        CLASS_TOP: str(top),
+        EFFORT_KEY: {"default": str(effort["default"]), LARGE_CLASS: str(effort[LARGE_CLASS])},
+        "failed_runs_per_rung": int(per_rung),
+        "classes": {str(name): str(start) for name, start in classes.items()},
+        "roles": {str(role): str(name) for role, name in roles.items()},
+        "exceptions": {str(role): dict(rule) for role, rule in exceptions.items()},
+    }
+
+
+def ladder_declaration(state: ProjectState):
+    """(kit, validated declaration) for the kit this project runs, or None for a kit-less project.
+
+    A kit that is known and ships no `ladder.yaml` is REFUSED here with the sentence DEC-0078 (4)
+    asks for; the kit-less case is `kit_installation`'s None and is answered by the caller.
+    `tools/test_ladder.py::test_a_kit_without_a_ladder_declaration_is_refused_at_dispatch`
+    """
+    found = kit_installation(state)
+    if found is None:
+        return None
+    kit, directory = found
+    path = os.path.join(directory, LADDER_FILE)
+    if not os.path.isfile(path):
+        raise DispatchError(
+            "kit %r declares no model ladder: there is no %s in its store copy at %s. Every kit "
+            "declares its own ladder -- rungs, endpoints, effort pair, named exceptions -- and the "
+            "kernel carries none of its own, so no order of this kit is dispatched until it does "
+            "(DEC-0078 (4)). Remedy: ship %s beside the kit's constitution (dev-team's is the "
+            "shape), restage the kit, then dispatch again." % (kit, LADDER_FILE, directory, LADDER_FILE))
+    return kit, _valid_ladder(kit, _read_yaml_mapping(path, "%s of kit %r" % (LADDER_FILE, kit)))
+
+
+def _store_aliases(kit_directory: str) -> dict:
+    """alias -> rung name out of the store's `model_tiers.yaml` (the store is the kit's parent).
+
+    Read only when a pin is not already a rung name -- an installed project's frontmatter is
+    alias-free after the scaffold's rewrite, a kit's own source tree is not.
+    """
+    data = _read_yaml_mapping(os.path.join(os.path.dirname(kit_directory), TIERS_FILE),
+                              "%s in the kit store" % TIERS_FILE)
+    aliases = data.get("aliases")
+    return ({str(alias): str(rung) for alias, rung in aliases.items()}
+            if isinstance(aliases, dict) else {})
+
+
+def count_failed_run_locked(task: dict) -> int:
+    """`FAILED_RUNS` of this order after counting the run that ended before this lease.
+
+    Mutates `task` and returns the count; the caller holds the lock and writes the task with the
+    lease. WHAT COUNTS AS A FAILED RUN is derived from the automaton and not recorded where FAILED
+    is written: a task that is READY again while carrying a `started` stamp has been through
+    FAILED since, because the TSK automaton offers IN_PROGRESS no way back to READY except through
+    FAILED -- `tools/test_ladder.py::test_every_way_from_a_started_run_back_to_ready_passes_failed`
+    derives that from `AUTOMATA` so a changed edge set turns it red. Counting here rather than at
+    the write is what makes the count independent of WHO wrote FAILED (`submit_result`, the orphan
+    sweep, or a `transition` by hand -- three writers, one reader).
+
+    THE STAMP IS CONSUMED, not remembered: a new lease is a new dispatch (the same reason
+    `create_lease` drops `CHILD_ENDED`), `spawn_outcome` stamps the next run's own start, and a
+    lease that produced no child (LEASED -> READY) leaves no stamp behind to count. A first cut
+    remembered the stamp it had counted and compared the next one against it -- and `_now_iso` has
+    seconds, so two runs inside one second read as one and the second FAILED did not climb
+    (measured red in `test_an_exception_moves_one_roles_top_and_the_climb_stops_there`). Nothing in
+    the kernel or the kits reads `started` back (grep 2026-09-05); the moment the run began stays
+    on the lease's `dispatched_at` and in the audit trail.
+    `tools/test_ladder.py::test_a_lease_that_produced_no_child_counts_no_failed_run`
+    """
+    count = int(task.get(FAILED_RUNS) or 0)
+    if task.pop("started", None):
+        count += 1
+    task[FAILED_RUNS] = count
+    return count
+
+
+def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: int) -> dict:
+    """The rung and effort THIS order runs on, from the kit's declaration and the state (DEC-0077).
+
+    TWO AXES, derived and never chosen by hand:
+      * the RUNG hangs on the role's pin and the kit's endpoints (DEC-0077 (1), DEC-0047): the
+        role's class decides the rung it STARTS on -- `top` for planning and architecture (DEC-0034
+        rule 1), a named floor for design and QA (rules 4/5), the pin for the build -- and a class
+        floor never LOWERS a pin; after that every `failed_runs_per_rung` failed runs of this order
+        climb one rung (rule 2), capped at the role's top. THE TOP DOES CAP DOWNWARDS, and that is
+        the one place a pin can be lowered: a kit whose `top` (or whose per-role `top` exception)
+        lies BELOW a role's pin dispatches that role on the top, not on its pin. No shipped kit
+        does that today and the answer is not silent -- the lease's `why` names both, and
+        `tools/test_ladder.py::test_a_top_below_a_pin_lowers_it_and_the_answer_says_so` reads it --
+        but a hand-written `model_map` reaches the case, so it is written here rather than
+        discovered. Rule 3 (the fall back after the risky
+        phase, a CR lifting the architecture back up for that CR) needs no state of its own: the
+        rung is derived per ORDER at every lease and stored nowhere else, and an architecture-class
+        order under a CR starts on the top rung like any other.
+      * the EFFORT hangs on the goal: the pair's `large` value when the root's `class` is
+        `LARGE_CLASS`, its `default` otherwise, unless the role's exception fixes one (the office
+        filing floor, DEC-0047).
+    A kit-less project (no scaffold record) gets `{"absent": why}` and the role runs on its own
+    pin; every other failure to read is a refusal, never a guess (DEC-0078 (4)).
+    `tools/test_ladder.py` holds one red-first test per rule named above.
+    """
+    found = ladder_declaration(state)
+    if found is None:
+        from .presets import ROLES_MANIFEST
+
+        return {"absent": "no scaffold record (%s) names a kit for this project, so there is no "
+                          "ladder declaration to read; the role runs on its own pin"
+                          % ROLES_MANIFEST.replace(os.sep, "/")}
+    kit, ladder = found
+    role = str(task.get("assigned_role") or "")
+    role_class = ladder["roles"].get(role)
+    if role_class is None:
+        raise DispatchError(
+            "role %r has no class in %s of kit %r, so the rung it starts on cannot be derived -- "
+            "dispatch blocked (DEC-0034 rules 1/4/5 hang on the class; DEC-0078 (4)). Remedy: list "
+            "the role under `roles:` in the kit's declaration with one of its classes (%s) and "
+            "restage the kit." % (role, LADDER_FILE, kit, ", ".join(sorted(ladder["classes"]))))
+    definitions = agents_dir(os.path.dirname(os.path.abspath(state.root)))
+    pin = role_pin(definitions, role)
+    if pin is None:
+        raise DispatchError(
+            "the installed definition of role %r (%s) could not be read or pins no `model:`, so the "
+            "rung cannot be derived from it -- dispatch blocked (DEC-0077 (1): the rung hangs on "
+            "the role pin). Remedy: restore the role file the scaffold installs, or re-run the "
+            "scaffold." % (role, os.path.join(definitions, role + ".md").replace(os.sep, "/")))
+    rungs = ladder["rungs"]
+    base = pin if pin in rungs else _store_aliases(os.path.dirname(os.path.join(
+        kit_installation(state)[1], LADDER_FILE))).get(pin)
+    if base not in rungs:
+        raise DispatchError(
+            "role %r pins %r, which is neither a rung of kit %r's ladder (%s) nor an alias %s "
+            "resolves to one -- dispatch blocked (DEC-0076: three rungs, named by the reference "
+            "vocabulary). Remedy: pin the role to one of the rungs or to an alias of one."
+            % (role, pin, kit, ", ".join(rungs), TIERS_FILE))
+    exception = ladder["exceptions"].get(role, {})
+    top = str(exception.get(CLASS_TOP, ladder[CLASS_TOP]))
+    if RUNG_KEY in exception:
+        start = str(exception[RUNG_KEY])
+        start_why = "the exception fixes the start"
+    else:
+        rule = ladder["classes"][role_class]
+        floor = top if rule == CLASS_TOP else base if rule == CLASS_PIN else rule
+        start = rungs[max(rungs.index(base), rungs.index(floor))]
+        start_why = "class %s starts on %s" % (role_class, rule)
+    climbed = rungs.index(start) + int(failed_runs) // ladder["failed_runs_per_rung"]
+    chosen = rungs[min(climbed, rungs.index(top))]
+    goal_class = str(root.get("class") or "")
+    if EFFORT_KEY in exception:
+        effort, effort_why = str(exception[EFFORT_KEY]), "the exception fixes it"
+    elif goal_class == LARGE_CLASS:
+        effort, effort_why = ladder[EFFORT_KEY][LARGE_CLASS], "the goal's class is %s" % LARGE_CLASS
+    else:
+        effort, effort_why = ladder[EFFORT_KEY]["default"], (
+            "the goal's class is %s" % goal_class if goal_class else "the goal carries no class")
+    return {
+        RUNG_KEY: chosen,
+        EFFORT_KEY: effort,
+        "kit": kit,
+        "role_class": role_class,
+        "pin": pin,
+        "base": base,
+        "start": start,
+        "failed_runs": int(failed_runs),
+        CLASS_TOP: top,
+        "goal_class": goal_class or None,
+        "why": "%s: pin %s, %s, %d failed run(s), top %s; effort %s: %s"
+               % (chosen, pin, start_why, int(failed_runs), top, effort, effort_why),
+    }
+
+
+def ladder_line(lease: dict) -> str:
+    """The lease's ladder answer as one line for a human -- the `dispatch` command's stderr."""
+    ladder = lease.get(LADDER_KEY)
+    if not isinstance(ladder, dict):
+        return "ladder: no answer on this lease (minted before the rule; a new lease carries one)"
+    if "absent" in ladder:
+        return "ladder: no rung -- %s" % ladder["absent"]
+    return "ladder: rung %s, effort %s (%s)" % (ladder[RUNG_KEY], ladder[EFFORT_KEY], ladder["why"])
+
+
+def _assert_the_ladder_answer_holds_locked(state: ProjectState, task: dict, root: dict,
+                                           lease: dict) -> None:
+    """The rung and effort the lease carries are what the state says NOW (DEC-0077 (2)).
+
+    Re-derived at the SPAWN the way the approval, the architect step and the dependencies are, so a
+    declaration restaged, a role re-pinned or a goal re-classed between lease and spawn does not
+    carry a stale answer into the child. The failed-run count is the task's, already counted at the
+    lease; nothing is counted here. A lease minted before this rule carries no answer at all and is
+    refused for the same reason: a new lease costs a command, a stale answer costs the rung.
+    `tools/test_ladder.py::test_an_answer_that_moved_between_lease_and_spawn_is_refused`
+    """
+    now = ladder_for_order(state, task, root, int(task.get(FAILED_RUNS) or 0))
+    was = lease.get(LADDER_KEY)
+    if not isinstance(was, dict):
+        raise DispatchError(
+            "the lease for %s carries no ladder answer (minted before the rule), so what the child "
+            "would run on cannot be compared with what the state says -- dispatch blocked. Remedy: "
+            "`python scripts/harness.py sweep-leases` once it has expired, or wait it out, then "
+            "dispatch again; the new lease carries the answer." % task["id"])
+    if (was.get(RUNG_KEY), was.get(EFFORT_KEY), "absent" in was) != (
+            now.get(RUNG_KEY), now.get(EFFORT_KEY), "absent" in now):
+        raise DispatchError(
+            "the ladder's answer for %s moved between lease and spawn: the lease says %s, the "
+            "state now says %s -- dispatch blocked (DEC-0077 (2): rung and effort are derived from "
+            "the state at the spawn, never carried over). Remedy: wait out or sweep the lease and "
+            "dispatch again; the new lease carries the current answer."
+            % (task["id"], ladder_line({LADDER_KEY: was}), ladder_line({LADDER_KEY: now})))
 
 
 def _assert_dispatch_authorised_locked(state: ProjectState, task: dict, root: dict) -> None:

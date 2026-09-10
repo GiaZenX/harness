@@ -1,0 +1,37 @@
+id: BUG-0252
+title: 'The office `large` effort (DEC-0078 (2): `high` when the goal''s class is
+  large) is unreachable: a `PROC` root carries no `class` field, so every office order
+  gets the default (new, TSK-0130, PR-0010 AC-6)'
+related_pr: PR-0010
+severity: low
+observed: '**Mechanism.** `kernel.dispatch.ladder_for_order` reads the root''s `class`
+  and switches the effort pair to its `large` value when it is `large` (`dispatch.LARGE_CLASS`).
+  `backlog_types.REQUIRED_FIELDS[''PROC'']` is `title`, `steps`, `roles` -- no `class`
+  -- and the office kit''s root type is `PROC`. MEASURED 2026-09-05 22:01 on the scaffolded
+  office pilot (rig `_round-scratch/TSK-0130/pilot_rig.py`): every office order''s
+  ladder answer reads `effort medium: the goal carries no class`; `high` is reachable
+  only under a goal type that has the field, which the office kit does not use as
+  a root.'
+expected: Either `PROC` gains a `class` field through its own contract decision (a
+  DEC, since it widens the type), or DEC-0078's office effort pair is recorded as
+  a single value until it does.
+repro: 'Scaffold office-team, `capture PROC` with title/steps/roles, create and ready
+  an order, `python scripts/harness.py ladder TSK-0001` -> `"effort": "medium", "goal_class":
+  null` (pilot log `_round-scratch/TSK-0130/pilot_rig.log.json`, office-team).'
+acceptance_criteria:
+- id: AC-1
+  text: a DEC decides whether PROC carries a class; if yes, the contract, the office
+    skill and the ladder's `large` branch are measured on an office pilot with a large
+    PROC
+- id: AC-2
+  text: until then the office ladder.yaml comment and the office constitution say
+    the value is unreachable (today they do)
+limits: the default (`medium`) is the value DEC-0078 named for ordinary office work,
+  so nothing runs too high; the office declaration and constitution state the gap
+  in their own words
+regression_tests: []
+hole_number: H170
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-05T22:20:23'

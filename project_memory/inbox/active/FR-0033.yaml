@@ -19,4 +19,6 @@ created: '2026-08-15T23:03:40'
 triage_result: 'USER VERDICT 2026-09-02 (FR survey, asked one by one via AskUserQuestion):
   Spaeter -- outbox/ is the shared outgoing tray for every role (clarified); the invoice
   WRITER became FR-0073.'
-related_pr: PR-0003
+related_pr: PR-0009
+source: 'RE-POINTED 2026-09-06 (TSK-0131, PR-0008 AC-2): PR-0009''s own title names
+  this wish as its subject (the correspondence capability). The status waits for G5-3.'

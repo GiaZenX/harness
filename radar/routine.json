@@ -1,0 +1,19 @@
+{
+  "desktop_tasks": [
+    {
+      "kind": "desktop_task",
+      "watcher": "radar-watcher",
+      "path": "~/.claude/scheduled-tasks/radar-watcher/SKILL.md",
+      "schedule": {
+        "day": "friday",
+        "time_local": "~20:00",
+        "as_told_by": "the user, 2026-09-06 (DEC-0089); the task was created by this repository's session agent on 2026-06-30 and delegates to .claude/agents/radar-watcher.md",
+        "source": "DEC-0089; radar/ file mtimes 2026-07-17 20:10, 07-24 20:12, 07-31 20:16, 08-07 20:47, 08-21 20:16, 08-28 20:12 (Fridays) and 08-16 20:25 (a Sunday catch-up run)"
+      },
+      "first_measured_report": "2026-07-17",
+      "last_measured_report": "2026-08-28",
+      "recorded": "2026-09-06"
+    }
+  ],
+  "recorded_by": "the generation-5 merge (TSK-0133) from DEC-0089's measurement; the codex half is added by the lead once the user has created its task in the Desktop app (Saturday ~20:00, DEC-0089 (1))"
+}

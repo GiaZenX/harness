@@ -1,0 +1,45 @@
+id: BUG-0262
+title: Ein zweiter Zeitmess-Test faellt auf einem beschaeftigten Host rot statt zu
+  ueberspringen -- dieselbe Klasse wie BUG-0033, anderer Test
+related_pr: PR-0008
+observed: 'MEASURED 2026-09-06 (TSK-0131) in the reading-suite run of this stream:
+  `tools/test_hooks_v2.py::test_the_id_scan_is_linear_on_the_worst_legal_input` FAILED
+  inside a 31m56s run of tools/test_hooks.py + tools/test_hooks_v2.py -- ''the scan
+  at 51200 B costs 0.205 s and its two series were only stable to 0.052 s, so this
+  difference is the host and no ratio over it means anything'' (0.2055 > 5 * 0.0523).
+  Re-run SOLO on the same tree minutes later: 1 passed in 7.54s. The tree is b7f282e
+  plus this stream''s changes, none of which touch that test or the hook it measures
+  (the only edit to that file in this stream removes an `assert ... or True` line
+  elsewhere). The test''s own docstring states this behaviour on purpose -- ''where
+  it does not, this FAILS with that reading instead of asserting on noise'' -- so
+  the code and the claim agree; what does not agree is BUG-0033''s AC-2, which asks
+  that ''host too noisy'' and ''code too slow'' produce DISTINGUISHABLE outcomes.
+  Here both are a red, and only the message tells them apart.'
+expected: A stability reading that cannot be taken produces an explicit SKIP naming
+  the two figures, not a failure -- the shape BUG-0033 gave the two gate-timing tests.
+  Then a red from this test means one thing, and a merge's full run is not red because
+  something else was running.
+repro: 'Run tools/test_hooks.py and tools/test_hooks_v2.py together on this host,
+  or start any second load; the assertion at tools/test_hooks_v2.py:9296 fires. Run
+  the node alone on an idle host: it passes in ~7.5 s.'
+severity: low
+limits: 'What takes the place of it: the failure message NAMES the two measurements
+  and says in its own words that the difference is the host, so a reader who sees
+  it is not misled -- the cost is a red in a delivery run that has to be re-run solo,
+  not a wrong verdict. This stream did not change the test: it is pre-existing at
+  b7f282e, its docstring and its code agree, and rewriting a timing rule of another
+  goal''s file inside this one would be the unrequested change DEC-0070 warns about.
+  Re-measured 2026-09-06: solo 1 passed in 7.54 s, inside a 31m56s two-suite run 1
+  failed.'
+acceptance_criteria:
+- id: AC-1
+  text: A host whose jitter swallows the measurement produces a skip that names both
+    figures, and a red from this test means only 'the scan is not linear'
+- id: AC-2
+  text: The same reading is used by every timing test of this suite family, so the
+    shape is one rule and not three
+hole_number: H180
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-06T00:21:21'

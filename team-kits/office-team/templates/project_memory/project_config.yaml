@@ -14,10 +14,15 @@ project:
 # platform; Codex is BETA (one-time project trust + /hooks trust required).
 providers: [claude, codex]
 
-# Model ladder: haiku < sonnet < opus. Specialists DEFAULT to sonnet. Up-scaling needs user
-# confirmation; down-scaling the manager MAY do itself but MUST report it with a reason.
-# Tier aliases: `lead`/`worker`/`light` are accepted as values (= opus/sonnet/haiku on Claude);
-# provider generators translate tiers to the concrete model via team-kits/model_tiers.yaml.
+# Three rungs, sonnet < opus < fable (DEC-0076); this kit's own ladder is `ladder.yaml` beside its
+# constitution, and its top rung is opus for every role but the office-developer (DEC-0078).
+# Specialists DEFAULT to sonnet. Accepted values: the aliases `lead`/`worker` (= opus/sonnet on
+# Claude), the rung names, or the top-rung pin `fable`; `light`/haiku are retired and the generator
+# refuses them with a sentence naming DEC-0076. Provider generators translate a value to the
+# concrete model via team-kits/model_tiers.yaml. What is pinned here is the rung an order STARTS
+# on; which rung it RUNS on is derived by the kernel at every dispatch (constitution §7, the ladder
+# paragraph -- DEC-0077/DEC-0078). Down-scaling the manager MAY do itself but MUST report it with a
+# reason; growing the team stays user-confirmed.
 # The manager is the FOREGROUND agent on opus (kit settings + frontmatter) — NOT listed here.
 # The scaffold re-stamps each installed agent's model:/effort: from these maps on every update;
 # session_status nags on drift. Keys cover the FULL roster — entries for roles the preset did not
@@ -38,8 +43,12 @@ model_map:
   project-auditor: worker
 
 # Reasoning effort per specialist (low | medium | high | xhigh | max). Default high. FACTS
-# (official effort doc, verified 2026-07): haiku has NO effort parameter; Sonnet 5 supports xhigh
-# AND max. Escalation ladder (user-confirmed): sonnet-high -> sonnet-xhigh -> opus-high -> opus-xhigh/max.
+# (official effort doc, verified 2026-07): Sonnet 5 supports xhigh AND max. The ladder DERIVES an
+# effort per order as well (`ladder.yaml`: medium, high for a `large` goal) and shows it on the
+# lease and in the brief -- but what a child RUNS on is the value stamped from THIS map, because
+# the platform has no per-spawn effort parameter (measured 2026-09-05, BUG-0251: the stamped
+# `high` and the declared `medium` disagree today). There is no user-gated escalation ladder any
+# more (DEC-0077).
 # THE FILING PAIR IS THE ONE EXCEPTION AND IT IS A USER DECISION, not a saving found here: DEC-0047
 # gives the DEC-0034 ladder per-kit endpoints and puts the clerk+reviewer pipeline BELOW the dev
 # floor at `low`, because two roles read every document and gate_filing still refuses every move no

@@ -26,8 +26,18 @@ expected: The hosted CI either runs the suite in a way that measures what the su
   the reason -- never as red. A green local delivery and a red hosted run for pure
   environment reasons is a standing false alarm; three pushes of it trains the user
   to ignore CI, which is the worst state a check can reach.
-repro: Push any commit to feat/harness-v2; gh run list shows conclusion failure on
-  both platforms; gh run view <id> --log-failed shows the classes above.
+repro: 'Push any commit to feat/harness-v2; `gh run list --branch feat/harness-v2`
+  shows the conclusion. RE-MEASURED 2026-09-05 (TSK-0131) on the run of b7f282e, gh
+  run 33985882966: still `failure`, but 1 failed on windows-latest and 2 on ubuntu-latest
+  instead of 6/34 plus ~250 ERRORS -- the shallow-clone, cross-drive and recursion-depth
+  classes of the original observation are gone. What is left, and both are repaired
+  in TSK-0131: tools/test_repo_hygiene.py::test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole
+  (its two subjects were migrated away by TSK-0126 in the same commit; red locally
+  too), and ubuntu-only tools/test_hooks.py::test_gate_test_scope_says_so_when_it_cannot_place_a_target_at_all
+  (a Windows drive shape asserted on a host that has no drives; now an explicit skip
+  that names its reason, which is this bug''s own AC-1). THE ONE LINE THAT WAITS:
+  the hosted run of the commit that merges generation 5 -- nothing local can answer
+  for a hosted runner.'
 severity: medium
 acceptance_criteria:
 - id: AC-1

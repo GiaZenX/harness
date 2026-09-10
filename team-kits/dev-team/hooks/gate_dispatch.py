@@ -224,9 +224,14 @@ def handle_pre_tool_use(data):
         # nothing can be behind any more (DEC-0044; `dispatch.DISPATCHING_SESSION`). It is recorded
         # at the CLAIM because that is the moment a child is asked for -- and the key is one the
         # provider was measured to send on this event (`tools/provider_observations.json`).
+        # `model` is the one spawn parameter that decides which RUNG the child runs on (measured
+        # 2026-09-05: it arrives here when the lead passes it, and it overrides the role's pin);
+        # the kernel holds it against the rung the lease derived -- `dispatch.spawn_model_refusal`
+        # says when its absence is fine and when it is not.
         dispatch.validate_dispatch(state, header, tool_input.get("subagent_type"), claim=True,
                                    prompt_id=data.get("prompt_id"),
-                                   session_id=data.get("session_id"))
+                                   session_id=data.get("session_id"),
+                                   spawn_model=tool_input.get("model"))
     except dispatch.DispatchError as exc:
         _kernel.block(HOOK, "specialist spawn refused.\n%s" % exc, event="PreToolUse")
     sys.exit(0)

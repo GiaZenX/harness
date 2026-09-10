@@ -1,0 +1,55 @@
+{
+  "proposal": "dec-trigger",
+  "item": "TSK-0130",
+  "goal": "PR-0010 AC-1 (FR-0088): the mechanism that starts BOTH watchers weekly without a human -- decided DEC-first, built and measured end to end after the user's answer",
+  "asked_of": "the user, through the harness-lead (AskUserQuestion), one question with two options; the stream works on AC-3/AC-4/AC-6/AC-7 while it waits",
+  "measured_state_2026-09-05": {
+    "reports": "radar/ holds dated reports back to 2026-07-03 (the first two predate the split into two watchers and carry no suffix), every one of them started by a person; the COUNT is not written here because it grows -- `python tools/radar_routine.py --describe` gives it -- counted by `python tools/radar_routine.py --describe`, never written into prose again: the first version of this line said '12 claude reports and 1 codex report', which was wrong in both halves and would have been wrong again a week later (corrected 2026-09-06, finding F3 of the round-1 verification). No mechanism has ever started a run: radar/2026-09-05-codex.md 'Repo health' states it, project_memory/staging/generation-4-streams.md line 579 measured 'CronList in this session: no scheduled jobs'",
+    "claims_without_mechanism": "radar/README.md line 3 ('A scheduled watcher duo runs once a week'), .claude/agents/radar-watcher.md lines 8/11/18 and .claude/agents/codex-watcher.md lines 9/12/19 ('Triggered by the weekly schedule', 'Runs on the weekly schedule', 'You run weekly') -- read 2026-09-05 21:2x",
+    "host": "Windows 11 Pro 10.0.26200, PowerShell 5.1.26100.9168, claude 2.1.258 at C:\\Users\\zenti\\.local\\bin\\claude.exe; 209 scheduled tasks registered, none matching radar|codex|watcher|harness|claude (Get-ScheduledTask, 21:1x); the Codex CLI is NOT installed on this host (`codex` not on PATH, no npm global), though ~/.codex/config.toml exists"
+  },
+  "alternatives": [
+    {
+      "id": "A",
+      "name": "lead session-start routine",
+      "what": "the harness-lead checks at every session start whether a watcher report is older than seven days and, if so, spawns the watcher(s) as the first act of the session (a duty in .claude/agents/harness-lead.md, optionally backed by a SessionStart hook line in .claude/settings.json that prints the due state)",
+      "measured": {
+        "surface": "both files that would carry it -- .claude/agents/harness-lead.md and .claude/settings.json -- are in TSK-0130's forbidden_scope (harness-*.md is G5-1's, settings.json is the repo's registration); the stream can build only a helper script under tools/ the lead would have to run by hand, i.e. the state measured above",
+        "in_session_cron": "Claude Code's session cron (CronCreate/CronList) lives inside ONE session: the generation-4 log measured 'no scheduled jobs' in a fresh session, and no job of a previous session was there -- it does not outlive the session that created it",
+        "cost_per_start": "a due check reads radar/ for the newest dated file: milliseconds; the watcher run itself is ~9 min and ~130 k tokens for the codex half (generation-4 log line 649), and it would run inside the user's working session, blocking or competing with it"
+      },
+      "survives": {
+        "session_end": false,
+        "host_reboot": false,
+        "a_week_without_a_session": false
+      },
+      "verdict": "starts a watcher only when a session starts -- a week with no session is a week with no report, which is the measured history (12 runs in 9 weeks, all human-started); rejected by the implementer"
+    },
+    {
+      "id": "B",
+      "name": "OS-level weekly task (Windows Task Scheduler) running both watchers headless through the CLI",
+      "what": "tools/radar_trigger.py DECLARES the task (name, weekly trigger, the two `claude -p --agent <watcher>` command lines, StartWhenAvailable, an execution time limit) and can --install / --uninstall / --status / --run-now it through schtasks; the repo carries the definition and the installer, the OS carries the registration; a test reads the declaration against the README's claim and measures --install/--uninstall against the real scheduler on a throwaway task name",
+      "measured": {
+        "headless_agent": "`claude -p \"...\" --agent radar-watcher --max-turns 1 --model sonnet --output-format json` in the g5-ladders worktree: rc 0, result 'pong', num_turns 1, model claude-sonnet-5, 21:22:56 -> 21:23:02 (6 s); the project agent definition loads headless (scratch/probe-agent-headless.json)",
+        "scheduled_task": "throwaway task TSK-0130-probe, weekly trigger, StartWhenAvailable=True, principal Interactive/Limited/zenti, XML persisted under C:\\Windows\\System32\\Tasks: registered 21:27:07, started on demand, state Ready after 6 s, LastTaskResult=0, output file 'pong' from `claude -p` under cmd.exe, unregistered 21:27:15 and gone (scratch/probe_schtask.ps1, run from its own directory)",
+        "not_measured": "a host reboot (the registration persists in the OS store, which is what survives a reboot by construction; a real reboot was not run); a run while the user is logged OUT (principal Interactive means the task runs in the logged-on session -- with no logon it waits, StartWhenAvailable fires it at the next logon); the full watcher run under the task (the probe ran a one-turn prompt, not the 9-minute report)"
+      },
+      "survives": {
+        "session_end": true,
+        "host_reboot": "by construction (registration persisted in the OS task store; not rebooted to measure)",
+        "a_week_without_a_session": "yes while the host is on and the user logged on; a missed slot is caught up at the next logon (StartWhenAvailable, measured readable on the registered task)"
+      },
+      "cost": "one host-level registration the user installs once from a shell (`python tools/radar_trigger.py --install`), ~2 x 10 min and ~2 x 130 k tokens per week in the background, plus the test's throwaway registration per test run on Windows (skipped elsewhere with the reason)",
+      "verdict": "recommended by the implementer: it is the only one of the two that produces a report in a week nobody opened a session, and HARNESS_V2_SPEC.md line 911 already chose the same shape for the auditor routine ('ein LOKALER Scheduled Task ... headless claude -p')"
+    }
+  ],
+  "what_the_choice_does_not_settle": [
+    "who reads the reports: the trigger writes them, the triage stays the lead's (radar/README.md 'Triage')",
+    "the codex-watcher's own measurement of `max` vs `ultra` needs the Codex CLI on the measuring host (AC-2); the trigger does not install it",
+    "with B the README and the two watcher definitions say 'started by the Task Scheduler entry tools/radar_trigger.py registers, weekly' and the test tools/test_radar_trigger.py refuses any schedule sentence the declaration does not back; with A they say 'started by the lead at session start when a report is older than seven days' and the same test refuses the word 'scheduled'"
+  ],
+  "question_for_the_user": "Wie sollen die beiden Radar-Beobachter jede Woche von selbst starten? (A) Der Projektleiter prüft bei jedem Sitzungsstart, ob ein Bericht älter als sieben Tage ist, und startet sie dann in deiner Sitzung -- läuft nur, wenn du eine Sitzung öffnest. (B) Ein Eintrag in der Windows-Aufgabenplanung startet beide Beobachter wöchentlich im Hintergrund über die Kommandozeile -- läuft auch ohne Sitzung, solange der Rechner an und du angemeldet bist (gemessen: ein Probeeintrag lief und antwortete). Empfehlung: B.",
+  "recorded_by": "harness-implementer TSK-0130, 2026-09-05 21:3x (clock read)",
+  "superseded": "ANSWERED 2026-09-06 as DEC-0084: the user chose NEITHER alternative -- the mechanism is a Claude ROUTINE, the shape the kits declare the project-auditor run in. The measurements DEC-0084 (2) ordered are in project_memory/staging/TSK-0130/dec-trigger-2.json and in the stream protocol.",
+  "corrected_after_the_fact": "TWO SENTENCES OF THE BODY ABOVE ARE UNWARRANTED and stay there as the record of what was claimed (R3-1, clock read 2026-09-06 17:28): `reports` says 'every one of them started by a person' and 'No mechanism has ever started a run'. Measured afterwards (dec-trigger-2.json a4): a Claude Desktop scheduled task for the radar half has existed on this host since 2026-06-30, and NO report records who started it -- so neither 'a person' nor 'a mechanism' is established for any of them. What IS measured: nothing IN this repository starts a run, which is the claim the round's texts and `tools/test_radar_trigger.py` carry."
+}

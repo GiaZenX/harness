@@ -62,9 +62,11 @@ file to write by hand.
 
 ## Kit-specific files that are NOT items
 
-`business_profile.yaml`, `master_data.yaml`, `filing_plan.yaml`, `product_catalog.yaml`,
-`marketing_plan.yaml`, `content_guidelines.yaml` and `compliance_register.yaml` are configuration
-and reference data, not state with a lifecycle. `filing_plan.yaml` is the SINGLE machine-readable
-truth for filing. The old `filing_log.yaml` would be a REGENERATED scan index over the archive tree,
+`business_profile.yaml`, `master_data.yaml`, `chart_of_accounts.yaml`, `correspondence.yaml`,
+`filing_plan.yaml`, `product_catalog.yaml`, `marketing_plan.yaml`, `content_guidelines.yaml` and
+`compliance_register.yaml` are configuration and reference data, not state with a lifecycle --
+which files those are is decided by their place (`kernel.layout.is_project_document`: a non-dotted
+file directly in this directory that no kernel path builder names), not by this sentence.
+`filing_plan.yaml` is the SINGLE machine-readable truth for filing. The old `filing_log.yaml` would be a REGENERATED scan index over the archive tree,
 never a hand-maintained log — it is not built yet, so a V2 project has no such file (the `.gitignore`
 entry is defensive).

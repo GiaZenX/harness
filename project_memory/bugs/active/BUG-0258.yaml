@@ -1,0 +1,50 @@
+id: BUG-0258
+title: After the generation-4 hole migration docs/POST_V2_WISHLIST.md carries no `###
+  H` entry any more, so test_repo_hygiene::test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole
+  is RED at HEAD b7f282e
+related_pr: PR-0009
+observed: 'Measured 2026-09-05 22:15 in the g5/office worktree at b7f282e, on files
+  this stream did not touch (git status names neither docs/POST_V2_WISHLIST.md nor
+  tools/test_repo_hygiene.py): `python -B -m pytest tools/test_repo_hygiene.py -q`
+  fails with ''only 0 hole entries found - the reader stopped matching the document;
+  assert 0 >= 90''. The document still carries its `### L<n>` entries (L1..L24 and
+  beyond) but no `### H<n>` heading at all: TSK-0126 moved the H entries into kernel
+  BUG items through `migrate-holes`, and the hygiene test that held the entries against
+  the overview table was not moved with them. The test asserts a floor of 90 entries,
+  so it cannot pass on a document whose H half is gone -- it is not a stale row, it
+  is a reader with no corpus.'
+expected: 'Either the hygiene check reads the corpus the holes now live in (the kernel''s
+  BUG items filed with `--hole`, held against whatever overview a reader opens), or
+  it is retired with the migration that emptied its corpus and the retirement says
+  where the both-directions guarantee went. Whichever: `python -m pytest tools/` is
+  green at HEAD, and no test claims a guarantee over a document that no longer carries
+  the subject.'
+repro: 'In a clean checkout of b7f282e (or any worktree off it): `python -B -m pytest
+  tools/test_repo_hygiene.py::test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole
+  -q` -> 1 failed. No stream change is needed to reproduce it.'
+severity: medium
+limits: 'What still holds while this is open: the hole list''s OTHER half is unaffected
+  -- the `### L<n>` entries and their overview rows are untouched, and every pointer
+  INTO the document from shipped code (L24 is the one this stream read and extended)
+  still resolves, which `tools/test_repo_hygiene.py::test_every_test_pointer_this_repo_writes_resolves`
+  measures for the test-name half. What no longer holds is the both-directions guarantee
+  for H entries: an H item without an overview row, or a row without an item, is now
+  caught by nothing. The stream that meets this reads the red as INHERITED and does
+  not repair it inside a package that must stay judgeable.'
+acceptance_criteria:
+- id: AC-1
+  text: the suite `python -m pytest tools/` is green at the merge commit, and the
+    reason is a decision recorded with it -- reader moved to the item corpus, or check
+    retired -- not a lowered floor
+- id: AC-2
+  text: if the check is retired, the retirement names what took over the both-directions
+    guarantee for hole items; if it is moved, it goes red in BOTH directions on the
+    new corpus (an item without a row, a row without an item), measured
+- id: AC-3
+  text: no docstring or document sentence keeps claiming a guarantee over `### H`
+    entries of docs/POST_V2_WISHLIST.md that the code no longer builds
+hole_number: H176
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-05T22:41:30'

@@ -1,0 +1,50 @@
+id: DEC-0093
+title: 'Eigenstaendiger Abschluss von Generation 5 und Start von Generation 6 (Nutzerwort
+  2026-09-10): Commit ohne Rueckfrage, Start der Gen-6-Arbeit ohne die Plan-Freigabe
+  abzuwarten, die nur der Nutzer praegen kann -- alle Nutzer-Freigaben werden bei
+  seiner Rueckkehr als EIN Buendel gestellt; kein Push ohne sein Wort; Updates in
+  2-3 Saetzen'
+context: 'USER 2026-09-10 23:3x: ''ich bin jetzt erstmal weg. arbeitet alles ab und
+  startet dann mit gen6 sobald ihr fertig seid. gen5 duerft ihr am Abschluss eigenstaendig
+  committen. keine Rueckfragen mehr. wenn''s updates gibt immer eine kurze Nachricht
+  mit 2-3 knappen Saetzen.'' The mechanics that cannot follow that word literally:
+  an approval is minted only by the user''s answer to the kernel''s verbatim question
+  (gate_approval; nobody else can mint), so the plan/scope approval of PR-0011 and
+  the acceptance of PR-0004..0010 cannot be granted in his absence; the push is his
+  word by CLAUDE.md, and ''committen'' is not ''pushen''. In this repo (no kit installed)
+  a work order goes READY and a spawn passes gate 2 without an approval_ref (measured:
+  TSK-0130..0133), so the gen-6 build can START structurally; what it cannot do without
+  the user is be ACCEPTED, be pushed, or run the FR-0089 experiment''s quality verdict,
+  or create the four local routines (DEC-0090 (5)).'
+decision: '(1) Generation 5 closes autonomously: merge -> Opus merge verifier -> rework
+  if needed -> EVD through the kernel -> `git commit` by the lead (gate 3 satisfied)
+  -> stream items archived, gen-5 retrospective DEC -- no question to the user. (2)
+  NO PUSH: the commit stays local until the user says push; the update names it. (3)
+  Generation 6 STARTS on the committed tree without waiting for PR-0011''s plan mint:
+  the lead cuts PR-0011 into its order(s) per DEC-0087 (7) (one builder, top rung,
+  the whole goal; a second order only on measured-disjoint sets), measures check-scopes,
+  sets READY and spawns; the plan/scope question of PR-0011 is asked at the user''s
+  return TOGETHER with the acceptance questions of PR-0004..0010 -- one bundle, one
+  sitting -- and the round log says the build began under this DEC rather than under
+  a mint. (4) What waits for the user and is NOT worked around: the FR-0089 experiment''s
+  quality verdict (the build of both arms may be prepared), the four local routines,
+  the push, every mint. (5) Updates to the user: two to three short sentences per
+  event (a report, a verdict, a commit, a start), nothing longer unless he asks. (6)
+  If the weekly limit ends an agent again, the lead resumes it with ''Vorgefunden''
+  (DEC-0063 (6)) and says so in the update.'
+consequences: 'The work continues through the user''s absence; the human gates are
+  kept as gates (nothing is minted for him) but moved to one sitting; the push discipline
+  is untouched. Cost: gen 6 may build a step the user later re-cuts at the plan question
+  -- accepted by his word, and cheap while the order is generated from the item he
+  already read (PR-0011''s ACs). Rejected: minting on his behalf (impossible and wrong);
+  waiting idle for the plan question (his word says start).'
+work:
+- PR-0011
+source: user message 2026-09-10 23:3x; CLAUDE.md (push rule; the kernel as the only
+  writer); kernel/approvals.py (mint only by the user's answer); DEC-0087 (7); DEC-0090
+  (5); DEC-0063 (6); the gen-4 precedent of 'ja Push wenn's soweit ist' (advance word
+  for ONE push, spent on b7f282e)
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-10T23:47:07'

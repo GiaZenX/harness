@@ -1,49 +1,61 @@
-# model_tiers.yaml — provider-neutral model tiers for ALL kits.
+# model_tiers.yaml -- provider-neutral model RUNGS for ALL kits.
 #
-# The kits' model_map values use the CLAUDE names as the canonical tier vocabulary (Claude Code is
-# the reference platform); `lead`/`worker`/`light` are accepted ALIASES everywhere a model name is
-# read (scaffold stamping, session_status drift check, provider generators). Provider generators
-# translate a tier to that provider's concrete model id via this table.
+# The kits' model_map values and role pins use the CLAUDE names as the canonical rung vocabulary
+# (Claude Code is the reference platform); `lead`/`worker` are accepted ALIASES everywhere a model
+# name is read (scaffold stamping, session_status drift check, provider generators). Provider
+# generators translate a rung to that provider's concrete model id via this table.
 #
-# MAINTENANCE: the radar-watcher and codex-watcher keep this table current (new models, price
-# drops, deprecations). Changing a tier's model here re-tiers every project on the next restamp —
-# always a USER-approved proposal, never an automatic bump.
+# THREE RUNGS PER PROVIDER, NO MORE (DEC-0076): fable / opus / sonnet in the reference vocabulary,
+# and the same three positions for every other provider. There is no `light` alias and no haiku or
+# luna row; a pin this table cannot place is refused by `gen_provider_artifacts.provider_neutral_model`
+# with a sentence naming that decision, and
+# `tools/test_model_ladder.py::test_every_provider_declares_exactly_the_three_rungs` reads this file
+# for the count. What a kit DOES with the rungs -- its endpoints, its effort pair, the escalation --
+# is that kit's own `ladder.yaml` beside its constitution (DEC-0078), read by `kernel.dispatch` at
+# every lease and every spawn (DEC-0077); this table carries only the provider translation.
 #
-# WHY THERE IS A RUNG ABOVE `lead` AT ALL, and why the kits do not all reach it: `DEC-0034` records
-# the user-drafted escalation ladder (T0 sonnet-high floor / T1 opus-high / T2 opus-xhigh / T3
-# fable-high), and `DEC-0047` makes its ENDPOINTS per kit — dev/research climb to fable, office is
-# compressed with opus-high as its top rung and a sonnet-LOW reading floor for the filing pipeline.
-# This table is the vocabulary those decisions are written in; it does not enforce them, and the
-# mechanic that would (a dispatcher picking the rung from the state) is DEC-0034's open work item.
-# What is pinned today are two permanent seats out of `FR-0051`: dev/research `project-manager`
-# frontmatter says `fable`, office `office-manager` says `lead`.
+# MAINTENANCE: the radar-watcher (Claude side) and the codex-watcher (OpenAI side) REPORT what moved
+# (new models, price moves, deprecations) into radar/. A finding becomes a change by exactly one
+# route: at triage the lead captures an item under the open goal (`capture BUG` or `capture FR`,
+# `related_pr` set) and a stream edits this file under that item. Never a line in radar/decided.md
+# on its own, and never the watcher itself, which may not write kit files -- BUG-0092 measured three
+# reports naming the same dead line while nothing changed, because no item carried it. Changing a
+# rung's model here re-tiers every project on the next restamp: always a USER-approved proposal,
+# never an automatic bump.
 #
-# Price anchors (verified 2026-07, per 1M in/out tokens):
-#   claude: Opus-class $15/$75 · Sonnet 5 $3/$15 (intro $2/$10 until 2026-08-31) · Haiku 4.5 $1/$5
-#   openai: GPT-5.6 Sol $5/$30 · Terra $2.50/$15 · Luna $1/$6 (family GA 2026-07-09)
-# Watch dates: 2026-08-05 Opus 4.1 shutdown · 2026-08-31 Sonnet 5 intro pricing ends.
+# Price anchors, read 2026-09-05 off the vendors' pages (per 1M tokens in/out; sources
+# radar/2026-09-05-codex.md items 1-2 and radar/2026-09-04-claude.md) -- for a reader, not for code:
+#   claude: Opus-class $15/$75 . Sonnet 5 $2/$10 standard (the 2026-08-31 increase was cancelled,
+#           radar/decided.md radar-0821-sonnet5-price-trigger) . Opus 4.1 was shut down 2026-08-05
+#   openai: gpt-6-astra $10/$50 (GA 2026-09-03) . gpt-5.6-sol $4/$20 promotional, $5/$30 standard .
+#           gpt-5.6-terra $2/$12 (since 2026-07-30)
+# Watch dates -- a date in the past on this list is a defect,
+# `tools/test_model_ladder.py::test_no_watch_date_in_the_tiers_table_lies_in_the_past` is red on it;
+# a date that passed is removed, and what it was about becomes a fact above or an item:
+#   2026-11-21 gpt-5.6-sol promotional pricing is guaranteed until at least this date
 
-aliases:            # tier name -> canonical (claude) vocabulary used in model_map
+aliases:            # alias -> canonical (claude) rung name used in model_map and role pins
   lead: opus
   worker: sonnet
-  light: haiku
-# `fable` (Mythos-class, above opus) is also accepted as a Claude-side model_map pin and in a kit
-# source's agent frontmatter (§11 escalation, DEC-0034's T3 rung); Claude keeps it literally, every
-# other provider maps it to its LEAD tier. It has no `aliases:` entry on purpose — an alias names a
-# tier this table translates, and fable IS the translation on the reference platform. What decides
-# whether a kit source may carry a value is `gen_provider_artifacts.provider_neutral_model`, which
-# reads THIS file rather than a list of three names.
+# `fable` (the top rung) is accepted as a Claude-side model_map pin and in a kit source's agent
+# frontmatter; Claude keeps it literally, every other provider maps it to its own top row below. It
+# has no `aliases:` entry on purpose -- an alias names a rung this table translates, and fable IS
+# the translation on the reference platform; an alias here would also be one the scaffold's
+# frontmatter rewrite does not know. What decides whether a kit source may carry a value is
+# `gen_provider_artifacts.provider_neutral_model`, which reads THIS file rather than a list of names.
 
-tiers:
-  claude:           # reference platform — model_map values pass through
-    lead: opus
-    worker: sonnet
-    light: haiku
+tiers:              # provider -> rung name -> that provider's model id
+  claude:           # reference platform -- rung names ARE the model ids, values pass through
+    fable: fable
+    opus: opus
+    sonnet: sonnet
     effort_field: effort              # agent frontmatter key; values low|medium|high|xhigh|max
   codex:
-    lead: gpt-5.6-sol
-    worker: gpt-5.6-terra
-    light: gpt-5.6-luna
+    fable: gpt-6-astra
+    opus: gpt-5.6-sol
+    sonnet: gpt-5.6-terra
     effort_field: model_reasoning_effort   # .codex/agents/*.toml; shared vocabulary low|medium|high|xhigh|max
-                                           # (verified 2026-07: Sol/Terra also accept `ultra`, Luna does not —
-                                           # provider-only values go through the `codex:` frontmatter overlay)
+    # The Codex effort CEILING is not stated here on purpose (DEC-0076 (3)): the vendor's model pages
+    # say `max` and its CLI agent-config page says `ultra` (radar/2026-09-05-codex.md item 3), and
+    # nothing in this repo has measured a `.codex/agents/*.toml` against the CLI yet. A provider-only
+    # value goes through the `codex:` frontmatter overlay when a round has measured it.

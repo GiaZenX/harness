@@ -5,6 +5,7 @@ import inspect
 import io
 import os
 import pathlib
+import shutil
 import sys
 import time
 
@@ -4326,14 +4327,25 @@ def test_the_architect_step_is_owed_by_the_kits_delivery_not_the_projects_stock(
         parents=True)
     (store / "without-the-step" / "templates" / "project_memory" / "product" / "active").mkdir(
         parents=True)
+    # ...and since DEC-0078 a kit that is KNOWN has to declare its ladder, and a role its pin, or
+    # the lease is refused for that -- which is not what this test is about. The shipped dev-team
+    # declaration and the store's tiers table stand in, byte for byte (`tools/test_ladder.py`
+    # measures them on their own).
+    for kit in ("with-the-step", "without-the-step"):
+        shutil.copy(os.path.join(TEAM_KITS, "dev-team", dispatch.LADDER_FILE),
+                    str(store / kit / dispatch.LADDER_FILE))
+    shutil.copy(os.path.join(TEAM_KITS, dispatch.TIERS_FILE), str(store / dispatch.TIERS_FILE))
 
     def project(kit, name):
         repo = tmp_path / name
-        (repo / ".claude").mkdir(parents=True)
+        (repo / ".claude" / "agents").mkdir(parents=True)
         with io.open(repo / ".claude" / "team_kit_roles.txt", "w", encoding="utf-8",
                      newline="\n") as handle:
             handle.write("# agents-and-skills:team-kit-roles v1 team=%s count=1\nproject-manager\n"
                          % kit)
+        with io.open(repo / ".claude" / "agents" / "backend-developer.md", "w", encoding="utf-8",
+                     newline="\n") as handle:
+            handle.write("---\nname: backend-developer\nmodel: sonnet\neffort: high\n---\nbody\n")
         root = repo / "project_memory"
         root.mkdir()
         state = ProjectState(str(root))

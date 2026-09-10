@@ -1,0 +1,165 @@
+id: TSK-0129
+product_requirement: PR-0009
+derives_from: PR-0009
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-1
+- AC-2
+- AC-3
+- AC-4
+- AC-5
+- AC-6
+allowed_scope:
+- team-kits/office-team/**
+- team-kits/kernel/documents.py
+- team-kits/kernel/filing.py
+- team-kits/kernel/cli.py
+- team-kits/*/VERSION
+- tools/**
+- docs/**
+- README.md
+forbidden_scope:
+- scaffold_team.*
+- install.*
+- init_project_memory.*
+- user/**
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- CLAUDE.md
+- project_memory/**
+- team-kits/kernel/dispatch.py
+- team-kits/kernel/report.py
+- team-kits/kernel/state.py
+- team-kits/kernel/backlog_types.py
+- team-kits/kernel/approvals.py
+- team-kits/kernel/holes.py
+- team-kits/model_tiers.yaml
+- team-kits/gen_provider_artifacts.py
+- team-kits/dev-team/**
+- team-kits/research-team/**
+- team-kits/office-team/hooks/gate_dispatch.py
+- team-kits/office-team/ladder.yaml
+- .claude/agents/**
+- .claude/hooks/**
+- radar/**
+required_inputs:
+- 'project_memory/product/active/PR-0009.yaml (AC-1..AC-6) and what it absorbed: FR-0033
+  (correspondence), FR-0081 (SKR03/SKR04 + EUeR mapping, year-versioned, legal space),
+  FR-0002 (eight takeovers -- docs/ source section), BUG-0070 (add-filing-rule cannot
+  create the rules list), BUG-0071 (categories have no kernel writer, P4-12 lineage),
+  BUG-0072 (einvoice_extract.py non-reconciling net), BUG-0079 (documents.py prints
+  a remedy it refuses); DEC-0075 (the invoice application is its own product; this
+  goal builds the DOCKING POINT: intake, validation, number-range continuity per business,
+  filing, booking, the interface contract written for the app project; the three marketplace
+  cases create / cancel-and-reissue / import-only are separated by law), DEC-0078
+  (office runs the lower ladder -- not built here, G5-2 owns it), DEC-0056, DEC-0066'
+- team-kits/office-team/** (constitution, skills incl. office-manager and bookkeeper,
+  templates/project_memory incl. filing_plan.yaml and master_data.yaml, templates/repo/scripts/einvoice_extract.py,
+  hooks except gate_dispatch.py), team-kits/kernel/documents.py (the document route
+  and its remedies), team-kits/kernel/filing.py (add-filing-rule), the office pilot
+  measurements in the round logs (P4-9, P4-12, the live finds of 2026-08-29), the
+  humanizer skill the kit ships (the plain-language bar for outgoing texts)
+- DEC-0080 (retrospective rules), DEC-0063, DEC-0070; the user's words 2026-09-05
+  on the invoice application (two businesses, eBay / Kaufland / Shopify, sequential
+  numbers, the docking point is what the kit owns)
+expected_outputs:
+- 'PR-0009 AC-1 (FR-0033, DEC-FIRST): dec-correspondence.json to the lead -- role
+  vs teachable workflow, with the measured cost of each (one more agent definition
+  and its ladder pin vs a skill the office-manager runs) -- the user decides; then
+  a scaffolded office pilot produces an offer, a reminder (Mahnung) and a customer
+  letter from ledger + master data through the sanctioned document route, each reviewed
+  before it leaves (gate or duty named), measured end to end; texts pass the kit''s
+  humanizer / plain-language bar.'
+- 'PR-0009 AC-2 (docking point, DEC-0075): an intake route accepts an invoice file
+  the external app produced (fixture set: one ZUGFeRD PDF, one XRechnung XML), validates
+  norm rules (EN 16931 rule subset named) and the reconciling triple, checks number-range
+  continuity per business against the ledger, files it through the document route
+  and books it; a planted violation (broken triple, gap in a number range, missing
+  mandatory field) is refused naming the figures; the INTERFACE CONTRACT (file shape,
+  drop location, what the kit answers, the three marketplace cases) is written as
+  docs/ for the app project; measured on a pilot; red-first.'
+- 'PR-0009 AC-3 (FR-0081): SKR03/SKR04 as year-versioned kit documents with the account-to-EUeR-line
+  mapping and the legal space named; the bookkeeper''s booking names an account and
+  the EUeR rollup reads the mapping; a kernel writer exists for the document (no editor
+  line); measured on a pilot; red-first.'
+- 'PR-0009 AC-4 (FR-0002): each of the eight takeovers built here with its own acceptance
+  line, absorbed by a named item, or rejected with the reason -- none stays prose
+  without a verdict; the table in the protocol.'
+- 'PR-0009 AC-5 (BUG-0070 + BUG-0071): add-filing-rule creates the rules list when
+  the plan carries none (>1 keys still refused, =1 unchanged); categories -- and,
+  decided in the round with reasons, every kit-document list -- get a sanctioned approval-gated
+  kernel writer (special case vs general mechanism recorded, P4-12 lineage); red-first
+  on an old-stock copy outside the repo.'
+- 'PR-0009 AC-6 (BUG-0072 + BUG-0079): einvoice_extract.py returns the reconciling
+  document total from CII structures and fails loudly on a non-reconciling triple
+  (both directions tested, the extraction-path change named precisely enough for a
+  project-side sweep); every remedy line the kernel prints is executed by a test against
+  the CLI and accepted (documents.py first, the other modules grepped); red-first.'
+- 'Per absorbed wish or bug its own red-first test measured in a copy outside the
+  repo (restore the defect, see red, put it back) and its own acceptance line in the
+  protocol; the verifier reports PER acceptance criterion of the goal. Every new property
+  claim -- code comment, docstring, docs, hole item -- is MEASURED before handover.
+  DEC-0080 (6): every new READER or tripwire this stream writes gets, before the report,
+  a mutation in the direction its docstring denies (a reader that reads less than
+  it claims was the repeated class of generation 4) -- the mutation and its red line
+  stand in the protocol per reader. A named test must be able to fail. Holes: a measured
+  gap is a BUG item captured through `PYTHONPATH=team-kits python -B -m kernel.cli
+  --root project_memory capture BUG --hole` (kernel-allocated number; `limits` duty;
+  module prefix in citations) -- no hand numbers, no document entries. forbidden_scope
+  project_memory/** EXCEPTS project_memory/staging/(this task id)/ and the kernel
+  command lines this order names. Wherever the truth about a shell can be executed,
+  a real shell is the arbiter. Only the READING suites run in the stream -- and DEC-0080
+  (2): a stream that changes a DISPATCH, LEASE or VALIDATOR rule runs every suite
+  that READS that rule (grep the predicate''s callers, list them in the protocol)
+  -- the full suite belongs to the merge; gate 5 is live: a full-surface line is refused,
+  the DELIVERY_RUN prefix is the merge''s, never a stream''s. HOST RULE: one pytest
+  at a time, every run with a timeout, no CPU-saturating rig (four hard power-offs
+  on 2026-09-04). Clock: every protocol time is read, never extrapolated (DEC-0080
+  (7)).'
+- 'Seams: team-kits/kernel/cli.py (G5-1 and G5-2 add commands -- your block only);
+  team-kits/office-team/constitution/AGENTS.md and office-team/agents/*.md (G5-1 writes
+  the comment-discipline duty into every constitution and implementing role, G5-2
+  the ladder sentences and pins -- you write the correspondence role/workflow and
+  the docking-point duty, per file in the protocol); mirrored files: none expected
+  (office is not mirrored) -- if a change needs dev/research, it is a SEAM sentence
+  to the merge, not a write; tools/lead_package_sizes.json + docs/reviews/phase0-disposition.md
+  (record, not overwrite); README.md. Reach seam (DEC-0080 (1)): a kernel writer in
+  documents.py / filing.py is read by every kit -- measure a dev and a research pilot
+  for no regression; list every suite that reads the changed kernel functions (DEC-0080
+  (2)).'
+- 'Handover: worktree C:/Offline Repos/v2-testbed/_worktrees/g5-office (branch g5/office
+  off feat/harness-v2 at b7f282e); ALL scratch only under C:/Offline Repos/v2-testbed/_round-scratch/(this
+  task id)/; a red-first rig refuses to run outside its own directory and writes binary;
+  verifier copies made WITHOUT the .git file of the worktree; patch = the worktree
+  diff WITHOUT the VERSION hunks at C:/Offline Repos/v2-testbed/_round-scratch/(this
+  task id)/stream-office.patch (a patch carrying VERSION hunks is a cut finding);
+  protocol at project_memory/staging/(this task id)/stream-protocol.md with: seam
+  table (received / expected at merge), per-criterion acceptance line + red-first
+  tests, reader mutations, measured lines, what was deliberately not closed but named
+  (as hole items), the one-line rejected alternative of the plan (FR-0084 shape, now
+  a constitution duty), suites run (reading suites + the suites that read a changed
+  rule), provisional VERSION stamp, wall-clock (read) and tokens for the (g) table.
+  DEC-first proposals go to the lead as project_memory/staging/(this task id)/dec-*.json
+  -- the user decides, the stream waits on that point and works on the rest. No commit,
+  no push, no install to the global store.'
+dependencies: []
+seam_scope:
+- tools/**
+- docs/**
+- team-kits/*/VERSION
+- team-kits/kernel/cli.py
+- team-kits/*/constitution/AGENTS.md
+- team-kits/*/agents/*.md
+- tools/lead_package_sizes.json
+- docs/reviews/phase0-disposition.md
+- README.md
+- team-kits/office-team/constitution/AGENTS.md
+- team-kits/office-team/agents/*.md
+root_revision: 1
+status: CANCELLED
+revision: 1
+approval_ref: null
+created: '2026-09-05T21:09:30'
+closed_at: '2026-09-05T21:32:27'

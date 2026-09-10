@@ -1,0 +1,70 @@
+"""The generation-5 retrospective as a decision (the gen-4 precedent: DEC-0080): the cut findings Z1-Z14 of the
+merge protocol section 12, the lead's own errors named in the round log, and what generation 6 does differently.
+Body on stdin to `kernel.cli capture DEC`, work = PR-0011 (the light kit carries the rules). Run AFTER the merge
+commit; the ROUND_2 line below is filled from verify-round-2.md before running. Not idempotent -- run once."""
+import json
+import os
+import subprocess
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+KERNEL = [sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory", "capture", "DEC"]
+
+ROUND_2 = "ROUND_2_RESULT_TO_FILL"
+
+BODY = {
+    "title": "Retrospektive der Generation 5 (Nachfolger von DEC-0080): was der Schnitt, die Uebergaben und der Merge "
+             "gemessen haben -- und die Regeln, die Generation 6 daraus mitnimmt",
+    "context": "Generation 5 = three streams (G5-1 stock TSK-0131 Opus, G5-2 ladders/watchers TSK-0130 Opus, G5-3 "
+               "office TSK-0132 Opus -- after three Fable predecessors were stopped by DEC-0081) + the merge TSK-0133 "
+               "(Fable). Verification rounds: G5-1 four, G5-2 two (+ round 3 = PR-0010 AC-1 after the routines), G5-3 "
+               "three, merge one full + one short (%s). Interruptions: the user's accidental pause (all agents killed, "
+               "resumes refused, new agents with 'Vorgefunden'), the weekly API limit ending the merge agent mid full "
+               "run (the run finished on its own; resumed three days later). The cut findings of the merge protocol "
+               "section 12 (Z1-Z14) and the round log's own corrections are the sources." % ROUND_2,
+    "decision": "(1) MEASURE 'NEVER RAN' AT THE ARTIFACTS (Z2, DEC-0089): a claim that something never happened "
+                "automatically is measured against the timestamps of the things it would have produced, never against "
+                "one log; the lead's DEC-0085 rested on the repo audit log and an empty API list while nine Friday "
+                "reports stood in radar/. (2) ONE WRITER, ONE MEASUREMENT (Z1): no build order to a stream while its "
+                "verification runs; the lead's violation cost R2-1. (3) VORGEFUNDEN BEFORE RESUME, ALWAYS (Z5, Z14): "
+                "after a pause, a limit or a crash the successor measures the disk first -- a background run may have "
+                "finished (the merge's full run had); a resume order that says 'rerun' without that measurement repeats "
+                "a finished run. (4) A USER PAUSE IS A USER STOP: resumes are refused; new agents only on the user's "
+                "explicit word; the handover prompt says so instead of naming agent ids. (5) CLOCK READ BY THE SCRIPT "
+                "(Z8): a log label is written by the process that reads the clock, never typed before the reading; the "
+                "lead did it wrong twice in one evening. (6) THE FULL-RUN TIMEOUT IS DERIVED (Z12): from the measured "
+                "duration of the last run on this host times a factor, never from a number in the order; a 90-minute "
+                "limit taken from '45-60 min' would have killed a 1:54 run under 85 %% foreign load. (7) READERS OF A "
+                "TYPE'S CAPTURE BODIES ARE READERS OF ITS CONTRACT (Z13, DEC-0080 rule 2 widened): before a kernel "
+                "contract changes, grep the capture SITES of the type in every suite (\"capture\", \"DEC\", CLI bodies), "
+                "not only the callers of the predicate; four cross-stream reds came from bodies no stream ran. (8) A "
+                "PATCH THAT NAMES A LIVE-CHANGED FILE IS SPLIT BEFORE THE APPLY (Z10): --3way refuses atomically. (9) "
+                "EVERY RUN LOG UNDER ITS OWN NAME, LF-WRITTEN (P3, B1 of the merge verification): a rerun never "
+                "overwrites the log it supersedes, and a log born through a Windows shell redirect is LF-written before "
+                "it is staged -- the round reproduced BUG-0025 in its own artifacts. (10) A RIG ROW IS RED ONLY IF THE "
+                "ARBITER FALLS FOR THE NAMED REASON (B2): a test that silently switches subject (DEC -> INV) passes the "
+                "mutation; the rig records the arbiter's failure line, not only its rc. (11) THE ORDER'S FORBIDDEN "
+                "SCOPE IS CHECKED AGAINST ITS ACs AT THE CUT (Z6, BUG-0249): PR-0010's item forbade the file AC-6 "
+                "needed. (12) DEC-0088's CADENCE HELD ON THE MERGE: one full round, one rework, one short round -- kept "
+                "for generation 6; the streams' 3-4 rounds are the number the light form is measured against. (13) "
+                "WHAT STAYS OPEN, NAMED: xhigh unreachable from the spawn surface (Z4, BUG-0251), PR field updates "
+                "silent (Z7), the gate-3 refusal of `git -C <path with spaces> add -A` not isolated, BUG-0069 waits for "
+                "the hosted run, the two acceptance rounds (PR-0004..0010) and the push wait for the user.",
+    "consequences": "Generation 6 starts with these thirteen lines in the light-kit order's inputs and in the lead's "
+                    "own role text where they bind the lead (1, 2, 3, 4, 5, 6, 11); the kit-side halves (7, 8, 9, 10) "
+                    "ride on PR-0011's builder. Rejected: another generation in the stream form (DEC-0087 decided "
+                    "the light form; the numbers here are its baseline).",
+    "work": ["PR-0011"],
+    "source": "project_memory/staging/TSK-0133/merge-protocol.md section 12 (Z1-Z14) and sections 5/10/13; "
+              "verify-round-1.md (B1-B4, P1-P6); verify-round-2.md; project_memory/staging/generation-5-streams.md "
+              "(the round log with its corrections); DEC-0080; DEC-0088; DEC-0089; DEC-0093",
+}
+
+env = dict(os.environ, PYTHONPATH="team-kits")
+if ROUND_2 == "ROUND_2_RESULT_TO_FILL":
+    sys.exit("fill ROUND_2 from verify-round-2.md first")
+result = subprocess.run(KERNEL, cwd=ROOT, env=env, input=json.dumps(BODY),
+                        capture_output=True, text=True, encoding="utf-8")
+sys.stdout.write(result.stdout)
+sys.stderr.write(result.stderr)
+sys.exit(result.returncode)

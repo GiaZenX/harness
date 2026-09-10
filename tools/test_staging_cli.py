@@ -643,7 +643,7 @@ def test_cli_capture_of_a_task_goes_through_the_task_constructor(state, capsys):
     fields = {"product_requirement": "PR-0001", "derives_from": "PR-0001",
               "type": "implementation", "assigned_role": "backend-developer",
               "acceptance_refs": ["AC-1"], "required_inputs": [], "allowed_scope": ["src/"],
-              "forbidden_scope": [], "expected_outputs": [], "dependencies": []}
+              "forbidden_scope": [], "expected_outputs": ["out"], "dependencies": []}
     assert run_cli_with_body(state, json.dumps(fields), "capture", "TSK") == 0
     capsys.readouterr()
     assert state.read_item("TSK-0001")["root_revision"] == 1
@@ -685,7 +685,7 @@ def _approved_ready_task(state):
     assert run_cli(state, "create-task", "--product-requirement", pr["id"],
                    "--derives-from", pr["id"], "--type", "implementation",
                    "--assigned-role", "backend-developer", "--acceptance-ref", "AC-1",
-                   "--allowed-scope", "src/") == 0
+                   "--allowed-scope", "src/", "--expected-output", "src/x.py") == 0
     state.transition("TSK-0001", "READY")
     satisfy_the_architect_step(state, state.read_item("TSK-0001"), state.read_item(pr["id"]))
     return pr, state.read_item("TSK-0001")
@@ -717,7 +717,7 @@ def test_cli_dispatch_refuses_a_second_claim_and_an_unapproved_root(state, capsy
     assert run_cli(state, "create-task", "--product-requirement", other["id"],
                    "--derives-from", other["id"], "--type", "implementation",
                    "--assigned-role", "backend-developer", "--acceptance-ref", "AC-1",
-                   "--allowed-scope", "src/") == 0
+                   "--allowed-scope", "src/", "--expected-output", "src/x.py") == 0
     state.transition("TSK-0002", "READY")
     capsys.readouterr()
     assert run_cli(state, "dispatch", "TSK-0002") == 1
@@ -1261,7 +1261,7 @@ def test_a_design_ref_that_names_nothing_does_not_open_a_spawn(state):
         "product_requirement": pr["id"], "derives_from": pr["id"], "type": "ui",
         "assigned_role": "frontend-developer", "acceptance_refs": ["AC-1"],
         "required_inputs": [], "allowed_scope": ["src/"], "forbidden_scope": [],
-        "expected_outputs": [], "dependencies": [], "design_ref": "DSN-9999"})
+        "expected_outputs": ["out"], "dependencies": [], "design_ref": "DSN-9999"})
     state.transition(task["id"], "READY")
     satisfy_the_architect_step(state, state.read_item(task["id"]),
                                state.read_item(pr["id"]))
@@ -1522,7 +1522,7 @@ def test_freeze_design_is_the_only_thing_that_can_fill_design_refs(state, capsys
     order = {"product_requirement": pr["id"], "derives_from": pr["id"], "type": "ui",
              "assigned_role": "frontend-developer", "acceptance_refs": ["AC-1"],
              "allowed_scope": ["frontend/"], "forbidden_scope": [], "required_inputs": [],
-             "expected_outputs": [], "dependencies": []}
+             "expected_outputs": ["out"], "dependencies": []}
     # DISJOINT SCOPES, because both leases run at once here and the kernel now refuses a
     # second dispatch onto a file a running order owns (DEC-0062 (1)). The scope is
     # incidental to what this test measures -- the design_ref is the subject.
@@ -1586,7 +1586,7 @@ def test_a_scalar_design_ref_survives_the_freeze_as_one_reference(state, capsys)
         "product_requirement": pr["id"], "derives_from": pr["id"], "type": "ui",
         "assigned_role": "frontend-developer", "acceptance_refs": ["AC-1"],
         "allowed_scope": ["frontend/"], "forbidden_scope": [], "required_inputs": [],
-        "expected_outputs": [], "dependencies": [], "design_ref": reference})
+        "expected_outputs": ["out"], "dependencies": [], "design_ref": reference})
     state.transition(task["id"], "READY")
     satisfy_the_architect_step(state, state.read_item(task["id"]),
                                state.read_item(pr["id"]))

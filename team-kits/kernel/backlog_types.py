@@ -608,6 +608,52 @@ STATUS_DEPENDENT_FIELDS = {
 HOLE_EXCEPTION_STATUS = "ACCEPTED_EXCEPTION"
 
 
+# THE OTHER HALF OF A DECISION'S LIFE, and the one FR-0012 asked for: does it commit anybody to
+# BUILD something, and to what. `none` is the honest silence for a decision that demands nothing;
+# a list of item ids is resolved like every other binding. Read by `report._check_decision_carriers`
+# in both directions -- an id no item carries is an error, a decision in force that names no work
+# and that NO item names is a warning. Spelled once here because three readers ask for it.
+DEC_WORK_FIELD = "work"
+# What `DEC_WORK_FIELD` says when the decision commits nobody. A closed value beside the id list,
+# so "nothing to build" and "nobody wrote the field" are two different states -- which is the whole
+# difference between the honest silence and the DEC-0034 case.
+DEC_WORK_NONE = "none"
+
+# Fields a type owes when a caller CAPTURES it, and never in the store (DEC-0083 (1)). The two are
+# not the same duty: `REQUIRED_FIELDS` is read by the validator too, so putting `work` there would
+# turn every decision this project already holds into an error no command repairs -- the same
+# argument DEC-0061 measured for `EVD`. Here the duty binds the door alone: from the day the field
+# exists a NEW decision says whether it commits anybody, and the stored ones are answered by the
+# pointer direction instead (`report._check_decision_carriers`).
+CAPTURE_ONLY_REQUIRED = {"DEC": (DEC_WORK_FIELD,)}
+
+
+def work_is_none(value) -> bool:
+    """True where a decision's `work` is THE silence -- the scalar `none` and nothing else.
+
+    ONE SILENCE, because `DEC-0083` (2)(c) names one: `work: none` says "this commits nobody", and a
+    reader that also accepted `[]`, `""`, `[""]` or `"   "` would let a decision that DOES demand
+    work silence the carrier line without ever saying so. Measured (verifier round 2, N-B2): all
+    four passed the door and silenced the warning, and `[]` is exactly what a JSON body carries when
+    the author does not have the ids yet -- the `DEC-0034` case, reopened.
+
+    A LIST whose only entry is the word is NOT the silence either: `["none"]` is a list of ids, so
+    its entry is resolved like any other and reported when no item carries it.
+    """
+    return isinstance(value, str) and value.strip() == DEC_WORK_NONE
+
+
+def work_is_stated(value) -> bool:
+    """True where a decision's `work` gives an ANSWER -- the one silence, or entries that name items.
+
+    The two ends of `DEC-0083` (1) in one predicate, so the door (`kernel.cli`'s `capture` branch)
+    and the validator (`report._check_decision_carriers`) cannot come to read the field differently.
+    `tools/test_report.py::test_a_decision_nobody_carries_is_named_and_none_is_the_silence` drives
+    every empty spelling through both.
+    """
+    return work_is_none(value) or names_something(value)
+
+
 OPTIONAL_FIELDS = {
     "PR": ("user_story",),      # optional for class == technical_enabler
     "FR": ("related_pr",),
@@ -641,6 +687,14 @@ OPTIONAL_FIELDS = {
     # required only for the ONE result value that owes it (`state.capture_preflight`), so making it
     # a required field of the type would demand it of every passing record too.
     "EVD": RUN_RECORD_FIELDS + (BLOCKED_REASON_FIELD,),
+    # WHICH ITEMS A DECISION COMMITS SOMEBODY TO BUILD (FR-0012, decided as DEC-0083 option A).
+    # `none` where it commits nobody -- a naming rule, a verdict -- or the ids of the items that
+    # carry the work, resolved like every other binding. OPTIONAL for the reason every field added
+    # to a stored type is optional here: a required field would turn ~80 stored decisions into
+    # validator errors no command repairs. What makes it worth a field at all is the measured case:
+    # DEC-0034 stood VALID for 26 days while nothing built it and no item pointed at it, and
+    # `validate` had no line about a DEC except the supersedes shape (DEC-0080).
+    "DEC": (DEC_WORK_FIELD,),
 }
 
 # Required fields for which an EMPTY value is the same lie as absence. A list-valued
@@ -656,7 +710,36 @@ OPTIONAL_FIELDS = {
 #     opens a merge on it and its own remedy text presents the reference as the proof.
 #     What the kernel can check is that the verdict names where to look; whether the
 #     artefact holds up is the auditor's job, and it cannot even start without a path.
-NONEMPTY_FIELDS = {"EVD": ("related", "artifact_refs")}
+#   * `TSK.expected_outputs` is what a verifier measures the package against. Against an
+#     empty list every package is conformant, so the order asks for nothing and proves
+#     nothing (BUG-0023). ONE entry here reaches both entrances -- `create-task` and
+#     `capture TSK` end in `state.capture` -- and the validator names the stored items the
+#     rule came too late for (`report._check_nonempty_fields`).
+NONEMPTY_FIELDS = {"EVD": ("related", "artifact_refs"), "TSK": ("expected_outputs",)}
+
+
+def names_something(value) -> bool:
+    """True where a `NONEMPTY_FIELDS` value really names something -- the PROPERTY, not one spelling.
+
+    THE CONTAINER WAS THE WRONG QUESTION, and asking it was the defect: `not value` refuses `[]`
+    and accepts `[""]`, `[None]`, `["   "]` and `[[]]` -- every one of them an order that names
+    nothing, and the first is reachable from the shipped command surface with one word
+    (`--expected-output ""`, measured rc 0 with a DRAFT order created and the validator silent).
+    What has to hold is what the refusal already SAYS: at least one ENTRY carries text -- a string
+    that is not blank once stripped. A non-string entry names nothing here either: a list, a mapping
+    or a number is neither a path, an artefact reference nor an item id.
+
+    `field_elements` is the reader, so a field that arrived as a bare scalar counts as the one thing
+    it is (BUG-0015) rather than as its letters -- and `capture EVD --related PR-0001` written into
+    a body as a scalar stays legal.
+
+    ONE function for both ends: `state.capture_preflight` refuses with it and
+    `report._check_nonempty_fields` names stored items with it, so what a new item is refused for
+    and what an old one is reported for cannot become two readings.
+    `tools/test_state.py::test_a_work_order_that_expects_nothing_is_refused_at_both_entrances`
+    drives every shape through both.
+    """
+    return any(isinstance(one, str) and one.strip() for one in field_elements(value))
 
 # Fields whose value is a CALENDAR DATE and nothing else, per type. Declared rather than guessed
 # from the name, and enforced in `state.capture_preflight` with `datetime.date.fromisoformat` --

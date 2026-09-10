@@ -1,0 +1,73 @@
+id: BUG-0250
+title: 'One kit release ships two contradicting ladder texts: the constitutions say
+  the escalation is derived by the kernel and "there is no user-gated escalation ladder
+  any more", while the PMs'' own SKILL and all three project_config templates still
+  instruct the retired `sonnet-high -> sonnet-xhigh -> opus-high -> opus-xhigh/max`
+  -- and session_status plus the scaffold still translate the retired `light` rung
+  (new, TSK-0130, PR-0010 AC-3/AC-7, DEC-0076/DEC-0077/DEC-0078)'
+related_pr: PR-0010
+severity: medium
+observed: "**Mechanism.** TSK-0130 rewrote the ladder paragraph of the three constitutions\
+  \ to what `kernel.dispatch.ladder_for_order` builds and removed the user-gated ladder\
+  \ sentence there (dev-team/constitution/AGENTS.md:350, research-team/constitution/AGENTS.md:326).\
+  \ SEVEN shipped files outside that stream's allowed_scope still carry the retired\
+  \ texts and were measured unchanged on 2026-09-05 22:2x in the worktree `g5-ladders`:\n\
+  \  * `team-kits/dev-team/skills/project-manager/SKILL.md:353` and `team-kits/research-team/skills/project-manager/SKILL.md:288`\
+  \ -- \"**Up-scaling** is user-confirmed only ... ladder sonnet-high -> sonnet-xhigh\
+  \ -> opus-high -> opus-xhigh/max\". The PM preloads its own skill, so the role that\
+  \ runs `dispatch` reads the retired rule while the kernel derives the rung without\
+  \ asking.\n  * `team-kits/{dev,research,office}-team/templates/project_memory/project_config.yaml`\
+  \ (dev:56, research:49, office:42) -- the same ladder as a comment beside `effort_map`,\
+  \ plus \"Tier aliases: `lead`/`worker`/`light` are accepted as values (= opus/sonnet/haiku\
+  \ on Claude)\" (dev:27, research:24, office:19) and \"Model ladder: haiku < sonnet\
+  \ < opus\" (dev:25, research:22, office:17). `light`/`haiku` are no rung since DEC-0076,\
+  \ and `gen_provider_artifacts.table_places` now REFUSES a `model_map` value the\
+  \ table cannot place -- so the comment invites a value the generator rejects with\
+  \ a sentence.\n  * `team-kits/*/hooks/session_status.py:96` and `:103` -- the drift\
+  \ check enumerates `(\"lead\", \"worker\", \"light\")` and maps `{\"lead\": \"opus\"\
+  , \"worker\": \"sonnet\", \"light\": \"haiku\"}`; the `light` half is dead after\
+  \ DEC-0076 and the enumeration is a second spelling of `model_tiers.yaml`'s `aliases:`.\n\
+  \  * `team-kits/scaffold_team.sh:604/622` and `team-kits/scaffold_team.ps1` -- the\
+  \ installed-frontmatter rewrite still maps `light -> haiku`; dead once no source\
+  \ pins `light` (none does today, measured), harmless but a third spelling.\nNothing\
+  \ in this list is reachable from TSK-0130's scope: `team-kits/*/skills/**` and `team-kits/office-team/templates/**`\
+  \ are in its forbidden_scope, `scaffold_team.*` too, and the other two template\
+  \ files and `session_status.py` are outside its allowed_scope."
+expected: The merge (or the stream that owns those files) rewrites the two SKILL bullets
+  and the three template comment blocks to the built rule -- the kit's own `ladder.yaml`,
+  the two axes derived at every dispatch, no user gate on the rung -- pointing at
+  the constitution paragraph instead of restating it; `session_status.py` asks `model_tiers.yaml`
+  for the alias map instead of carrying its own; the scaffold's `light -> haiku` lines
+  go. `tools/test_model_ladder.py::test_no_shipped_kit_text_still_names_the_retired_user_gated_ladder`
+  names exactly these files as the open set and is red the moment one of them is fixed
+  and left in the list, or another file joins it.
+repro: 'In the worktree: `grep -rn "sonnet-high\|sonnet-xhigh\|opus-xhigh/max" team-kits/`
+  -> five hits (two SKILL.md, three project_config.yaml); `grep -n "light" team-kits/dev-team/hooks/session_status.py`
+  -> lines 96 and 103; compare with `team-kits/dev-team/constitution/AGENTS.md:350`.'
+acceptance_criteria:
+- id: AC-1
+  text: no shipped kit text instructs the retired user-gated ladder any more; the
+    two SKILL bullets and the three template comment blocks point at the kit's `ladder.yaml`
+    and the constitution paragraph
+- id: AC-2
+  text: '`session_status.py` reads the alias map out of `model_tiers.yaml` rather
+    than carrying its own, so a rung that leaves the table leaves the drift check
+    with it'
+- id: AC-3
+  text: 'the tripwire in `tools/test_model_ladder.py` goes back to an EMPTY open set,
+    and it is red on both ends: a file added to the set that no longer claims the
+    ladder, and a claiming file that is not in the set'
+limits: 'The tripwire that names this set is shipped and green today, so the contradiction
+  cannot spread quietly to a fourth file or survive its own repair unnoticed; the
+  constitution -- the text a session''s kit shim loads on every turn -- carries the
+  built rule, and the SKILL''s retired sentence over-asks (it sends the PM to the
+  user for a climb the kernel already made) rather than granting anything the gates
+  do not hold: `spawn_model_refusal` still refuses a spawn below the derived rung
+  whatever the SKILL says.'
+source: TSK-0130 stream protocol AC-3/AC-7; grep measured 2026-09-05 in C:/Offline
+  Repos/v2-testbed/_worktrees/g5-ladders; DEC-0076, DEC-0077, DEC-0078
+hole_number: H168
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-05T22:20:15'

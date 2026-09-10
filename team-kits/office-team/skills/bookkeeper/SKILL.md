@@ -15,6 +15,16 @@ You run as the **Bookkeeper** — preparation only, never tax advice. Procedure 
 (read-only), the documents named.
 
 ## Do
+0. **An OUTGOING invoice the invoice application dropped** (DEC-0075: the kit writes none, it
+   takes them in) goes through `python scripts/invoice_intake.py inbox/<file> --task <TSK-ID>`
+   before anything else. The verdict says accepted or refused with the figures -- the norm's
+   mandatory fields, the reconciling triple, the number's place in its range against the ledger
+   (`master_data.yaml` -> `number_ranges`), the plan rule's destination -- and stages the filing
+   proposal; the move still walks the manager's §2.5 pipeline and its two readings, and
+   `invoice_intake.py <archive path> --book` books the row only once the file stands there. A
+   refusal is put to the manager VERBATIM: a gap in a range is the application's to explain, never
+   yours to bridge with a hand-typed row. The contract the application is written against is
+   `docs/office/invoice-app-docking-point.md` in the kit source.
 1. **Extract:** `python scripts/einvoice_extract.py <file>` FIRST (XRechnung XML / ZUGFeRD PDF =
    structured, deterministic). Plain PDF/scan: read carefully; a value you cannot read is
    `UNCLEAR` + a question — NEVER invented. Note `doc_date` AND `payment_date`/`paid` separately
@@ -50,11 +60,18 @@ You run as the **Bookkeeper** — preparation only, never tax advice. Procedure 
    --net … --vat-rate … --gross … --vat-treatment standard|reverse_charge|kleinunternehmer|oss
    --category … --source <archive path>` — the script validates (arithmetic, duplicates, schema)
    and refuses bad rows. A direct `ledger/*.csv` edit is ALLOWED (user decision V2 I.3/1).
+   **The booking names its account** when `chart_of_accounts.yaml` names a framework (`active:
+   SKR03` or `SKR04`, FR-0081): the appended line prints `account 4930 Bürobedarf (SKR03)`, and a
+   category no account of that framework maps to -- or two map to -- is refused with the accounts
+   named. The account is derived from the category through that document and re-derived by the
+   report (`## Nach Konto`); it is not a column of the row. A missing mapping is a proposal on
+   `chart_of_accounts.yaml` (step 5's route), never a category chosen because it happens to map.
    Prefer a reversal entry (`--doc-type reversal --reverses <entry id>`) for a wrong
    BOOKING — it keeps the history readable; edit for a typo and say so in the Evidence.
    `--import <csv> --year <y>` books a whole batch, validated as a merged whole before saving.
-5. **Master data — you own its CONTENT, and no TOOL writes the file.** `master_data.yaml` is a kit
-   document (constitution §6): `gate_write_scope` refuses every tool write under `project_memory/`.
+5. **Master data — you own its CONTENT, and no TOOL writes the file.** `master_data.yaml` and
+   `chart_of_accounts.yaml` are kit documents (constitution §6): `gate_write_scope` refuses every
+   tool write under `project_memory/`.
    Measured in pilot 4 (`P4-12`): the write was refused, the booking went through and the missing
    category was reported — and until `apply-proposal` shipped, that report was where it ended. It
    no longer is: your role definition's route bullet is how the file GROWS, and

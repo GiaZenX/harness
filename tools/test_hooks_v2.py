@@ -9714,7 +9714,6 @@ def test_the_budget_bounds_the_hook_below_the_host_timeout(tmp_path):
     elapsed = _time.time() - started
     assert result.returncode == 2
     assert elapsed <= module.TOTAL_BUDGET + 5, "%.1fs exceeds the whole-ledger budget" % elapsed
-    assert module.TOTAL_BUDGET + module.VALIDATE_TIMEOUT <= 60 or True  # bound is now TOTAL_BUDGET
 
 
 def test_unjudged_files_are_reported_as_unjudged_not_as_broken(tmp_path):
@@ -13037,7 +13036,21 @@ def _perform(message, home, repo):
     return [name for _at, name, _action in found]
 
 
-def test_the_trust_message_names_a_remedy_that_actually_leaves_the_state(tmp_path):
+def _the_store_this_project_was_installed_from(monkeypatch, home):
+    """Point the RUNNING home at the fixture's store, for the two tests that really scaffold.
+
+    Since DEC-0078 (4) a lease reads the kit's `ladder.yaml` out of the store the running home
+    directory names (`dispatch.kit_installation`), so a fixture that installs a project from
+    `tmp_path/home` and then mints a lease with the developer's own `~/.claude` still in the
+    environment asks the WRONG store and is refused -- measured 2026-09-05 on exactly these two
+    tests. Every other user of `dispatched_repo` builds a project with no scaffold record at all
+    and needs no store; these two are the ones that have one.
+    """
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+
+
+def test_the_trust_message_names_a_remedy_that_actually_leaves_the_state(tmp_path, monkeypatch):
     """B1: the SessionStart message promised an exit the code does not build.
 
     It said "open /hooks, check what changed, and start one new session". `/hooks` writes no
@@ -13087,6 +13100,7 @@ def test_the_trust_message_names_a_remedy_that_actually_leaves_the_state(tmp_pat
     reported = _run_trust_hook(repo)
     assert _kit_state(repo)["state"] == "hooks_trust_required"
     message = json.loads(reported.stdout)["hookSpecificOutput"]["additionalContext"]
+    _the_store_this_project_was_installed_from(monkeypatch, home)
     _state, _task, header = dispatched_repo(repo)
     stopped = run_dispatch(repo, spawn_payload(repo, header))
     assert stopped.returncode == 2 and "is not the one this project trusts" in stopped.stderr
@@ -13136,7 +13150,7 @@ def _really_scaffolded(tmp_path, team="dev-team", name="lead-identity"):
     return home, repo
 
 
-def test_the_lead_of_a_scaffolded_project_is_not_read_as_its_own_subagent(tmp_path):
+def test_the_lead_of_a_scaffolded_project_is_not_read_as_its_own_subagent(tmp_path, monkeypatch):
     """F1: THE PREDICATE WAS MEASURED IN A PROJECT THAT BOUND NO SESSION AGENT.
 
     `_compat.calling_subagent` returned any agent name a payload carried, on a probe run in a
@@ -13161,7 +13175,8 @@ def test_the_lead_of_a_scaffolded_project_is_not_read_as_its_own_subagent(tmp_pa
         that carries one is not the session instance whatever it spells.
     """
     pytest.importorskip("yaml")
-    _home, repo = _really_scaffolded(tmp_path)
+    home, repo = _really_scaffolded(tmp_path)
+    _the_store_this_project_was_installed_from(monkeypatch, home)
     claude = str(repo / ".claude")
     with open(os.path.join(claude, "settings.json"), encoding="utf-8") as fh:
         lead = json.load(fh)["agent"]

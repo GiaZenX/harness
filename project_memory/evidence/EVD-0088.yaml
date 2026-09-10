@@ -1,0 +1,20 @@
+id: EVD-0088
+kind: test
+related:
+- BUG-0088
+result: pass
+summary: 'PR-0008 AC-6, TSK-0131 2026-09-05: BUG-0088 re-measured against b7f282e
+  (2 passed in 15.27 s). A role memory tree is residue exactly where no INSTALLED
+  role declares the key -- the reader is the installed definition, not the shipped
+  one -- and the update report names such a tree. AC-2 of the bug (does a key-less
+  role LOAD an existing tree at the provider?) is not answered by this run and needs
+  a real CLI session in an updated project.'
+artifact_refs:
+- staging/TSK-0131/ac6-bug-0088.txt
+run_command: python -B -m pytest tools/test_kitupdate.py::test_a_memory_tree_is_residue_exactly_where_no_installed_role_declares_the_key
+  tools/test_kitupdate.py::test_the_update_report_names_a_memory_tree_no_installed_role_declares
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-05T23:00:30'

@@ -140,6 +140,12 @@ FILLED_TEMPLATE_LISTS = {
         "(FR-0076) -- a tax form is not a business, and the list that WOULD carry one "
         "(`counterparties`) still ships empty. Held by the row check below, so the "
         "exception cannot quietly grow into an assortment",
+    "chart_of_accounts.yaml:accounts":
+        "the two standard German chart-of-accounts numberings (FR-0081), each row an account "
+        "number of a PUBLISHED chart and a line of the same form the categories above are keyed "
+        "to -- a numbering standard is not a business either, and the document ships "
+        "`active: null`, so nothing of it reaches a booking until the business names its "
+        "framework. Held by the same row check below",
 }
 
 # WHAT MAKES A SHIPPED CATEGORY NOT CONTENT: it belongs to a LINE of the form, so it is a
@@ -147,6 +153,9 @@ FILLED_TEMPLATE_LISTS = {
 # category somebody invented, which is exactly what FR-0028 keeps out of a template. The
 # provenance of the numbers themselves is `H131` in docs/POST_V2_WISHLIST.md.
 CATEGORY_LINE_FIELD = "euer_line"
+# ...and what makes a shipped ACCOUNT not content: it carries the number the published
+# chart gives it. The same question as the line above, asked of the other document.
+ACCOUNT_FIELD = "account"
 
 
 def _lists_in(node, path):
@@ -203,6 +212,22 @@ def test_every_office_state_template_ships_its_lists_empty():
     assert not invented, (
         "these shipped categories name no line of the form, so they are somebody's assortment "
         "rather than the form's own vocabulary (FR-0028): %s" % invented)
+    # THE SECOND EXCEPTION, held the same way and for the same reason. An account row is excused
+    # because it names an account NUMBER of a published chart and a LINE of the form; a row that
+    # names either of them not is a chart somebody invented, and that is the assortment this rule
+    # keeps out. Read off the document, for the reason one paragraph up: the walk keys
+    # `accounts.SKR03` and `accounts.SKR04` alike and a check on the walk would judge one of them.
+    with open(os.path.join(base, "chart_of_accounts.yaml"), encoding="utf-8") as handle:
+        frameworks = (yaml.safe_load(handle) or {}).get("accounts") or {}
+    entries = [row for one in frameworks.values() for row in one]
+    assert len(entries) >= 20, "the shipped chart shrank to %d rows -- judged nothing" % len(entries)
+    unanchored = [row for row in entries
+                  if not isinstance(row, dict) or not str(row.get(ACCOUNT_FIELD) or "").isdigit()
+                  or not row.get(CATEGORY_LINE_FIELD)]
+    assert not unanchored, (
+        "these shipped accounts name no account number of a published chart or no line of the "
+        "form, so they are somebody's own bookkeeping rather than the standard's (FR-0028): %s"
+        % unanchored)
 
 
 # ============================ the same question asked of the TEMPLATES, read raw =================

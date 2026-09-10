@@ -1,0 +1,7 @@
+# BUG-0091 -- confirming selection, started 2026-09-05 22:58:11 (clock read)
+# tree: C:/Offline Repos/v2-testbed/_worktrees/g5-stock (code b7f282e + TSK-0131)
+# python -B -m pytest tools/test_approvals_dispatch.py::test_a_work_order_under_an_inbox_item_is_refused_at_creation tools/test_report.py::test_the_inbox_counter_sees_an_archived_work_order_and_the_validator_only_a_live_one -q
+
+..                                                                       [100%]
+2 passed in 27.53s
+

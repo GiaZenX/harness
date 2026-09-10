@@ -1,0 +1,122 @@
+2026-09-10 23:13:05 START
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+...............s........................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 19%]
+..........................................................s............. [ 20%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 25%]
+..........................................ss.s.s.s.ssssss............... [ 26%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+................................................................s....... [ 80%]
+........................................................................ [ 81%]
+........................................................................ [ 82%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 87%]
+........................................................................ [ 88%]
+.......................................................F................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 99%]
+..................................                                       [100%]
+================================== FAILURES ===================================
+_______________ test_no_tracked_text_file_checks_out_with_crlf ________________
+
+    def test_no_tracked_text_file_checks_out_with_crlf():
+        """BUG-0025: `.gitattributes` says LF and this host's git config says otherwise -- who won?
+    
+        `core.autocrlf=true` stands in this repo's LOCAL config and in the host's SYSTEM config
+        (measured 2026-09-04), and `eol=lf` overrides it on CHECKOUT -- but nothing overrides an editor,
+        a generator or a shell redirection that writes CRLF into a tracked file afterwards. That is not
+        cosmetic here: `lead_package.size` and the mirror comparison in `tools/validate.py` read raw
+        on-disk bytes, so one such file inflates the lead instruction package past its recorded size and
+        `install.sh` aborts before it installs a single hook -- which is BUG-0025 end to end.
+    
+        THE FILE IS NAMED, because "somewhere in this tree" is not a repair anyone can carry out; the
+        remedy is one command and it stands in the message. `docs/line-endings.md` carries the cause and
+        what this repo deliberately does NOT do about it.
+    
+        WHAT IT EXCUSES IT REPORTS. The canonical part of `project_memory/` is left out because no tool
+        write reaches it (`_repairable`), and an exclusion that is also silent is how a set grows -- so
+        those files are warned about here, in the same fail-open shape `_report_stale` uses one section
+        down, and never blocked on.
+        """
+        _require_git()
+        endings = _worktree_line_endings()
+        drifted = sorted(path for path, ending in endings.items() if ending in ("crlf", "mixed"))
+        excused = [path for path in drifted if not repairable(path)]
+        if excused:
+            warnings.warn(
+                "these files carry CRLF in canonical state, which no tool write reaches (gate 1), so "
+                "the sweep below cannot ask for them -- they are repaired where they are written, in "
+                "the kit: %s" % excused, UserWarning)
+        offenders = [path for path in drifted if repairable(path)]
+>       assert not offenders, (
+            "%d tracked text file(s) carry CRLF on disk while .gitattributes pins every text file to "
+            "eol=lf, so a byte-size or byte-identity check reads a number no LF checkout can "
+            "reproduce (BUG-0025). Remedy: `python tools/normalise_line_endings.py --apply`, which "
+            "rewrites only files whose normalised bytes equal the committed blob exactly. Files: %s"
+            % (len(offenders), offenders))
+E       AssertionError: 2 tracked text file(s) carry CRLF on disk while .gitattributes pins every text file to eol=lf, so a byte-size or byte-identity check reads a number no LF checkout can reproduce (BUG-0025). Remedy: `python tools/normalise_line_endings.py --apply`, which rewrites only files whose normalised bytes equal the committed blob exactly. Files: ['project_memory/staging/TSK-0126/run-full-suite.txt', 'project_memory/staging/TSK-0126/run-gates-suite.txt']
+E       assert not ['project_memory/staging/TSK-0126/run-full-suite.txt', 'project_memory/staging/TSK-0126/run-gates-suite.txt']
+
+tools\test_repo_hygiene.py:271: AssertionError
+============================== warnings summary ===============================
+tools/test_repo_hygiene.py::test_no_tracked_text_file_checks_out_with_crlf
+  C:\Offline Repos\AgentAndSkills\tools\test_repo_hygiene.py:266: UserWarning: these files carry CRLF in canonical state, which no tool write reaches (gate 1), so the sweep below cannot ask for them -- they are repaired where they are written, in the kit: ['project_memory/.audit/hook_events.jsonl']
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tools/test_repo_hygiene.py::test_no_tracked_text_file_checks_out_with_crlf
+1 failed, 4843 passed, 14 skipped, 1 warning in 2299.29s (0:38:19)
+rc=1
+2026-09-10 23:51:26 DONE

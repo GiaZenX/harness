@@ -3,10 +3,14 @@ title: Ohne Lease ist eine Aufgabe nicht ehrlich abschliessbar -- und LEASED ist
   das, was sweep-leases zuruecksetzt
 related_pr: PR-0002
 severity: medium
-repro: 1. `create-task` erzeugt eine Aufgabe auf DRAFT. 2. Die einzigen Kanten aus
-  DRAFT sind CANCELLED und READY; jeder Weg zu einem Endzustand fuehrt ueber LEASED.
-  3. `transition TSK-nnnn LEASED` laeuft durch -- gemessen, ohne dass irgendein Lease-Datensatz
-  entsteht.
+repro: 'In any state directory: capture a PR, create a task, transition it READY,
+  then `transition <TSK> LEASED` without a dispatch. RE-MEASURED 2026-09-06 (TSK-0131)
+  against b7f282e, real CLI, real store: `capture PR` rc 0 (PR-0001 DRAFT), `create-task`
+  rc 0 (TSK-0001 DRAFT, backend-developer), `transition READY` rc 0, `transition LEASED`
+  rc 1 -- ''TSK-0001 cannot be moved to LEASED by a direct transition: a lease-bearing
+  status is established by a real dispatch lease, not by a status write (DEC-0038/BUG-0010)''.
+  The direct-write half is CLOSED; what the item still names beyond it is unmeasured,
+  so it stays TRIAGED rather than being called fixed on half a chain.'
 expected: Entweder ein Status, den nur eine Lease herstellt, ist ohne Lease nicht
   erreichbar -- oder es gibt einen ehrlichen Weg, eine ohne Dispatch bearbeitete Aufgabe
   abzuschliessen.

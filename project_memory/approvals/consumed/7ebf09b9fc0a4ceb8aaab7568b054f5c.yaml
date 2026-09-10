@@ -1,0 +1,16 @@
+request_id: 7ebf09b9fc0a4ceb8aaab7568b054f5c
+kind: scope
+item: BUG-0033
+revision: 1
+subject_manifest:
+  acceptance_criteria:
+  - 'AC-1: an idle-host isolated run is green or an explicit skip that names the measured
+    noise and band'
+  - 'AC-2: ''host too noisy'' and ''gate too slow'' produce distinguishable outcomes'
+  - 'AC-3: the edge is pinned by a test that is red without the fix'
+  item: BUG-0033
+  revision: 1
+subject_manifest_hash: 15f1303eb6778f2b675c4bb4ccc08a75febccca08de8c07fe842366c3f71014b
+created: '2026-09-06T15:52:48'
+expires_at_epoch: 1788789168.9363832
+mint_code: dfc413

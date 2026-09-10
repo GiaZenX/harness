@@ -1,0 +1,24 @@
+request_id: 94ef665b8ee642da8f3e2c3a8b5aad23
+kind: scope
+item: BUG-0091
+revision: 1
+subject_manifest:
+  acceptance_criteria:
+  - id: AC-1
+    text: 'a DEC line decides refuse-or-document; if refuse: create-task with an FR
+      in product_requirement or derives_from is refused with a remedy that names the
+      triage route (CONVERTED + resulting_item), red-first; existing tasks stay valid'
+  - id: AC-2
+    text: the backlog tree's message for an FR without related_pr says what it is
+      in kit language (inbox, not yet triaged) rather than unassigned -- or the DEC
+      says why unassigned stays
+  - id: AC-3
+    text: 'this repo''s own practice is corrected in the same round or named as its
+      deviation in CLAUDE.md: wishes that get worked become PRs (or hang from one),
+      measured by a check over the index that counts TSKs whose root is an FR'
+  item: BUG-0091
+  revision: 1
+subject_manifest_hash: c4b4f7537763fd2dd53026d73765f026f50307f39f14604544ee38ea4ec27185
+created: '2026-09-06T15:54:49'
+expires_at_epoch: 1788789289.113105
+mint_code: e59c95

@@ -1,0 +1,15 @@
+request_id: 822eaa0048284bf297429b1813a031e1
+kind: delivery
+item: PR-0004
+revision: 1
+subject_manifest:
+  item: PR-0004
+  root_revision: 1
+  system_requirements: []
+  architecture: []
+  tasks: []
+  risks: []
+subject_manifest_hash: 505fc590fe716ea7aae5a3d8574fe39be42f8268e7d4adfe2c729ddd70673e34
+created: '2026-09-06T15:55:47'
+expires_at_epoch: 1788789347.3664637
+mint_code: 4dcfd5

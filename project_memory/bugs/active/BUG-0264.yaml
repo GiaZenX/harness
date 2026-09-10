@@ -1,0 +1,68 @@
+id: BUG-0264
+title: 'Four schedule claims survive in the enforcement layer that AC-1 cleaned everywhere
+  else: .claude/hooks/gate_spawn_needs_item.py and .claude/hooks/_harness.py still
+  say the watchers ''run on a weekly schedule'', no test reads them, and the reworded
+  watcher definitions now POINT at them (new, TSK-0130, PR-0010 AC-1, DEC-0084)'
+related_pr: PR-0010
+severity: medium
+observed: "**Mechanism.** PR-0010 AC-1 asks that no watcher definition or README sentence\
+  \ claim a schedule the repo does not build. `tools/test_radar_trigger.py` reads\
+  \ exactly three texts -- `radar/README.md` and the two role definitions -- because\
+  \ its subject is DERIVED from the tracked tree as 'a role definition that declares\
+  \ `harness_item: none` and names radar/' plus the radar README (`test_radar_trigger.TEXTS`,\
+  \ `test_the_texts_this_reads_are_the_ones_that_describe_the_watchers`). The enforcement\
+  \ layer is not a role definition and not that README, so it is outside the reader\
+  \ by construction. MEASURED 2026-09-06 in the g5-ladders worktree with `grep -rn\
+  \ -i \"weekly\\|schedul\" --include=*.py .claude/hooks/`:\n  * `gate_spawn_needs_item.py:11`\
+  \ -- \"Two agents in this repo **run on a weekly schedule** and hold no item (`radar-watcher`,\
+  \ `codex-watcher`)\";\n  * `gate_spawn_needs_item.py:14` -- \"`none` for a **schedule-driven**\
+  \ role\";\n  * `gate_spawn_needs_item.py:74` -- the text of a LIVE REFUSAL: \"If\
+  \ this role legitimately runs without an item (a **scheduled watcher**) ...\", i.e.\
+  \ a sentence a user actually reads when the gate fires;\n  * `_harness.py:2849`\
+  \ -- \"the **weekly watchers run on a schedule** and write only into `radar/`\"\
+  .\nAggravating: the round reworded both watcher definitions and left in them a pointer\
+  \ AT this text (`.claude/agents/radar-watcher.md`: \"Read there for why the exemption\
+  \ is declared here instead of listed in the gate\"), so the corrected texts now\
+  \ send the reader to the uncorrected one. DEC-0084 measured what is true instead:\
+  \ `tools/radar_routine.py` answers `starts_itself: false`, and on this host no mechanism\
+  \ starts a watcher without a person (kits' routine feed speaks only at session start;\
+  \ the session cron is `[session-only]` -- a second `claude -p` process listed nothing;\
+  \ a remote trigger runs in a cloud sandbox that cannot reach a local tree). `.claude/hooks/**`\
+  \ is in TSK-0130's forbidden_scope, which is why this is a named hole and not a\
+  \ fix."
+expected: 'The four sentences say what `tools/radar_routine.py --describe` backs --
+  a weekly CADENCE that a person or the lead starts -- and the reader that would have
+  caught them grows to cover the enforcement layer: either `test_radar_trigger.TEXTS`
+  gains the files under `.claude/hooks/` that name a watcher role by name (derived,
+  not listed), or the exemption''s own reason moves into the role definitions where
+  the derived subject already reaches it.'
+repro: '`grep -rn -i "weekly\|schedul" --include=*.py .claude/hooks/` -> the four
+  lines above; `python tools/radar_routine.py --describe` -> `"starts_itself": false`;
+  `python -m pytest tools/test_radar_trigger.py` -> green, because none of those files
+  is in its subject.'
+acceptance_criteria:
+- id: AC-1
+  text: no text under .claude/hooks/ claims a schedule the routine's `--describe`
+    does not back; the refusal text at gate_spawn_needs_item.py:74 in particular says
+    'a watcher run started by the radar routine' or equivalent
+- id: AC-2
+  text: the reader's subject reaches the enforcement layer, derived rather than listed,
+    and is red on a reintroduced claim there -- measured red-first in a copy
+- id: AC-3
+  text: the pointer in both watcher definitions leads to a text that agrees with them
+limits: 'The four sentences GRANT nothing and refuse nothing: `gate_spawn_needs_item`
+  decides the exemption on the frontmatter key `harness_item:` in the role''s own
+  definition, never on the word ''schedule'' (the decision is `_harness`''s reading
+  of that key, and the two watcher definitions carry `harness_item: none` with the
+  reason beside the line). So the cost is a false sentence in the layer a user reads
+  when a spawn is refused, not a hole a spawn can walk through. The three texts a
+  reader of `radar/` actually meets -- the README and the two definitions -- are corrected
+  and are held to the routine''s own description by `tools/test_radar_trigger.py`.'
+source: harness-verifier round 1 finding B2 (project_memory/staging/TSK-0130/verify-round-1.md);
+  grep measured 2026-09-06 in C:/Offline Repos/v2-testbed/_worktrees/g5-ladders; DEC-0084;
+  PR-0010 AC-1
+hole_number: H182
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-06T07:41:17'

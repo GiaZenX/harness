@@ -1,0 +1,173 @@
+id: TSK-0126
+product_requirement: PR-0003
+derives_from: PR-0003
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-1
+allowed_scope:
+- team-kits/**
+- tools/**
+- docs/**
+- .gitattributes
+- .github/**
+- .claude/hooks/test_gates.py
+- .claude/hooks/gate_test_scope.py
+- .claude/settings.json
+- .claude/agents/harness-lead.md
+- .claude/agents/harness-implementer.md
+- .claude/agents/harness-verifier.md
+- NOTICES.md
+- README.md
+- CLAUDE.md
+forbidden_scope:
+- team-kits/gen_provider_artifacts.py
+- scaffold_team.*
+- install.*
+- init_project_memory.*
+- user/**
+- .claude/hooks/gate_lead_write_scope.py
+- .claude/hooks/gate_spawn_needs_item.py
+- .claude/hooks/gate_commit_evidence.py
+- .claude/hooks/gate_todo_items.py
+- .claude/hooks/_harness.py
+- project_memory/**
+required_inputs:
+- 'project_memory/staging/generation-4-streams.md -- the round log: the goal table,
+  the seams named at the cut, the hole reservations (G4-1 H151-H153, G4-2 H154-H156,
+  G4-3 H157-H159, G4-4 H160-H162), every report / verdict / rework entry with its
+  measured lines, the lead decisions (AC-2 deviation of TSK-0121 ACCEPTED: a missing
+  timeout is the provider''s known default window; F10 of TSK-0121 NARROWED; the TSK-0124
+  -> TSK-0125 re-cut), and the four host power-offs with their measured cause'
+- 'project_memory/staging/TSK-0122/stream-protocol.md + rework-round-1..3.md + verify-round-1..4.md
+  (G4-2 kernel contracts: DEC-0071/0072/0073 built; seam table with the AST diff of
+  .claude/hooks/test_gates.py 18 removed / 10 added / 5 changed; the four sentences
+  with test names for the constitutions and the five dead-citation sites of the renamed
+  test test_nothing_shipped_refuses_two_tasks_whose_scopes_overlap; the corrected
+  SR-duty sentence; section 7: the ONE writing migration run `tools/migrate_holes.py
+  --apply` from a shell OUTSIDE Claude Code, `--reindex` after every other stream''s
+  holes are captured, the seven gate nodes red until then; H154-H156 with two classes
+  each)'
+- 'project_memory/staging/TSK-0121/stream-protocol.md + verify-round-1..5.md (G4-1
+  test discipline: gate_test_scope.py registered in .claude/settings.json with timeout
+  120 + EXPECTED_TOOLS, the kit hook x3 byte-identical + ENFORCEMENT.md line x3 +
+  kit settings x3, tools/test_surface.json, _kernel.py registered_window/start_the_deadline
+  x3, the QE skill block, kit_browser_checks.py design_standards (dev = research),
+  the seam to G4-3: one word per constitution (the two tools/test_shortening_net.py
+  reds), H158 received from G4-3 (no event trigger built -- session_status.py/_routine.py
+  untouched, decide at the merge whether H158 stays open), H151-H153)'
+- 'project_memory/staging/TSK-0123/stream-protocol.md + verify-round-1..3.md (G4-3
+  procedure: the retrospective step x3, the cut critic + five malformed forms in the
+  three lead skills, the rejected-alternative paragraph byte-identical in all three
+  constitutions (arbiter tools/test_role_contracts.py::test_a_paragraph_the_constitutions_share_is_one_text),
+  harness-lead/-implementer/-verifier.md, tools/test_review_procedure.py; merge lines:
+  tools/lead_package_sizes.json +886 B x3 (MERGE, not overwrite), docs/reviews/phase0-disposition.md
+  16 appended journal lines, section pins rewritten once after the G4-1/G4-2 sentences
+  land; H157-H159)'
+- 'project_memory/staging/TSK-0125/stream-protocol.md + verify-round-1..3.md (G4-4
+  repo hygiene, successor of TSK-0124: .gitattributes pins + tools/normalise_line_endings.py
+  + test_repo_hygiene, the two CI test fixes, kitupdate.py memory-tree listing, the
+  gate-3 timing test (ONE changed definition in test_gates.py), under_load.py rig;
+  merge lines section 12: `python tools/normalise_line_endings.py --apply` in the
+  main checkout (52 files, project_memory/.audit/hook_events.jsonl stays), the push
+  for AC-1''s after direction (user''s word), H162 load half measured in the lead''s
+  window -- result in the round log)'
+- 'the four patches, each PASS by its own verifier, each WITHOUT VERSION hunks and
+  with 0 CR bytes: C:/Offline Repos/v2-testbed/_round-scratch/TSK-0125/stream-hygiene.patch
+  (10 files), TSK-0122/stream-kernel.patch (18 files, 4262 lines), TSK-0121/stream-testgate.patch
+  (24 files, 336 024 B), TSK-0123/stream-procedure.patch (20 heads, 127 110 B); the
+  worktrees g4-hygiene / g4-kernel / g4-testgate / g4-procedure under C:/Offline Repos/v2-testbed/_worktrees/
+  are READ-ONLY references -- every stream is merged from its PATCH, never from file
+  copies out of a worktree (generation-3 rule)'
+- 'project_memory/decisions/active/DEC-0070.yaml (the generation-3 retrospective:
+  rules 1-6), DEC-0071.yaml, DEC-0072.yaml, DEC-0073.yaml (the three G4-2 decisions),
+  DEC-0063.yaml (merge = own verification; full run once), DEC-0050.yaml, DEC-0067.yaml,
+  DEC-0068.yaml; project_memory/product/active/PR-0004..PR-0007.yaml (the four goals
+  with AC-1..AC-n each -- the merge verifier reports per goal)'
+- 'forbidden_scope project_memory/** EXCEPTS project_memory/staging/(this task id)/
+  -- the protocol goes there; project_memory/ canonical state is written ONLY by the
+  kernel or, for the migration run, from a shell outside Claude Code by the user:
+  hand the lead the exact line, do not run it'
+expected_outputs:
+- 'The four generation-4 patches applied on feat/harness-v2 (base 75a00d1, the main
+  checkout) in SEAM ORDER: G4-4 hygiene (TSK-0125) FIRST so the tree is LF before
+  anything else lands, then `python tools/normalise_line_endings.py --apply` (measure
+  the eol state before and after: 52 normalised, one out of reach, named), then G4-2
+  kernel (TSK-0122), then G4-1 test gate (TSK-0121), then G4-3 procedure (TSK-0123)
+  LAST because it is the receiver of every constitution sentence; `git apply --check`
+  (and --3way where a seam file needs it) before each, the reading pin tests after
+  EVERY patch; a hunk that fails on a seam file is resolved BY HAND and listed; provisional
+  VERSION hunks are absent by construction -- a patch carrying one is a cut finding
+  (DEC-0070).'
+- 'Every seam the round log and the four protocols name resolved BY HAND and listed
+  with its resolution and its arbiter test: (1) .claude/hooks/test_gates.py -- G4-2''s
+  judges block (18/10/5 per its AST table), G4-1''s gate-5 block, G4-4''s ONE changed
+  timing test: all three present, AST diff of the merged file against 75a00d1 equals
+  the union, no definition lost; (2) the three constitutions -- G4-3''s rejected-alternative
+  paragraph byte-identical x3, G4-1''s one word per constitution (the two test_shortening_net
+  reds go green), G4-2''s four sentences with test names (SR duty as CORRECTED in
+  rework 1: an SR origin never exempts, it satisfies the duty only as the ACCEPTED
+  architect step; inbox rule; hole items; lease refusal) and the five dead-citation
+  sites of test_nothing_shipped_refuses_two_tasks_whose_scopes_overlap re-pointed
+  (three constitutions + dev/research parallel-streams SKILL.md), arbiter test_a_paragraph_the_constitutions_share_is_one_text
+  + tools/test_shortening_net.py + test_repo_hygiene pointer test; section pins rewritten
+  ONCE after all sentences landed; (3) tools/lead_package_sizes.json merged (G4-3
+  +886 B x3 plus whatever the other streams grew), record_lead_package_sizes.py --check
+  green; (4) docs/reviews/phase0-disposition.md journal appended, not rewritten; (5)
+  docs/POST_V2_WISHLIST.md -- G4-2''s migration door must accept G4-1''s H151-H153,
+  G4-3''s H157-H159 and G4-4''s H160-H162 in the current format: the DRY run over
+  the merged document (against a copy of project_memory outside the repo) yields 143
+  + 9 = 152 items, no collision, second run byte-identical; the generated index section
+  present; the WRITING run is handed to the lead as one exact command line for a shell
+  outside Claude Code (not run here); (6) tools/provider_observations.json -- G4-1''s
+  one string, numstat 1/1; (7) team-kits/*/hooks/_kernel.py (G4-1 only) and kitupdate.py
+  (G4-4 only) -- no second writer; (8) kit settings.json x3 + .claude/settings.json
+  -- gate_test_scope registered with timeout, EXPECTED_TOOLS both ways, test_gates
+  settings test green; (9) H158 -- G4-3''s event-trigger test against G4-1''s package:
+  decide and record whether the trigger exists (session_status.py/_routine.py untouched
+  by G4-1) -- H158 stays open with its chain or is closed by a line built HERE with
+  a red-first test; (10) every DEC/H/test pointer the merged tree writes resolves
+  (tools/test_repo_hygiene pointer sweep + test_gates self-check green).'
+- 'The hole list in one order after the migration dry run: H151-H153 (G4-1: H152 one
+  class, H153 two named exceptions), H154-H156 (G4-2: two classes each), H157-H159
+  (G4-3), H160-H162 (G4-4: H162 carries the load measurement result from the lead''s
+  window), H163-H165 reserved for the merge round''s own findings (use ONLY these;
+  unused ones stated as unused); every entry with mechanism, measured chain, verdict
+  and -- for ''not closable'' -- the bound; the summary table judges every entry consistently.'
+- 'Merge findings: everything the seams reveal that no stream could see -- each with
+  the test and the reason, fixed in this round (red-first in a copy outside the repo)
+  or named under H163-H165; the findings AGAINST THE CUT collected in one table for
+  the generation-4 retrospective DEC (known so far: the TSK-0124 line ''measured under
+  16 CPU burners'' that preceded the host power-offs; the AC-2 line of TSK-0121 repeating
+  a refuted generation-3 order sentence; _kernel.py absent from the seam table; the
+  merge''s writing steps that no role inside the session may run) -- not fixed here.'
+- 'ONE release stamp across the three kits after the last change (tools/bump_kit_version.py;
+  the four provisional stamps of the streams are all superseded); the full tools/
+  suite ONCE after the last rework and before the stamp, plus .claude/hooks/test_gates.py
+  in full (with the SEVEN migrated judges red until the writing migration run -- that
+  red is expected and stated, not a finding), plus ruff and validate.py; every other
+  red is a finding, not a skip; if the full run yields findings, their fixes are followed
+  by full runs of every suite that reads the changed files, recorded with the file
+  list (DEC-0063 (4)); the full run itself is the FIRST line that gate 5 will refuse
+  once registered: run it with the delivery prefix gate 5 prescribes (DELIVERY_RUN=<this
+  task id>) so the kernel records run_scope full -- measure that the registered gate
+  lets exactly that line through and refuses the bare one.'
+- 'HOST RULE: one pytest at a time, every run with a timeout, no CPU-burning rig (the
+  load measurement of H162 belongs to G4-4 in the lead''s window, not to this round);
+  the four host power-offs of 2026-09-04 were measured against an all-core burner
+  rig beside parallel suites.'
+- 'Protocol in project_memory/staging/(this task id)/merge-protocol.md: seam table
+  with resolution + arbiter per seam, pointer table, the hole list, the migration
+  dry-run numbers and the exact writing command line for the lead, the full-suite
+  numbers, the completed (g) table per stream (tier, rounds, verification rounds,
+  tokens impl/verif, wall-clock worked vs span, the crash idle), the cut-findings
+  table, and the one-line rejected alternative of the merge plan. No commit, no push:
+  the lead records the EVD and commits after the merge verifier''s PASS; the push
+  and the migration run are the user''s.'
+dependencies: []
+root_revision: 1
+status: CANCELLED
+revision: 1
+approval_ref: null
+created: '2026-09-05T04:15:17'
+closed_at: '2026-09-05T21:32:25'

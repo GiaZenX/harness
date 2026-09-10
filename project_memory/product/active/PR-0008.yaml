@@ -84,7 +84,7 @@ out_of_scope:
 - The deferred block (backlog system, provider & environment) -- its own planning
   round
 priority: high
-status: DRAFT
+status: APPROVED
 revision: 1
-approval_ref: null
+approval_ref: APR-0007
 created: '2026-09-05T09:49:16'

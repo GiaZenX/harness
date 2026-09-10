@@ -1,0 +1,15 @@
+request_id: 179f8405df904c4caf958d67b5a41468
+kind: delivery
+item: PR-0006
+revision: 1
+subject_manifest:
+  item: PR-0006
+  root_revision: 1
+  system_requirements: []
+  architecture: []
+  tasks: []
+  risks: []
+subject_manifest_hash: b1f40d3e0cb70ce870abeb4dd982445958846ad184ee3274deeae2b0a92c93f3
+created: '2026-09-06T16:01:18'
+expires_at_epoch: 1788789678.674885
+mint_code: 769f09

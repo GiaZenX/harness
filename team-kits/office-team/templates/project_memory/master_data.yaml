@@ -141,3 +141,39 @@ counterparties: []
 #  - canonical: "Muster Handels GmbH"
 #    aliases: ["MUSTER HANDELS FFM", "Muster Handels G.m.b.H."]
 #    default_vat_treatment: reverse_charge   # a foreign supplier's fee invoices — § 13b UStG
+
+# -- OUTGOING INVOICE NUMBER RANGES: THE DOCKING POINT FOR THE INVOICE APPLICATION (DEC-0075) ----
+# The kit writes no outgoing invoice. An external application produces them (one business = one
+# tenant = its own unbroken number range) and drops the file — a ZUGFeRD PDF or an XRechnung XML —
+# into `inbox/`. `scripts/invoice_intake.py` reads it through the same reader every incoming
+# e-invoice goes through, checks the norm's mandatory fields and the reconciling triple, and then
+# asks THIS list which range the number belongs to: the range whose `pattern` the invoice number
+# matches in full. No range, or two ranges, is a refusal — never a guess.
+#
+#   key            the range's name; every verdict the intake prints names it
+#   business       the name the invoice must be issued IN (the document's seller); a document in
+#                  another name is refused, so a supplier's invoice can never be booked as your own
+#   pattern        a regular expression the whole invoice number must match. `(?P<number>\d+)` is
+#                  the part that counts; an optional `(?P<year>\d{4})` restarts the count per year
+#   issued_by      app          -- the application issues the number: a gap in the series is REFUSED
+#                                  with the last issued and the arriving number named (create case:
+#                                  a marketplace that issues no invoice of its own)
+#                  marketplace  -- another system issued the number (import-only case): a gap is
+#                                  REPORTED in the verdict, not refused, because a missing number in
+#                                  somebody else's range may be their cancellation and not your gap
+#   document_type  the `filing_plan.yaml` class its documents are filed under (the rule that names
+#                  this class decides the folder and the file name; the intake composes both and
+#                  `gate_filing` still judges the move)
+#   category       the ledger category the booking carries (a key of `categories.income` above)
+#   first          the first number of a fresh series (default 1)
+# The interface contract the application is written against — file shape, drop location, what the
+# kit answers, the three marketplace cases separated by law — is `docs/office/invoice-app-docking-point.md`
+# in the kit source; this list is the project's half of it.
+number_ranges: []
+#  - key: shop_a
+#    business: "Muster Handel e.K."
+#    pattern: "RE-(?P<year>\\d{4})-(?P<number>\\d{4})"
+#    issued_by: app
+#    document_type: sales_invoice
+#    category: sales_taxable
+#    first: 1

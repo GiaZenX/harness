@@ -33,10 +33,12 @@ expected: Die Scope-Freigabe wird im SDK-/Headless-Betrieb sauber erteilt und pr
   das ehrlich, statt eine nicht existierende Sicherheits-/Neustart-Zeremonie zu erfinden
   und den Nutzer dazu zu draengen. Kein Lauf fordert den Nutzer zu einem Schritt auf,
   den es nicht gibt.
-repro: SDK-Sitzung (system_prompt preset claude_code, setting_sources user/project/local),
-  Projektwunsch, Interview, Masterplan bestaetigen, dann bis zur Scope-Freigabe fuehren.
-  Gemessen wird, ob die Freigabe protokolliert wird oder ob der Agent auf eine manuelle
-  /hooks-Zeremonie ausweicht.
+repro: 'RE-MEASURED 2026-09-06 (TSK-0131) against b7f282e: the three tests that name
+  this bug all pass (`tools/test_report.py::test_a_fresh_install_is_told_to_restart_and_is_not_handed_the_slash_command`
+  and its two neighbours), while the item''s own confirming record EVD-0018 is `result:
+  fail`. A passing test beside a failing record is not a closed bug: the record is
+  the verdict and the runs are one measurement beside it. Kept OPEN until a passing
+  Evidence supersedes EVD-0018 (FR-0058, PR-0008 AC-1).'
 severity: high
 acceptance_criteria:
 - id: AC-1

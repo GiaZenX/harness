@@ -12,3 +12,7 @@ created: '2026-08-15T09:40:38'
 triage_result: 'USER VERDICT 2026-09-02 (FR survey, asked one by one via AskUserQuestion):
   Zusammen mit der Oberflaeche -- paired with FR-0024, builds when the UI builds.'
 related_pr: PR-0003
+source: 'DEFERRED BLOCK, user verdict 2026-09-04/05, recorded in DEC-0080 (9): ''need
+  more planning''. Re-measured 2026-09-05 (TSK-0131, PR-0008 AC-2) -- not built, and
+  deliberately not planned in generation 5. It gets its own planning round with the
+  user; until then TRIAGED is the honest status and this line is why.'
