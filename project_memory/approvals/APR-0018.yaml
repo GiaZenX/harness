@@ -1,0 +1,11 @@
+id: APR-0018
+kind: delivery
+item: PR-0008
+revision: 1
+subject_manifest_hash: 51547410d00dd7c7b276e27ee69e22f3482e7b405931b9ab31b0d8c4f3331a27
+request_id: 3de5bb85191c41fa8942dfa78ae6c595
+mint_code: 1b6f79
+minted_via: user_answer_via_approval_hook
+approved_at: '2026-09-11T11:41:12'
+expires: null
+revoked: false

@@ -82,7 +82,9 @@ out_of_scope:
 - Sending mail or connecting to a tax office / ELSTER -- humans send
 - Changes to the dev-team or research-team kits beyond mirrored files
 priority: high
-status: APPROVED
+status: ACCEPTED
 revision: 1
-approval_ref: APR-0007
+approval_ref: APR-0025
 created: '2026-09-05T09:49:19'
+approved_hash: 13f2171b619d2583eb175c6dac196233e0d6e3014f3b7ff838618350dd9c47f1
+closed_at: '2026-09-11T12:04:54'

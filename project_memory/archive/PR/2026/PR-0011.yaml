@@ -137,7 +137,9 @@ source: DEC-0087; DEC-0088; DEC-0089; DEC-0090; the per-order tiers DEC (2026-09
   FR-0089 + staging/FR-0089/*.md; BUG-0271; BUG-0073; BUG-0266; TSK-0134; FR-0062;
   user messages 2026-09-06 and 2026-09-10 ('das mit den Watchern haette ich gern auch
   in Gen 6'; 'ansonsten passt es')
-status: DRAFT
+status: ACCEPTED
 revision: 1
-approval_ref: null
+approval_ref: APR-0029
 created: '2026-09-10T23:03:22'
+approved_hash: 6c7cb59fb49768e975fed6d12d989454ee979d17fda1a45333a81dd077bee30c
+closed_at: '2026-09-11T12:04:58'

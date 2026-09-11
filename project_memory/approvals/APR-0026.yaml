@@ -1,0 +1,11 @@
+id: APR-0026
+kind: acceptance
+item: PR-0006
+revision: 1
+subject_manifest_hash: 02e91d32d4be281ea4587431b65f2c99642c89e0a6caf46f904a65546f90a674
+request_id: 9362b478858147d4aa174bdaf990f79f
+mint_code: 402ce0
+minted_via: user_answer_via_approval_hook
+approved_at: '2026-09-11T12:03:02'
+expires: null
+revoked: false

@@ -1,0 +1,16 @@
+request_id: 1f2ef7120b1a400fadc5acc2cd74fa74
+kind: acceptance
+item: PR-0005
+revision: 1
+item_title: 'G4-2 Kernel contracts: honest evidence for a BUG (BUG-0090), no work
+  order under an inbox item (BUG-0091), SR duty by PR class (FR-0085), holes as typed
+  items (FR-0087), leases for parallel specialists (C-2/C-3)'
+subject_manifest:
+  item: PR-0005
+  revision: 1
+  delivered_commit: null
+  evidence_refs: []
+subject_manifest_hash: eca69c98ae68ce9e72cbb0c6911dd09a05fbfe409c0ed21df25313ba21624700
+created: '2026-09-11T12:01:44'
+expires_at_epoch: 1789207304.5392852
+mint_code: e990a8

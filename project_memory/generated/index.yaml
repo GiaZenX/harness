@@ -1,4 +1,4 @@
-generated_at: '2026-09-11T11:32:26'
+generated_at: '2026-09-11T12:05:18'
 items:
 - id: APR-0001
   type: APR
@@ -91,6 +91,90 @@ items:
   revision: 1
   approval_ref: null
 - id: APR-0016
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0017
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0018
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0019
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0020
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0021
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0022
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0023
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0024
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0025
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0026
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0027
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0028
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0029
+  type: APR
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: APR-0030
   type: APR
   title: null
   status: null
@@ -2886,6 +2970,24 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0101
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0102
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0103
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -3002,79 +3104,6 @@ items:
   status: APPROVED
   revision: 1
   approval_ref: APR-0005
-- id: PR-0004
-  type: PR
-  title: 'G4-1 Test discipline and hook hygiene: a gate on the SCOPE of a test run
-    (this repo + kits), timeouts on every kit hook registration, and the design checks''
-    BUILD half'
-  status: DELIVERED
-  revision: 1
-  approval_ref: APR-0013
-- id: PR-0005
-  type: PR
-  title: 'G4-2 Kernel contracts: honest evidence for a BUG (BUG-0090), no work order
-    under an inbox item (BUG-0091), SR duty by PR class (FR-0085), holes as typed
-    items (FR-0087), leases for parallel specialists (C-2/C-3)'
-  status: DELIVERED
-  revision: 1
-  approval_ref: APR-0014
-- id: PR-0006
-  type: PR
-  title: 'G4-3 Procedure and retrospective: review as an EVENT in the kits and here
-    (FR-0084), a cut critic before the order (FR-0005), the five malformed order lines
-    in the PM role (FR-0010), and the orchestrator rules of DEC-0070 in the lead role
-    text'
-  status: DELIVERED
-  revision: 1
-  approval_ref: APR-0015
-- id: PR-0007
-  type: PR
-  title: 'G4-4 Repo hygiene: the hosted CI is green or honest (BUG-0069), line endings
-    pinned and the 33 CRLF files normalised (BUG-0025), kit update leaves no memory
-    residue (BUG-0088), the load-class gate test stops flapping (BUG-0033)'
-  status: DELIVERED
-  revision: 1
-  approval_ref: APR-0016
-- id: PR-0008
-  type: PR
-  title: 'G5-1 Bestandsbereinigung: every open BUG and wish of this repo measured
-    against the running code and closed through the kernel or kept with its chain
-    (FR-0058), plus a derivable notion of ''done'' so the stock cannot lie upward
-    again'
-  status: APPROVED
-  revision: 1
-  approval_ref: APR-0007
-- id: PR-0009
-  type: PR
-  title: 'G5-3 Office package: correspondence capability (FR-0033), the docking point
-    for the external invoice application (intake, validation, filing, booking), a
-    year-versioned chart of accounts with EUeR mapping (FR-0081), the eight takeovers
-    from a real operation (FR-0002), and the four open office bugs (BUG-0070/0071/0072/0079)'
-  status: APPROVED
-  revision: 1
-  approval_ref: APR-0007
-- id: PR-0010
-  type: PR
-  title: 'G5-2 Watchers, ladders and escalation: the radar/codex watcher duo runs
-    on a real trigger, the first codex report exists, the ladders are three rungs
-    per provider (fable/opus/sonnet = astra/sol/terra, DEC-0076), effort is high by
-    default and xhigh for large goals, and DEC-0034''s escalation mechanic is BUILT
-    in the dispatcher (two axes, from state)'
-  status: APPROVED
-  revision: 1
-  approval_ref: APR-0007
-- id: PR-0011
-  type: PR
-  title: 'G6 The light kit: one builder per goal with the whole goal, team size and
-    tiers derived by the orchestrator (per goal AND per order), verification at the
-    goal instead of after every change, the entry question ''mit Langzeit-Gedaechtnis
-    oder erstmal frei'' -- built in its own form, measured by the FR-0089 experiment;
-    plus the watcher duo on the new names/rungs/routines and the two user-facing defects
-    the light form must not carry (the approval question''s language, the auditor''s
-    read-only route)'
-  status: DRAFT
-  revision: 1
-  approval_ref: null
 - id: SR-0001
   type: SR
   title: 'Abschlusskriterium: keine V1-Form ausserhalb von archive/ und legacy/'
@@ -3122,29 +3151,5 @@ items:
   title: 'This repo''s enforcement: four gates, a bound session agent, and no history
     record without a verdict'
   status: ACCEPTED
-  revision: 1
-  approval_ref: null
-- id: TSK-0134
-  type: TSK
-  title: null
-  status: CANCELLED
-  revision: 1
-  approval_ref: null
-- id: TSK-0135
-  type: TSK
-  title: null
-  status: CANCELLED
-  revision: 1
-  approval_ref: null
-- id: TSK-0136
-  type: TSK
-  title: null
-  status: CANCELLED
-  revision: 1
-  approval_ref: null
-- id: TSK-0137
-  type: TSK
-  title: null
-  status: READY
   revision: 1
   approval_ref: null

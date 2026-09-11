@@ -1,0 +1,22 @@
+request_id: 5a7850dc138c408a840a051c1a8cc107
+kind: delivery
+item: PR-0011
+revision: 1
+item_title: 'G6 The light kit: one builder per goal with the whole goal, team size
+  and tiers derived by the orchestrator (per goal AND per order), verification at
+  the goal instead of after every change, the entry question ''mit Langzeit-Gedaechtnis
+  oder erstmal frei'' -- built in its own form, measured by the FR-0089 experiment;
+  plus the watcher duo on the new names/rungs/routines and the two user-facing defects
+  the light form must not carry (the approval question''s language, the auditor''s
+  read-only route)'
+subject_manifest:
+  item: PR-0011
+  root_revision: 1
+  system_requirements: []
+  architecture: []
+  tasks: []
+  risks: []
+subject_manifest_hash: 9c82577d4cd17877785c3141198cfa8fa992c40f1e83ce96a641f3cbad907311
+created: '2026-09-11T11:57:26'
+expires_at_epoch: 1789207046.381294
+mint_code: e37fcd

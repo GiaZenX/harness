@@ -643,3 +643,31 @@
 {"ts": "2026-09-11T05:20:38", "hook": "gate_shell_hygiene", "event": "block", "reason": "'OtherDB' belongs to compose project 'neighbour-stack', not to this repo (myproject). Foreign Docker projects are off-limits: containers and volumes share one daemon, so this reaches another project's data — a real OOM hunt stopped a NEIGHBOUR project's production database exactly here (devops SKILL §3)."}
 {"ts": "2026-09-11T06:00:11", "hook": "gate_needs", "event": "block", "reason": "the hook payload could not be read or parsed, so this call could not be inspected — refused rather than waved through (spec II.4 fail-closed)."}
 {"ts": "2026-09-11T06:11:05", "hook": "gate_shell_hygiene", "event": "block", "reason": "'OtherDB' belongs to compose project 'neighbour-stack', not to this repo (myproject). Foreign Docker projects are off-limits: containers and volumes share one daemon, so this reaches another project's data — a real OOM hunt stopped a NEIGHBOUR project's production database exactly here (devops SKILL §3)."}
+{"ts": "2026-09-11T11:38:57", "hook": "gate_approval", "event": "note", "reason": "approval question for 9f5cbb345b0c41cfa0514cf520dabdd8 matched the kernel's"}
+{"ts": "2026-09-11T11:39:56", "hook": "gate_approval", "event": "note", "reason": "minted APR-0017 for request 9f5cbb345b0c41cfa0514cf520dabdd8 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T11:40:47", "hook": "gate_approval", "event": "note", "reason": "approval question for 3de5bb85191c41fa8942dfa78ae6c595 matched the kernel's"}
+{"ts": "2026-09-11T11:41:15", "hook": "gate_approval", "event": "note", "reason": "minted APR-0018 for request 3de5bb85191c41fa8942dfa78ae6c595 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T11:41:38", "hook": "gate_approval", "event": "note", "reason": "approval question for 4cc589c56d68405f85f364b61fe9cde9 matched the kernel's"}
+{"ts": "2026-09-11T11:41:51", "hook": "gate_approval", "event": "note", "reason": "minted APR-0019 for request 4cc589c56d68405f85f364b61fe9cde9 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T11:42:10", "hook": "gate_approval", "event": "note", "reason": "approval question for f9e2e2be9ee24b6da063881d0a5ffbac matched the kernel's"}
+{"ts": "2026-09-11T11:56:23", "hook": "gate_approval", "event": "note", "reason": "minted APR-0020 for request f9e2e2be9ee24b6da063881d0a5ffbac (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T11:56:52", "hook": "gate_approval", "event": "note", "reason": "approval question for 43e2276d07d648f1936c0ad6d6f678c1 matched the kernel's"}
+{"ts": "2026-09-11T11:57:11", "hook": "gate_approval", "event": "note", "reason": "minted APR-0021 for request 43e2276d07d648f1936c0ad6d6f678c1 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T11:57:35", "hook": "gate_approval", "event": "note", "reason": "approval question for 5a7850dc138c408a840a051c1a8cc107 matched the kernel's"}
+{"ts": "2026-09-11T12:01:27", "hook": "gate_approval", "event": "note", "reason": "minted APR-0022 for request 5a7850dc138c408a840a051c1a8cc107 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T12:01:56", "hook": "gate_approval", "event": "note", "reason": "approval question for 0944719163af4eb7a74f3d3b9480eef1 matched the kernel's"}
+{"ts": "2026-09-11T12:02:06", "hook": "gate_approval", "event": "note", "reason": "minted APR-0023 for request 0944719163af4eb7a74f3d3b9480eef1 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T12:02:20", "hook": "gate_approval", "event": "note", "reason": "approval question for 1f2ef7120b1a400fadc5acc2cd74fa74 matched the kernel's"}
+{"ts": "2026-09-11T12:02:33", "hook": "gate_approval", "event": "note", "reason": "minted APR-0024 for request 1f2ef7120b1a400fadc5acc2cd74fa74 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T12:02:41", "hook": "gate_approval", "event": "note", "reason": "approval question for 524cab7b9972454992b028a9acba9342 matched the kernel's"}
+{"ts": "2026-09-11T12:02:48", "hook": "gate_approval", "event": "note", "reason": "minted APR-0025 for request 524cab7b9972454992b028a9acba9342 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T12:02:56", "hook": "gate_approval", "event": "note", "reason": "approval question for 9362b478858147d4aa174bdaf990f79f matched the kernel's"}
+{"ts": "2026-09-11T12:03:05", "hook": "gate_approval", "event": "note", "reason": "minted APR-0026 for request 9362b478858147d4aa174bdaf990f79f (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T12:03:12", "hook": "gate_approval", "event": "note", "reason": "approval question for 9feaa8db41fc44e1aa9770f0d3f9240a matched the kernel's"}
+{"ts": "2026-09-11T12:03:28", "hook": "gate_approval", "event": "note", "reason": "minted APR-0027 for request 9feaa8db41fc44e1aa9770f0d3f9240a (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T12:03:35", "hook": "gate_approval", "event": "note", "reason": "approval question for b23eacc2628043baa6f809438d163982 matched the kernel's"}
+{"ts": "2026-09-11T12:03:46", "hook": "gate_approval", "event": "note", "reason": "minted APR-0028 for request b23eacc2628043baa6f809438d163982 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T12:03:55", "hook": "gate_approval", "event": "note", "reason": "approval question for e5d785d176844bd0bd8ba8f3e99d42c8 matched the kernel's"}
+{"ts": "2026-09-11T12:04:05", "hook": "gate_approval", "event": "note", "reason": "minted APR-0029 for request e5d785d176844bd0bd8ba8f3e99d42c8 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T12:04:13", "hook": "gate_approval", "event": "note", "reason": "approval question for ed364d4d727f4f6785ec815d94a1a847 matched the kernel's"}
+{"ts": "2026-09-11T12:04:27", "hook": "gate_approval", "event": "note", "reason": "minted APR-0030 for request ed364d4d727f4f6785ec815d94a1a847 (user_answer_via_approval_hook)"}

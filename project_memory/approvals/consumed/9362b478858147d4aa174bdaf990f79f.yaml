@@ -1,0 +1,17 @@
+request_id: 9362b478858147d4aa174bdaf990f79f
+kind: acceptance
+item: PR-0006
+revision: 1
+item_title: 'G4-3 Procedure and retrospective: review as an EVENT in the kits and
+  here (FR-0084), a cut critic before the order (FR-0005), the five malformed order
+  lines in the PM role (FR-0010), and the orchestrator rules of DEC-0070 in the lead
+  role text'
+subject_manifest:
+  item: PR-0006
+  revision: 1
+  delivered_commit: null
+  evidence_refs: []
+subject_manifest_hash: 02e91d32d4be281ea4587431b65f2c99642c89e0a6caf46f904a65546f90a674
+created: '2026-09-11T12:01:45'
+expires_at_epoch: 1789207305.095224
+mint_code: 402ce0

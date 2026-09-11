@@ -1,0 +1,19 @@
+request_id: 4cc589c56d68405f85f364b61fe9cde9
+kind: delivery
+item: PR-0009
+revision: 1
+item_title: 'G5-3 Office package: correspondence capability (FR-0033), the docking
+  point for the external invoice application (intake, validation, filing, booking),
+  a year-versioned chart of accounts with EUeR mapping (FR-0081), the eight takeovers
+  from a real operation (FR-0002), and the four open office bugs (BUG-0070/0071/0072/0079)'
+subject_manifest:
+  item: PR-0009
+  root_revision: 1
+  system_requirements: []
+  architecture: []
+  tasks: []
+  risks: []
+subject_manifest_hash: 2f6c630682a5d7f76fc57ce6f7c8e1839d603a11f56d74ad41ea383932522548
+created: '2026-09-11T11:41:27'
+expires_at_epoch: 1789206087.1270075
+mint_code: 4e4eb4

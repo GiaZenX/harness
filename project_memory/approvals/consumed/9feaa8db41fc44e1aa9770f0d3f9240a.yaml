@@ -1,0 +1,16 @@
+request_id: 9feaa8db41fc44e1aa9770f0d3f9240a
+kind: acceptance
+item: PR-0004
+revision: 1
+item_title: 'G4-1 Test discipline and hook hygiene: a gate on the SCOPE of a test
+  run (this repo + kits), timeouts on every kit hook registration, and the design
+  checks'' BUILD half'
+subject_manifest:
+  item: PR-0004
+  revision: 1
+  delivered_commit: null
+  evidence_refs: []
+subject_manifest_hash: 865692f57d90bfe5ae43d33e7bf2f338239504f104f4aa5871ed799248ab2d56
+created: '2026-09-11T12:01:43'
+expires_at_epoch: 1789207303.982212
+mint_code: ae3f1e

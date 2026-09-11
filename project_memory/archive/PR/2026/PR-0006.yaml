@@ -48,8 +48,9 @@ out_of_scope:
 - Building the review as a kernel type or automaton -- it rides on the auditor run
   record (FR-0038/TSK-0112)
 priority: normal
-status: DELIVERED
+status: ACCEPTED
 revision: 1
-approval_ref: APR-0015
+approval_ref: APR-0026
 created: '2026-09-04T02:54:25'
 approved_hash: 5d038e3da7cc7b7e6c3cdf09e5cfa0c3730d44f319c310d91c865fa82e284c2d
+closed_at: '2026-09-11T12:04:49'

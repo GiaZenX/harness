@@ -56,8 +56,9 @@ out_of_scope:
   is a DEC-first design round, not a stream (DEC-0070 (2))
 - BUG-0025 line endings (G4-4)
 priority: high
-status: DELIVERED
+status: ACCEPTED
 revision: 1
-approval_ref: APR-0013
+approval_ref: APR-0027
 created: '2026-09-04T02:54:22'
 approved_hash: 432c13080044bbbb91d7062a459915d492ebd3964dfb4b390f901f4fdb336c31
+closed_at: '2026-09-11T12:04:45'

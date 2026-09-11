@@ -1,0 +1,18 @@
+request_id: 3de5bb85191c41fa8942dfa78ae6c595
+kind: delivery
+item: PR-0008
+revision: 1
+item_title: 'G5-1 Bestandsbereinigung: every open BUG and wish of this repo measured
+  against the running code and closed through the kernel or kept with its chain (FR-0058),
+  plus a derivable notion of ''done'' so the stock cannot lie upward again'
+subject_manifest:
+  item: PR-0008
+  root_revision: 1
+  system_requirements: []
+  architecture: []
+  tasks: []
+  risks: []
+subject_manifest_hash: 51547410d00dd7c7b276e27ee69e22f3482e7b405931b9ab31b0d8c4f3331a27
+created: '2026-09-11T11:40:06'
+expires_at_epoch: 1789206006.7299466
+mint_code: 1b6f79

@@ -1,0 +1,139 @@
+request_id: 43e2276d07d648f1936c0ad6d6f678c1
+kind: scope
+item: PR-0011
+revision: 1
+item_title: 'G6 The light kit: one builder per goal with the whole goal, team size
+  and tiers derived by the orchestrator (per goal AND per order), verification at
+  the goal instead of after every change, the entry question ''mit Langzeit-Gedaechtnis
+  oder erstmal frei'' -- built in its own form, measured by the FR-0089 experiment;
+  plus the watcher duo on the new names/rungs/routines and the two user-facing defects
+  the light form must not carry (the approval question''s language, the auditor''s
+  read-only route)'
+subject_manifest:
+  problem: 'Measured over three generations (FR-0089 research A/B/C, DEC-0080, DEC-0087
+    context): ~4-5.6 M tokens per role per generation, the verifier''s share rising
+    to 58 %, 3-5 verification rounds per stream, the three dearest findings all coordination,
+    none a product defect; the literature: 7-15x cost for multi-agent forms, gains
+    in breadth not depth, coding ''has fewer truly parallelizable tasks'', independent
+    review the one proven gain. The kits still install a team by preset, ask the user
+    the team size, pin every build role on the same rung, verify after every rework,
+    and put an approval question in machine-German (BUG-0271/BUG-0073) while the auditor
+    has no read-only route to run at all (BUG-0266). The watcher duo runs on one local
+    routine for one half, on sonnet, under a name that no longer says what it scans
+    (DEC-0089/DEC-0090).'
+  goal: 'The kits work in the light form by default (DEC-0087 (1)-(6)): one builder
+    with the whole goal, the PM as keeper of items/decisions/approvals/evidence who
+    never writes product code, team size derived (a second builder only on check-scopes-disjoint
+    file sets), tiers derived per goal (DEC-0088) and per order (the per-order tiers
+    DEC: `rung`/`effort` on the TSK, max() with the ladder''s floor), verification
+    at the goal (at most two rounds, the merge its own), the entry question replaced;
+    the form proves itself on the FR-0089 experiment; the watcher duo is claude-watcher/codex-watcher
+    on the opus rung with four local routines; the approval question reads as German;
+    the auditor runs through a read-only route.'
+  acceptance_criteria:
+  - id: AC-1
+    text: 'ONE WRITER PER GOAL (DEC-0087 (1)): Given an approved goal, When the PM
+      dispatches it, Then exactly one builder lease exists for it carrying the whole
+      goal (PR + ACs + masterplan + architecture/product questions) and the PM''s
+      own write scope is unchanged (gate_write_scope measured refusing a PM code write);
+      a second builder needs check-scopes evidence of disjoint file sets on the lease
+      (DEC-0087 (2)); red-first on the dispatcher'
+  - id: AC-2
+    text: 'TEAM SIZE DERIVED (DEC-0087 (2)): the presets question is gone from the
+      entry interview (user/claude/CLAUDE.md + the PM skill), presets become the PM''s
+      derivation with DEC-0048''s ''ask again when a role is missing'' as the escape;
+      a structural test reads the entry file and the PM skill for a team-size question
+      and is red on it'
+  - id: AC-3
+    text: 'TIERS DERIVED PER GOAL AND PER ORDER (DEC-0088 (1)-(5), the per-order tiers
+      DEC): the TSK contract carries optional `rung` and `effort`; create-task accepts
+      them; the dispatcher''s lease rung = max(ladder class/pin rung, order rung),
+      effort = max(goal effort, order effort), floors and `top` kept, escalation from
+      wherever the order starts; both on the lease, in the session brief and beside
+      the order in check-scopes; a test refuses a rung outside the kit''s ladder vocabulary
+      and an effort outside low|medium|high|xhigh; the PM duty text carries the user''s
+      three-line rule and never asks the user for tiers'
+  - id: AC-4
+    text: 'VERIFICATION AT THE GOAL (DEC-0087 (3), DEC-0088 cadence (a)-(f)): the
+      PM skill and constitutions describe the cadence (no verifier during the build;
+      ONE round at the goal per AC; one rework + one short second round over failed
+      ACs; a third round is a re-cut by finding class; small changes under a goal
+      get no separate verifier; merge stays its own round); a reading test is red
+      on any kit text that still orders a verifier after every rework; the retrospective
+      step at the goal records wall-clock against measured-disjoint scopes (the solo-habit
+      catcher)'
+  - id: AC-5
+    text: 'ENTRY (DEC-0087 (4)): the first-contact question is ''Mit Langzeit-Gedaechtnis
+      fuer das Projekt (Projektakte, Entscheidungen, Beweise) -- oder erstmal frei?'';
+      ''with'' installs the kit at once with the solo default; the product interview
+      stays but shorter; measured on a scaffolded pilot; the German-report rule holds
+      on that surface (FR-0048)'
+  - id: AC-6
+    text: 'THE EXPERIMENT (FR-0089): the same frontend task with the same brief run
+      two ways -- (a) one Fable alone, (b) the kit in the light form -- measured on
+      tokens, wall-clock, rounds and the USER''s quality verdict, recorded as EVD
+      with the numbers; the kits'' builder default tier (Fable, or Opus with Fable
+      for architecture/design) is decided from it as a DEC'
+  - id: AC-7
+    text: 'APPROVAL QUESTION IN GERMAN (BUG-0271, BUG-0073): build_question yields
+      a German sentence with the kind in plain words from ONE table beside the enum
+      (two-sided tripwire), the item''s title or German-labelled manifest values,
+      no hash / request id / YAML path in the question text (moved into the compared
+      option description); the gate still compares character for character (red-first:
+      a tampered description refused); the PM''s value-language rule of BUG-0073 kept'
+  - id: AC-8
+    text: 'AUDITOR READ-ONLY ROUTE (BUG-0266/H184): the project-auditor is dispatched
+      through a `routine` approval kind that binds a read-only manifest, runs from
+      the session-start due reading without a code write, and its report lands as
+      items through the kernel; measured end to end on a scaffolded pilot per kit'
+  - id: AC-9
+    text: 'WATCHER DUO (DEC-0089, DEC-0090; TSK-0134): claude-watcher / codex-watcher
+      on the opus rung on both providers, report name with runner suffix, --due per
+      watcher AND runner, radar/routine.json recording the four local routines as
+      told with the report cadence as evidence, --describe printing the four Instructions
+      texts; the four routines created at the next local session (two Claude Desktop
+      tasks by asking Claude Desktop, two Codex app Automations by the user), the
+      first cross-provider report as the evidence'
+  - id: AC-10
+    text: 'BUILT IN ITS OWN FORM (DEC-0087 (7)): this goal is delivered by ONE builder
+      on the top rung with ONE verifier round at the goal (plus at most one mid-goal
+      check, this goal being LARGE), the merge/integration its own round; the (g)
+      table compares its tokens/rounds/wall-clock with generation 5''s per-stream
+      numbers -- the first measurement of the form on itself'
+  - id: AC-11
+    text: 'ROLLOUT AND HARVEST: the three installed projects receive the stamp at
+      their next session start (update-kit route), the kit-gap harvest (FR-0062) runs
+      once from this repo as a recorded lead routine and its entries are triaged into
+      items; what the harvest finds is the first input of the generation-6 retrospective'
+  - id: AC-12
+    text: 'HONEST TEAM AND TIER CHOICE (DEC-0092): a second concurrent build lease
+      under one goal is refused without a check-scopes record of disjoint file sets;
+      the spawn/dispatch gate prints the fact-based four-line checkpoint (disjoint
+      sets, size signals, rung + floor, last-N distribution) before every builder
+      start and never blocks on it; the session brief carries the distribution line;
+      the retrospective step writes the habit verdict with numbers; the pilot rig
+      (three orders of different size) runs at every stamp touching the ladder or
+      PM texts; red-first on the two refusals; no free-text justification field anywhere'
+  invariants:
+  - project_memory and the kernel as the only writer stay; the approvals for goal
+    scope and delivery stay; the gates that catch damage (write scope, commit evidence,
+    spawn needs item, test scope) stay; red-first per fix stays (DEC-0087 (6))
+  - 'Quality outranks cost, and ''unnecessary'' is defined, not felt (DEC-0088 cost
+    discipline): no verifier round repeating a builder''s measurement, no full run
+    inside a goal, no effort above high without a named step, no second builder without
+    check-scopes evidence'
+  - The user is never asked for team size or tiers; he is asked for the plan, the
+    scope, the delivery and the acceptance (the human gates)
+  out_of_scope:
+  - 'The invoice app (DEC-0075: its own project; the docking point is delivered in
+    G5-3)'
+  - 'The deferred block: Kanban/backlog UI (FR-0024), provider variety (FR-0023),
+    container (FR-0025), thin install (FR-0020), user-file handover (FR-0019), human
+    agent names (FR-0022) -- ''bedarf mehr Planung'', a later generation'
+  - Changing the rung names or adding a fourth rung (DEC-0076)
+  item: PR-0011
+  revision: 1
+subject_manifest_hash: 6b2ff2eceec6cba43edbd29093b9be4df2ee7ebbe03541bda7164f81b750be46
+created: '2026-09-11T11:56:44'
+expires_at_epoch: 1789207004.1268442
+mint_code: 341edb

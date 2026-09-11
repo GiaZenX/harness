@@ -1,0 +1,18 @@
+id: EVD-0102
+kind: review
+related:
+- TSK-0137
+- PR-0011
+result: pass
+summary: 'verifier PASS for diff:b0c4e0553e0274699c2eed6e57a8417f0c58a82dd78da4fe8ad9409f9995b39b
+  -- TSK-0137 (DEC-0097 default vs floor, test-shaped acceptance reader): round 1
+  FAIL on B1 (word reader), one rework (sentence-wise readers with negation guard,
+  verdict-word tripwire, N-a/N-b/N-c), round 2 PASS (verify-round-2.md); N-e/N-f captured
+  as BUG-0278/H194 (false-negative direction), index 184 = store; stamps 2026.09.11-10
+  x3 unchanged in the verifier''s copy'
+artifact_refs:
+- staging/TSK-0137/verify-round-2.md
+- staging/TSK-0137/verify-round-1.md
+revision: 1
+approval_ref: null
+created: '2026-09-11T11:32:44'

@@ -1,0 +1,20 @@
+request_id: f9e2e2be9ee24b6da063881d0a5ffbac
+kind: delivery
+item: PR-0010
+revision: 1
+item_title: 'G5-2 Watchers, ladders and escalation: the radar/codex watcher duo runs
+  on a real trigger, the first codex report exists, the ladders are three rungs per
+  provider (fable/opus/sonnet = astra/sol/terra, DEC-0076), effort is high by default
+  and xhigh for large goals, and DEC-0034''s escalation mechanic is BUILT in the dispatcher
+  (two axes, from state)'
+subject_manifest:
+  item: PR-0010
+  root_revision: 1
+  system_requirements: []
+  architecture: []
+  tasks: []
+  risks: []
+subject_manifest_hash: d18ea15e8fe5a11e80060d77403a833707bd82348a054a1e4d34fcebb994210c
+created: '2026-09-11T11:42:01'
+expires_at_epoch: 1789206121.856294
+mint_code: 3f98dd

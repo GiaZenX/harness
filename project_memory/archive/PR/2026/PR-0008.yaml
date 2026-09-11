@@ -84,7 +84,9 @@ out_of_scope:
 - The deferred block (backlog system, provider & environment) -- its own planning
   round
 priority: high
-status: APPROVED
+status: ACCEPTED
 revision: 1
-approval_ref: APR-0007
+approval_ref: APR-0028
 created: '2026-09-05T09:49:16'
+approved_hash: 455f2b264686bb5fc6eb071ee12bd4356d52f0bbda2b8ebccf48bea64b974924
+closed_at: '2026-09-11T12:04:52'

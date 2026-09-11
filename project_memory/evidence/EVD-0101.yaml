@@ -1,0 +1,22 @@
+id: EVD-0101
+kind: test
+related:
+- TSK-0137
+- PR-0011
+result: pass
+summary: 'TSK-0137 (DEC-0097 default vs floor; test-shaped acceptance reader): reading
+  suites green on the stamped tree 2026.09.11-10 -- test_ladder 48, test_light_kit
+  26, test_report 126, test_schemas 30, test_model_pins 5, test_role_contracts 32,
+  test_review_procedure 27, test_model_ladder 13; ruff and validate clean; red-first
+  13 + 9 rig rows red with the arbiter''s line (redfirst.py / redfirst2.py, own copies);
+  verify round 2 re-ran 48/26/32/27/13 and W14-W23'
+artifact_refs:
+- staging/TSK-0137/protocol.md
+- staging/TSK-0137/verify-round-2.md
+run_command: python -B -m pytest tools/test_ladder.py tools/test_light_kit.py tools/test_report.py
+  tools/test_schemas.py tools/test_model_pins.py tools/test_role_contracts.py tools/test_review_procedure.py
+  tools/test_model_ladder.py -q -p no:cacheprovider (one file at a time)
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T11:32:32'

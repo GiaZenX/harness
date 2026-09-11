@@ -1,0 +1,16 @@
+request_id: 0944719163af4eb7a74f3d3b9480eef1
+kind: acceptance
+item: PR-0007
+revision: 1
+item_title: 'G4-4 Repo hygiene: the hosted CI is green or honest (BUG-0069), line
+  endings pinned and the 33 CRLF files normalised (BUG-0025), kit update leaves no
+  memory residue (BUG-0088), the load-class gate test stops flapping (BUG-0033)'
+subject_manifest:
+  item: PR-0007
+  revision: 1
+  delivered_commit: null
+  evidence_refs: []
+subject_manifest_hash: 1935e4142fd393749c1e89841039cc6145f5dba87a0a87bf60219d943807ed1c
+created: '2026-09-11T12:01:45'
+expires_at_epoch: 1789207305.6471238
+mint_code: 1adf14
