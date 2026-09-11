@@ -62,12 +62,29 @@ escalation:
 # class keeps `top` -- DEC-0095 (4a) names it as one of the two occasions the top rung is bought:
 # one call, a document as output, the freeze the build falls from (DEC-0034 rule 1). The other
 # occasion is the escalation above, and nothing else reaches the top rung.
+#
+# A CLASS START MAY BE A BAND (DEC-0097 (1)): `default` is where an order of that class starts when
+# it asks for nothing, `floor` how far down an order's own `rung` ask may take it -- and a bare
+# rung, which every other class below writes, is the pair whose two ends coincide and therefore has
+# no band at all. The build is the one class with a band here, and DEC-0097 measured why: with
+# `build: opus` as a single value, `create-task --rung sonnet` on a mechanical slice came back opus,
+# so the cheapest rung was unreachable for every builder -- against the user's own rule ("Sonnet nur
+# fuer ganz kleine Sachen") and against Anthropic's guidance for edits you can describe precisely.
+# The ask is granted only when the order's ACCEPTANCE NAMES A TEST -- an expected output that is a
+# test module (`test_x.py`, `x_test.go`, `x.test.ts`, `x_spec.rb`) or lies in a `test`/`tests`
+# tray, or a criterion SENTENCE naming a test as a runner or with its verdict ('the regression
+# test goes red'). A document merely named after tests (`docs/test-plan.md`) and a sentence that
+# denies one ('no test needed here') do not count; the reader is
+# `dispatch.acceptance_is_test_shaped` and it, not this comment, is the authority (FR-0091
+# precision 2). A description keeps the default, and the lease's `why` says which it was.
 classes:
   planning: opus                        # DEC-0095 (2): the orchestrator is a standing cost
   architecture: top                     # DEC-0095 (4a): the one bought call per large goal
   design: opus
   qa: opus
-  build: opus                           # DEC-0095 (1): the builder default, not the worker pin
+  build:                                # DEC-0095 (1) default, DEC-0097 (1) floor
+    default: opus                       # the builder default, not the worker pin
+    floor: pin                          # a test-carrying slice may be asked down to it
 
 # Every spawnable role of this kit and its class. Both ends are measured by
 # `tools/test_ladder.py::test_every_kit_role_has_a_class_and_every_classed_role_ships`: a role

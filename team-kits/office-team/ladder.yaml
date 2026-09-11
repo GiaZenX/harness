@@ -74,6 +74,12 @@ escalation:
 # through `planning: top`, and back-office work is the case DEC-0078 (1)/(2) deliberately bought
 # the CHEAP rung for. `test_the_shipped_declarations_say_what_the_decisions_decided`
 # (tools/test_ladder.py) holds both kinds of ladder against the decision that set it.
+#
+# EVERY CLASS HERE IS A BARE RUNG, and after DEC-0097 (1) that spelling is the pair whose `default`
+# and `floor` coincide: this kit's build starts on its pin and can be asked no lower, because there
+# is nothing below it. The band the other two kits give their build (default opus, floor pin) has
+# no occasion here -- DEC-0078 (1)/(2) bought the cheap rung for back-office work as the STANDING
+# tier, so the case DEC-0097 was answering (a mechanical slice locked out of sonnet) never arose.
 classes:
   planning: top
   qa: opus

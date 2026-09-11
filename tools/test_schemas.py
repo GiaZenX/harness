@@ -39,7 +39,8 @@ def make_brief(**overrides):
         "standing_decisions": [{"id": "DEC-0001", "title": "Local-only", "decision": "SQLite, no cloud"}],
         # the shape `report.lease_distribution` writes (DEC-0092 (4)); required, like every section
         "lease_distribution": {"window": 10, "orders": 0, "goals_with_builders": 0,
-                               "builders_per_goal": {}, "rungs": {}, "runs_to_hand_back_per_rung": {},
+                               "builders_per_goal": {}, "rungs": {}, "efforts": {},
+                               "runs_to_hand_back_per_rung": {}, "runs_to_hand_back_per_effort": {},
                                "line": "no lease recorded in this project yet -- no habit to show"},
         "budget_status": {"memory_md": "ok"},
     }
@@ -95,6 +96,22 @@ def test_envelope_task_id_trailing_newline_fails():
 
 def test_valid_brief_passes():
     validate(make_brief(), "session_brief")
+
+
+def test_the_briefs_distribution_sample_is_the_shape_the_producer_writes(tmp_path):
+    """The `lease_distribution` sample in `make_brief` above carries the keys
+    `report.lease_distribution` really writes -- asked of the producer, never typed twice.
+
+    WHY IT MATTERS HERE AND NOT ONLY IN test_report.py: the schema declares this section as a bare
+    `dict`, so a sample that drifted from the producer would keep validating and this module would
+    go on asserting a shape nothing writes. RED WITHOUT the DEC-0097 (4) keys in the sample
+    (`efforts`, `runs_to_hand_back_per_effort`): the producer names two keys the sample does not.
+    """
+    from kernel import report
+    from kernel.state import ProjectState
+
+    empty = ProjectState(str(tmp_path / "project_memory"))
+    assert set(make_brief()["lease_distribution"]) == set(report.lease_distribution(empty))
 
 
 def test_brief_enforcement_enum():

@@ -268,10 +268,18 @@ def lease_distribution(state: ProjectState, window: int = DISTRIBUTION_WINDOW) -
     re-dispatched after a FAILED run is one order with several leases, and `leased_at` on the item
     is the latest of them -- so this counts orders, and the runs each needed are a column of their
     own. THREE COUNTS AND ONE LINE: how many BUILD-class orders each goal in the window received
-    (`builders_per_goal`: {"1": goals with one builder, "2": ...}), which rungs the latest leases
-    landed on (`rungs`), and how many RUNS an order on each rung needed until it was HANDED BACK
-    (`runs_to_hand_back_per_rung`: mean of `failed_runs` + 1 over the orders that reached
-    SUBMITTED or later -- handed back is not passed, and the verdict is nobody's here). Derived
+    (`builders_per_goal`: {"1": goals with one builder, "2": ...}), which rungs and EFFORTS the
+    latest leases landed on (`rungs`, `efforts`), and how many RUNS an order on each rung and on
+    each effort needed until it was HANDED BACK (`runs_to_hand_back_per_rung` and
+    `..._per_effort`: mean of `failed_runs` + 1 over the orders that reached
+    SUBMITTED or later -- handed back is not passed, and the verdict is nobody's here).
+
+    BOTH AXES AND NOT THE RUNG ALONE (DEC-0097 (4)): the ladder escalates on two axes and DEC-0096
+    spends the effort steps FIRST, so a reading that counts only rungs cannot say whether the
+    cheaper axis bought anything -- which is the one question the user is paying this counter to
+    answer (FR-0091 section 3, "was nur wir selbst messen koennen"). The pair is deliberately NOT
+    counted as one key ("opus/high"): the window is ten orders, and a joint key splits that into
+    cells too small to mean anything. Derived
     from the task items alone, so it costs no new instrument (DEC-0092's context) and reads the
     same in a project with no lease yet, where the line says so instead of showing zeros as a
     habit. WHAT "RUNS" COUNTS: dispatches of the order -- one plus the FAILED runs
@@ -281,34 +289,48 @@ def lease_distribution(state: ProjectState, window: int = DISTRIBUTION_WINDOW) -
     """
     recent = _leased_orders(state)[:window]
     builders = {}
-    rungs = {}
-    runs = {}
+    # ONE LOOP PER AXIS-VALUE, keyed by the field the lease wrote, so a third axis would be a row
+    # here and not a second block of counting.
+    seen = {LEASE_RUNG_FIELD: {}, LEASE_EFFORT_FIELD: {}}
+    runs = {LEASE_RUNG_FIELD: {}, LEASE_EFFORT_FIELD: {}}
     for item in recent:
-        rung = str(item.get(LEASE_RUNG_FIELD))
-        rungs[rung] = rungs.get(rung, 0) + 1
         if item.get(LEASE_CLASS_FIELD) == BUILD_CLASS:
             root = str(item.get("product_requirement") or "?")
             builders[root] = builders.get(root, 0) + 1
-        if _handed_back(item):
-            runs.setdefault(rung, []).append(int(item.get(FAILED_RUNS) or 0) + 1)
+        for field in (LEASE_RUNG_FIELD, LEASE_EFFORT_FIELD):
+            value = str(item.get(field))
+            seen[field][value] = seen[field].get(value, 0) + 1
+            if _handed_back(item):
+                runs[field].setdefault(value, []).append(int(item.get(FAILED_RUNS) or 0) + 1)
     per_goal = {}
     for count in builders.values():
         per_goal[str(count)] = per_goal.get(str(count), 0) + 1
-    runs_per_rung = {rung: round(sum(counts) / len(counts), 1) for rung, counts in runs.items()}
+    means = {field: {value: round(sum(counts) / len(counts), 1)
+                     for value, counts in runs[field].items()}
+             for field in runs}
+
+    def spelled(counted):
+        return ", ".join("%s x %d" % (value, n) for value, n in sorted(counted.items()))
+
+    def averaged(counted):
+        return ", ".join("%s %s" % (value, mean)
+                         for value, mean in sorted(counted.items())) or "none handed back yet"
+
     if not recent:
         line = "no lease recorded in this project yet -- no habit to show"
     else:
         line = ("last %d order(s) by their latest lease: %d goal(s) with builders; builders per goal "
-                "%s; rungs %s; runs to hand-back per rung %s"
+                "%s; rungs %s; efforts %s; runs to hand-back per rung %s; per effort %s"
                 % (len(recent), len(builders),
                    ", ".join("%s builder(s) x %d goal(s)" % (n, goals)
                              for n, goals in sorted(per_goal.items())) or "none",
-                   ", ".join("%s x %d" % (rung, n) for rung, n in sorted(rungs.items())),
-                   ", ".join("%s %s" % (rung, mean) for rung, mean in sorted(runs_per_rung.items()))
-                   or "none handed back yet"))
+                   spelled(seen[LEASE_RUNG_FIELD]), spelled(seen[LEASE_EFFORT_FIELD]),
+                   averaged(means[LEASE_RUNG_FIELD]), averaged(means[LEASE_EFFORT_FIELD])))
     return {"window": int(window), "orders": len(recent), "goals_with_builders": len(builders),
-            "builders_per_goal": per_goal, "rungs": rungs,
-            "runs_to_hand_back_per_rung": runs_per_rung, "line": line}
+            "builders_per_goal": per_goal, "rungs": seen[LEASE_RUNG_FIELD],
+            "efforts": seen[LEASE_EFFORT_FIELD],
+            "runs_to_hand_back_per_rung": means[LEASE_RUNG_FIELD],
+            "runs_to_hand_back_per_effort": means[LEASE_EFFORT_FIELD], "line": line}
 
 
 def generate_session_brief(

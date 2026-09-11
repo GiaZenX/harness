@@ -150,7 +150,9 @@ Occasion: `BUG-0073`.
    with `create-task --rung <rung> --effort <effort>` by what the slice needs — the user's three-line
    rule: »der eine passt nur x an — sonnet high/xhigh; der andere arbeitet y ab, komplexer — opus
    high/xhigh; der dritte macht z, extrem viel Aufwand, Feinarbeit, Bewertungspotenzial — fable
-   high/xhigh«. A goal-sized build starts on the `build` class's own rung, which is `opus` at `high`
+   high/xhigh« — sonnet only with a TEST as the acceptance: the ask below the class default is granted when the order owes a test MODULE (`test_x.py`, `x_test.go`) or a file in a `test`/`tests` tray, or names a criterion whose sentence has a test with its verdict — and refused for a document merely named after tests (`docs/test-plan.md`), for a denial (»kein Test nötig«) and for prose alone (`DEC-0097` (2); the reader is `kernel.dispatch.acceptance_is_test_shaped`); a slice you
+   could not describe in one sentence is not a sonnet slice. A goal-sized build starts on the
+   `build` class's own rung, which is `opus` at `high`
    (`DEC-0095` (1) replaces `DEC-0088` (1) here: the top rung is not bearable as a standing tier);
    the top rung is bought for the named method-design step of a large goal and by the escalation
    after a failed run, and asked for on an order only with the reason written on the order

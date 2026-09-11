@@ -112,12 +112,15 @@ def test_an_order_rung_lifts_the_start_and_the_climb_begins_there(store):
     climbed = dispatch.create_lease(state, lifted["id"])
     assert climbed[dispatch.RUNG_KEY] == "fable", climbed[dispatch.LADDER_KEY]
     assert climbed[dispatch.LADDER_KEY]["failed_runs"] == 1
-    # the ask never LOWERS: an architect (class top) asked for sonnet still starts on fable
+    # the ask never lowers a class with NO BAND: an architect (class `top`, a bare rung, so
+    # default == floor == fable) asked for sonnet still starts on fable, and the `why` names the
+    # floor rather than the acceptance -- below the floor DEC-0097 (2) grants nothing at all.
     kept = store.order(state, pr, role="software-architect", type="architecture",
-                       **{dispatch.RUNG_KEY: "sonnet"})
+                       expected_outputs=["tools/test_arch.py"], **{dispatch.RUNG_KEY: "sonnet"})
     lease = dispatch.create_lease(state, kept["id"])
     assert lease[dispatch.RUNG_KEY] == "fable", lease[dispatch.LADDER_KEY]
-    assert "not above it" in lease[dispatch.LADDER_KEY]["why"], lease[dispatch.LADDER_KEY]["why"]
+    assert "asks sonnet below the floor fable" in lease[dispatch.LADDER_KEY]["why"], \
+        lease[dispatch.LADDER_KEY]["why"]
 
 
 def test_an_order_rung_above_the_roles_top_is_capped_and_the_answer_says_so(store):
@@ -404,11 +407,26 @@ def test_the_shipped_spawn_gate_prints_the_four_line_checkpoint_and_never_blocks
     # ...and the FAIL-count derivation DEC-0096 (4) asks the checkpoint to SHOW, so a PM reading
     # "rung opus" on a retry can see whether the rung stood still because the effort moved instead.
     # RED WITHOUT the escalation sentence on the (c) line: the assertion below stops at the asks.
-    assert ("(c) about to lease: rung opus, effort high -- the ladder's floor for backend-developer "
-            "is sonnet (pin sonnet, class build), top fable; the order asked rung opus / effort "
+    # ...and the class's DEFAULT beside its FLOOR (DEC-0097 (3)), because the two differ exactly
+    # where an ask can move the rung and a line showing one of them reads the same either way.
+    # ...and the BAND only where the declaration gives one: this fixture's build class is the bare
+    # rung `pin`, so the line says there is none instead of offering an ask the kernel would refuse
+    # (verifier round 1). The banded case is
+    # `tools/test_ladder.py::test_an_ask_below_the_default_is_granted_only_for_a_test_shaped_acceptance`.
+    assert ("(c) about to lease: rung opus, effort high -- the ladder for backend-developer starts "
+            "on sonnet by default, with no band below it (pin sonnet, "
+            "class build), top fable; the order asked rung opus / effort "
             "nothing; FAIL 0: rung +0, effort +0 -- this kit spends the first 0 failed run(s) of "
             "every 1 on the effort axis (DEC-0096)") in text, text
     assert "(d) last 1 order(s) by their latest lease" in text and "opus x 1" in text, text
+    assert "efforts high x 1" in text, ("DEC-0097 (4): the distribution line shows both axes", text)
+    # THE TWO SIGNALS AS THE MODEL RECEIVES THEM (DEC-0097 (3), FR-0091 precision 1): asserted
+    # against the gate's OUTPUT and not against `CHECKPOINT_QUESTION`, which the line below
+    # compares with itself. RED WITHOUT them: the question asks "does the rung fit" and leaves the
+    # PM to guess which axis a failed run buys.
+    for signal in ("confidently wrong no matter how much context you give it",
+                   "skipped a file, not running the tests, or bailing on a refactor partway through"):
+        assert signal in text, (signal, text)
     assert text.rstrip().endswith(dispatch.CHECKPOINT_QUESTION), text
     with io.open(os.path.join(state.root, ".audit", "hook_events.jsonl"), encoding="utf-8") as handle:
         assert "CHECKPOINT before builder %s" % builder["id"] in handle.read()
@@ -611,9 +629,16 @@ def test_the_pilot_rig_leases_three_orders_of_different_size_per_kit(tmp_path):
             assert rungs == ["sonnet", "opus", "opus"] and efforts == ["high", "high", "high"], (rungs, efforts)
         else:
             assert rungs == ["opus", "opus", "fable"] and efforts == ["high", "high", "xhigh"], (rungs, efforts)
-            # ...and the first row is the FLOOR beating the ASK, not an ask of opus: the rig asks
-            # sonnet for the small order, which DEC-0095 (1) no longer grants a build-class role.
+            # ...and the first row is the class DEFAULT beating the ASK, not an ask of opus: the rig
+            # asks sonnet for the small order, and after DEC-0097 (2) that ask is inside the build
+            # class's band (default opus, floor pin) -- so what refuses it here is the ACCEPTANCE,
+            # and the ladder line says so on a scaffolded project rather than in a fixture. The
+            # rig's small order owes `src/small/README.md` and names AC-1 ("done"): a description,
+            # no test. RED WITHOUT the test condition: this row leases sonnet and the sentence is
+            # absent -- the cheap rung handed to an order with no pass/fail oracle.
             assert sizes["small"]["ask"][dispatch.RUNG_KEY] == "sonnet", sizes["small"]["ask"]
+            assert "refused: the acceptance names no test, only a description" in \
+                sizes["small"]["dispatch"]["ladder_line"], sizes["small"]["dispatch"]
         assert sizes["small"]["measured_disjoint"] is None, "the first builder carries evidence it never needed"
         assert sizes["medium"]["measured_disjoint"] and sizes["large"]["measured_disjoint"], kit
         checkpoint = record["checkpoint"]

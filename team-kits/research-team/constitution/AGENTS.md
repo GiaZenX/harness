@@ -377,7 +377,16 @@ turn the tree over.
   the EFFORT from the goal, writes both on the
   lease, the header and the task item, and derives again at the spawn
   (`kernel.dispatch.ladder_for_order`; `python scripts/harness.py ladder <TSK-ID>` shows the answer
-  without minting). **What you do with it:** when the header's `rung` is not the role's own pin,
+  without minting). That **opus** is the class's DEFAULT and not its bottom (`DEC-0097` (1)):
+  its floor is the researcher's own pin, so an order whose acceptance NAMES A TEST may be
+  asked down to **sonnet** with `create-task --rung sonnet` — an expected output that is a
+  test module (`test_x.py`, `x_test.go`) or lies in a `test`/`tests` tray, or a criterion
+  SENTENCE naming a test as a runner or with its verdict (»der Test wird rot«). A document
+  merely named after tests (`docs/test-plan.md`) is not one, and a sentence that denies one
+  (»kein Test nötig«) is not an acceptance: both keep the default, and the lease's `why` says
+  which of the two it was (`DEC-0097` (2); the reader is
+  `kernel.dispatch.acceptance_is_test_shaped`).
+  **What you do with it:** when the header's `rung` is not the role's own pin,
   pass it as the Agent call's `model:` — the spawn gate refuses any spawn whose `model` is not
   the rung, a higher one included (measured 2026-09-05: the parameter overrides the child's
   pin, so a spawn that names none would silently drop back to it). **What it does not do:** the

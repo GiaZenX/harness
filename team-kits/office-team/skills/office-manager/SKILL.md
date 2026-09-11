@@ -151,7 +151,9 @@ Occasion: `BUG-0073`.
    three-line rule: »der eine passt nur x an — sonnet high/xhigh; der andere arbeitet y ab,
    komplexer — opus high/xhigh; der dritte macht z, extrem viel Aufwand, Feinarbeit,
    Bewertungspotenzial — fable high/xhigh« (inside this kit's ladder; the filing pair's `low` is
-   floor and ceiling at once). The ask lifts the floor and never lowers a role below its class, and
+   floor and ceiling at once). This kit needs no test to reach sonnet the way dev and research do
+   (`DEC-0097` (2)): its build class IS the pin, so the cheap rung is where an office order starts.
+   The ask lifts the floor and never lowers a role below its class, and
    `top` still caps. Both values stand on the lease, in the brief and beside the order in
    `check-scopes`. **You never ask the user for tiers or for the team size** — he is asked for the
    PROC, the scope, the delivery and the acceptance, and for a missing role only when the work needs

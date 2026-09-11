@@ -16,6 +16,7 @@ so a declaration that quietly stops saying what the user decided is red here and
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -229,7 +230,7 @@ def test_the_build_starts_on_opus_and_only_the_architecture_starts_on_the_top_ru
     half comes back `sonnet` -- the builder tier DEC-0095 replaced.
     """
     for kit in ("dev-team", "research-team"):
-        ladder = shipped_ladder(kit)
+        ladder = dispatch._valid_ladder(kit, shipped_ladder(kit))
         assert ladder["classes"]["build"] == "opus", kit
         assert ladder["classes"]["planning"] == "opus", kit
         assert ladder["classes"]["architecture"] == dispatch.CLASS_TOP, kit
@@ -238,7 +239,7 @@ def test_the_build_starts_on_opus_and_only_the_architecture_starts_on_the_top_ru
             == ["architecture"], (
             "%s: a class other than the architecture starts on the top rung, which DEC-0095 (4) "
             "keeps for that one step and for the escalation: %s" % (kit, ladder["classes"]))
-    office = shipped_ladder("office-team")
+    office = dispatch._valid_ladder("office-team", shipped_ladder("office-team"))
     assert office["classes"]["build"] == dispatch.CLASS_PIN and office["top"] == "opus", (
         "office-team's floors are DEC-0078's and DEC-0095 left them alone: %s" % office["classes"])
     store.kit("dev-like", ladder=shipped_ladder("dev-team"))
@@ -246,6 +247,286 @@ def test_the_build_starts_on_opus_and_only_the_architecture_starts_on_the_top_ru
     lease = dispatch.create_lease(state, store.order(state, pr)["id"])
     assert lease[dispatch.RUNG_KEY] == "opus", lease[dispatch.LADDER_KEY]
     assert lease[dispatch.LADDER_KEY]["pin"] == "sonnet", lease[dispatch.LADDER_KEY]
+
+
+def new_goal(state, title, **fields):
+    """A second (third, fourth) approved goal in the same project -- what a test needs whenever it
+    wants two BUILD leases that DEC-0092 (2)'s second-builder rule must not judge."""
+    goal = state.capture("PR", dict(PR_FIELDS, title=title, **fields))
+    approve(state, goal["id"], "scope")
+    return goal
+
+
+def _class_spellings():
+    """Per shipped kit, the classes written as a BARE RUNG and those written as a `default`/`floor`
+    pair -- read off the RAW declarations, because `_valid_ladder` normalises the two into one."""
+    scalar, banded = {}, {}
+    for kit in kit_dirs():
+        name = os.path.basename(kit)
+        for role_class, start in shipped_ladder(name)["classes"].items():
+            (banded if isinstance(start, dict) else scalar).setdefault(name, []).append(role_class)
+    return scalar, banded
+
+
+def test_both_class_spellings_ship_and_the_scalar_still_means_default_equals_floor(store):
+    """DEC-0097 (1): a class start is a PAIR (`default` where an unasked order starts, `floor` how
+    far an ask may take it down), and a BARE RUNG is the pair whose two ends coincide -- which is
+    why nothing shipped before this round changes behaviour.
+
+    TWO-ENDED, because a spelling no kit ships is a branch no kit measures: the shipped
+    declarations are asked which form they use, and BOTH have to be in use -- office writes the
+    scalar for every class, dev and research write the pair for their `build`. If the kits ever
+    drop one of the two, this fails on that end instead of leaving a dead branch in the validator
+    (scalar gone) or a spelling no shipped file walks (pair gone).
+
+    THE SCALAR'S BEHAVIOUR is measured and not inferred from the normalisation: a synthetic kit
+    whose build class is the bare rung `opus` reads back floor == default == opus and refuses an
+    ask below it even when the acceptance carries a test -- a class with no band has none to give.
+
+    RED WITHOUT the scalar branch in `_valid_ladder`: every office class is "neither `top`, `pin`
+    nor one of its rungs". RED WITHOUT the pair branch: dev's `build:` mapping is refused the same
+    way, and both kits stop dispatching.
+    """
+    scalar, banded = _class_spellings()
+    assert scalar, ("no shipped kit writes a class start as a bare rung any more -- the scalar "
+                    "branch of `_valid_ladder` has no reader left: %s" % banded)
+    assert banded, ("no shipped kit writes a class start as a `default`/`floor` pair any more -- "
+                    "DEC-0097 (1)'s band is declared nowhere and only this synthetic half of the "
+                    "test still walks it: %s" % scalar)
+    assert set(banded) == {"dev-team", "research-team"} and set(scalar) >= {"office-team"}, \
+        (scalar, banded)
+    for kit, classes in banded.items():
+        assert classes == [dispatch.BUILD_CLASS], (
+            "%s gives a band to a class other than the build; DEC-0097 (1) bought it for the "
+            "builder default alone: %s" % (kit, classes))
+    both = dispatch._valid_ladder("mixed", dict(
+        LADDER, classes=dict(LADDER["classes"], build="opus",
+                             design={"default": "fable", "floor": "opus"})))
+    assert (both["classes"]["build"], both["class_floors"]["build"]) == ("opus", "opus")
+    assert (both["classes"]["design"], both["class_floors"]["design"]) == ("fable", "opus")
+    store.kit("scalar-build", ladder=dict(LADDER, classes=dict(LADDER["classes"], build="opus")))
+    state, pr = store.project("p", "scalar-build", {"backend-developer": "sonnet"})
+    order = store.order(state, pr, expected_outputs=["tools/test_thing.py"],
+                        **{dispatch.RUNG_KEY: "sonnet"})
+    lease, _item = lease_of(state, order)
+    answer = lease[dispatch.LADDER_KEY]
+    assert (answer["default"], answer["floor"]) == ("opus", "opus"), answer
+    assert lease[dispatch.RUNG_KEY] == "opus", answer
+    assert "below the floor opus" in answer["why"], answer["why"]
+
+
+def test_an_ask_below_the_default_is_granted_only_for_a_test_shaped_acceptance(store):
+    """DEC-0097 (2), the three cases, on the SHIPPED dev declaration and on the shipped office one.
+
+    The occasion is measured (DEC-0097's context, TSK-0136 protocol residue 5): with `build: opus`
+    as a single value the PM's `--rung sonnet` on a mechanical slice came back opus, so the cheap
+    rung was unreachable for every builder in dev and research.
+
+    (a) an ask of sonnet on an order whose `expected_outputs` name a test file -> sonnet;
+    (b) the SAME ask on an order whose outputs are a document -> opus, and the `why` says the
+        acceptance names no test;
+    (c) an ask below the class FLOOR -> never granted, and carrying a test does not buy it: the
+        QA class starts and floors on opus, so its band is empty by declaration;
+    (d) a criterion whose sentence DENIES a test ("no test needed for this rename") -> opus;
+    (e) an expected output that is a DOCUMENT named after tests (`docs/test-plan.md`) -> opus.
+    The acceptance CRITERION is the second feed and is measured too: an order whose outputs are
+    prose but whose referenced AC names a test is case (a).
+
+    (d) AND (e) ARE THE VERIFIER'S B1 OF ROUND 1, measured on this same shipped declaration: the
+    first reader searched for the WORD and granted the cheap rung to both. The reader's own two
+    ends are `test_the_acceptance_reader_reads_a_test_and_not_the_word` and
+    `test_the_acceptance_reader_needs_a_verdict_word_and_every_listed_one_earns_its_place`.
+
+    OFFICE IS THE UNCHANGED THIRD KIT: its build class is the bare rung `pin`, so its builder
+    leases sonnet with or without an ask and no band sentence appears in the answer at all.
+
+    RED WITHOUT the band: (a) and the criterion row come back `opus` -- the state TSK-0136
+    measured and DEC-0097 answers. RED WITHOUT the test condition: (b) comes back `sonnet` and
+    the cheap rung is handed to an order with no pass/fail oracle, which is what FR-0091
+    precision 2 forbids.
+    """
+    store.kit("dev-like", ladder=shipped_ladder("dev-team"))
+    state, first = store.project("p", "dev-like", {"backend-developer": "sonnet",
+                                                   "quality-engineer": "sonnet"})
+
+    def asking_sonnet(goal, **overrides):
+        """One build order under a goal of its OWN, so DEC-0092 (2)'s second-builder rule is not
+        what this measures, leased with the ask the three cases share."""
+        order = store.order(state, goal, **dict(overrides, **{dispatch.RUNG_KEY: "sonnet"}))
+        return lease_of(state, order)[0]
+
+    granted = asking_sonnet(first, expected_outputs=["src/x.py", "tools/test_x.py"])
+    answer = granted[dispatch.LADDER_KEY]
+    assert granted[dispatch.RUNG_KEY] == "sonnet", answer
+    assert (answer["default"], answer["floor"]) == ("opus", "sonnet"), answer
+    assert "asks sonnet below the default opus; allowed: the acceptance names a test" in answer["why"], \
+        answer["why"]
+    kept = asking_sonnet(new_goal(state, "described only"), expected_outputs=["docs/design.md"])
+    assert kept[dispatch.RUNG_KEY] == "opus", kept[dispatch.LADDER_KEY]
+    assert "refused: the acceptance names no test, only a description" in \
+        kept[dispatch.LADDER_KEY]["why"], kept[dispatch.LADDER_KEY]["why"]
+    # THE SECOND FEED is the goal's AC text, reached through this order's `acceptance_refs`: the
+    # same ask and the same prose output, decided by the criterion alone.
+    plain = new_goal(state, "criterion without a test")
+    by_criterion = asking_sonnet(plain, expected_outputs=["docs/other.md"])
+    assert by_criterion[dispatch.RUNG_KEY] == "opus", (
+        "PR_FIELDS' AC-1 says 'order completes' and names no test, so this row is case (b): %s"
+        % by_criterion[dispatch.LADDER_KEY]["why"])
+    testing = new_goal(state, "criterion with a test",
+                       acceptance_criteria=[{"id": "AC-1", "text": "the regression test goes green"}])
+    from_criterion = asking_sonnet(testing, expected_outputs=["docs/third.md"])
+    assert from_criterion[dispatch.RUNG_KEY] == "sonnet", from_criterion[dispatch.LADDER_KEY]
+    # (d) a criterion that DENIES a test, in the sentence that carries the word -- the first
+    # reader granted this one (verifier round 1, B1)
+    denied = new_goal(state, "a denial",
+                      acceptance_criteria=[{"id": "AC-1", "text": "no test needed for this rename"}])
+    refused = asking_sonnet(denied, expected_outputs=["src/renamed.py"])
+    assert refused[dispatch.RUNG_KEY] == "opus", refused[dispatch.LADDER_KEY]
+    assert "refused: the acceptance names no test, only a description" in \
+        refused[dispatch.LADDER_KEY]["why"], refused[dispatch.LADDER_KEY]["why"]
+    # (e) a DOCUMENT named after tests -- the second case the first reader granted
+    named_after = asking_sonnet(new_goal(state, "a plan about tests"),
+                                expected_outputs=["docs/test-plan.md"])
+    assert named_after[dispatch.RUNG_KEY] == "opus", named_after[dispatch.LADDER_KEY]
+    assert "refused: the acceptance names no test, only a description" in \
+        named_after[dispatch.LADDER_KEY]["why"], named_after[dispatch.LADDER_KEY]["why"]
+    # (c) below the FLOOR, with a test-shaped acceptance: the QA class has no band to give
+    below = asking_sonnet(first, role="quality-engineer", type="review",
+                          expected_outputs=["tools/test_qa.py"])
+    floored = below[dispatch.LADDER_KEY]
+    assert below[dispatch.RUNG_KEY] == "opus", floored
+    assert (floored["default"], floored["floor"]) == ("opus", "opus"), floored
+    assert "asks sonnet below the floor opus; refused: a floor is not a band" in floored["why"], \
+        floored["why"]
+    store.kit("office-like", ladder=shipped_ladder("office-team"))
+    office, proc = store.project("o", "office-like", {"bookkeeper": "worker"})
+    for outputs in (["tools/test_books.py"], ["docs/books.md"]):
+        goal = proc if outputs[0].startswith("tools") else new_goal(office, "second office goal")
+        order = store.order(office, goal, role="bookkeeper", expected_outputs=outputs,
+                            **{dispatch.RUNG_KEY: "sonnet"})
+        unchanged = lease_of(office, order)[0]
+        shown = unchanged[dispatch.LADDER_KEY]
+        assert unchanged[dispatch.RUNG_KEY] == "sonnet", shown
+        assert (shown["default"], shown["floor"]) == ("sonnet", "sonnet"), shown
+        assert "below the default" not in shown["why"] and "below the floor" not in shown["why"], \
+            shown["why"]
+
+
+def test_the_acceptance_reader_reads_a_test_and_not_the_word():
+    """`dispatch.acceptance_is_test_shaped`'s two ends, as the unit the derivation above calls.
+
+    A TEST IS A THING THAT IS RUN AND YIELDS A VERDICT. The rows below are the two ends of that
+    property: on one side an artefact or an action that really is one, on the other a word that
+    merely occurs -- a document NAMED after tests, a compound, a sentence that DENIES a test. The
+    second column is what verifier round 1 measured green on the first reader (B1): both
+    `docs/test-plan.md` and "no test needed for this rename" bought the cheap rung.
+
+    WHY A UNIT AND NOT ONLY THE LEASE ROWS: the derivation above can only afford five goals, and a
+    vocabulary needs more rows than a derivation has occasions. The lease rows keep the two cases
+    that were actually measured wrong.
+    """
+    grants = [
+        ({"expected_outputs": ["tools/test_x.py"]}, {}),
+        ({"expected_outputs": ["tests/whatever.py"]}, {}),
+        ({"expected_outputs": ["pkg/x_test.go"]}, {}),
+        ({"expected_outputs": ["web/x.test.ts"]}, {}),
+        ({"expected_outputs": ["lib/x_spec.rb"]}, {}),
+        ({"acceptance_refs": ["AC-1"]},
+         {"acceptance_criteria": [{"id": "AC-1", "text": "der Test wird rot"}]}),
+        ({"acceptance_refs": ["AC-1"]},
+         {"acceptance_criteria": [{"id": "AC-1", "text": "pytest tools/test_x.py passes"}]}),
+        ({"acceptance_refs": ["AC-1"]},
+         {"acceptance_criteria": [{"id": "AC-1", "text": "it renames one symbol. "
+                                                         "the regression test goes green."}]}),
+    ]
+    refusals = [
+        ({"expected_outputs": ["docs/test-plan.md"]}, {}),
+        ({"expected_outputs": ["docs/testimonials.md"]}, {}),
+        ({"expected_outputs": ["docs/latest.md"]}, {}),
+        ({"expected_outputs": ["src/x/unittest.py"]}, {}),
+        ({"expected_outputs": ["docs/tests.md"]}, {}),
+        ({"acceptance_refs": ["AC-1"]},
+         {"acceptance_criteria": [{"id": "AC-1", "text": "no test needed for this rename"}]}),
+        ({"acceptance_refs": ["AC-1"]},
+         {"acceptance_criteria": [{"id": "AC-1", "text": "kein Test noetig, nur ein Rename"}]}),
+        ({"acceptance_refs": ["AC-1"]},
+         {"acceptance_criteria": [{"id": "AC-1", "text": "a test plan is written"}]}),
+        ({"acceptance_refs": ["AC-2"]},
+         {"acceptance_criteria": [{"id": "AC-1", "text": "the test goes red"}]}),
+        # THE TWO ROWS THE DENIAL GUARD ALONE REFUSES: word AND verdict AND a negation in the same
+        # sentence. Without them the guard was dead -- rig row 16 stayed green on its removal,
+        # because the other denial rows carry no verdict word and fail the action half anyway.
+        ({"acceptance_refs": ["AC-1"]},
+         {"acceptance_criteria": [{"id": "AC-1", "text": "no test goes red after this rename"}]}),
+        ({"acceptance_refs": ["AC-1"]},
+         {"acceptance_criteria": [{"id": "AC-1", "text": "kein Test schlaegt fehl nach dem Rename"}]}),
+        # THE COMPOUND, refused ON PURPOSE and measured rather than claimed: a German compound
+        # tail cannot be told from `latest` by any rule this reader could carry, and the direction
+        # it fails in is the expensive one -- the order keeps the default rung.
+        ({"acceptance_refs": ["AC-1"]},
+         {"acceptance_criteria": [{"id": "AC-1", "text": "der Regressionstest wird rot"}]}),
+    ]
+    for task, root in grants:
+        assert dispatch.acceptance_is_test_shaped(task, root), (task, root)
+    for task, root in refusals:
+        assert not dispatch.acceptance_is_test_shaped(task, root), (task, root)
+
+
+def test_the_acceptance_reader_needs_a_verdict_word_and_every_listed_one_earns_its_place():
+    """`dispatch._VERDICT_WORDS` is the one ENUMERATION in the reader, and it is held at BOTH ends.
+
+    END ONE -- the vocabulary is NEEDED: a sentence with the word `test` and no verdict at all is
+    refused, so the list is what carries the action half rather than decorating it.
+    END TWO -- no entry is DEAD and none is redundant: for every entry a sentence built from that
+    entry is accepted, and the SAME sentence with the entry taken out of the vocabulary is refused.
+    The vocabulary is read off the module, never copied here, so an entry added tomorrow is walked
+    the day it ships and an entry nobody needs fails the second half.
+    """
+    assert not dispatch._sentence_names_a_test("the test is described here")
+    original = dispatch._VERDICT_RX
+    try:
+        for word in dispatch._VERDICT_WORDS:
+            sentence = "der Test %s" % word
+            assert dispatch._sentence_names_a_test(sentence), (
+                "%r is in the vocabulary and carries no sentence" % word)
+            rest = [other for other in dispatch._VERDICT_WORDS if other != word]
+            assert rest, dispatch._VERDICT_WORDS
+            dispatch._VERDICT_RX = re.compile(
+                r"(?<![a-z0-9])(?:%s)(?![a-z0-9])"
+                % "|".join(other.replace(" ", r"\s+") for other in rest), re.IGNORECASE)
+            assert not dispatch._sentence_names_a_test(sentence), (
+                "%r earns nothing: %r still counts without it" % (word, sentence))
+    finally:
+        dispatch._VERDICT_RX = original
+    assert dispatch._sentence_names_a_test("der Test wird rot")
+
+
+def test_a_declared_pin_default_is_clamped_up_to_the_floor_and_the_answer_says_the_clamped_rung(store):
+    """The `max(floor, default)` of `ladder_for_order`, measured (verifier round 1, N-a).
+
+    `pin` and `top` resolve per ROLE, so `_valid_ladder` cannot place them on the rung order and
+    refuses no inverted pair that carries one -- the derivation clamps instead. A class declaring
+    `{default: pin, floor: opus}` for a role pinned sonnet therefore has NO band: both ends come
+    out at opus.
+
+    AND THE `why` ECHOES THE CLAMPED RUNG, not the file's word (N-b): a sentence saying "starts on
+    pin" would name a rung this order is not starting on. The declared word stands beside it, so
+    the reader can still find the line in the file.
+
+    RED WITHOUT the clamp: `default` comes back `sonnet`, below its own floor, and an ask of sonnet
+    is granted as if the class had a band.
+    """
+    store.kit("inverted", ladder=dict(
+        LADDER, classes=dict(LADDER["classes"],
+                             build={"default": dispatch.CLASS_PIN, "floor": "opus"})))
+    state, pr = store.project("p", "inverted", {"backend-developer": "sonnet"})
+    lease, _item = lease_of(state, store.order(state, pr, expected_outputs=["tools/test_x.py"],
+                                               **{dispatch.RUNG_KEY: "sonnet"}))
+    answer = lease[dispatch.LADDER_KEY]
+    assert (answer["default"], answer["floor"]) == ("opus", "opus"), answer
+    assert lease[dispatch.RUNG_KEY] == "opus", answer
+    assert "class build starts on opus (declared pin)" in answer["why"], answer["why"]
+    assert "below the floor opus" in answer["why"], answer["why"]
 
 
 # A ladder with room on BOTH axes, so the ORDER of the two is visible: three effort steps of
@@ -402,6 +683,14 @@ def test_a_record_that_is_present_but_unreadable_is_refused_not_ignored(store):
     (lambda d: d["escalation"].pop(dispatch.EFFORT_STEPS_KEY), dispatch.EFFORT_STEPS_KEY),
     (lambda d: d["escalation"].update(**{dispatch.EFFORT_STEPS_KEY: -1}), dispatch.EFFORT_STEPS_KEY),
     (lambda d: d["classes"].update(qa="haiku"), "class 'qa'"),
+    # DEC-0097 (1): the pair carries exactly two ends, both from the same vocabulary, and the
+    # default is never below the floor where both ends can be placed on the rung order
+    (lambda d: d["classes"].update(build={"default": "opus"}), "the key(s) default"),
+    (lambda d: d["classes"].update(build={"default": "opus", "floor": "pin", "ceiling": "fable"}),
+     "the key(s) ceiling, default, floor"),
+    (lambda d: d["classes"].update(build={"default": "opus", "floor": "haiku"}), "the floor 'haiku'"),
+    (lambda d: d["classes"].update(build={"default": "sonnet", "floor": "opus"}),
+     "the default 'sonnet' BELOW its floor 'opus'"),
     (lambda d: d["roles"].update(**{"backend-developer": "nowhere"}), "role 'backend-developer'"),
     (lambda d: d.update(exceptions={"nobody": {"top": "opus"}}), "excepts role 'nobody'"),
     (lambda d: d.update(exceptions={"backend-developer": {"colour": "blue"}}), "keys other than"),

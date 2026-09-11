@@ -648,14 +648,21 @@ def test_the_session_brief_shows_the_rung_and_effort_a_lease_wrote_on_the_task(s
 
 
 def test_the_session_brief_carries_the_lease_distribution_line(state):
-    """DEC-0092 (4): the brief shows the last-N leases as the habit they reveal -- builders per
-    goal, rungs, runs to done per rung -- and says "no lease yet" instead of showing zeros.
+    """DEC-0092 (4) with DEC-0097 (4): the brief shows the last-N leases as the habit they reveal --
+    builders per goal, and per RUNG and per EFFORT both the count and the runs to the hand-back --
+    and says "no lease yet" instead of showing zeros.
 
     The rows are written in the shape `create_lease` leaves on a task (the three `LEASE_*` fields
     plus `leased_at` and `failed_runs`), one of them ARCHIVED, because the reading has to outlive
     the lease and the active tray. RED WITHOUT `lease_distribution` in the brief: the schema is
     strict and the key is required, so the brief refuses to validate -- and RED with the archive
     half dropped: the archived order's rung is missing from `rungs`.
+
+    THE EFFORT HALF IS NOT THE RUNG HALF UNDER ANOTHER NAME, and the rows are cut so that it
+    cannot be: the two archived-and-done orders share a rung but not an effort, so `high 2.0,
+    xhigh 1.0` is a grouping no rung-keyed counter can produce. RED WITHOUT the second axis
+    (DEC-0097 (4)): `efforts` and `runs_to_hand_back_per_effort` are absent from the section and
+    the line names neither.
     """
     from kernel.dispatch import FAILED_RUNS, LEASE_CLASS_FIELD, LEASE_EFFORT_FIELD, LEASE_RUNG_FIELD
 
@@ -669,9 +676,9 @@ def test_the_session_brief_carries_the_lease_distribution_line(state):
     bug = make_bug(state, root["id"])
     rows = [
         (make_task(state, root["id"], bug["id"]), "sonnet", "high", "build", "2026-09-01T10:00:00", 1, "DONE"),
-        (make_task(state, root["id"], bug["id"]), "fable", "high", "build", "2026-09-01T11:00:00", 0, "DONE"),
-        (make_task(state, root["id"], bug["id"]), "opus", "high", "qa", "2026-09-01T12:00:00", 0, "IN_PROGRESS"),
-        (make_task(state, second["id"], second["id"]), "sonnet", "high", "build", "2026-09-02T10:00:00", 0, "VALIDATED"),
+        (make_task(state, root["id"], bug["id"]), "fable", "xhigh", "build", "2026-09-01T11:00:00", 0, "DONE"),
+        (make_task(state, root["id"], bug["id"]), "opus", "xhigh", "qa", "2026-09-01T12:00:00", 0, "IN_PROGRESS"),
+        (make_task(state, second["id"], second["id"]), "sonnet", "xhigh", "build", "2026-09-02T10:00:00", 0, "VALIDATED"),
     ]
     for task, rung, effort, role_class, at, failed, status in rows:
         path = state.active_path(task["id"])
@@ -687,11 +694,17 @@ def test_the_session_brief_carries_the_lease_distribution_line(state):
     assert shown["orders"] == 4 and shown["goals_with_builders"] == 2, shown
     assert shown["builders_per_goal"] == {"2": 1, "1": 1}, shown
     assert shown["rungs"] == {"sonnet": 2, "fable": 1, "opus": 1}, shown
+    assert shown["efforts"] == {"high": 1, "xhigh": 3}, shown
     # sonnet: the DONE order needed 2 runs, the archived VALIDATED one 1 -> mean 1.5; the QA order
     # is still running and counts for no rung's runs
     assert shown["runs_to_hand_back_per_rung"] == {"sonnet": 1.5, "fable": 1.0}, shown
+    # the same four orders grouped by the OTHER axis, and the groups do not coincide: the two
+    # sonnet orders sit on different efforts, so no rung-keyed counter yields these two means
+    assert shown["runs_to_hand_back_per_effort"] == {"high": 2.0, "xhigh": 1.0}, shown
     assert "4 order(s)" in shown["line"] and "2 builder(s) x 1 goal(s)" in shown["line"], shown["line"]
     assert "runs to hand-back per rung fable 1.0, sonnet 1.5" in shown["line"], shown["line"]
+    assert "efforts high x 1, xhigh x 3" in shown["line"], shown["line"]
+    assert "per effort high 2.0, xhigh 1.0" in shown["line"], shown["line"]
 
 
 # -- doctor --------------------------------------------------------------------

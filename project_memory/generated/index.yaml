@@ -1,4 +1,4 @@
-generated_at: '2026-09-11T09:42:07'
+generated_at: '2026-09-11T11:32:26'
 items:
 - id: APR-0001
   type: APR
@@ -1568,6 +1568,16 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
+- id: BUG-0278
+  type: BUG
+  title: 'The test-shaped-acceptance reader (`dispatch.acceptance_is_test_shaped`,
+    DEC-0097 (2)) claims both kit languages but its negation and word lists are English-shaped:
+    ''ein Test wird rot, ohne den Fix'' is refused (`ohne` counted as a negation)
+    and German compounds (''Regressionstest'', ''Unittest'') are invisible -- false
+    negatives, the order stays on the opus default (TSK-0137 verify round 2, N-e/N-f)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
 - id: DEC-0002
   type: DEC
   title: ADR-Datensaetze werden DEC-Items, nicht getragene Belege
@@ -2858,6 +2868,24 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0098
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0099
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0100
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -3111,12 +3139,12 @@ items:
 - id: TSK-0136
   type: TSK
   title: null
-  status: READY
+  status: CANCELLED
   revision: 1
   approval_ref: null
 - id: TSK-0137
   type: TSK
   title: null
-  status: DRAFT
+  status: READY
   revision: 1
   approval_ref: null

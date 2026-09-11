@@ -49,7 +49,9 @@ fields:
     item_required: [id, title, decision]
   lease_distribution:
     # ADDITIVE beyond the II.5 list (DEC-0092 (4)): the last-N leases of this project as the habit
-    # they show -- builders per goal, rungs, runs to done per rung -- plus the one `line` a user
+    # they show -- builders per goal, and per RUNG and per EFFORT the leases counted and the runs
+    # they needed to the hand-back (DEC-0097 (4): the ladder escalates on two axes, so a reading
+    # of one cannot say which bought the round) -- plus the one `line` a user
     # reads. Derived in report.py (`lease_distribution`) from the task items alone; the same
     # reading the spawn gate's checkpoint hands the PM (DEC-0092 (3)(d)).
     type: dict

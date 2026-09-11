@@ -1,0 +1,17 @@
+id: EVD-0098
+kind: review
+related:
+- TSK-0136
+- PR-0011
+result: pass
+summary: 'verifier PASS for diff:5af8608eecd29be2f0762a683078882d5d06d61a508722bfc09912b0c5058236
+  -- TSK-0136 (DEC-0095 builder/orchestrator opus, DEC-0096 effort before rung): round
+  1 FAIL (F1 escalation de-escalated at the rung cap, F5 protocol numbers, F2-F4 prose),
+  one rework, round 2 PASS on F1-F5 with four back-mutations red (verify-round-2.md);
+  stamps 2026.09.11-8 x3 unchanged in the verifier''s copy; N1/N2 named for TSK-0137'
+artifact_refs:
+- staging/TSK-0136/verify-round-2.md
+- staging/TSK-0136/verify-round-1.md
+revision: 1
+approval_ref: null
+created: '2026-09-11T10:24:29'

@@ -1,0 +1,18 @@
+id: EVD-0100
+kind: test
+related:
+- TSK-0136
+result: pass
+summary: 'TSK-0136 red-first (recorded as kind test: the evidence surface has no ''measurement''
+  kind -- said here): 10 of 10 rig rows red with the pre-round defect restored in
+  a copy without .git, 8 of 8 nodes rc 0 unmutated, the arbiter''s line per row in
+  protocol section 3; verify round 2 added four back-mutations of F1, all red (verify-round-2.md)'
+artifact_refs:
+- staging/TSK-0136/protocol.md
+- staging/TSK-0136/verify-round-2.md
+run_command: python C:/Offline Repos/v2-testbed/_round-scratch/TSK-0136/rig.py (own
+  copy)
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T10:25:13'

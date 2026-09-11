@@ -95,12 +95,17 @@ expected_outputs:
   on tools and team-kits; validate.py; protocol in project_memory/staging/(this task
   id)/protocol.md (file table, red-first rows with the arbiter''s line, (g) row, patch
   path, EVD lines); no commit, no push.'
+- 'N1/N2 from TSK-0136 verify round 2: protocol wording is the verifier''s business,
+  but kernel/dispatch.py:2941-2942 ''the effort STAYS at the ceiling'' is false in
+  general (it stays at min(default + effort_steps_before_rung, ceiling); equal on
+  the three shipped kits) -- reword to ''stays where the threshold put it (its ceiling
+  on every shipped kit)''.'
 dependencies:
 - TSK-0136
 rung: opus
 effort: high
 root_revision: 1
-status: DRAFT
+status: READY
 revision: 1
 approval_ref: null
 created: '2026-09-11T09:42:03'

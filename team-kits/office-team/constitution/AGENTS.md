@@ -454,7 +454,10 @@ derives the RUNG from the role's pin, its class in the declaration and the order
 (you plan on the top rung; the auditor never below opus; the rest on its pin; the escalation
 below is what moves a rung, capped at the role's top) and the EFFORT from the goal, writes both on the lease,
 the header and the task item, and derives again at the spawn (`kernel.dispatch.ladder_for_order`;
-`python scripts/harness.py ladder <TSK-ID>` shows the answer without minting). **What you do with
+`python scripts/harness.py ladder <TSK-ID>` shows the answer without minting). Every class here
+names ONE rung, which after `DEC-0097` (1) is the pair whose default and floor coincide: an
+order's `rung` ask lifts a start in this kit and never lowers one, because there is no band
+under it to lower into. **What you do with
 it:** when the header's `rung` is not the role's own pin, pass it as the Agent call's `model:` —
 the spawn gate refuses any spawn whose `model` is not the rung, a higher one included. **What it does not do:** the effort
 is derived and shown, never forced — the platform has no per-spawn effort parameter, so the child

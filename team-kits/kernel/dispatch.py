@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import operator
 import os
+import re
 import time
 import uuid
 
@@ -2648,6 +2649,15 @@ def _read_yaml_mapping(path: str, what: str) -> dict:
 # for that role, a fixed effort that replaces the pair, a fixed start that replaces class and pin.
 EXCEPTION_KEYS = frozenset((CLASS_TOP, EFFORT_KEY, RUNG_KEY))
 
+# A CLASS START IS A PAIR, and a bare rung is the pair whose ends coincide (DEC-0097 (1)): the
+# `default` is where an order of that class starts when it asks for nothing, the `floor` is how far
+# down an ask may take it. Both spellings ship today -- dev and research write the pair for their
+# `build`, office writes the scalar everywhere -- and
+# `tools/test_ladder.py::test_both_class_spellings_ship_and_the_scalar_still_means_default_equals_floor`
+# holds both ends. NOT A BUILD-CLASS RULE: any class may declare a band, and a class whose two ends
+# coincide simply has none, which is why nothing below branches on the class name.
+CLASS_PAIR_KEYS = frozenset(("default", "floor"))
+
 
 def _valid_ladder(kit: str, raw: dict) -> dict:
     """The declaration with every field checked, or a refusal naming the field (DEC-0078 (4)).
@@ -2696,10 +2706,29 @@ def _valid_ladder(kit: str, raw: dict) -> dict:
     classes = raw.get("classes")
     if not isinstance(classes, dict) or not classes:
         refuse("needs `classes:` -- the rung each role class starts on (DEC-0034 rules 1/4/5)")
+    defaults, floors = {}, {}
     for name, start in classes.items():
-        if start not in (CLASS_TOP, CLASS_PIN) and start not in rungs:
-            refuse("gives class %r the start %r, which is neither `%s`, `%s` nor one of its rungs"
-                   % (name, start, CLASS_TOP, CLASS_PIN))
+        pair = dict(start) if isinstance(start, dict) else {key: start for key in CLASS_PAIR_KEYS}
+        if set(pair) != CLASS_PAIR_KEYS:
+            refuse("gives class %r a start with the key(s) %s -- the two-value form carries exactly "
+                   "`default` and `floor` (DEC-0097 (1)), and a bare rung is the pair whose ends "
+                   "coincide" % (name, ", ".join(sorted(map(str, pair))) or "none"))
+        for key in sorted(CLASS_PAIR_KEYS):
+            if pair[key] not in (CLASS_TOP, CLASS_PIN) and pair[key] not in rungs:
+                refuse("gives class %r the %s %r, which is neither `%s`, `%s` nor one of its rungs"
+                       % (name, key, pair[key], CLASS_TOP, CLASS_PIN))
+        # COMPARED ONLY WHERE BOTH ENDS ARE RUNG NAMES: `pin` is per role and `top` moves with a
+        # per-role exception, so neither can be placed on the rung order here. Where they cannot,
+        # `ladder_for_order` clamps instead of trusting the file -- the derived default is taken
+        # as `max(floor, default)`, so an inverted pair loses its band rather than inverting it.
+        if (pair["default"] in rungs and pair["floor"] in rungs
+                and rungs.index(pair["default"]) < rungs.index(pair["floor"])):
+            refuse("gives class %r the default %r BELOW its floor %r -- the default is where an "
+                   "order of that class starts unasked and the floor is how far an ask may take it "
+                   "down (DEC-0097 (1)), so this pair names a band that points the wrong way"
+                   % (name, pair["default"], pair["floor"]))
+        defaults[str(name)] = str(pair["default"])
+        floors[str(name)] = str(pair["floor"])
     if BUILD_CLASS not in classes:
         refuse("declares no `%s` class -- DEC-0092 (2) refuses a second concurrent lease of that "
                "class under one goal without a check-scopes record, and a kit that names its "
@@ -2733,7 +2762,13 @@ def _valid_ladder(kit: str, raw: dict) -> dict:
         EFFORT_KEY: {"default": str(effort["default"]), LARGE_CLASS: str(effort[LARGE_CLASS])},
         "failed_runs_per_rung": int(per_rung),
         EFFORT_STEPS_KEY: int(effort_steps),
-        "classes": {str(name): str(start) for name, start in classes.items()},
+        # TWO KEYS AND NOT ONE MAPPING OF PAIRS, produced by the single normalisation above so they
+        # cannot disagree: `classes` keeps answering the question every reader before DEC-0097 asked
+        # of it -- the rung a class STARTS on -- and `class_floors` answers the one DEC-0097 added.
+        # Fusing them into pairs would have changed the meaning of `classes[...]` under three
+        # readers outside this file that ask only the first question.
+        "classes": defaults,
+        "class_floors": floors,
         "roles": {str(role): str(name) for role, name in roles.items()},
         "exceptions": {str(role): dict(rule) for role, rule in exceptions.items()},
     }
@@ -2803,6 +2838,96 @@ def count_failed_run_locked(task: dict) -> int:
     return count
 
 
+# A TEST IS A THING THAT IS RUN AND YIELDS A VERDICT, and that is the property the three readers
+# below encode -- NOT "the word `test` occurs". The first version of this reader searched for the
+# bare word and granted the cheap rung to `docs/test-plan.md` and to the criterion "no test needed
+# for this rename" (both measured against the shipped dev declaration, verifier round 1, B1). A
+# document whose NAME contains the word is not a test, and a sentence that DENIES one is not an
+# acceptance.
+# WHAT THE THREE READERS DO NOT READ, said rather than implied: a test named without the word (a
+# compound -- `unittest.py`, and the German `Regressionstest` too, because no rule here could tell
+# that tail from the one in `latest`; a suite called `checks/`), a verdict word outside
+# `_VERDICT_WORDS`, and whether the named file exists or passes. Each of those REFUSES the ask and
+# leaves the order on the more expensive default, which is the direction this reader fails in on
+# purpose -- B1 was the other one. The compound row is measured, not claimed:
+# `tools/test_ladder.py::test_the_acceptance_reader_reads_a_test_and_not_the_word`. That last one is the same trade as before: this reader
+# decides a RUNG, not a merge, and the verifier checks the slice either way.
+_WORD_TEST_RX = re.compile(r"(?<![a-z0-9])tests?(?![a-z0-9])", re.IGNORECASE)
+# A TEST MODULE'S OWN NAME: the separator after (or before) the word is what every runner's
+# convention has in common, and it is exactly what a document title does not have --
+# `test-plan.md` and `testimonials.md` fail it, `test_x.py`, `x_test.go`, `x.test.ts`, `x_spec.rb`
+# pass it.
+_TEST_MODULE_RX = re.compile(r"\A(?:test[_.].+|.+[_.]test|.+[_.]spec)\.[a-z0-9]+\Z", re.IGNORECASE)
+# A RUNNER OR A NODE ID -- a test named as something one EXECUTES.
+_RUNNER_RX = re.compile(r"(?<![a-z0-9])(?:pytest|::test_|npm test|go test|cargo test)", re.IGNORECASE)
+# THE VERDICT A TEST YIELDS, in the two languages the kits are written in. An enumeration, and the
+# only one here -- held at BOTH ends by
+# `tools/test_ladder.py::test_the_acceptance_reader_needs_a_verdict_word_and_every_listed_one_earns_its_place`:
+# every entry must be the sole reason one sentence counts, and no entry may be one the sentence
+# would pass without.
+_VERDICT_WORDS = ("red", "green", "rot", "gruen", "grün", "fail", "fails", "failing", "passes",
+                  "passing", "faellt", "fällt", "schlaegt fehl", "schlägt fehl")
+_VERDICT_RX = re.compile(r"(?<![a-z0-9])(?:%s)(?![a-z0-9])"
+                         % "|".join(word.replace(" ", r"\s+") for word in _VERDICT_WORDS),
+                         re.IGNORECASE)
+# A SENTENCE THAT DENIES. Read per SENTENCE and not per criterion, so a text that owes a test in
+# one sentence is not excused by a disclaimer in the next -- the shape
+# `tools/test_hooks.py::_team_size_questions` uses for the same reason.
+_DENIES_RX = re.compile(r"(?<![a-z0-9])(?:no|not|never|none|kein|keine|keinen|keiner|nicht|ohne)"
+                        r"(?![a-z0-9])", re.IGNORECASE)
+
+
+def _path_names_a_test(word: str) -> bool:
+    """Is this PATH a test artefact -- a component that is a test tray, or a test module's name.
+
+    The word is split on both separators, because an order writes either. A document under a
+    `docs/` tray keeps its name: `docs/test-plan.md` is a plan ABOUT tests and buys nothing.
+    """
+    parts = [part for part in re.split(r"[\\/]+", word.strip().strip("\"'`")) if part]
+    if not parts:
+        return False
+    if any(_WORD_TEST_RX.fullmatch(part) for part in parts[:-1]):
+        return True
+    return bool(_TEST_MODULE_RX.match(parts[-1]))
+
+
+def _sentence_names_a_test(sentence: str) -> bool:
+    """Does THIS sentence name a test as an artefact or as an action, and not deny one."""
+    if _DENIES_RX.search(sentence):
+        return False
+    if _RUNNER_RX.search(sentence):
+        return True
+    if any(_path_names_a_test(word) for word in sentence.split()):
+        return True
+    return bool(_WORD_TEST_RX.search(sentence) and _VERDICT_RX.search(sentence))
+
+
+def acceptance_is_test_shaped(task: dict, root: dict) -> bool:
+    """Does this order's acceptance name a TEST -- the condition DEC-0097 (2) puts on an ask below
+    the class default.
+
+    TWO FEEDS, ONE PROPERTY: the order's `expected_outputs` must name a test ARTEFACT (a path in a
+    test tray or a test module's own name), and an acceptance criterion this order refers to must
+    carry a SENTENCE that names a test as an artefact, as a runner, or as an action with a verdict
+    -- and does not deny one. The reason for the condition is FR-0091 precision 2 and Anthropic's
+    own threshold ("if you could describe the diff in one sentence"): a slice small enough for the
+    cheap rung can be handed a pass/fail oracle, and one that can only be described in prose cannot.
+    `tools/test_ladder.py::test_an_ask_below_the_default_is_granted_only_for_a_test_shaped_acceptance`
+    """
+    for output in field_elements(task.get("expected_outputs")):
+        if _path_names_a_test(str(output)):
+            return True
+    wanted = {str(ref) for ref in field_elements(task.get("acceptance_refs"))}
+    for criterion in field_elements(root.get("acceptance_criteria")):
+        if not isinstance(criterion, dict) or str(criterion.get("id")) not in wanted:
+            continue
+        flat = re.sub(r"\s+", " ", str(criterion.get("text") or ""))
+        if any(_sentence_names_a_test(sentence)
+               for sentence in re.split(r"(?<=[.!?;])\s+", flat)):
+            return True
+    return False
+
+
 def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: int) -> dict:
     """The rung and effort THIS order runs on, from the kit's declaration and the state (DEC-0077).
 
@@ -2825,12 +2950,16 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
       * the EFFORT hangs on the goal: the pair's `large` value when the root's `class` is
         `LARGE_CLASS`, its `default` otherwise, unless the role's exception fixes one (the office
         filing floor, DEC-0047).
-      * THE ORDER'S ASK IS THE THIRD INPUT (DEC-0091 (2)): the rung is the higher of the ladder's
-        floor and the order's `rung`, the effort the higher of the goal's and the order's
-        `effort`; the floor never drops, the climb starts where the order starts, `top` and the
-        kit's highest declared effort still cap --
+      * THE ORDER'S ASK IS THE THIRD INPUT (DEC-0091 (2), DEC-0097 (2)): the rung is the higher of
+        the class DEFAULT and the order's `rung`, the effort the higher of the goal's and the
+        order's `effort`; the climb starts where the order starts, `top` and the kit's highest
+        declared effort still cap --
         `tools/test_light_kit.py::test_an_order_rung_lifts_the_start_and_the_climb_begins_there`,
-        `::test_an_order_effort_lifts_the_goals_effort_and_the_kits_highest_effort_caps_it`.
+        `::test_an_order_effort_lifts_the_goals_effort_and_the_kits_highest_effort_caps_it`. An ask
+        BELOW the default is granted down to the class FLOOR, and only when the order's acceptance
+        names a test (`acceptance_is_test_shaped`); below the floor nothing is granted. Both
+        refusals stand in the `why` --
+        `tools/test_ladder.py::test_an_ask_below_the_default_is_granted_only_for_a_test_shaped_acceptance`.
       * THE TWO AXES ESCALATE IN ORDER, effort before rung (DEC-0096): the failed runs inside one
         rung's cycle raise the effort first, and only the threshold itself raises the rung -- the
         block at the end of this function carries the derivation and the reason.
@@ -2874,17 +3003,38 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
     exception = ladder["exceptions"].get(role, {})
     top = str(exception.get(CLASS_TOP, ladder[CLASS_TOP]))
     if RUNG_KEY in exception:
-        floor = str(exception[RUNG_KEY])
+        floor = default_rung = str(exception[RUNG_KEY])
         floor_why = "the exception sets the floor"
     else:
+        # THE CLASS DECLARES A BAND (DEC-0097 (1)): its `floor` is how far down an ask may take
+        # this order, its `default` where the order starts without one. `pin` and `top` resolve per
+        # ROLE, which is why the resolution happens here and not in the validator. Both ends are
+        # clamped rather than trusted: the floor never lowers the role's pin (the rule DEC-0034
+        # rule 4/5 always had), and the default never falls below the floor that came out of it.
         rule = ladder["classes"][role_class]
-        class_floor = top if rule == CLASS_TOP else base if rule == CLASS_PIN else rule
-        floor = rungs[max(rungs.index(base), rungs.index(class_floor))]
-        floor_why = "class %s starts on %s" % (role_class, rule)
-    # THE ORDER'S ASK LIFTS THE START AND NEVER LOWERS IT (DEC-0091 (2)): the climb of rule 2 then
-    # begins where the order starts, and `top` caps it as it caps every climb -- an ask above the
-    # role's top is not refused (it is inside the vocabulary) but it is not granted either, and
-    # the `why` says which of the two it was.
+        rule_floor = ladder["class_floors"][role_class]
+        def resolve(name):
+            return top if name == CLASS_TOP else base if name == CLASS_PIN else name
+
+        floor = rungs[max(rungs.index(base), rungs.index(resolve(rule_floor)))]
+        default_rung = rungs[max(rungs.index(floor), rungs.index(resolve(rule)))]
+        # THE RESOLVED RUNG AND NOT THE FILE'S WORD (verifier round 1, N-b): `pin` and `top` are
+        # per role, and the clamp above is exactly where the declaration and the answer part
+        # company -- a `why` echoing `pin` would name a rung this order is not starting on.
+        floor_why = "class %s starts on %s" % (role_class, default_rung)
+        if rule != default_rung:
+            floor_why += " (declared %s)" % rule
+        if default_rung != floor:
+            floor_why += " with the floor at %s" % floor
+    # THE ORDER'S ASK LIFTS THE START (DEC-0091 (2)), AND LOWERS IT ONLY INSIDE THE CLASS'S BAND
+    # (DEC-0097 (2)): the climb of rule 2 then begins where the order starts, and `top` caps it as
+    # it caps every climb -- an ask above the role's top is not refused (it is inside the
+    # vocabulary) but it is not granted either, and the `why` says which of the two it was. An ask
+    # BELOW the class default is granted down to the class floor when the order's acceptance is
+    # TEST-SHAPED, and otherwise left ungranted with the reason in the `why`: that is the band that
+    # keeps the cheap rung reachable for a mechanical slice and unreachable for a description
+    # (FR-0091 precision 2). Below the floor nothing is granted at all, whatever the acceptance
+    # says -- the floor is the rule DEC-0091 (2) always had.
     order_rung, order_effort = order_tiers(task)
     if order_rung is not None and order_rung not in rungs:
         raise DispatchError(
@@ -2896,12 +3046,24 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
             "%s asks for `%s: %s`, which is not one of %s -- dispatch blocked (DEC-0091 (3)). "
             "Remedy: correct the order while it is DRAFT, or drop the field."
             % (task.get("id"), EFFORT_KEY, order_effort, "|".join(EFFORT_LEVELS)))
-    start, start_why = floor, floor_why
-    if order_rung is not None and rungs.index(order_rung) > rungs.index(floor):
+    start, start_why = default_rung, floor_why
+    if order_rung is None:
+        pass
+    elif rungs.index(order_rung) > rungs.index(default_rung):
         start = order_rung
         start_why += ", the order asks %s" % order_rung
-    elif order_rung is not None:
+    elif rungs.index(order_rung) == rungs.index(default_rung):
         start_why += ", the order's ask %s is not above it" % order_rung
+    elif rungs.index(order_rung) < rungs.index(floor):
+        start_why += (", the order asks %s below the floor %s; refused: a floor is not a band"
+                      % (order_rung, floor))
+    elif acceptance_is_test_shaped(task, root):
+        start = order_rung
+        start_why += (", the order asks %s below the default %s; allowed: the acceptance names a test"
+                      % (order_rung, default_rung))
+    else:
+        start_why += (", the order asks %s below the default %s; refused: the acceptance names no "
+                      "test, only a description" % (order_rung, default_rung))
     per_rung = ladder["failed_runs_per_rung"]
     chosen = rungs[min(rungs.index(start) + int(failed_runs) // per_rung, rungs.index(top))]
     # THE RUNG STEPS THAT WERE GRANTED, not the ones the threshold derived -- `top` caps the climb,
@@ -2943,9 +3105,11 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
     # EFFORT step each. The count is the failed runs MINUS the ones already paid out as GRANTED
     # rung steps, so it resets with every granted step -- that reset is the "effort back at the
     # kit's default" of DEC-0096 (1) and it needs no state of its own. AT THE TOP RUNG NOTHING IS
-    # GRANTED ANY MORE, so the count keeps growing and the effort STAYS at the ceiling instead of
-    # falling back: an order that has run out of ladder never gets a weaker pair than the run
-    # before it. Keyed on the derived cycle (`failed_runs % per_rung`) it did exactly that --
+    # GRANTED ANY MORE, so the count keeps growing and the effort stays where the threshold put it
+    # -- its ceiling on every shipped kit, and in general `min(default + effort_steps_before_rung,
+    # ceiling)` -- instead of falling back: an order that has run out of ladder never gets a weaker
+    # pair than the run before it. Keyed on the derived cycle (`failed_runs % per_rung`) it did
+    # exactly that --
     # measured by the verifier of round 1: dev FAIL 5 fable/xhigh, FAIL 6 fable/high.
     # A declaration of 0 steps derives exactly what the kernel derived before DEC-0096, and where
     # no cap bites the two spellings agree (`granted_rungs * per_rung == failed_runs // per_rung *
@@ -2984,6 +3148,7 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
         "pin": pin,
         "base": base,
         "floor": floor,
+        "default": default_rung,
         "start": start,
         "order": {RUNG_KEY: order_rung, EFFORT_KEY: order_effort},
         "failed_runs": int(failed_runs),
@@ -3008,16 +3173,20 @@ def ladder_line(lease: dict) -> str:
 # The question the checkpoint ends with. The PM answers it to itself and not in a field
 # (DEC-0092 (1)): a required "why" is boilerplate nobody can check and trains the habit it is meant
 # to break, so the four lines above it are FACTS and this is the only sentence that asks anything.
-CHECKPOINT_QUESTION = ("Does the rung fit the slice, and is one builder still the right count? "
-                       "(DEC-0092 (3): a mirror with numbers -- nothing here blocks.)")
+CHECKPOINT_QUESTION = (
+    "Does the rung fit the slice, and is one builder still the right count? If the last run FAILED, "
+    "which axis: \"confidently wrong no matter how much context you give it\" -> a larger model; "
+    "\"skipped a file, not running the tests, or bailing on a refactor partway through\" -> more "
+    "effort (Anthropic's two escalation signals, FR-0091 precision 1). "
+    "(DEC-0092 (3): a mirror with numbers -- nothing here blocks.)")
 
 
 def reflection_checkpoint(state: ProjectState, task: dict, root: dict, lease: dict) -> list:
     """The four fact lines the spawn gate hands the PM before a BUILDER starts (DEC-0092 (3)).
 
     (a) the goal's measured file sets, (b) the order's size signals, (c) the rung and effort about
-    to be leased with the ladder's floor and the FAIL-count derivation beside them (DEC-0096 (4)),
-    (d) the distribution of the last N leases --
+    to be leased with the class's default and floor, the order's ask and the FAIL-count derivation
+    beside them (DEC-0096 (4), DEC-0097 (3)), (d) the distribution of the last N leases --
     and the one question. Everything here is READ off the state; nothing is judged and nothing is
     refused, which is why the gate that prints it does so after `validate_dispatch` has already
     said yes (`gate_dispatch.handle_pre_tool_use`). The kit-less case has no ladder answer and
@@ -3055,10 +3224,20 @@ def reflection_checkpoint(state: ProjectState, task: dict, root: dict, lease: di
         % (len(field_elements(task.get("allowed_scope"))),
            "y" if len(field_elements(task.get("allowed_scope"))) == 1 else "ies",
            len(field_elements(task.get("expected_outputs"))), ladder.get("goal_class") or "none"),
-        "(c) about to lease: rung %s, effort %s -- the ladder's floor for %s is %s (pin %s, class "
-        "%s), top %s; the order asked rung %s / effort %s; %s"
+        # DEFAULT AND FLOOR SIDE BY SIDE (DEC-0097 (3)): the PM reading this has to see the band an
+        # ask can move in, not just the one rung the order would otherwise start on -- the two
+        # coincide for every class but the build in dev and research, and a line that showed only
+        # one of them would read the same in both cases. THE BAND IS NAMED ONLY WHERE THERE IS ONE
+        # (verifier round 1): a class whose ends coincide has nothing to ask down to, and a line
+        # offering it one would be a claim the dispatcher refuses.
+        "(c) about to lease: rung %s, effort %s -- the ladder for %s starts on %s by default%s "
+        "(pin %s, class %s), top %s; the order asked rung %s / effort %s; %s"
         % (lease.get(RUNG_KEY), lease.get(EFFORT_KEY), task.get("assigned_role"),
-           ladder.get("floor"), ladder.get("pin"), ladder.get("role_class"), ladder.get(CLASS_TOP),
+           ladder.get("default"),
+           (" and may be asked down to %s when the order's acceptance NAMES A TEST"
+            % ladder.get("floor")) if ladder.get("floor") != ladder.get("default")
+           else ", with no band below it",
+           ladder.get("pin"), ladder.get("role_class"), ladder.get(CLASS_TOP),
            order.get(RUNG_KEY) or "nothing", order.get(EFFORT_KEY) or "nothing",
            ladder.get("escalation") or "no escalation answer on this lease"),
         "(d) %s" % report.lease_distribution(state)["line"],

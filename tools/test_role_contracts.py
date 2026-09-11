@@ -2006,13 +2006,21 @@ def test_every_constitution_carries_the_reading_discipline_duty():
     `test_a_paragraph_the_constitutions_share_is_one_text` above for byte-equality, which takes any
     bold lead-in two constitutions share and demands the third and equal bodies.
 
+    THIS REPO'S OWN TWO ROLES ARE CARRIERS TOO (DEC-0097 (5)), and for them the byte-equality has
+    to be held HERE: the test above reads constitutions only, so the implementer's copy and the
+    verifier's could drift with nothing measuring it -- and the verifier is the role that reads the
+    most, which is why residue 4 of TSK-0136 named the gap in the first place. RED ON A COPY that
+    is edited on one side: the two blocks differ and the diff position is named.
+
     WHAT THIS CANNOT DO: read whether an agent obeyed it. Nothing can -- there is no record of what
     a model read. What the duty asks instead is that a whole file read be NAMED in the report, and
     that is the lead's to check.
     """
     carriers = [os.path.join(kit, "constitution", "AGENTS.md") for kit in _kit_dirs()]
-    carriers.append(os.path.join(ROOT, ".claude", "agents", "harness-implementer.md"))
-    assert len(carriers) >= 4, carriers
+    repo_roles = [os.path.join(ROOT, ".claude", "agents", name + ".md")
+                  for name in ("harness-implementer", "harness-verifier")]
+    carriers.extend(repo_roles)
+    assert len(carriers) >= 5, carriers
     for path in carriers:
         where = os.path.relpath(path, ROOT)
         found = _reading_duty_blocks(path)
@@ -2022,6 +2030,17 @@ def test_every_constitution_carries_the_reading_discipline_duty():
         assert "DEC-0095" in found[0], "%s: the duty points at no decision" % where
         assert "never from the top and never whole" in found[0], (
             "%s: the duty no longer says what it forbids" % where)
+    bodies = {os.path.relpath(path, ROOT): _reading_duty_blocks(path)[0] for path in repo_roles}
+    one, other = sorted(bodies)
+    if bodies[one] != bodies[other]:
+        parted = next((position for position in range(min(len(bodies[one]), len(bodies[other])))
+                       if bodies[one][position] != bodies[other][position]),
+                      min(len(bodies[one]), len(bodies[other])))
+        raise AssertionError(
+            "the two harness role texts carry different copies of the DEC-0095 (6) duty; they "
+            "agree up to %d characters, then read:\n    %s"
+            % (parted, "\n    ".join("%s: ...%s" % (where, bodies[where][parted:parted + 100])
+                                     for where in (one, other))))
 
 
 def _lead_role_of(kit):

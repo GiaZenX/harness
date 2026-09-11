@@ -1,0 +1,19 @@
+id: EVD-0099
+kind: test
+related:
+- TSK-0136
+result: pass
+summary: 'TSK-0136: six reading suites green on the stamped tree (test_ladder 39,
+  test_model_ladder 13, test_light_kit 26, test_role_contracts 32, test_review_procedure
+  27, test_model_pins 5); ruff and validate.py clean; kits at 2026.09.11-8; verify
+  round 2 re-ran test_ladder 39 / test_light_kit 26 / test_role_contracts 32 / test_review_procedure
+  27 / test_hooks -k team_size 2 / test_model_ladder + test_model_pins 18'
+artifact_refs:
+- staging/TSK-0136/protocol.md
+run_command: python -B -m pytest tools/test_ladder.py tools/test_model_ladder.py tools/test_light_kit.py
+  tools/test_role_contracts.py tools/test_review_procedure.py tools/test_model_pins.py
+  -q -p no:cacheprovider (one file at a time)
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T10:24:46'
