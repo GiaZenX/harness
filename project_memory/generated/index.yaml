@@ -1,4 +1,4 @@
-generated_at: '2026-09-11T12:05:18'
+generated_at: '2026-09-11T13:14:16'
 items:
 - id: APR-0001
   type: APR
@@ -2367,6 +2367,16 @@ items:
     Rollen-Pin (sonnet), und eine Bitte UNTER den Standard bis zum Boden ist erlaubt,
     wenn der Auftrag einen Test als Abnahme traegt -- sonst bliebe ''Sonnet fuer ganz
     kleine Sachen'' fuer Bau-Rollen unerreichbar'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0098
+  type: DEC
+  title: 'Watcher-Routinen laufen GLEICHZEITIG (aendert DEC-0090 (4)): freitags ~20:00
+    beide Anbieter -- in Claude Desktop EINE lokale Aufgabe, die beide Watcher nacheinander
+    faehrt (die App ueberspringt eine Aufgabe, solange eine andere laeuft), in der
+    Codex-App zwei Automationen zur selben Zeit; angelegt vom Lead in der naechsten
+    Desktop-Sitzung (Claude) und vom Nutzer in der Codex-App'
   status: VALID
   revision: 1
   approval_ref: null

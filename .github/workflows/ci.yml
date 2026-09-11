@@ -41,7 +41,7 @@ jobs:
         # Pin ruff to one version so its rule set is fixed (BUG-0007): an unpinned ruff means every
         # run inherits whatever set the latest release ships, and two runs of the same CI drift.
         # This version is the one the repo's explicit `select` (ruff.toml) was validated green against.
-        run: python -m pip install --upgrade pip "ruff==0.15.20" pyyaml pytest
+        run: python -m pip install --upgrade pip "ruff==0.15.20" pyyaml pytest -r team-kits/office-team/templates/repo/requirements-office.txt  # the office kit's e-invoice reader refuses to parse without defusedxml (BUG-0069: the hosted run was red on every push since G5-3)
       - name: Lint shipped Python (hooks + scripts + tools)
         run: ruff check team-kits tools
       - name: Structural self-check
