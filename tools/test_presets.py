@@ -842,9 +842,19 @@ def test_every_target_form_names_a_live_apr_kind(project):
     # `tools/test_kernel.py::test_the_question_a_plan_asks_shows_every_goal_the_hash_covers`
     # asks the manifest for every goal it hashes and requires each one's id, title and revision
     # in the rendered sentence, and refuses a count standing in for the list.
+    # `verification` joined in TSK-0138 (PR-0012 AC-1, DEC-0100) and is the SECOND form where one
+    # answer authorises several items -- and the first that splits itself in two: the sentence names
+    # the count and the APPROVING OPTION carries the list, because the list is the compared carrier
+    # and a sentence a person has to read cannot hold twenty-odd ids with their proofs. Both halves
+    # are measured, which is what this assertion asks for:
+    # `tools/test_approvals_dispatch.py::test_the_batch_option_names_every_listed_bug_and_its_evidence`
+    # requires every listed id AND the Evidence that measured it in the option and refuses them in
+    # the sentence, and
+    # `tools/test_approvals_dispatch.py::test_only_a_kind_with_its_own_option_form_reads_differently_in_the_two_places`
+    # holds the other end for every form that has no option form of its own.
     assert set(approvals.TARGET_FORMS) == {"push", "preset", "filing_correction", "filing_rule",
                                            "document_proposal", "document_revision",
-                                           approvals.PLAN_KIND}, (
+                                           approvals.PLAN_KIND, approvals.VERIFICATION_KIND}, (
         "a new readable form arrived without a measurement of what it renders")
 
 

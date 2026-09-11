@@ -1,0 +1,32 @@
+id: BUG-0047
+title: Role memory writing fails on TWO mechanisms -- task-scope after submit-result,
+  and guard_memory_budget's content rule that also hits the PM
+related_pr: PR-0003
+observed: 'Pilot 3 (B6): mechanism 1 -- backend (S3) and architect (S4) reported that
+  after submit-result no write scope remains, not even for the role''s own memory
+  (gate_write_scope, allowed_scope staging/**). Specialist role learning did not happen:
+  0 files under agent-memory/backend-developer and software-architect. Mechanism 2
+  -- guard_memory_budget blocked 10 memory writes across the run including the PM
+  (20:55:34) via the content rule ''references project items ... agent memory holds
+  CRAFT''; the PM then rewrote two files compliantly (the guard did its job there).
+  The L6 hole list entry (role memory prescribed and locked) is confirmed live for
+  specialists.'
+expected: 'A role can fulfil its own memory duty: either the submit flow leaves a
+  sanctioned memory-write window (scoped to agent-memory/<role>/), or the duty is
+  removed from the role texts -- prescribed-and-impossible ends. The guard_memory_budget
+  content rule stays (it worked).'
+repro: 'Kit project: dispatch a specialist, let it submit-result, then attempt its
+  memory write -> refused by task scope; specialists end runs with zero memory files.'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the contract contradiction is resolved (window built or duty removed) with
+  red-without-fix'
+- 'AC-2: guard_memory_budget behavior unchanged'
+- 'AC-3: the L6 wishlist entry updated to the measured state'
+source: TSK-0027 pilot 3, finding B6; hole list L6
+status: VERIFIED
+revision: 1
+approval_ref: APR-0041
+created: '2026-08-15T06:59:21'
+approved_hash: 4b6a25f174488d65e411e485699f4a329c8a003121765c1a5853106ec7f1848e
+closed_at: '2026-09-11T18:48:14'

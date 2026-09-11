@@ -1,0 +1,13 @@
+id: EVD-0225
+kind: test
+related:
+- BUG-0180
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0180
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_kitupdate.py::test_neither_twin_replays_a_snapshot_that_points_out_of_the_repository
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:09:46'

@@ -1,0 +1,14 @@
+id: EVD-0262
+kind: test
+related:
+- BUG-0064
+result: pass
+summary: 'tests naming BUG-0064: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks_v2.py::test_the_remedy_this_gate_prints_is_one_it_accepts
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:54:18'

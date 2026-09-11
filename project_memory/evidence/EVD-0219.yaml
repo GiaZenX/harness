@@ -1,0 +1,13 @@
+id: EVD-0219
+kind: test
+related:
+- BUG-0059
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0059
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_kitupdate.py::test_a_stock_without_update_kit_is_lifted_by_the_bootstrap_and_told_about_it
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:08:36'

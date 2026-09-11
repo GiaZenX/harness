@@ -1,0 +1,13 @@
+id: EVD-0179
+kind: test
+related:
+- BUG-0213
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0213
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_kernel.py::test_a_retention_the_deadline_register_cannot_read_is_refused_before_it_reaches_the_plan
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:06:48'

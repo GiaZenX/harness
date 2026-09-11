@@ -1,0 +1,13 @@
+id: EVD-0121
+kind: test
+related:
+- BUG-0028
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0028
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_migrate.py::test_every_verdict_the_run_up_can_produce_is_named_where_it_is_documented
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T15:58:20'

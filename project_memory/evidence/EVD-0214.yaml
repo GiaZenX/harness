@@ -1,0 +1,13 @@
+id: EVD-0214
+kind: test
+related:
+- BUG-0078
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0078
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_kitupdate.py::test_a_pinned_project_hears_about_its_pin_instead_of_an_offer
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:55:16'

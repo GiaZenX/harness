@@ -1,0 +1,13 @@
+id: EVD-0167
+kind: test
+related:
+- BUG-0193
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0193
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_state.py::test_an_invariant_is_verified_by_its_check_and_unverified_when_it_stops_resolving
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:05:51'

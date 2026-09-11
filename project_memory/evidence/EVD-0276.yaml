@@ -1,0 +1,14 @@
+id: EVD-0276
+kind: test
+related:
+- BUG-0078
+result: pass
+summary: 'tests naming BUG-0078: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_kitupdate.py::test_a_pinned_project_hears_about_its_pin_instead_of_an_offer
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T18:01:22'

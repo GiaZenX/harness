@@ -1,0 +1,13 @@
+id: EVD-0107
+kind: test
+related:
+- BUG-0003
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0003
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_hooks.py::test_gate_filing_sees_a_noclobber_and_continued_redirect_into_the_archive
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T15:55:30'

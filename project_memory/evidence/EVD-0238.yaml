@@ -1,0 +1,18 @@
+id: EVD-0238
+kind: test
+related:
+- BUG-0015
+result: pass
+summary: 'tests naming BUG-0015: 7 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_approvals_dispatch.py::test_a_scalar_acceptance_ref_is_one_ref_not_four_letters
+  tools/test_approvals_dispatch.py::test_a_scalar_dependency_is_one_dependency tools/test_board.py::test_a_blocked_card_carries_its_blocker_on_its_face
+  tools/test_hooks.py::test_process_doc_renders_a_scalar_field_as_one_element tools/test_hooks_v2.py::test_a_scalar_scope_decides_like_a_one_element_list
+  tools/test_report.py::test_a_scalar_dependency_is_reported_once_not_once_per_letter
+  tools/test_state.py::test_a_work_order_that_expects_nothing_is_refused_at_both_entrances
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:49:39'

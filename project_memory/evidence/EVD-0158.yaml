@@ -1,0 +1,13 @@
+id: EVD-0158
+kind: test
+related:
+- BUG-0133
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0133
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: .claude/hooks/test_gates.py::test_every_check_this_apparatus_claims_in_its_own_prose_is_one_that_exists
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:02:22'

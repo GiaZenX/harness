@@ -1,0 +1,16 @@
+id: EVD-0247
+kind: test
+related:
+- BUG-0039
+result: pass
+summary: 'tests naming BUG-0039: 4 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks_v2.py::test_an_expired_request_is_not_open_and_a_reworded_relay_goes_silent
+  tools/test_hooks_v2.py::test_the_approval_hook_speaks_on_the_channels_this_record_measured
+  tools/test_hooks_v2.py::test_the_pilots_silent_relay_now_speaks_to_the_user tools/test_report.py::test_the_entry_point_warns_before_the_question_is_put_to_the_user
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:50:36'

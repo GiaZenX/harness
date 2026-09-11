@@ -1,0 +1,14 @@
+id: EVD-0231
+kind: test
+related:
+- BUG-0005
+result: pass
+summary: 'tests naming BUG-0005: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_report.py::test_session_brief_carries_the_newest_standing_decision
+  tools/test_schemas.py::test_brief_decision_item_required_keys -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:48:15'

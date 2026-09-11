@@ -1,0 +1,15 @@
+id: EVD-0261
+kind: test
+related:
+- BUG-0063
+result: pass
+summary: 'tests naming BUG-0063: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks_v2.py::test_an_option_word_after_the_script_is_an_argument_not_a_payload
+  tools/test_hooks_v2.py::test_the_module_form_of_the_entry_point_is_not_the_entry_point
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:54:16'

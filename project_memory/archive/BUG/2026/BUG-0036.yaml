@@ -1,0 +1,40 @@
+id: BUG-0036
+title: doctor's hook_trust reason claims '/hooks confirmation' for every non-active
+  state -- including restart_required, whose only exit is a bare restart
+related_pr: PR-0003
+observed: 'team-kits/kernel/report.py:1768-1771 returns one reason for EVERY kit_state
+  != active: ''the kit update is in state %r -- a changed bundle needs /hooks confirmation
+  and exactly one new session (spec II.8)''. Measured in the TSK-0054 live pilot (docs/reviews/2026-08-13-tsk0054-live-confirm.md,
+  finding F2; raw log pilot-rezepte.jsonl records 116/117): a FRESH INSTALL sits in
+  restart_required, doctor is allowed in the entry window, and the printed reason
+  describes /hooks as the needed step -- the very rationalization source the BUG-0017
+  arc removed from the entry flow. For that state the claim is false: kernel/hashing.py:348
+  documents restart_required -> active on the following start, ''no user, no /hooks,
+  no confirmation''. For hooks_trust_required the /hooks wording IS what spec II.8
+  demands (docs/HARNESS_V2_SPEC.md:675-686: changed hook hash -> /hooks confirmation
+  -> exactly one new session). The message conflates the states.'
+expected: 'The hook_trust reason is state-accurate: restart_required (and every state
+  whose exit is a bare restart) says restart is the only step and that /hooks is not
+  part of this flow; hooks_trust_required keeps the spec-II.8 /hooks wording; every
+  other state names its own single next action. No blanket sentence that hands the
+  entry-session agent a /hooks rationalization.'
+repro: python scripts/harness.py doctor in a freshly scaffolded project (kit_state.json
+  state=restart_required) -> the hook_trust reason contains '/hooks confirmation'.
+severity: medium
+acceptance_criteria:
+- 'AC-1: with kit_state restart_required, the hook_trust reason names the restart
+  as the only step and contains no /hooks suggestion'
+- 'AC-2: with hooks_trust_required, the /hooks wording stays (spec II.8) -- pinned
+  by a test'
+- 'AC-3: tests read the RUNNING report function with synthetic kit_state records per
+  state -- red without the fix, no string-search over a file'
+- 'AC-4: kernel is a kit-hash input: tools/bump_kit_version.py run, VERSION stamps
+  moved, full tools/ suite green'
+source: docs/POST_V2_WISHLIST.md L39 round-5 F2 residue; docs/reviews/2026-08-13-tsk0054-live-confirm.md
+  finding F2; fix option (c) of docs/reviews/2026-08-12-bug0017-live-confirm.md
+status: VERIFIED
+revision: 1
+approval_ref: APR-0038
+created: '2026-08-13T23:21:53'
+approved_hash: 26932eedd6c8362717c7a87446404aa7f04dd11a91dc879af630569f96e4674f
+closed_at: '2026-09-11T18:46:19'

@@ -1,0 +1,34 @@
+id: BUG-0001
+title: Die Kommandoflaeche hat kein update -- ein Tippfehler kostet ein neues Item
+related_pr: PR-0002
+severity: medium
+repro: '1. `capture TSK` oder `create-task` mit einem falschen Feldwert ausfuehren.
+  2. Versuchen, das Feld zu korrigieren: `python scripts/harness.py --help` listet
+  doctor, validate, generate-index, generate-session-brief, evidence, capture, create-task,
+  submit-result, request-approval, dispatch, transition, freeze-architecture, freeze-design,
+  freeze-wireframe, archive, sweep-leases, migrate -- kein update. 3. Der einzige
+  Weg ist: neues Item anlegen, altes auf einen Endzustand transitionieren, archivieren.'
+expected: Ein Item laesst sich durch den Kernel aendern -- mit der Approval-Invalidierung,
+  die kernel/state.py `update_item(item_id, changes)` bereits baut, und ohne dass
+  die kernel-gesetzten Felder beschreibbar werden.
+observed: 'kernel/state.py traegt update_item mit Approval-Invalidierung, aber kernel/cli.py
+  legt es nicht frei. Real passiert am 2026-08-04: TSK-0001 wurde mit zu duennem Bereich
+  angelegt, war nicht korrigierbar, liegt jetzt als CANCELLED in archive/TSK/2026/
+  -- und TSK-0002 traegt deshalb eine dependency auf ein storniertes Probe-Item, die
+  ebenfalls nicht korrigierbar ist. Der Schaden steht damit zweimal im Zustand. Fuer
+  einen PM ist das Nachschaerfen eines Items der Normalfall, nicht die Ausnahme: die
+  Verfassung erwartet ausdruecklich, dass er das Wurzel-Item verfeinert.'
+acceptance_criteria:
+- Die Kommandoflaeche legt einen Weg frei, ein Item durch den Kernel zu aendern.
+- Ein Test misst, dass eine Aenderung an einem gehashten Feld die Freigabe atomar
+  entwertet.
+- Ein Test misst, dass id, status, revision, approval_ref und created auf diesem Weg
+  NICHT beschreibbar sind -- sonst waere update eine Umgehung des Automaten.
+- Alle vier praesentierenden Bloecke nennen die neue Kommandozahl (der bestehende
+  Stolperdraht dafuer greift).
+status: VERIFIED
+revision: 1
+approval_ref: APR-0042
+created: '2026-08-04T16:52:49'
+approved_hash: 9a212c529e328f0032f94fdf02d91288602312a71347bd951d26665861bc86c3
+closed_at: '2026-09-11T18:48:46'

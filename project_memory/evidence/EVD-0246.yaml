@@ -1,0 +1,17 @@
+id: EVD-0246
+kind: test
+related:
+- BUG-0038
+result: pass
+summary: 'tests naming BUG-0038: 5 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_backlog_types.py::test_every_kernel_read_of_a_reference_list_field_goes_through_field_elements
+  tools/test_backlog_types.py::test_the_reference_list_fields_are_what_the_kernel_reads_elementwise
+  tools/test_report.py::test_validate_names_a_scalar_reference_list_field tools/test_report.py::test_validate_names_design_refs_that_resolve_to_nothing
+  tools/test_staging_cli.py::test_a_scalar_design_ref_survives_the_freeze_as_one_reference
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:50:28'

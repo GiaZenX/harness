@@ -1,0 +1,13 @@
+id: EVD-0126
+kind: test
+related:
+- BUG-0038
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0038
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_report.py::test_validate_names_a_scalar_reference_list_field
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T15:59:21'

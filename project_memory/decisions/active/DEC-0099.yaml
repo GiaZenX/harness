@@ -1,0 +1,37 @@
+id: DEC-0099
+title: 'Bug-Null vor Budget (Zusatz zu DEC-0095 (6) fuer PR-0012): der Nutzer setzt
+  Tempo ueber das Wochenbudget -- die drei Auftraege laufen Ruecken an Ruecken ohne
+  Warten, neue Agenten ohne die 50-%-Bremse; die Form bleibt (Opus, ein Schreiber
+  je Auftrag, Pruefung am Ziel)'
+context: 'USER 2026-09-11 ~14:50: ''mach dir keine Sorgen ueber das Wochenbudget.
+  Einfach durchballern. Es muss behoben werden, moeglichst schnell.'' DEC-0095 (6)
+  had said: no new agent and no experiment while the weekly budget stands above 50
+  % spent -- a brake the user now lifts for PR-0012 explicitly. What stays: opus as
+  the builder (Fable was rejected on cost AND on the measured first-round failure
+  class, not on budget alone), one writer per order (check-scopes overlaps between
+  the three Bug-Null orders are measured, not assumed -- order 1 and order 2 share
+  cli.py/state.py/constitutions/PM skills, so they run sequentially), the goal round
+  at the end.'
+decision: '(1) For PR-0012 the 50 % budget brake of DEC-0095 (6) does not apply: the
+  next order is spawned the moment the previous one is delivered and its short check
+  has passed; no idle waiting for the user. (2) Parallel orders only where check-scopes
+  measures the file sets disjoint (DEC-0087 (2)); the holes order (AC-4) may be split
+  into parallel batches by mechanism class if their files are disjoint -- measured
+  at the cut. (3) The mid-goal check of DEC-0088 (e) becomes the short check after
+  EACH order (three small checks instead of one big one), the goal round stays at
+  the end. (4) The batch questions to the user are asked as soon as a batch exists,
+  not collected. (5) Tiers unchanged: opus high; Fable only by the ladder (architecture
+  / third failure).'
+consequences: 'Faster close of the bug list at the price of the weekly budget the
+  user chose to spend; the limit interruption (a mid-run 429, seen on 2026-09-07)
+  is handled by Vorgefunden-resume (DEC-0094 (3)). Rejected: waiting for the budget;
+  Fable for speed (not faster per the measured rounds, and the failure class of round
+  1 is prose-vs-code, not capability).'
+work:
+- PR-0012
+source: user message 2026-09-11 ~14:50; DEC-0095 (6); DEC-0087 (2); DEC-0088 (e);
+  DEC-0094 (3)
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-11T14:54:56'

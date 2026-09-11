@@ -1,0 +1,36 @@
+id: BUG-0012
+title: Gate 1 liest eine Shell-Funktionsdefinition als Schreibzugriff auf den zugewiesenen
+  Wert
+related_pr: PR-0002
+severity: high
+repro: '1. Eine Bash-Nutzlast der Form: dec () { PYTHONPATH=team-kits python -B -m
+  kernel.cli --root project_memory capture DEC; } gefolgt von einem Aufruf. 2. Gate
+  1 verweigert mit rc 2 und der Meldung ''the session agent may not write <root>/./team-kits''.
+  3. Dieselbe Befehlszeile OHNE Funktionsdefinition, direkt aufgerufen, laeuft mit
+  rc 0 durch -- vorher und nachher gemessen.'
+expected: PYTHONPATH=team-kits ist eine Zuweisung und schreibt nichts. written_paths
+  ueberspringt eine verblose Stufe ausdruecklich, und CLAUDE.md dokumentiert genau
+  diese Vorsilbe als DEN Weg, den Kernel in diesem Repo aufzurufen.
+observed: 'In der Funktionsdefinition liest der Shell-Leser den zugewiesenen Wert
+  als Schreibziel. Gemessen 2026-08-05, unmittelbar nachdem die Sitzung aus der TSK-0008-Sperre
+  zurueckkam. Dieselbe Klasse wie R-a aus dem TSK-0007-Bericht (dort fuer Gate 3:
+  eine PowerShell-Zuweisung vor git commit wird verweigert), nur in Gate 1 und ueber
+  die Funktionsdefinition ausgeloest. Die 15 bis 17 Befehle, die der Pruefer als Gegenrichtung
+  gemessen hat, enthielten keine Funktionsdefinition -- die Form ist durch die Gegenprobe
+  gefallen. Praktische Folge: der Sitzungsagent kann Items nicht mehr gebuendelt anlegen,
+  nur einzeln.'
+acceptance_criteria:
+- Eine Zuweisung ohne Verb ist fuer BEIDE Leser keine Schreibstufe -- eine Definition,
+  zwei Leser, wie RETRY_APPROVAL_EDGE.
+- Ein Test faehrt eine Funktionsdefinition mit einer Zuweisung im Rumpf und sieht
+  rc 0.
+- 'Gegenrichtung: eine Funktionsdefinition, deren Rumpf wirklich in einen geschuetzten
+  Pfad schreibt, wird weiter verweigert.'
+- Die dokumentierte Kernel-Vorsilbe aus CLAUDE.md ist in beiden Schreibweisen ausfuehrbar,
+  gemessen.
+status: VERIFIED
+revision: 1
+approval_ref: APR-0042
+created: '2026-08-05T06:59:37'
+approved_hash: d784efec08572a99264e475dbd504fdc3864119ea30f35faf171d592ecd6b1dd
+closed_at: '2026-09-11T18:49:01'

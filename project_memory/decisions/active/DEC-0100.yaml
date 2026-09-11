@@ -1,0 +1,50 @@
+id: DEC-0100
+title: 'Bug-Schliessweg, Buendelform (revidiert DEC-0086 (2)): der Kernel kennt die
+  Freigabe-Art `verification`, deren Subjekt eine LISTE von Fehlern samt dem Nachweis
+  ist, der jeden einzelnen misst -- der Nutzer unterschreibt weiter, zeichengenau
+  verglichen, jeder gelistete Fehler braucht weiter seine bestandene Test-Evidenz,
+  die ihn NENNT; nur die Zahl der Fragen sinkt'
+context: 'DEC-0086 (2026-09-06) chose option A -- a mint per bug, put to the user
+  in batches by the lead -- and said ''(2) the kernel does not change for it''. MEASURED
+  since: the price of A was ~100 clicks for the ~100 bugs G5-1 had measured closed,
+  and nobody made them; the stock lied upward by that number until 2026-09-11 (report.stock_rollup).
+  PR-0012 AC-1 ordered the batch form; TSK-0138 built it (approvals.py kind `verification`,
+  --batch, listed_items on the record, the walk to VERIFIED per listed item, derived
+  from APPROVAL_TRANSITIONS/confirming_edge). The check of 2026-09-11 17:41 measured
+  two things this DEC carries as rules: (a) the walk must be all-or-nothing -- a listed
+  item whose CONTENT moved between question and click closes nothing (the mint re-checks
+  coverage per item before the first write); (b) the evidence per bug must be a test
+  that NAMES the bug (BUG-0090 literally), not the first node of a survey run -- a
+  bug no test names is not closable by click and goes to the fixing order. BATCH_LIMIT
+  = 10 is derived from the kernel lock ttl (60 s) and the user''s reading, not from
+  the hook budget (27.8 s per ten = 5 % of the kit''s 558.5 s window -- the protocol''s
+  ''47 %'' was a wrong denominator).'
+decision: '(1) DEC-0086 (1) stands: option A, the user''s click closes a bug. (2)
+  DEC-0086 (2) is replaced: the kernel carries the approval kind `verification` with
+  `--batch`, ONE question per batch of at most `approvals.BATCH_LIMIT` (10) bugs,
+  the compared option text listing ''BUG-nnnn (EVD-nnnn)'' per entry, gate_approval
+  comparing character for character. (3) A bug enters a batch only with a passing
+  `test` evidence whose run names tests that NAME the bug (grep of the id in the test
+  sources); the request refuses others by name; the mint re-checks every listed item''s
+  coverage (revision, content hash, evidence) before the first write and closes ALL
+  or NOTHING. (4) Option B (an automaton edge for the proven case) stays rejected;
+  DEC-0051 (2)''s reserved round is unaffected. (5) Carrier: TSK-0138 (its rework)
+  and PR-0012 AC-2''s batches.'
+consequences: 'The ~100 measured-closed bugs cost the user about ten clicks instead
+  of a hundred; the stock stops lying upward; nothing of the human gate weakens. Cost:
+  one approval kind more, a per-item coverage check at mint time (measured 2.8 s per
+  bug). Rejected: closing by the lead''s transition (no user signature); a per-bug
+  question (measured never clicked); the first-node evidence (measures a run, not
+  the bug).'
+work:
+- TSK-0138
+- PR-0012
+supersedes:
+- DEC-0086
+source: project_memory/staging/TSK-0138/protocol.md section 7 (the builder's proposal)
+  and verify-round-1.md (B1/B2, the budget arithmetic); DEC-0086; BUG-0090; PR-0012
+  AC-1/AC-2
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:41:32'

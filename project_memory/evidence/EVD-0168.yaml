@@ -1,0 +1,13 @@
+id: EVD-0168
+kind: test
+related:
+- BUG-0194
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0194
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_report.py::test_an_invariant_whose_check_this_kernel_cannot_read_blocks_nothing
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:05:55'

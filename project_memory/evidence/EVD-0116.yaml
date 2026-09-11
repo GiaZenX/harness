@@ -1,0 +1,13 @@
+id: EVD-0116
+kind: test
+related:
+- BUG-0014
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0014
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: .claude/hooks/test_gates.py::test_the_measurement_sandbox_leaves_a_child_shell_no_directory_word_that_names_another_tree
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T15:57:42'

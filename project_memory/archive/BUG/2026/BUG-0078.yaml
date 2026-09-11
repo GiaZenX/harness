@@ -1,0 +1,32 @@
+id: BUG-0078
+title: 'kit_update_pending marker has no sanctioned remover: gate_write_scope refuses
+  every pipeline naming .claude, so a completed update leaves a stale nag the PM can
+  only report'
+related_pr: BUG-0075
+observed: 'Canyon_3.4.0 audit 2026-08-30: after the kit update the PM tried to clear
+  .claude/kit_update_pending.* and gate_write_scope refused (pipeline names .claude
+  -- session c794dd99 line 79); the PM correctly reported it as an infrastructure
+  gap in the marker file''s own header instead of bypassing. The marker''s producer
+  exists (update detection writes it) but no consumer may remove it from inside a
+  session, so every session after a completed update re-reads a stale pending state.'
+expected: 'The component that owns the marker lifecycle removes it: the kernel''s
+  update-kit path (or the session-start hook that reads the marker) clears it when
+  the installed version matches, from a surface the gate does not refuse -- hooks
+  run outside the tool-write path. No agent hand-deletes anything under .claude/.'
+repro: In a scaffolded project with a consumed update, attempt any shell removal of
+  .claude/kit_update_pending.* -> rc 2 from gate_write_scope; observe the session-start
+  status hook still reporting pending.
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: after a completed update the marker is gone without any agent write, measured
+    on a scaffolded copy through a real update cycle
+- id: AC-2
+  text: the remover is the lifecycle owner (kernel update path or the reading hook),
+    recorded with the reason, and the gate's refusal surface is unchanged
+status: VERIFIED
+revision: 1
+approval_ref: APR-0040
+created: '2026-08-30T16:37:54'
+approved_hash: ab0f320f5280d195bd3b61bc1e37106f3a29f28ae563a32bf1228e42ac916c82
+closed_at: '2026-09-11T18:47:36'

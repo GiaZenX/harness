@@ -1,0 +1,27 @@
+id: BUG-0028
+title: Jede angewandte NOT-SEARCHED-Abhilfe erzeugt dauerhaft eine weitere NOT-SEARCHED-Zeile,
+  ohne Rueckweg
+related_pr: PR-0001
+observed: 'Kopie-Pilot TSK-0026 2026-08-11. team-kits/kernel/migrate.py:664-671. synaipse:
+  vor Anwendung 26 NOT-SEARCHED-Zeilen, nach Anwendung der 26 gedruckten Ablage-Kopien
+  62 (validate: ''searched 13 document(s), did not search 62''), davon 36 die eigenen
+  Ablagen, fuer die der Text sagt ''no step is named for this one''. Kein Kommando
+  entfernt eine Ablage; die Anweisung nennt keinen Rueckweg. Der lauteste Berichtsteil
+  waechst mit jeder Abhilfe.'
+expected: Die eigenen Ablagen (staging/v1-deposit--*) werden in search_coverage als
+  eigene Verdikt-Klasse gefuehrt und in validate/doctor gezaehlt statt zeilenweise
+  ausgegeben -- der Bericht bleibt lesbar und der Zustand verlassbar.
+repro: migrate --dry-run gegen ein Projekt mit uebergrossen Datensaetzen -> Abhilfen
+  anwenden -> migrate --dry-run erneut -> NOT-SEARCHED-Zeilen um die Zahl der Ablagen
+  gewachsen.
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: Ablagen werden als eigene Klasse gezaehlt, nicht als NOT-SEARCHED-Zeilen --
+    gemessen an einem Lauf nach Abhilfe-Anwendung
+status: VERIFIED
+revision: 1
+approval_ref: APR-0038
+created: '2026-08-11T11:38:46'
+approved_hash: a13b49de32918d573dd1b66c99599a0afbd73717208a056ea6513fce4b30cd70
+closed_at: '2026-09-11T18:46:15'

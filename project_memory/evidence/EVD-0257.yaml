@@ -1,0 +1,15 @@
+id: EVD-0257
+kind: test
+related:
+- BUG-0051
+result: pass
+summary: 'tests naming BUG-0051: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest .claude/hooks/test_gates.py::test_the_arbiter_is_a_shell_that_reads_back_what_this_process_writes
+  .claude/hooks/test_gates.py::test_the_measurement_sandbox_leaves_a_child_shell_no_directory_word_that_names_another_tree
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:53:31'

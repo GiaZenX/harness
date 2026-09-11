@@ -1,0 +1,27 @@
+id: BUG-0007
+title: ruff ist in CI ungepinnt -- das Ergebnis ist nicht reproduzierbar
+related_pr: PR-0003
+severity: high
+repro: '`ruff check team-kits tools` mit zwei aufeinanderfolgenden Punktversionen
+  fahren.'
+expected: Zwei Laeufe derselben CI auf demselben Stand liefern dasselbe Ergebnis.
+  Ein Linter, dessen Regelmenge sich unter der Pipeline aendert, ist kein Tor, sondern
+  ein Zufallsgenerator.
+observed: 'Gemessen vom Wochenwaechter: ruff 0.16.0 meldete 913 Funde, ruff 0.16.1
+  meldete 2164 -- eine einzige Punktversion, Faktor 2,4. Ursache ist, dass die repo-eigene
+  ruff.toml kein `select` setzt und damit erbt, was ruff jeweils ausliefert; der Zuwachs
+  kommt komplett aus Regelkategorien ausserhalb der historischen Standardmenge (UP031
+  x1269, PLW1510 x207, BLE001 x175). CI installiert ruff weiterhin ohne Version. severity
+  high, weil ein gruener Lauf keine Aussage mehr traegt.'
+acceptance_criteria:
+- CI installiert eine feste ruff-Version.
+- Die Regelmenge ist explizit gewaehlt statt geerbt, damit ein Upgrade eine Entscheidung
+  ist und kein Ereignis.
+- Ein Upgrade der gepinnten Version ist ein eigener Vorgang mit sichtbarem Diff der
+  Funde.
+status: VERIFIED
+revision: 1
+approval_ref: APR-0042
+created: '2026-08-04T16:59:04'
+approved_hash: 4c10a664d52adc5503446125ca19738fe9947d0d6f51150f19cbaf2a70491d80
+closed_at: '2026-09-11T18:48:56'

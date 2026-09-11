@@ -1,0 +1,11 @@
+id: APR-0031
+kind: scope
+item: PR-0012
+revision: 1
+subject_manifest_hash: 121cd794e99de6f3160fc183aba66ba597a26e5f399d2a1426374282a71b1606
+request_id: 66e836a556114c2d8a7aba1554c93dee
+mint_code: 1085d1
+minted_via: user_answer_via_approval_hook
+approved_at: '2026-09-11T14:45:45'
+expires: null
+revoked: false

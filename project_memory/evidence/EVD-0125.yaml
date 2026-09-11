@@ -1,0 +1,13 @@
+id: EVD-0125
+kind: test
+related:
+- BUG-0036
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0036
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_report.py::test_a_fresh_install_is_told_to_restart_and_is_not_handed_the_slash_command
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T15:59:13'

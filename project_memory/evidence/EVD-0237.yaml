@@ -1,0 +1,18 @@
+id: EVD-0237
+kind: test
+related:
+- BUG-0013
+result: pass
+summary: 'tests naming BUG-0013: 6 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_the_kernel_bridge_is_staged_with_everything_it_imports
+  tools/test_hooks_v2.py::test_a_planted_stdlib_module_cannot_disable_a_launched_gate
+  tools/test_hooks_v2.py::test_a_planted_stdlib_module_cannot_disable_the_kit_gate
+  tools/test_hooks_v2.py::test_every_refusal_capable_registered_hook_runs_through_the_launcher
+  tools/test_hooks_v2.py::test_no_kit_module_is_named_after_a_standard_library_module
+  tools/test_hooks_v2.py::test_the_launcher_is_staged_with_everything_it_imports -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:49:20'

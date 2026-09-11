@@ -1,0 +1,49 @@
+id: BUG-0066
+title: Ein blankes CR hebelt gate_write_scope in allen drei Kits aus -- ein Aufruf,
+  eine Sitzung, .claude/settings.json ueberschrieben
+related_pr: PR-0001
+observed: 'gate_write_scope schreibt vor dem Tokenisieren nur den Zeilenumbruch in
+  einen Trenner um (gate_write_scope.py:1298, _compat.join_line_continuations(code_view).replace(''\n'',
+  '' ; '')). Ein blankes CR (Wagenruecklauf ohne Zeilenvorschub) bleibt fuer shlex
+  gewoehnlicher Leerraum. Damit liest das Gate die ganze Zeile als EINE Pipeline mit
+  dem harmlosen ersten Verb und urteilt darueber. PowerShell honoriert dasselbe CR
+  als Anweisungstrenner und fuehrt den zweiten, schreibenden Befehl aus. Gemessen
+  2026-08-24 vom Umsetzer waehrend TSK-0083 Runde 7, beide Werkzeugnamen, an zwei
+  Zwillingen identisch (vorbestehend, nicht von der Runde geoeffnet): ''tee .claude/settings.json''
+  allein rc 2; dieselbe Zeile hinter ''echo hello'' mit Semikolon, mit Ampersand oder
+  mit Zeilenumbruch rc 2; hinter ''echo hello'' mit blankem CR rc 0. Ebenso ''Get-Content
+  README.md'' + CR + ''Set-Content -Path .claude/settings.json -Value x'' rc 0. Volle
+  Kette mit Dateizeugen und echter powershell.exe: Gate rc 0, powershell rc 0, danach
+  steht in .claude/settings.json der Text POISONED BY A CARRIAGE RETURN (vom Umsetzer
+  wiederhergestellt und verifiziert).'
+expected: Eine Befehlszeile, die eine Shell in zwei Anweisungen zerlegt, wird auch
+  vom Gate in zwei Anweisungen zerlegt -- unabhaengig davon, welches Zeichen die Shell
+  dafuer honoriert. Der Schreibzugriff auf .claude/settings.json wird verweigert,
+  egal was in derselben Zeile davor steht.
+repro: 'Im Projekt eines beliebigen Kits, mit tool_name PowerShell, eine Zeile aus
+  zwei Anweisungen bauen, getrennt durch ein einzelnes CR (chr 13) ohne LF: erste
+  Anweisung harmlos lesend, zweite schreibend auf .claude/settings.json. Der Hook
+  antwortet rc 0. Zum Vergleich dieselbe Zeile mit Semikolon, Ampersand oder LF als
+  Trenner: rc 2. Messrig des Umsetzers: C:\Offline Repos\v2-testbed\_round-scratch\TSK-0083\rework7\m_scope_probe.py
+  und m_cr_scope_chain.py.'
+severity: high
+acceptance_criteria:
+- Das Gate zerlegt eine Zeile an jedem Zeichen, das eine der beiden Zielshells als
+  Anweisungstrenner honoriert -- gemessen gegen echte Shell-Prozesse, nicht behauptet
+- 'Die Ausgangskette ist zu: Gate rc 2 fuer die CR-Form, mit Dateizeuge dass nichts
+  geschrieben wurde'
+- Ein Test wird ohne den Fix rot, das Rot in einem Klon ausserhalb des Repos gesehen
+- 'Die Gegenrichtung ist gemessen: der Fix zerschneidet keinen Befehl von seinem eigenen
+  Flag (die Falle, an der die naive Variante in TSK-0083 F3 gemessen scheiterte --
+  ''find ledger'' + CR + ''-delete'' fiel dort von rc 2 auf rc 0)'
+- Alle drei Kits gespiegelt byte-identisch oder KIT_SPECIFIC_HOOKS nennt den Grund;
+  bump gefahren
+- Gemessen und beantwortet, ob dieselbe Konstruktion die uebrigen Kit-Gates trifft,
+  die denselben Vorbereitungsschritt benutzen -- als Eigenschaft ueber die Aufrufer,
+  nicht als Liste
+status: VERIFIED
+revision: 1
+approval_ref: APR-0039
+created: '2026-08-24T16:44:48'
+approved_hash: 3911127ceb506f06e0040586500849c6ed313c48267aa89e89c3c66649639d38
+closed_at: '2026-09-11T18:47:05'

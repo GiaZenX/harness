@@ -1,0 +1,23 @@
+id: BUG-0029
+title: doctor kann das Kit eines V1-Projekts nicht benennen (kit unknown bei bekannter
+  kit_version)
+related_pr: PR-0001
+observed: 'Kopie-Pilot TSK-0026 2026-08-11. doctor eines migrierten synaipse-Zustands:
+  ''kit'': ''unknown'' bei ''kit_version'': ''2026.07.18-3'' -- Version bekannt, Kit
+  nicht. generate-session-brief verlangt --kit als Pflichtargument (rc 2 ohne), und
+  die naheliegende Quelle dafuer ist doctor.'
+expected: doctor benennt das Kit, wenn die kit_version es eindeutig macht -- oder
+  sagt, warum es das nicht kann; generate-session-brief kann seine Pflicht-Flags aus
+  doctor beziehen.
+repro: 'Ein V1-Projekt migrieren, doctor fahren -> ''kit'': ''unknown''.'
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: doctor benennt das Kit eines migrierten Projekts oder begruendet die Luecke
+    -- gemessen
+status: VERIFIED
+revision: 1
+approval_ref: APR-0038
+created: '2026-08-11T11:38:47'
+approved_hash: baf005358c7ccbd25fc64a949e03018d3905dec42add91d2f89860de28c7dfa3
+closed_at: '2026-09-11T18:46:16'

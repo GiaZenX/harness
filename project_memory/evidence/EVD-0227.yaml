@@ -1,0 +1,24 @@
+id: EVD-0227
+kind: test
+related:
+- BUG-0001
+result: pass
+summary: 'tests naming BUG-0001: 15 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_approvals_dispatch.py::test_a_batch_longer_than_the_limit_is_refused_at_the_builder
+  tools/test_approvals_dispatch.py::test_flags_stay_writable_on_a_dispatched_task
+  tools/test_approvals_dispatch.py::test_only_a_manifest_of_signed_item_records_reads_as_a_list
+  tools/test_board.py::test_a_self_referential_item_body_does_not_stop_the_state_write
+  tools/test_board.py::test_a_status_off_its_types_vocabulary_still_appears_and_warns
+  tools/test_board.py::test_a_surrogate_in_an_item_does_not_stop_the_state_write tools/test_board.py::test_an_alias_bomb_cannot_stretch_a_state_write
+  tools/test_e2e.py::test_e2e_update_changes_a_field_and_invalidates_a_current_approval
+  tools/test_hooks.py::test_a_document_finding_and_a_validator_finding_get_different_remedies
+  tools/test_hooks.py::test_dashboard_survives_a_hand_written_item tools/test_hooks.py::test_quality_red_on_duplicate_key_in_typed_item
+  tools/test_hooks.py::test_retro_reports_the_item_status_mix_from_the_index tools/test_kernel.py::test_a_cross_root_origin_is_refused_at_creation
+  tools/test_kernel.py::test_a_task_under_its_own_root_is_still_creatable tools/test_staging_cli.py::test_a_bug_cannot_be_verified_without_the_regression_evidence
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:47:43'

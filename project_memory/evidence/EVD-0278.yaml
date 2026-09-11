@@ -1,0 +1,31 @@
+id: EVD-0278
+kind: test
+related:
+- BUG-0041
+result: pass
+summary: 'tests naming BUG-0041: 21 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_gaplog.py::test_the_gap_command_and_the_duty_that_names_it_arrive_together
+  tools/test_hooks.py::test_a_kit_document_is_refused_with_the_truth_and_not_with_a_command_that_does_not_exist
+  tools/test_hooks.py::test_a_rule_that_starts_with_a_placeholder_would_open_the_whole_level
+  tools/test_hooks.py::test_a_rule_the_user_approved_opens_this_gate_for_exactly_that_place
+  tools/test_hooks.py::test_a_staged_proposal_reaches_a_kit_document_in_a_project_the_installers_built
+  tools/test_hooks.py::test_doctor_names_the_documents_that_wall_a_project_off tools/test_hooks.py::test_every_route_the_kernel_has_into_a_kit_document_is_named_by_the_gate_that_refuses_one
+  tools/test_hooks.py::test_session_start_says_a_wall_document_is_still_the_template
+  tools/test_hooks.py::test_the_field_a_kernel_command_owns_is_named_with_that_command_in_both_entry_gates
+  tools/test_kernel.py::test_a_generic_document_writer_is_named_only_for_the_documents_it_would_write
+  tools/test_kernel.py::test_a_rule_may_not_start_with_a_placeholder tools/test_kernel.py::test_add_filing_rule_creates_the_rules_list_when_the_plan_carries_none
+  tools/test_kernel.py::test_the_question_a_filing_rule_asks_shows_every_field_the_hash_covers
+  tools/test_kitupdate.py::test_the_question_the_user_sees_names_both_releases_and_no_full_hash
+  tools/test_office_package.py::test_a_reminder_the_data_does_not_carry_is_refused
+  tools/test_office_package.py::test_a_term_the_business_never_recorded_is_refused_with_its_route
+  tools/test_office_package.py::test_the_gap_refusal_names_an_order_this_script_actually_walks
+  tools/test_presets.py::test_a_lead_can_change_the_preset_end_to_end tools/test_presets.py::test_a_preset_change_needs_a_user_approval_before_anything_moves
+  tools/test_role_contracts.py::test_no_document_owner_is_routed_at_one_the_command_would_refuse
+  tools/test_staging_cli.py::test_a_filing_correction_question_says_in_words_what_happens_to_the_document
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T18:26:26'

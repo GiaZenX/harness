@@ -1,0 +1,35 @@
+id: BUG-0042
+title: A running background dispatch survives NO session end -- 3 of 3 in-flight specialists
+  lost their work at a session break
+related_pr: PR-0003
+observed: 'Pilot 3 (B11): TSK-0004 (S3->S4 break, CANCELLED 21:57:21), TSK-0012/0013
+  (S4->S5 break): ''leased and IN_PROGRESS with no live agent behind them''. The bookkeeping
+  was honest (FAILED results submitted naming zero real progress, approved retry,
+  rebuild from zero, one partial edit discarded -- commit 17bf932 in the pilot project),
+  but the WORK was lost and re-paid every time. There is no continuation path across
+  a session break: no rebrief from the partial state, no checkpoint a successor could
+  adopt -- only re-order from scratch.'
+expected: 'A design decision first (DEC): either an honest continuation story (e.g.
+  the dispatch envelope carries a resumable checkpoint the retry MAY adopt after verification,
+  or leases die WITH the session so nothing pretends to run), or the limitation is
+  a named, user-accepted property with its cost measured. The chosen answer is built
+  and red-tested; ''silently lose paid work'' stops being the default.'
+repro: 'Kit project: dispatch a specialist, end the session mid-run, start a new session
+  -> the lease points at no live agent; the only path is FAILED + retry from zero.'
+severity: high
+acceptance_criteria:
+- 'AC-1: a DEC records the chosen continuation story with the pilot''s measured cost
+  as context'
+- 'AC-2: the chosen mechanism is built and red-without-fix tested (or the named-exception
+  path is user-accepted per the house rule)'
+- 'AC-3: the session-break scenario replayed: the successor session''s first action
+  on an orphaned dispatch matches the DEC'
+- 'AC-4: full suite green, stamps moved'
+source: TSK-0027 pilot 3, finding B11; pilot project commit 17bf932 and archive/TSK/2026/TSK-0004.yaml
+  carry the chains
+status: VERIFIED
+revision: 1
+approval_ref: APR-0041
+created: '2026-08-15T06:57:46'
+approved_hash: 544aa52a544c97ccdb99e32aa3f178245a121d1f5bd3eb068e9b6c695e7c21f8
+closed_at: '2026-09-11T18:48:09'

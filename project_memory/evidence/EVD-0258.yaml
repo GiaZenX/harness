@@ -1,0 +1,16 @@
+id: EVD-0258
+kind: test
+related:
+- BUG-0058
+result: pass
+summary: 'tests naming BUG-0058: 4 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_approvals_dispatch.py::test_a_dispatch_whose_child_ended_is_named_and_a_running_one_is_not
+  tools/test_hooks_v2.py::test_no_gate_that_mutates_the_state_runs_in_front_of_one_that_can_still_refuse
+  tools/test_hooks_v2.py::test_the_dispatch_gate_sees_the_whole_spawn_lifecycle tools/test_hooks_v2.py::test_the_turn_end_is_refused_for_a_dispatch_whose_child_stopped
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:53:52'

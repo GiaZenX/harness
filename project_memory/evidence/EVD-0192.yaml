@@ -1,0 +1,13 @@
+id: EVD-0192
+kind: test
+related:
+- BUG-0237
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0237
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_approvals_dispatch.py::test_a_goal_of_an_unknown_class_is_asked_for_the_architect_step
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:08:08'

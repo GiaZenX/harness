@@ -1,0 +1,35 @@
+id: PR-0002
+title: Dieses Repo fuehrt seinen eigenen Zustand
+class: technical_enabler
+problem: 'Das Harness verhindert, dass Entscheidungen im Gespraech verlorengehen --
+  und genau das passiert bei seiner eigenen Entwicklung. Belege aus einer Sitzung:
+  eine Feldanalyse existierte als sechs Woerter in einer Aufgabenliste und musste
+  neu aus der Quelle abgeleitet werden; der Kontext wurde einmal zusammengefasst;
+  drei Befunde kamen aus Nutzerfragen statt aus einer Pruefrunde. Ein installiertes
+  Kit ist hier unmoeglich (DEC-0003).'
+goal: Der Kernel fuehrt project_memory/ in diesem Repo ohne Kit und ohne Hooks. Jede
+  Entscheidung, jede Anforderung und jeder Auftrag hat eine Datei. Was dabei am Kernel
+  oder an der Kommandoflaeche fehlt, wird als Befund ueber das Produkt festgehalten
+  statt umgangen.
+acceptance_criteria:
+- Der Auftrag an den Umsetzer wird aus einem Item erzeugt, nicht frei geschrieben.
+- Der Pruefer bekommt dasselbe Item und meldet jede Abweichung des Pakets von dessen
+  expected_outputs als Befund.
+- Was ein Item als required_input nennt, ist auffindbar -- kein Verweis auf etwas,
+  das nur im Gespraech existiert.
+- Jede Luecke, die bei der eigenen Benutzung auffaellt, wird als Item angelegt, nicht
+  als Zeile in einer Aufgabenliste.
+invariants:
+- 'Kein Kit, kein Marker: gate_write_scope wuerde jede Aenderung an team-kits/ verweigern.'
+- Keine Leases und kein Dispatch -- ohne Hooks kann eine Lease weder beansprucht noch
+  durchgesetzt werden, und eine Lease, die nichts durchsetzt, ist eine Luege im Zustand.
+out_of_scope:
+- Rueckwirkendes Nachtragen des V2-Umbaus als Backlog.
+- Prosa und Analysen -- die bleiben in docs/, das Item traegt nur Identitaet und Stand.
+priority: medium
+status: ACCEPTED
+revision: 1
+approval_ref: APR-0035
+created: '2026-08-04T16:52:17'
+approved_hash: 241b20f9349793d48996b82fcc3802a0be424ea0a1c204396e96a04f5d6cf732
+closed_at: '2026-09-11T14:58:16'

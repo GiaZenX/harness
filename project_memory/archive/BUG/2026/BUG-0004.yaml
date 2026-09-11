@@ -1,0 +1,22 @@
+id: BUG-0004
+title: premise_rechecks hat keinen Schreiber
+related_pr: PR-0003
+severity: low
+repro: 'Nach einem Produzenten fuer `premise_rechecks` suchen: kein Kernel-Pfad und
+  keine Rolle schreibt das Feld.'
+expected: Ein Feld, das der Zustand fuehrt, hat einen Schreiber -- oder es gibt das
+  Feld nicht.
+observed: 'Das Feld existiert im Vertrag, aber nichts fuellt es. Damit ist es entweder
+  eine unfertige Faehigkeit oder Ballast, und von aussen ist beides nicht unterscheidbar.
+  Die Entscheidung ist Teil der Behebung: Schreiber bauen ODER Feld entfernen, nicht
+  offen lassen.'
+acceptance_criteria:
+- Entweder es gibt einen Schreiber und einen Test, der ihn misst -- oder das Feld
+  ist weg und der Vertrag nennt es nicht mehr.
+- Wird es entfernt, misst ein Test, dass kein Leser mehr darauf zeigt.
+status: VERIFIED
+revision: 1
+approval_ref: APR-0042
+created: '2026-08-04T16:58:15'
+approved_hash: 6f446258a18b93ab68ff5e7acc4abef7a4edecd39fa8d743b721efb7c0765939
+closed_at: '2026-09-11T18:48:51'

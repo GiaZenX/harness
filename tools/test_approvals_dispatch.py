@@ -1954,8 +1954,18 @@ def test_no_optional_argument_of_transition_can_skip_the_approval_check(state):
         assert optional, "%s has no optional parameter -- the loop below asserts nothing" % entry
         for name in optional:
             for value in (True, 1, "yes", False, None):
+                # EACH ENTRY POINT IS PROBED WITH ITS OWN PARAMETERS. Until 2026-09-11 both loops
+                # called `transition`, so a parameter that exists only on `_transition_locked` was
+                # enumerated and then never tried on the function that has it -- the inner entry
+                # point, which is the one every in-process caller (the mint included) uses. It
+                # surfaced as a TypeError the day `regenerate` was added; the hole it names is that
+                # a bypass parameter added to the inner entry point alone was covered by nothing.
                 with pytest.raises(ApprovalError):
-                    state.transition(pr["id"], "APPROVED", **{name: value})
+                    if entry is ProjectState.transition:
+                        state.transition(pr["id"], "APPROVED", **{name: value})
+                    else:
+                        with state.lock:
+                            state._transition_locked(pr["id"], "APPROVED", **{name: value})
 
 
 def _possible_statuses(node, constants=None):
@@ -4161,7 +4171,7 @@ def test_a_plan_stops_covering_a_goal_the_moment_its_scope_moves(state):
     """FR-0074: the plan binds to each goal's OWN scope hash, so a changed goal comes back as a
     question while the untouched ones stay covered.
 
-    RED WITHOUT THE FIX: with the hash comparison dropped from `_assert_the_plan_covers`, the
+    RED WITHOUT THE FIX: with the hash comparison dropped from `_assert_the_list_covers`, the
     edited goal walks to APPROVED again on an approval whose subject it no longer matches.
     """
     first, second = _two_goals(state)
@@ -4179,7 +4189,7 @@ def test_a_plan_stops_covering_a_goal_the_moment_its_scope_moves(state):
 
     # AND THE EDIT THE REVISION DOES NOT CATCH, which is the one the hash exists for: an IDE
     # writing the item file straight past the kernel leaves the revision where it was. Measured:
-    # without the hash comparison in `_assert_the_plan_covers` the paragraph above still passes
+    # without the hash comparison in `_assert_the_list_covers` the paragraph above still passes
     # (the revision bump alone closes it), so this is the assertion that reaches that line.
     path = state.active_path(first["id"])
     edited = state._read_yaml(path)
@@ -4210,8 +4220,13 @@ def test_every_approval_kind_is_classified_as_takeable_back_or_not():
     # revocable like any other, and a fallen exception (DEC-0069 (3)) is a NEW item with its own
     # measurement. So it is a QUESTION and not an irreversible act, which is DEC-0068 (3)'s own
     # reading for the kinds that are themselves a question.
+    # `verification` is revisable, judged 2026-09-11 (PR-0012 AC-1): it closes defects of this
+    # project's own store -- archived, never deleted -- and a defect closed wrongly is re-filed as a
+    # new item with its own measurement. The count it closes at once is bounded by
+    # `approvals.BATCH_LIMIT` and each entry needed a passing Evidence before the question existed.
     assert revisable == {"analysis", "scope", "delivery", "acceptance", "routine",
-                         approvals.HOLE_EXCEPTION_KIND, approvals.PLAN_KIND}, (
+                         approvals.HOLE_EXCEPTION_KIND, approvals.PLAN_KIND,
+                         approvals.VERIFICATION_KIND}, (
         "a new approval kind has to be judged: can this project take the act back out of its own "
         "resources? If not it belongs in IRREVERSIBLE_KINDS; if so, add it to this list with the "
         "reason in the round's protocol.")
@@ -4807,3 +4822,331 @@ def test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it(sta
     assert spawn(order(["AC-1"], "src/remainder/**")), (
         "H155's second class no longer holds -- correct the entry, this is not a defect in the "
         "test")
+
+
+# ============================================ PR-0012 AC-1: the BATCH form of a repaired bug's close
+
+def _repaired_bug(state, title="a defect", measured=True):
+    """A BUG at TRIAGED with -- unless `measured` says otherwise -- the passing test Evidence that
+    names it: exactly the shape TSK-0131's survey measured 98 times over."""
+    goal = state.capture("PR", dict(PR_FIELDS, title="Kasse"))
+    bug = state.capture("BUG", {"title": title, "related_pr": goal["id"], "observed": "o",
+                                "expected": "e", "repro": "r", "severity": "low",
+                                "acceptance_criteria": [{"id": "AC-1", "text": "t"}]})
+    state.transition(bug["id"], "TRIAGED")
+    if measured:
+        state.capture("EVD", {"kind": "test", "result": "pass", "related": [bug["id"]],
+                              "summary": "the regression run", "artifact_refs": ["staging/x/r.log"],
+                              "run_command": "python -B -m pytest tools/test_x.py::test_y",
+                              "run_scope": "selection"})
+    return state.read_item(bug["id"])
+
+
+def _ask_the_batch(state, bugs):
+    return approvals.create_pending_request(
+        state, approvals.VERIFICATION_KIND,
+        manifest=approvals.verification_subject_manifest(
+            approvals.verification_batch(state, [bug["id"] for bug in bugs])))
+
+
+def test_the_batch_mint_walks_every_listed_bug_to_verified_and_archives_it(state):
+    """PR-0012 AC-1, through the REAL PostToolUse hook: one answer closes the whole batch -- every
+    listed defect walks TRIAGED -> APPROVED -> FIXED -> VERIFIED on the Evidence that named it,
+    presents the batch approval and leaves `bugs/active/`.
+
+    RED WITHOUT THE FIX: with `_close_what_the_batch_lists` not called from `mint`, the approval is
+    minted and every listed bug stands untouched at TRIAGED -- which is DEC-0086's measured cost.
+    RED ALSO WITHOUT `state._archive_locked`: the walk reaches VERIFIED and then blocks on the
+    kernel lock the mint already holds.
+    """
+    first, second = _repaired_bug(state), _repaired_bug(state, "another defect")
+    request = _ask_the_batch(state, [first, second])
+    mint_via_hook(state, request)
+
+    for bug in (first, second):
+        with pytest.raises(Exception):
+            state.read_item(bug["id"])           # no longer active: archived
+        archived = state._read_yaml(state.archive_path(bug["id"], 2026))
+        assert archived["status"] == "VERIFIED", archived
+        assert str(archived["approval_ref"]).startswith("APR-"), archived
+        assert archived["closed_at"], archived
+
+
+def test_a_bug_without_a_passing_test_evidence_is_refused_from_the_batch_by_name(state):
+    """PR-0012 AC-1 / BUG-0090's rule: the batch is refused BEFORE the user is shown a question and
+    the refusal names the id that is not measured -- never "some item".
+
+    RED WITHOUT the confirming-Evidence branch of `batch_walk_blockers`: the question is built over
+    an unmeasured defect and the mint walks it to VERIFIED with nothing having measured it.
+    """
+    measured = _repaired_bug(state)
+    unmeasured = _repaired_bug(state, "never measured", measured=False)
+    with pytest.raises(ApprovalError) as refusal:
+        approvals.verification_batch(state, [measured["id"], unmeasured["id"]])
+    assert unmeasured["id"] in str(refusal.value) and "no passing" in str(refusal.value)
+    assert measured["id"] not in str(refusal.value).split(unmeasured["id"])[1]
+
+
+def test_a_bug_past_the_edge_the_batch_commits_is_refused_from_it_by_name(state):
+    """PR-0012 AC-1: the batch commits TRIAGED -> APPROVED, so an item already past that status
+    would be signed for something it no longer needs.
+
+    RED WITHOUT the chain-position branch of `batch_walk_blockers`: a FIXED bug joins the batch and
+    the walk's own slice then closes it anyway, so nothing would ever report it.
+    """
+    walked = _repaired_bug(state)
+    approve(state, walked["id"], "scope")
+    state.transition(walked["id"], "FIXED")
+    with pytest.raises(ApprovalError) as refusal:
+        approvals.verification_batch(state, [walked["id"]])
+    assert "already FIXED" in str(refusal.value) and walked["id"] in str(refusal.value)
+
+
+def test_a_batch_longer_than_the_limit_is_refused_at_the_builder():
+    """PR-0012 AC-1: the ids ride in the compared option description, so a list nobody can read
+    through is refused where it costs least -- before the question exists.
+
+    RED WITHOUT the `BATCH_LIMIT` branch: a batch of any length builds a question whose approving
+    option grows without bound.
+    """
+    record = {approvals.GOAL_ITEM_FIELD: "BUG-0001", "revision": 1,
+              approvals.GOAL_SCOPE_HASH_FIELD: "0" * 64,
+              approvals.LISTED_EVIDENCE_FIELD: "EVD-0001"}
+    assert approvals.verification_subject_manifest([record] * approvals.BATCH_LIMIT)["bugs"]
+    with pytest.raises(ApprovalError) as refusal:
+        approvals.verification_subject_manifest([record] * (approvals.BATCH_LIMIT + 1))
+    assert str(approvals.BATCH_LIMIT) in str(refusal.value)
+    with pytest.raises(ApprovalError):
+        approvals.verification_subject_manifest([])
+
+
+def test_the_batch_option_names_every_listed_bug_and_its_evidence(state):
+    """PR-0012 AC-1: the SENTENCE names the count, the APPROVING OPTION carries the list -- and the
+    option is the text `gate_approval` compares character for character.
+
+    RED WITHOUT `OPTION_FORMS` in `build_question`: the option repeats the sentence, so the ids and
+    their proofs stand in no compared text at all and a relay could drop half the batch unnoticed.
+    """
+    bugs = [_repaired_bug(state), _repaired_bug(state, "another defect")]
+    request = _ask_the_batch(state, bugs)
+    question = approvals.build_question(request)
+    approving = question["options"][0]["description"]
+    for record in request["subject_manifest"]["bugs"]:
+        assert record[approvals.GOAL_ITEM_FIELD] in approving, approving
+        assert record[approvals.LISTED_EVIDENCE_FIELD] in approving, approving
+        assert record[approvals.GOAL_ITEM_FIELD] not in question["question"], question["question"]
+    assert str(len(bugs)) in question["question"]
+
+
+def test_only_a_kind_with_its_own_option_form_reads_differently_in_the_two_places():
+    """Both ends of `OPTION_FORMS`: a kind with an entry says MORE in the option than in the
+    sentence, and a kind without one says the same in both -- which is what keeps the table from
+    silently rewriting a question nobody decided to change.
+
+    RED WITHOUT the `option_form is not None` guard in `build_question`: every kind's option is
+    rebuilt from a form, the older questions change text and every live pending request dies.
+    """
+    assert set(approvals.OPTION_FORMS) <= set(approvals.APR_KINDS)
+    manifest = {"bugs": [{approvals.GOAL_ITEM_FIELD: "BUG-0009", "revision": 1,
+                          approvals.GOAL_SCOPE_HASH_FIELD: "0" * 64,
+                          approvals.LISTED_EVIDENCE_FIELD: "EVD-0009"}]}
+    for kind, form in approvals.OPTION_FORMS.items():
+        assert kind in approvals.TARGET_FORMS, (
+            "%s renders an option form but no sentence form" % kind)
+        assert "BUG-0009" in form(manifest)
+        assert "BUG-0009" not in approvals.TARGET_FORMS[kind](manifest)
+    for kind in set(approvals.TARGET_FORMS) - set(approvals.OPTION_FORMS):
+        request = {"request_id": "ab" * 16, "kind": kind, "item": None, "revision": None,
+                   "item_title": "", "mint_code": "c0ffee", "subject_manifest": {},
+                   "subject_manifest_hash": "de" * 32}
+        question = approvals.build_question(request)
+        target = approvals.TARGET_FORMS[kind]({})
+        assert target in question["question"] and target in question["options"][0]["description"]
+
+
+def test_only_a_list_kind_paired_with_a_type_closes_what_it_lists():
+    """`batch_closing_types` is the line between the two list-bound kinds, and it is derived: the
+    plan approval stands in for a question whose goals keep their own edges and must move nothing,
+    the verification approval is paired with BUG and walks every one it lists.
+
+    RED WITHOUT that derivation (a written-out set of closing kinds): the plan branch closes goals
+    the day somebody adds the pair, or the verification branch stops closing when the pair moves.
+    """
+    assert approvals.batch_closing_types(approvals.PLAN_KIND) == frozenset()
+    assert approvals.batch_closing_types(approvals.VERIFICATION_KIND) == frozenset({"BUG"})
+    assert approvals.batch_walk_end("BUG", approvals.VERIFICATION_KIND) == "VERIFIED"
+
+
+def test_only_a_manifest_of_signed_item_records_reads_as_a_list():
+    """`listed_items` decides list-bound-ness on the RECORD, not on the kind -- an entry counts when
+    it carries the id AND the content hash signed for it. Both ends, because a reader that answered
+    "yes" too easily would make an ordinary approval bind items it never named.
+
+    RED WITHOUT the hash condition: any list of mappings carrying an `item` key reads as a signed
+    list, and `assert_apr_in_force` then asks the list check instead of the item check.
+    """
+    signed = {"bugs": [{approvals.GOAL_ITEM_FIELD: "BUG-0001",
+                        approvals.GOAL_SCOPE_HASH_FIELD: "0" * 64}]}
+    assert approvals.listed_items({"subject_manifest": signed}) == ("BUG-0001",)
+    for lookalike in ({"tasks": ["TSK-0001"]},
+                      {"tasks": [{approvals.GOAL_ITEM_FIELD: "TSK-0001"}]},
+                      {"question": "warum", "scope": "nur lesen"},
+                      {}):
+        assert approvals.listed_items({"subject_manifest": lookalike}) == (), lookalike
+
+
+def test_a_batch_approval_authorises_only_the_bugs_it_lists(state):
+    """The batch stands in for the `scope` mint of every defect it names -- and of no other one.
+
+    RED WITHOUT `_names_the_item`: `assert_transition_approved` compares `apr["item"]`, the batch
+    approval is bound to no single item, and the mint's own walk refuses on the first edge.
+    RED WITHOUT the list check inside it: the same approval walks a defect it never listed.
+    """
+    listed = _repaired_bug(state)
+    stranger = _repaired_bug(state, "never listed")
+    mint_via_hook(state, _ask_the_batch(state, [listed]))
+    assert state._read_yaml(state.archive_path(listed["id"], 2026))["status"] == "VERIFIED"
+    with pytest.raises(Exception) as refusal:
+        state.transition(stranger["id"], "APPROVED")
+    assert "none is in force" in str(refusal.value)
+
+
+def test_a_batch_stops_covering_a_bug_whose_content_moved_after_the_question(state):
+    """The same invalidation a per-item approval has, on the list-bound shape: an out-of-band edit
+    of the signed content kills the cover before the mint can use it.
+
+    RED WITHOUT the hash comparison in `_assert_the_list_covers`: the edited defect is closed on an
+    approval whose subject it no longer matches.
+    """
+    bug = _repaired_bug(state)
+    request = _ask_the_batch(state, [bug])
+    path = state.active_path(bug["id"])
+    edited = state._read_yaml(path)
+    edited["acceptance_criteria"] = [{"id": "AC-1", "text": "something nobody approved"}]
+    state._write_yaml_atomic(path, edited)
+    mint_via_hook(state, request, expect_success=False)
+    assert state.read_item(bug["id"])["status"] == "TRIAGED"
+
+
+def test_a_batch_mint_leaves_the_index_as_fresh_as_a_per_step_rebuild_would(state):
+    """The batch walk suppresses the per-step index rebuild (`state._transition_locked`'s
+    `regenerate=False`) because one mint is ONE operation -- measured: a batch of 25 on a
+    repo-sized store spent 100 rebuilds inside a single hook call. This is the other end of that
+    trade: what the store shows afterwards must be exactly what a per-step rebuild would have left.
+
+    RED WITHOUT A REBUILD AFTER THE WALK -- and it takes removing BOTH of them, the one
+    `_close_what_the_batch_lists` does for itself and `mint`'s trailing one, because either alone
+    still leaves the index right: the index then still lists both closed defects as active, so every
+    rollup, the board and `stock lies upward` read a state the store left behind. Measured that way
+    in the round's rig; removing only one is green here on purpose, and the reason the batch keeps
+    its own is a different rule (`tools/test_board.py::test_no_kernel_writer_of_a_rendered_file_leaves_the_board_behind`).
+    """
+    first, second = _repaired_bug(state), _repaired_bug(state, "another defect")
+    mint_via_hook(state, _ask_the_batch(state, [first, second]))
+
+    index_path = os.path.join(state.root, "generated", "index.yaml")
+    after_the_mint = state._read_yaml(index_path)
+    state.generate_index()
+    assert state._read_yaml(index_path) == after_the_mint
+    listed = {str(row.get("id")) for row in (after_the_mint.get("items") or [])}
+    assert first["id"] not in listed and second["id"] not in listed, sorted(listed)
+
+
+def test_a_batch_approval_stays_in_force_for_every_id_it_lists_after_the_minting_process_ended(
+        state):
+    """The mint runs inside ONE hook call, and a provider kills a hook that outruns its budget. What
+    that leaves behind is the claim `approvals.BATCH_LIMIT`'s comment makes: the approval the user
+    already gave keeps covering every id it lists, so whatever the walk did not reach is finished
+    with `transition` and no second question.
+
+    WHAT THIS NODE SHOWS AND WHAT IT DOES NOT: it measures the part a test can reach -- that the
+    stored approval is still IN FORCE for a listed item after the minting process is gone, which is
+    the condition `assert_transition_approved` puts the recovery on (`assert_apr_in_force` reads the
+    revision and the content, never the status). The other half needs a real kill and is a PROCESS
+    measurement, recorded in this round's protocol: the hook killed 18 s into a 24 s walk left 4 of
+    10 closed, APR-0038 written, and `transition` walked an untouched listed defect APPROVED ->
+    FIXED -> VERIFIED at rc 0 -- plus a stale kernel lock that ages out on its TTL.
+
+    RED WITHOUT `_names_the_item`'s list branch: no approval is in force for any listed id once the
+    mint is over, and a whole batch is lost to one killed process.
+    """
+    first, second = _repaired_bug(state), _repaired_bug(state, "the second of the batch")
+    request = _ask_the_batch(state, [first, second])
+    mint_via_hook(state, request)
+
+    for bug in (first, second):
+        closed = state._read_yaml(state.archive_path(bug["id"], 2026))
+        assert closed["status"] == "VERIFIED"
+        live = approvals.live_list_approval(state, closed, approvals.VERIFICATION_KIND)
+        assert live is not None and live["id"] == closed["approval_ref"], (bug["id"], live)
+
+
+def test_a_batch_that_moved_since_the_question_closes_nothing_at_all(state):
+    """The half-closed batch, which is the failure mode a per-item check could not have: the walk
+    runs AFTER the APR is written and the request consumed, so a refusal inside it would leave a
+    real approval, a spent request and some of the listed defects closed.
+
+    Measured shape: two defects are asked for; between question and click the second one's test
+    starts failing (a newer `fail` Evidence supersedes the pass, DEC-0061's newest-per-kind rule),
+    which is exactly what the confirming edge refuses on. Nothing may move.
+
+    RED WITHOUT the `batch_walk_blockers` call in `mint`: the first defect is archived VERIFIED, an
+    APR exists for it, and the hook reports that no approval was created -- three records
+    disagreeing about one answer.
+    """
+    first, second = _repaired_bug(state), _repaired_bug(state, "regressed since")
+    request = _ask_the_batch(state, [first, second])
+    state.capture("EVD", {"kind": "test", "result": "fail", "related": [second["id"]],
+                          "summary": "it fails again", "artifact_refs": ["staging/x/r.log"],
+                          "run_command": "python -B -m pytest tools/test_x.py::test_y",
+                          "run_scope": "selection"})
+    result = mint_via_hook(state, request, expect_success=False)
+    assert "moved since the question" in result.stderr, result.stderr
+    for bug in (first, second):
+        assert state.read_item(bug["id"])["status"] == "TRIAGED"
+        assert state.read_item(bug["id"])["approval_ref"] is None
+    assert not [name for name in os.listdir(os.path.join(state.root, "approvals"))
+                if name.startswith("APR-")]
+
+
+def test_a_batch_whose_signed_CONTENT_moved_closes_nothing_and_mints_nothing(state):
+    """The sibling of the Evidence case, and the one that was open: a listed defect whose SIGNED
+    content is edited between question and click.
+
+    Measured as a process before the fix (verifier round 1, B1): the first defect stood VERIFIED and
+    archived, the second at TRIAGED carrying the batch's `approval_ref`, the third untouched, the
+    request consumed and the hook saying "no approval was created" -- four records disagreeing about
+    one answer. The refusal comes from `_assert_the_list_covers`, which `state._transition_locked`
+    reaches only once the walk is already running, i.e. once the APR exists.
+
+    RED WITHOUT the `request is not None` branch of `batch_walk_blockers`: the batch closes HALF.
+    """
+    first, second, third = (_repaired_bug(state), _repaired_bug(state, "edited after the question"),
+                            _repaired_bug(state, "the third"))
+    request = _ask_the_batch(state, [first, second, third])
+    # THROUGH THE KERNEL, so the revision moves exactly as it does in life
+    state.update_item(second["id"], {"acceptance_criteria": [{"id": "AC-1", "text": "other"}]})
+
+    result = mint_via_hook(state, request, expect_success=False)
+    assert "moved since the question" in result.stderr, result.stderr
+    for bug in (first, second, third):
+        assert state.read_item(bug["id"])["approval_ref"] is None, bug["id"]
+        assert not os.path.exists(state.archive_path(bug["id"], 2026)), bug["id"]
+    assert not [name for name in os.listdir(os.path.join(state.root, "approvals"))
+                if name.startswith("APR-")]
+    # ...and the question is still answerable, because nothing consumed it
+    assert approvals.pending_request(state, request["request_id"])
+
+
+def test_the_batch_flag_belongs_to_the_kinds_whose_resolver_reads_it():
+    """`cli.kinds_reading_argument` derives the flag's owners through the resolver, so the parser
+    and the refusal cannot disagree about which kind may carry `--batch`.
+
+    RED WITHOUT the derivation (a written-out set of kinds): the flag is accepted for a kind whose
+    manifest key was renamed, and refused for the next batch kind the day it arrives.
+    """
+    from kernel import cli
+
+    assert cli.kinds_reading_argument(cli.BATCH_ARGUMENT) == frozenset(
+        {approvals.VERIFICATION_KIND})
+    assert cli.kinds_reading_argument("no-such-argument") == frozenset()

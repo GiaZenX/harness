@@ -1,0 +1,11 @@
+id: APR-0033
+kind: delivery
+item: PR-0002
+revision: 1
+subject_manifest_hash: aeebbb6e0f9a6795b8b0458aedae781877f612c6270140e9322d370f4178b98d
+request_id: 2f5713d9a49b4953aa0e2b3574c49fc9
+mint_code: ad48bb
+minted_via: user_answer_via_approval_hook
+approved_at: '2026-09-11T14:56:54'
+expires: null
+revoked: false

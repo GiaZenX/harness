@@ -1,0 +1,13 @@
+id: EVD-0133
+kind: test
+related:
+- BUG-0045
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0045
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_hooks.py::test_the_block_that_hand_stamps_the_kernels_fields_names_the_kernels_own_clock
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:00:06'

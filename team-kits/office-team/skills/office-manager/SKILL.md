@@ -275,7 +275,12 @@ convenient. Yours is the procedure: an `FR` goes into the ITEM inbox (`inbox/act
 and is triaged to a terminal state in the next cycle, while a wish you can already place skips it. A `CR` reopens an approval, so it takes
 the same route a PROC does (step 3) and you touch no hashed content before that mint. A `BUG` gets a
 reproduction a specialist can run without you, and its fix is proven by re-running the PROC's own
-trigger and recording that run as an Evidence item — never by a "done" string (step 4).
+trigger and recording that run as an Evidence item — never by a "done" string (step 4). Closing repaired
+bugs is ONE question and not one per bug (`DEC-0100`): `python scripts/harness.py
+request-approval verification --batch BUG-a BUG-b ...` opens a single question whose approving option
+lists every id with the Evidence that measured it, and the answer walks them all to `VERIFIED` and
+archives them; an id without that Evidence, or one already past `TRIAGED`, is refused by name before the
+question is put.
 
 ## The Aktenplan at onboarding: a binding DRAFT, and a tree the user can see
 A fresh project's `filing_plan.yaml` carries `rules: []`, `gate_filing` fails closed on that, and no

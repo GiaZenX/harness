@@ -1,0 +1,16 @@
+id: EVD-0264
+kind: test
+related:
+- BUG-0066
+result: pass
+summary: 'tests naming BUG-0066: 3 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks_v2.py::test_a_carriage_return_does_not_hide_a_write_from_the_scope_gate
+  tools/test_hooks_v2.py::test_no_caller_of_the_preparation_keeps_a_second_copy_of_the_break_rule
+  tools/test_hooks_v2.py::test_the_shared_preparation_spells_every_statement_break_as_a_newline
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:54:32'

@@ -1,0 +1,18 @@
+id: EVD-0248
+kind: test
+related:
+- BUG-0040
+result: pass
+summary: 'tests naming BUG-0040: 5 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_approvals_dispatch.py::test_a_cr_derived_task_may_reference_the_crs_own_criteria
+  tools/test_approvals_dispatch.py::test_a_task_may_reference_the_criteria_an_approved_amendment_of_its_root_minted
+  tools/test_approvals_dispatch.py::test_an_applied_amendments_criteria_stop_counting
+  tools/test_backlog_types.py::test_an_amendment_is_the_type_that_names_the_revision_it_amends
+  tools/test_hooks_v2.py::test_the_shipped_gate_authorises_a_spawn_against_an_approved_amendments_criterion
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:50:48'

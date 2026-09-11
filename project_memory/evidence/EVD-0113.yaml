@@ -1,0 +1,13 @@
+id: EVD-0113
+kind: test
+related:
+- BUG-0011
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0011
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_handover_marker.py::test_line1_mention_of_marker_does_not_trigger_kit_detection
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T15:56:15'

@@ -1,0 +1,72 @@
+"""The user's word of 2026-09-11 ~13:30: (A) the ~100 measured-closed bugs are to be led as closed; (B+C) every
+remaining bug and hole is to be fixed; no FRs now. ONE goal in the light form (DEC-0087): PR-0012 'Bug-Null'.
+The closing route: DEC-0086 chose a mint PER bug (option A) -- 100 clicks; this goal builds the BATCH form of the
+same mint (one question per batch, the batch listed in the option text, the kernel walks each listed bug with its
+evidence) so A costs the user a handful of clicks instead of a hundred. Captured in DRAFT; the user's plan/scope
+mint follows in the chat. Not idempotent -- run once."""
+import json
+import os
+import subprocess
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+KERNEL = [sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory", "capture", "PR"]
+
+GOAL = {
+    "title": "Bug-Null: jeder offene Fehler dieses Repos ist geschlossen -- die ~100 gemessen behobenen als VERIFIED mit "
+             "ihrem Beweis (im Buendel geprägt, nicht einzeln), die ~15 echten Restfehler behoben (rot-zuerst), die "
+             "~126 Loecher geschlossen oder als unschliessbar mit Begrenzung vom Nutzer abgenommen; keine Wuensche",
+    "class": "large",
+    "priority": "high",
+    "user_story": "As the user who reads the backlog to steer the project, I want the bug list to be TRUE -- nothing "
+                  "that is fixed still stands open, nothing that is open is hidden among a hundred closed ones -- and I "
+                  "want the defects the pilots measured (a push refused before the first branch, a freeze that empties "
+                  "the staging folder, a design draft nobody shows me, an idle specialist nobody notices) gone before "
+                  "I use the kits on my own projects.",
+    "problem": "Measured 2026-09-11: 207 active BUG items = 126 holes (0 high, 59 medium, 67 low) + 81 real bugs; "
+               "G5-1's survey (staging/TSK-0131/survey-table.md) measured 98 rows MEASURED-PASS that still stand "
+               "OPEN/TRIAGED because the BUG chain OPEN -> TRIAGED -> APPROVED -> FIXED -> VERIFIED needs a scope "
+               "mint per bug (DEC-0086 option A) -- a hundred clicks nobody makes, so the stock lies upward by "
+               "about a hundred; 8 MEASURED-OPEN + 1 PARTIAL + ~10 unmeasured real defects remain (BUG-0081 first "
+               "push refused, BUG-0074 freeze empties staging, BUG-0075/0076 design draft unseen, BUG-0058 idle "
+               "specialist, BUG-0053 compose flag enumeration, BUG-0052 the suite writes into .audit, BUG-0026/0027 "
+               "migration lines, BUG-0016 restart plea, BUG-0054/0055/0077/0080 wireframe manifest, BUG-0022/0023/"
+               "0031/0046/0056/0057/0067/0087/0092); BUG-0017 (headless mint) is measured as designed (TSK-0135) and "
+               "needs closing as such; the 126 holes each carry mechanism, chain and bound -- the house rule says a "
+               "hole is closed OR carries a user-accepted exception, and none has that acceptance yet.",
+    "goal": "The BUG list is true and near-empty: (1) a BATCH form of the verification mint exists in the kernel -- "
+            "one approval question per batch, the batch's ids and their evidence listed in the compared option "
+            "text, the kernel walking every listed bug TRIAGED -> APPROVED -> FIXED -> VERIFIED with the named "
+            "evidence -- and the ~100 measured-pass bugs are closed through it after their named test is re-run on "
+            "the current tree; (2) every real remaining defect is fixed red-first with its test, or measured "
+            "unfixable with the reason; (3) every hole is closed red-first, or its exception (why unclosable, what "
+            "bounds it) is put to the user in batches and minted as ACCEPTED_EXCEPTION; (4) the index equals the "
+            "store and `stock lies upward` reads 0.",
+    "acceptance_criteria": [
+        {"id": "AC-1", "text": "BATCH VERIFICATION (kernel): `request-approval verification --batch BUG-a BUG-b ...` (or the equivalent shape the kernel already has for lists) builds ONE question whose compared option text lists every bug id with the evidence id that measured it; the mint walks each listed bug TRIAGED -> APPROVED -> FIXED -> VERIFIED and archives it; a bug without a passing test evidence naming it is refused from the batch by name; gate_approval still compares character for character; red-first on the refusal and on the walk; DEC-0086 revised by a DEC that names this as option A's batch form"},
+        {"id": "AC-2", "text": "THE MEASURED-PASS ROWS: every survey row MEASURED-PASS whose item is still active has its named test re-run ONCE on the current tree (one pytest node at a time, timeouts), an EVD recorded on pass (kind test, run_scope selection, the node as run-command), and stands in a batch question for the user; a row whose test no longer passes is reported, not closed; the batches are put to the user in this chat, one question per batch of at most 25"},
+        {"id": "AC-3", "text": "THE REAL DEFECTS: BUG-0081, BUG-0074, BUG-0075, BUG-0076, BUG-0058, BUG-0053, BUG-0052, BUG-0026, BUG-0027, BUG-0016, BUG-0054, BUG-0055, BUG-0077, BUG-0080, BUG-0022, BUG-0023, BUG-0031, BUG-0046, BUG-0056, BUG-0057, BUG-0067, BUG-0087, BUG-0092, BUG-0010, BUG-0037, BUG-0079, BUG-0082 each fixed red-first with the test that fails without the fix, measured on a scaffolded pilot where the chain is a pilot chain; or measured already-fixed (then AC-2's route) or unfixable with the reason (then AC-4's route); BUG-0017 closed as measured-by-design (TSK-0135's headless_pm_stop_point) with the docs saying so"},
+        {"id": "AC-4", "text": "THE HOLES: every hole item (BUG with hole_number) is either closed red-first with the mechanism it names, or carries an exception the user accepted -- put to the user in batches by mechanism class (over-refusals of gate 1; enumerations awaiting a definition; provider limits; measurement-instrument limits), each batch ONE question listing ids and bounds, minted ACCEPTED_EXCEPTION per listed id; no hole stands OPEN/TRIAGED at the end"},
+        {"id": "AC-5", "text": "TRUTH OF THE STOCK: report.stock_rollup reads `stock lies upward: 0`, the hole index in docs/POST_V2_WISHLIST.md equals the store, validate.py and the full tools/ suite are green after ONE stamp, and the (g) table records the cost per AC against DEC-0088's cadence (one builder, one mid-goal check, one goal round)"},
+    ],
+    "invariants": [
+        "Nothing is closed without a measurement: VERIFIED needs the passing evidence that names the bug (BUG-0090's rule), ACCEPTED_EXCEPTION needs the user's mint; a status that moves without either is a defect of this goal",
+        "One writer per order (DEC-0087 (1)); the builder on opus (DEC-0095); verification at the goal (DEC-0088); no FR is built here",
+        "Cost discipline (DEC-0095 (6)): the builder reads the survey table and the items, never whole protocols; the batches are cut so the user clicks at most ~10 times in total",
+    ],
+    "out_of_scope": [
+        "Every FR (the user's word: 'FR erstmal keine')",
+        "New features inside a fix: a defect is closed at its mechanism, not redesigned",
+        "The routines (DEC-0098), the FR-0089 experiment, the three V2 roots PR-0001..0003 (their acceptance is a separate three-click matter)",
+    ],
+    "source": "user messages 2026-09-11 ~13:25 ('A: als erledigt fuehren, B+C: alles beheben, FR erstmal keine'); "
+              "staging/TSK-0131/survey-table.md; the store counts of 2026-09-11 13:10 (round log); DEC-0086; DEC-0087; "
+              "DEC-0088; DEC-0095; BUG-0090's rule",
+}
+
+env = dict(os.environ, PYTHONPATH="team-kits")
+result = subprocess.run(KERNEL, cwd=ROOT, env=env, input=json.dumps(GOAL),
+                        capture_output=True, text=True, encoding="utf-8")
+sys.stdout.write(result.stdout)
+sys.stderr.write(result.stderr[-1200:])
+sys.exit(result.returncode)

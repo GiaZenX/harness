@@ -1,0 +1,15 @@
+id: EVD-0259
+kind: test
+related:
+- BUG-0060
+result: pass
+summary: 'tests naming BUG-0060: 3 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_the_session_start_names_work_booked_as_finished_that_nothing_measured
+  tools/test_report.py::test_a_task_accepted_without_a_qa_verdict_is_reported tools/test_report.py::test_a_task_under_every_kit_root_is_asked_for_its_delivery_verdict
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:54:06'

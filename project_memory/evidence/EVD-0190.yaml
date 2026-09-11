@@ -1,0 +1,13 @@
+id: EVD-0190
+kind: test
+related:
+- BUG-0235
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0235
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_hooks.py::test_gate_test_scope_still_sees_a_link_from_outside_into_the_declared_surface
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:08:02'

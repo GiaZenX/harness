@@ -1,0 +1,13 @@
+id: EVD-0170
+kind: test
+related:
+- BUG-0196
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0196
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_routine_feed.py::test_the_routine_reads_the_run_record_the_shipped_hook_really_writes
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:06:02'

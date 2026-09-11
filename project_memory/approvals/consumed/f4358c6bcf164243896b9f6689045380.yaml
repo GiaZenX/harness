@@ -1,0 +1,16 @@
+request_id: f4358c6bcf164243896b9f6689045380
+kind: delivery
+item: PR-0001
+revision: 1
+item_title: Migrationsweg V1 -> V2
+subject_manifest:
+  item: PR-0001
+  root_revision: 1
+  system_requirements: []
+  architecture: []
+  tasks: []
+  risks: []
+subject_manifest_hash: 0f51881d3508856d1e242bbc01d2970cecc595a8cb9f7089b2300d5e3d45e4e8
+created: '2026-09-11T14:55:52'
+expires_at_epoch: 1789217752.9283948
+mint_code: ec316e

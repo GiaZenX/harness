@@ -1,0 +1,37 @@
+id: BUG-0064
+title: gate_ledger_valid refuses its own advertised remedy -- the sanctioned way out
+  of a ledger block is not typable
+related_pr: PR-0001
+observed: 'Named by the implementer during the TSK-0083 rework, measured as a real
+  hook process, identical at HEAD (pre-existing, not introduced by the round): cd
+  scripts && python ledger_add.py --validate ../ledger/2026.csv && git commit -m x
+  -> rc 2. The gate''s own refusal text says ''fix the ledger rows instead'', and
+  the gate''s comment calls exactly this validator run ''the sanctioned way out of
+  a block'' -- but in _writes_ledger the _DECOY_VALIDATOR_RX check runs BEFORE the
+  inside_scripts exception, and a bare ledger_add.py after cd scripts is not prefixed
+  with scripts/, so it counts as a decoy.'
+expected: The run the gate's own remedy text prescribes is accepted in every spelling
+  the remedy reasonably takes (canonical path from the project root, and the cd-scripts
+  form if the texts keep suggesting it) -- or the remedy texts stop describing a form
+  the gate refuses. Either way, no refusal may advertise a way out that the same gate
+  refuses.
+repro: 'Scaffolded office project, registered PreToolUse chain: cd scripts && python
+  ledger_add.py --validate ../ledger/2026.csv && git commit -m x -> rc 2 at HEAD bbf4084
+  and after TSK-0083. Control: python scripts/ledger_add.py --validate ledger/2026.csv
+  && git commit -m x -> rc 0.'
+severity: medium
+acceptance_criteria:
+- The remedy the gate advertises is measured typable end to end in an office project
+  (rc 0), or every text that advertises the refused form is corrected to the form
+  that works -- one of the two, measured both directions
+- The decoy rule still refuses a genuine decoy (python tools/ledger_add.py ...) --
+  control stays rc 2
+- The fix carries a test that is red without it
+source: TSK-0083 rework (implementer measurement 2026-08-23); over-refusal family
+  of P4-12
+status: VERIFIED
+revision: 1
+approval_ref: APR-0039
+created: '2026-08-23T17:16:43'
+approved_hash: 1c6048c5b6fd116f5c7a30553029aa4db34a188602c543463c41f9c257b81fb9
+closed_at: '2026-09-11T18:47:02'

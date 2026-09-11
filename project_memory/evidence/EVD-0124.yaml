@@ -1,0 +1,13 @@
+id: EVD-0124
+kind: test
+related:
+- BUG-0035
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0035
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: .claude/hooks/test_gates.py::test_no_statement_here_cites_a_replaced_contract_on_its_own
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T15:59:08'

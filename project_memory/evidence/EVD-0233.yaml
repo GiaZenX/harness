@@ -1,0 +1,14 @@
+id: EVD-0233
+kind: test
+related:
+- BUG-0007
+result: pass
+summary: 'tests naming BUG-0007: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_ci_lint_pinned.py::test_ci_pins_exactly_one_ruff_version
+  tools/test_ci_lint_pinned.py::test_root_ruff_select_is_explicit_not_inherited -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:48:21'

@@ -1,0 +1,13 @@
+id: EVD-0195
+kind: test
+related:
+- BUG-0240
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0240
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_review_procedure.py::test_no_occasion_makes_the_audit_run_due_and_that_is_the_seam
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:08:18'

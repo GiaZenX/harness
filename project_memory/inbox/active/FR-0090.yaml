@@ -21,7 +21,10 @@ goal: build_question renders the expiry (and any other timestamp a user must jud
 source: project_memory/staging/TSK-0135/verify-goal.md (P6); verify-goal-2.md (item
   6); protocol.md section 6 (8); DEC-0095 (6); BUG-0271; BUG-0073
 related_pr: PR-0011
-status: OPEN
+status: TRIAGED
 revision: 1
 approval_ref: null
 created: '2026-09-11T08:52:18'
+triage_result: 'TRIAGED 2026-09-11 by the user''s word ''FR erstmal keine -- erstmal
+  alle Bugs beseitigen'': deferred behind PR-0012 (Bug-Null); nothing built here until
+  the bug list is true.'

@@ -1,0 +1,13 @@
+id: EVD-0134
+kind: test
+related:
+- BUG-0047
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0047
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_role_contracts.py::test_the_memory_duty_is_only_prescribed_where_the_role_has_memory
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:00:10'

@@ -1,0 +1,36 @@
+id: BUG-0013
+title: Kit-Hooks legen ihr eigenes Verzeichnis auf sys.path[0] und koennen damit die
+  Standardbibliothek verdecken
+related_pr: PR-0003
+severity: high
+repro: 1. Eine Datei mit dem Namen eines Standardbibliotheks-Moduls in das Hook-Verzeichnis
+  eines Kits legen, z.B. shlex.py mit einem stillen Stub, der jedes Attribut beantwortet
+  und nichts wirft. 2. Einen Hook ausloesen, der den Tokenizer benutzt. 3. Der Hook
+  laesst durch -- ohne Ausnahme, ohne Exit-Code, ohne stderr.
+expected: Ein Hook, der ueber team-kits/ importiert, darf keinen Standardbibliotheks-Namen
+  aus einem Verzeichnis beziehen, in das ein Agent schreiben darf.
+observed: 'team-kits/dev-team/hooks/gate_write_scope.py:100 macht beim Import sys.path.insert(0,
+  dirname(__file__)) -- BEVOR es re und shlex importiert. Dasselbe tut tools/bump_kit_version.py:32
+  fuer sein Verzeichnis. Damit steht das jeweilige Verzeichnis VOR der Standardbibliothek.
+  Gemessen 2026-08-05 an den vier Gates dieses Repos: ein stiller Stub in drei verschiedenen
+  Verzeichnissen (Kit-Hooks, team-kits/, .claude/hooks/) hat jeweils zwei Gates lautlos
+  abgeschaltet; ein exit(0)-Stub zusaetzlich ueber das Kit-eigene _root.py. Der Schutz
+  hier ist gebaut (StandardLibraryWins auf sys.meta_path, plus sys.path-Restore um
+  jeden Fremdimport). IN DEN KITS ist er nicht gebaut -- dort ist die Einfuegung die
+  Ursache, und jedes Projekt mit einem installierten Kit traegt sie. Die Kette laeuft
+  ueber vorgesehene Wege: ein Spezialist mit einem offenen Auftrag darf in seinem
+  Bereich schreiben.'
+acceptance_criteria:
+- Ein Kit-Hook bezieht keinen Standardbibliotheks-Namen aus einem Verzeichnis, in
+  das eine Rolle schreiben darf -- als Eigenschaft, nicht als Namensliste.
+- Ein Test legt einen stillen Stub mit dem Namen eines Standardbibliotheks-Moduls
+  ins Hook-Verzeichnis und sieht die Verweigerung bestehen.
+- 'Gegenrichtung: ein legitimer Kit-Import wird nicht blockiert.'
+- 'Ein Stolperdraht misst, dass kein Modul der Kits nach einem Standardbibliotheks-Modul
+  heisst (im Apparat dieses Repos gemessen: 37 Namen, 0 Kollisionen).'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0038
+created: '2026-08-05T08:09:27'
+approved_hash: 0ab203ed0837737740040b7fde83efbdd4902158de5bb4daea4b71f66022511c
+closed_at: '2026-09-11T18:46:07'

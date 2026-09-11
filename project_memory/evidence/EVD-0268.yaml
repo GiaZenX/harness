@@ -1,0 +1,17 @@
+id: EVD-0268
+kind: test
+related:
+- BUG-0074
+result: pass
+summary: 'tests naming BUG-0074: 5 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_kernel.py::test_a_staged_proposal_is_applied_only_when_the_user_approved_exactly_it
+  tools/test_staging_cli.py::test_freeze_wireframe_happy_path tools/test_staging_cli.py::test_freezing_one_artifact_leaves_the_other_staged_files_alone
+  tools/test_staging_cli.py::test_no_freeze_command_empties_the_tasks_staging_area
+  tools/test_staging_cli.py::test_the_freeze_commands_write_the_state_no_other_producer_can
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:55:59'

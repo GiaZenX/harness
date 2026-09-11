@@ -1,0 +1,18 @@
+id: EVD-0254
+kind: test
+related:
+- BUG-0048
+result: pass
+summary: 'tests naming BUG-0048: 5 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_a_shell_less_specialists_result_reaches_the_kernel
+  tools/test_role_contracts.py::test_every_shipped_specialist_is_told_a_path_its_toolset_can_walk
+  tools/test_role_contracts.py::test_no_role_text_names_a_user_question_tool_its_own_definition_denies
+  tools/test_role_contracts.py::test_the_checkpoint_duty_binds_only_the_roles_that_could_run_it
+  tools/test_role_contracts.py::test_the_lead_of_every_kit_with_a_shell_less_role_carries_the_relay
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:52:50'

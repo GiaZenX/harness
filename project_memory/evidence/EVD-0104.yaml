@@ -1,0 +1,17 @@
+id: EVD-0104
+kind: review
+related:
+- BUG-0069
+result: pass
+summary: 'verifier PASS for diff:144c05ce884791c749625fa7a0505d483cbcdc8138befdb511ee9a69be6bccf3
+  -- recorded by the LEAD as the explicit act gate 3 asks for, no verifier: the change
+  is one install line in .github/workflows/ci.yml (the office requirements incl. defusedxml,
+  which the e-invoice reader refuses to run without -- measured in the hosted run
+  34587508569: every red in tools/test_office_package.py names ''defusedxml not installed'');
+  the measurement of this change IS the next hosted run (BUG-0069''s own evidence),
+  read at the next session'
+artifact_refs:
+- staging/generation-6-streams.md
+revision: 1
+approval_ref: null
+created: '2026-09-11T13:15:42'

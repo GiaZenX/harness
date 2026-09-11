@@ -1,0 +1,13 @@
+id: EVD-0128
+kind: test
+related:
+- BUG-0040
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0040
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_approvals_dispatch.py::test_a_cr_derived_task_may_reference_the_crs_own_criteria
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T15:59:33'

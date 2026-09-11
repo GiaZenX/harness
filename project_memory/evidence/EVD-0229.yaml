@@ -1,0 +1,15 @@
+id: EVD-0229
+kind: test
+related:
+- BUG-0003
+result: pass
+summary: 'tests naming BUG-0003: 3 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_a_redirect_is_part_of_the_line_the_door_reads
+  tools/test_hooks.py::test_fs_tripwire_blocks_a_disguised_ledger_redirect tools/test_hooks.py::test_gate_filing_sees_a_noclobber_and_continued_redirect_into_the_archive
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:48:08'

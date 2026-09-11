@@ -1,0 +1,23 @@
+id: BUG-0002
+title: robocopy /MOVE liest als Kopie
+related_pr: PR-0003
+severity: medium
+repro: Eine Befehlszeile `robocopy <quelle> <ziel> /MOVE` gegen den Waechter fahren,
+  der Verschiebungen aus geschuetzten Baeumen erkennen soll.
+expected: '`/MOVE` loescht die Quelle nach dem Kopieren, ist also eine Verschiebung
+  und muss wie eine behandelt werden.'
+observed: Der Waechter liest den Aufruf als Kopie. Gemessen waehrend des V2-Umbaus,
+  als Restposten notiert und nie angelegt. Der genaue Ort im Code ist beim Anlegen
+  dieses Items NICHT nachgemessen worden -- wer ihn schliesst, misst zuerst nach,
+  statt dieser Zeile zu glauben.
+acceptance_criteria:
+- Ein Test faehrt eine robocopy-Zeile mit /MOVE und sieht die Verweigerung.
+- Der Test wird rot, wenn die Erkennung entfernt wird.
+- Die uebrigen robocopy-Schalter, die ebenfalls die Quelle veraendern, werden bei
+  der Gelegenheit gemessen statt aufgezaehlt.
+status: VERIFIED
+revision: 1
+approval_ref: APR-0042
+created: '2026-08-04T16:58:13'
+approved_hash: d438b70f086b890f433c4542b31c5fda924739a9ce674b799c498c90a6c5d5b6
+closed_at: '2026-09-11T18:48:48'

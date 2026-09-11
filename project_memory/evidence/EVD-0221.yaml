@@ -1,0 +1,13 @@
+id: EVD-0221
+kind: test
+related:
+- BUG-0072
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0072
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_kitupdate.py::test_every_kit_owned_path_is_shipped_by_some_kit
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:08:45'

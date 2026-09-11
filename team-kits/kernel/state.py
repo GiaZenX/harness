@@ -1427,8 +1427,20 @@ class ProjectState:
             return self._transition_locked(item_id, to_status, approved_retry)
 
     def _transition_locked(self, item_id: str, to_status: str,
-                           approved_retry: bool = False) -> dict:
+                           approved_retry: bool = False, regenerate: bool = True) -> dict:
         """transition body for callers that ALREADY hold the lock (it is not reentrant).
+
+        `regenerate=False` IS FOR A CALLER THAT REGENERATES THE INDEX ITSELF, and for no other, and
+        the rule it expresses is one the kernel already follows everywhere else: the index is
+        rebuilt once per kernel OPERATION, not once per item an operation touches. The one caller
+        is `approvals._close_what_the_batch_lists`, whose operation is a single mint over a whole
+        batch and which rebuilds once for the whole of it. The occasion was measured rather than
+        supposed: on a store the size of this repository a batch mint spent most of one hook budget
+        rebuilding the same index once per step, and a mint that outruns that budget is killed
+        mid-walk (the numbers are in TSK-0138's protocol, `project_memory/staging/TSK-0138/`).
+        The other end -- that the index a batch leaves behind is the one a per-step rebuild would
+        have left -- is
+        `tools/test_approvals_dispatch.py::test_a_batch_mint_leaves_the_index_as_fresh_as_a_per_step_rebuild_would`.
 
         THE ONLY WRITER OF A STATUS AN APPROVAL COMMITS, which is a narrower claim than the one
         this kernel used to make and is the one it can keep. `approvals.mint` set
@@ -1498,7 +1510,8 @@ class ProjectState:
         # `dispatch.release_lease_for_status_locked` for the measurement.
         from . import dispatch
         dispatch.release_lease_for_status_locked(self, item_id, to_status)
-        self._regenerate_index_locked()
+        if regenerate:
+            self._regenerate_index_locked()
         return item
 
     def _assert_confirmed(self, item_id, item_type, from_status, to_status):
@@ -1546,22 +1559,36 @@ class ProjectState:
 
     def archive(self, item_id: str) -> str:
         """Move a TERMINAL item to archive/<TYPE>/<year>/ (never delete)."""
-        item_type, _ = parse_id(item_id)
         with self.lock:
-            item = self.read_item(item_id)
-            if item_type in _AUTOMATON_TYPES and not is_terminal(item_type, item.get("status")):
-                raise StateError(
-                    "%s is %s -- only terminal items are archived (spec II.2). "
-                    "Remedy: finish the lifecycle first, or CANCEL/REJECT it "
-                    "via transition." % (item_id, item.get("status"))
-                )
-            item["closed_at"] = _now_iso()
-            year = int(item["closed_at"][:4])
-            target = self.archive_path(item_id, year)
-            self._write_yaml_atomic(target, item)
-            os.remove(ext_path(self.active_path(item_id)))
+            return self._archive_locked(item_id)
+
+    def _archive_locked(self, item_id: str, regenerate: bool = True) -> str:
+        """The body of `archive`, for a caller that ALREADY holds the lock.
+
+        The same split `transition`/`_transition_locked` has, and it exists for the same measured
+        reason: `KernelLock` is not reentrant (a nested acquire spins for its timeout and then
+        raises `LockTimeout`), so the one caller that closes several items inside one lock --
+        `approvals._close_what_the_batch_lists`, which walks and archives every bug a batch
+        approval lists -- could not use the public method at all. Nothing else is different:
+        the terminal rule, the move and the regeneration are this method's. `regenerate=False`
+        carries the meaning it carries in `_transition_locked` and is for the same single caller.
+        """
+        item_type, _ = parse_id(item_id)
+        item = self.read_item(item_id)
+        if item_type in _AUTOMATON_TYPES and not is_terminal(item_type, item.get("status")):
+            raise StateError(
+                "%s is %s -- only terminal items are archived (spec II.2). "
+                "Remedy: finish the lifecycle first, or CANCEL/REJECT it "
+                "via transition." % (item_id, item.get("status"))
+            )
+        item["closed_at"] = _now_iso()
+        year = int(item["closed_at"][:4])
+        target = self.archive_path(item_id, year)
+        self._write_yaml_atomic(target, item)
+        os.remove(ext_path(self.active_path(item_id)))
+        if regenerate:
             self._regenerate_index_locked()
-            return target
+        return target
 
     # -- generated index (atomic within the state operation, spec II.4) --------
 

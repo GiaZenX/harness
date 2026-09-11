@@ -1,0 +1,13 @@
+id: EVD-0122
+kind: test
+related:
+- BUG-0029
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0029
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_migrate.py::test_doctor_says_why_it_cannot_name_the_kit_of_a_project_with_only_a_version
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T15:58:28'

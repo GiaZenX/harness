@@ -1,0 +1,13 @@
+id: EVD-0153
+kind: test
+related:
+- BUG-0075
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0075
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_role_contracts.py::test_every_role_that_owns_a_kit_document_carries_the_route_that_writes_it
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:01:35'

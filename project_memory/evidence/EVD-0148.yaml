@@ -1,0 +1,13 @@
+id: EVD-0148
+kind: test
+related:
+- BUG-0070
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0070
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_kernel.py::test_add_filing_rule_creates_the_rules_list_when_the_plan_carries_none
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:01:19'

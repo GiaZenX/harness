@@ -1,0 +1,13 @@
+id: EVD-0140
+kind: test
+related:
+- BUG-0060
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0060
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_report.py::test_a_task_accepted_without_a_qa_verdict_is_reported
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:00:45'

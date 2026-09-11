@@ -1,0 +1,13 @@
+id: EVD-0194
+kind: test
+related:
+- BUG-0239
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0239
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_review_procedure.py::test_nothing_reads_what_a_work_order_LINE_says
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:08:14'

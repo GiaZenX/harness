@@ -1,0 +1,13 @@
+id: EVD-0141
+kind: test
+related:
+- BUG-0061
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0061
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_hooks.py::test_the_office_start_names_the_drawers_the_business_has_and_the_plan_does_not
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:00:51'

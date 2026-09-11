@@ -1,0 +1,16 @@
+request_id: 2f5713d9a49b4953aa0e2b3574c49fc9
+kind: delivery
+item: PR-0002
+revision: 1
+item_title: Dieses Repo fuehrt seinen eigenen Zustand
+subject_manifest:
+  item: PR-0002
+  root_revision: 1
+  system_requirements: []
+  architecture: []
+  tasks: []
+  risks: []
+subject_manifest_hash: aeebbb6e0f9a6795b8b0458aedae781877f612c6270140e9322d370f4178b98d
+created: '2026-09-11T14:56:40'
+expires_at_epoch: 1789217800.604325
+mint_code: ad48bb

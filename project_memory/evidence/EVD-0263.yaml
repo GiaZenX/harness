@@ -1,0 +1,14 @@
+id: EVD-0263
+kind: test
+related:
+- BUG-0065
+result: pass
+summary: 'tests naming BUG-0065: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks_v2.py::test_a_closing_paren_ends_a_word_for_this_reader_too
+  tools/test_hooks_v2.py::test_parentheses_in_prose_are_still_prose -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:54:24'

@@ -1,0 +1,14 @@
+request_id: aa9106882c0c40f285448c5e0c3633f3
+kind: acceptance
+item: PR-0003
+revision: 1
+item_title: Das V2-Harness ist auslieferbar
+subject_manifest:
+  item: PR-0003
+  revision: 1
+  delivered_commit: null
+  evidence_refs: []
+subject_manifest_hash: b31d5c015579921a3fa1939c22aac1fb1f2954754df5d1ab44a1514302552164
+created: '2026-09-11T14:57:24'
+expires_at_epoch: 1789217844.491101
+mint_code: d21000

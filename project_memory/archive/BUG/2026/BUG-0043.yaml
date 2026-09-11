@@ -1,0 +1,26 @@
+id: BUG-0043
+title: Masterplan sign-off ran through the plan-mode dialog, not an explicit user
+  'passt' -- the review loop shrinks to one click
+related_pr: PR-0003
+observed: 'Pilot 3 (B1): the entry file demands an iterate-until-explicit-sign-off
+  loop; the agent used EnterPlanMode/ExitPlanMode, whose confirmation the instrument
+  gave under bypassPermissions. In a real session the user sees the plan in the dialog
+  -- but the loop ''iterate until sign-off'' is still shortened to ONE click; no persona
+  turn ever said ''passt''.'
+expected: 'The entry flow treats the plan-mode dialog as a PRESENTATION surface, not
+  as the sign-off: the explicit confirmation the entry file demands is asked and recorded
+  as its own answer before install.'
+repro: 'Entry session per shipped flow: draft plan -> ExitPlanMode -> install proceeds
+  without any explicit ''passt'' turn.'
+severity: low
+acceptance_criteria:
+- 'AC-1: the sign-off is an explicit recorded answer, not the plan-dialog click (red-without-fix
+  in the flow measurement)'
+- 'AC-2: no regression of the plan-mode presentation'
+source: TSK-0027 pilot 3, finding B1
+status: VERIFIED
+revision: 1
+approval_ref: APR-0041
+created: '2026-08-15T06:58:50'
+approved_hash: 797cb2b547c9f9a977c4e8c9aebf24e7080af901cfc2856a8951436adfbd8c57
+closed_at: '2026-09-11T18:48:10'

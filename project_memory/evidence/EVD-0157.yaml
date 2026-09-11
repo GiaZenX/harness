@@ -1,0 +1,13 @@
+id: EVD-0157
+kind: test
+related:
+- BUG-0106
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0106
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: .claude/hooks/test_gates.py::test_gate3_remedy_is_executable_and_opens_the_commit
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:02:19'

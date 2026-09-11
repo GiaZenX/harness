@@ -1,0 +1,25 @@
+id: BUG-0006
+title: Die CLI-Ableitung der Ordering-Kommandos ist direkt, nicht transitiv
+related_pr: PR-0003
+severity: medium
+repro: Einen Aufruf von `dispatch.create_task` bzw. `create_lease` eine Ebene tiefer
+  legen -- also aus einem CLI-Zweig heraus ueber eine Hilfsfunktion statt direkt --
+  und pruefen, ob `_ORDERING_COMMANDS` in gate_write_scope den Zweig noch findet.
+expected: Die Ableitung findet jeden CLI-Zweig, der eine Ordnung erzeugt, unabhaengig
+  davon ueber wie viele Sprunge er dorthin gelangt.
+observed: 'Sie findet per AST nur die Zweige, die `dispatch.create_task`/`create_lease`
+  DIREKT aufrufen. Ein Sprung ueber eine Hilfsfunktion faellt heraus, und der Zweig
+  gilt dann faelschlich als nicht ordnungserzeugend. Das ist strukturell dieselbe
+  Luecke wie B7 aus Pruefrunde 2: ein AST-Leser, der Erreichbarkeit nicht verfolgt.
+  Beide sollten in einem Zug gedacht werden.'
+acceptance_criteria:
+- Die Ableitung folgt Aufrufen transitiv innerhalb desselben Moduls.
+- Ein Test legt einen Aufruf eine Ebene tiefer und sieht den Zweig weiterhin gefunden.
+- Der Test wird rot, wenn die Ableitung auf direkte Aufrufe zurueckfaellt.
+- Die Rekursion hat einen Schutz gegen Zyklen, und der hat einen eigenen roten Test.
+status: VERIFIED
+revision: 1
+approval_ref: APR-0042
+created: '2026-08-04T16:59:03'
+approved_hash: 03f43da022eb02c35aa4e76dc1f81fb88e42709030c3b89f6c67271aa1c435a1
+closed_at: '2026-09-11T18:48:54'

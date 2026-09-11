@@ -67,6 +67,8 @@ from .backlog_types import (
     HOLE_LIMIT_FIELD,
     HOLE_NUMBER_FIELD,
     ROOT_TYPE_BY_KIT,
+    confirming_edge,
+    is_terminal,
     parse_id,
 )
 from .hashing import subject_manifest_hash
@@ -74,7 +76,7 @@ from .state import ProjectState, StateError, _now_iso, names_a_drive
 
 APR_KINDS = ("analysis", "scope", "delivery", "acceptance", "routine", "push", "preset",
              "kit_update", "filing_correction", "filing_rule", "document_proposal",
-             "document_revision", "plan", "hole_exception")
+             "document_revision", "plan", "hole_exception", "verification")
 # THE KIND IN THE USER'S WORDS (BUG-0271, PR-0011 AC-7): what `build_question` puts where the enum
 # value used to stand -- "Freigabe erbeten: scope für PR-0001" asked a non-developer to sign an
 # English field value. ONE table beside the enum, read by the question and by nothing else, with a
@@ -96,6 +98,7 @@ KIND_LABELS = {
     "document_revision": "Dokument-Überarbeitung",
     "plan": "Plan",
     "hole_exception": "Ausnahme für eine bekannte Lücke",
+    "verification": "Abschluss behobener Fehler",
 }
 # THE MANIFEST KEYS IN THE USER'S WORDS, for the kinds whose manifest the generic branch of
 # `build_question` renders key by key (a routine, an analysis, a kit update; every kind with a
@@ -148,6 +151,43 @@ PLAN_KIND = "plan"
 # `tools/test_approvals_dispatch.py::test_a_plan_can_only_stand_in_for_the_question_a_plan_answers`
 # turns red both if this kind stops existing and if another kind ever becomes plan-derivable.
 PLAN_COVERED_KIND = "scope"
+# THE BATCH CLOSING OF REPAIRED DEFECTS (PR-0012 AC-1, decided in DEC-0100). Its predecessor
+# settled the ROUTE -- a user mint
+# per repaired bug, relayed in one sitting -- and left the COST where it was: the shipped chain
+# TRIAGED -> APPROVED needs an approval per bug, so the ~100 defects this repo had already measured
+# as repaired needed ~100 clicks and got none, and the stock went on lying upward by that many.
+# This kind is that route's batch form and not a second route: the user still signs, the mint still
+# walks every listed item through its own automaton (`_close_what_the_batch_lists`), and every
+# listed bug still needs the passing test Evidence that names it (BUG-0090's rule, re-asked at mint
+# time). What collapses is the number of QUESTIONS, not the number of proofs.
+VERIFICATION_KIND = "verification"
+# HOW MANY ITEMS ONE QUESTION MAY CARRY, and the number is a MEASUREMENT of the mint rather than a
+# taste. TWO bounds meet here and the smaller one wins:
+#   * READABILITY of the compared carrier -- the ids and their evidence ride in the APPROVING
+#     OPTION's description (`_verification_option_form`), because that is the text `gate_approval`
+#     compares character for character, so the whole list has to survive the provider's echo of one
+#     option description. An entry is `BUG-nnnn (EVD-nnnn)`, ~20 characters.
+#   * THE KERNEL LOCK'S CLOCK, which is the binding one: the whole walk runs inside ONE held lock
+#     (`ProjectState(lock_ttl=...)`), and a run that outlives that TTL can have its lock broken as
+#     stale by another kernel process -- `KernelLock.release` then raises `LockLost` over writes
+#     that may have raced. The size was set from a process measurement of a batch this long against
+#     a copy of the largest store this project has, at roughly half that TTL
+#     (`project_memory/staging/TSK-0138/protocol.md`). NOT from the hook's budget, which is the
+#     mistake the first cut of this comment made: a kit hook runs against
+#     `_kernel.DEFAULT_WINDOW_SECONDS` minus its reserve, and the same batch spends about a
+#     twentieth of that. The cost per defect GROWS with the Evidence store, because the coverage
+#     walk recomputes an Evidence's ancestors once per target (`report.evidence_covers` ->
+#     `state.read_anywhere`); the same protocol carries that as a measured, unclosed finding with
+#     its route, and it is why the bound is a measurement to redo rather than a constant to trust
+#     forever.
+#     WHAT AN OVERRUN OR A KILL DOES NOT DO is lose the batch, and that was measured with a real
+#     kill rather than hoped: the approval keeps covering every id it still lists, so `transition`
+#     finishes them with no second question
+#     (`tools/test_approvals_dispatch.py::test_a_batch_approval_stays_in_force_for_every_id_it_lists_after_the_minting_process_ended`).
+#     A killed hook does leave the kernel lock behind; it ages out on its own TTL.
+# ONE NUMBER, ONE PLACE: `tools/close_measured_pass.py` cuts its batches by importing this, and
+# `verification_subject_manifest` refuses a longer one.
+BATCH_LIMIT = 10
 # kinds that are time-boxed rather than content-invalidated (spec II.2 APR field
 # list: "expires (routine/analysis)")
 # `push` expires like the others, and for the sharpest reason of the three: a
@@ -254,6 +294,12 @@ APPROVAL_TRANSITIONS = {
     ("RQ", "acceptance"): ("DELIVERED", "ACCEPTED"),
     ("CR", "scope"): ("DRAFT", "APPROVED"),
     ("BUG", "scope"): ("TRIAGED", "APPROVED"),
+    # THE SAME EDGE, ASKED FOR A LIST (PR-0012 AC-1). It is the identical transition `scope`
+    # commits, which is what makes the batch form a form of the per-bug route (DEC-0100) rather than a
+    # second route: `required_approval_kinds` reads this table backwards, so TRIAGED -> APPROVED
+    # now answers "scope or verification", and everything downstream of it (the chain to VERIFIED,
+    # the confirming Evidence) is unchanged.
+    ("BUG", VERIFICATION_KIND): ("TRIAGED", "APPROVED"),
     ("BUG", HOLE_EXCEPTION_KIND): ("TRIAGED", HOLE_EXCEPTION_STATUS),
     ("PROC", "scope"): ("DRAFT", "APPROVED"),
     ("EXP", "delivery"): ("DESIGNED", "APPROVED"),
@@ -839,8 +885,18 @@ def document_revision_subject_manifest(kit_document, proposal, base, proposed, r
             "reason": _one_line(reason)}
 
 
+# THE RECORD KEYS OF ONE ITEM INSIDE A LIST-BOUND SUBJECT MANIFEST. They are named `GOAL_*`
+# because the plan approval (FR-0074) was the first kind whose subject was a list, and they are
+# NOT renamed for the second one: the keys are the contract of the SHAPE, not of that kind, and
+# one spelling read by both is the whole reason `listed_items` and `_assert_the_list_covers` can
+# serve `plan` and `verification` without a table of kinds. `verification` writes the same two and
+# adds `LISTED_EVIDENCE_FIELD`.
 GOAL_ITEM_FIELD = "item"
 GOAL_SCOPE_HASH_FIELD = "scope_hash"
+# WHAT MEASURED A LISTED BUG (PR-0012 AC-1, BUG-0090's rule). It is inside the hashed manifest and
+# printed beside the id in the approving option, so what the user signs is "this defect, proven by
+# THAT run" and not a bare list of ids.
+LISTED_EVIDENCE_FIELD = "evidence"
 
 
 def plan_goals(state: ProjectState) -> list:
@@ -880,10 +936,26 @@ def plan_goals(state: ProjectState) -> list:
                 GOAL_ITEM_FIELD: str(item.get("id") or stem),
                 "title": str(item.get("title") or ""),
                 "revision": item.get("revision"),
-                GOAL_SCOPE_HASH_FIELD: subject_manifest_hash(
-                    item_subject_manifest(item, PLAN_COVERED_KIND)),
+                GOAL_SCOPE_HASH_FIELD: listed_content_hash(item),
             })
     return sorted(goals, key=lambda goal: goal[GOAL_ITEM_FIELD])
+
+
+def listed_content_hash(item: dict) -> str:
+    """The content a LIST-bound approval binds ONE listed item to.
+
+    It is the very manifest a per-item `scope` approval binds to, so one answer over a list covers
+    exactly as much of each item as its own approval would -- no more, and with the same limit
+    `_SCOPE_FIELDS` measures (for a `BUG`, one of five hashed fields). The kind is spelled
+    `PLAN_COVERED_KIND` because that constant already names the per-item content question; what is
+    read here is that question, not the plan's stand-in rule.
+
+    ONE SPELLING FOR THREE READERS -- `plan_goals` and `verification_batch` write the hash into the
+    record the user signs, `_assert_the_list_covers` recomputes it when the approval is later asked
+    to authorise something. A second spelling is how the two ends of a content binding drift apart,
+    and here they would drift silently: the cover check would simply stop matching.
+    """
+    return subject_manifest_hash(item_subject_manifest(item, PLAN_COVERED_KIND))
 
 
 def plan_subject_manifest(goals) -> dict:
@@ -926,6 +998,259 @@ def _plan_target_form(manifest: dict) -> str:
         for goal in goals)
 
 
+def batch_closing_types(kind: str) -> frozenset:
+    """The item types whose OWN edge a list-bound `kind` commits -- empty when it commits none.
+
+    THE LINE BETWEEN THE TWO LIST-BOUND KINDS, derived from `APPROVAL_TRANSITIONS` instead of
+    written down: `plan` is a STAND-IN (it answers `PLAN_COVERED_KIND`'s question for goals that
+    keep their own edges), so no pair names it and its mint moves nothing by itself; `verification`
+    is paired with `BUG`, so its mint walks every bug its subject lists. A third list-bound kind
+    added with a pair starts closing, one added without a pair does not, and neither needs a second
+    statement here. `tools/test_approvals_dispatch.py::test_only_a_list_kind_paired_with_a_type_closes_what_it_lists`
+    """
+    return frozenset(typ for (typ, listed) in APPROVAL_TRANSITIONS if listed == kind)
+
+
+def batch_walk_blockers(state: ProjectState, kind: str, item_ids, request: dict = None) -> list:
+    """Why each listed item could NOT be walked by a mint of `kind` -- [] when every one can.
+
+    ONE READER FOR THE TWO MOMENTS THAT MUST AGREE, and that is the point of the function rather
+    than of two checks: `request-approval` asks it BEFORE the user is shown a question (a defect
+    whose test never passed, or one already past the edge, is refused BY NAME and never reaches the
+    batch), and `mint` asks it again before it writes anything, because the store can move between
+    the question and the answer. With two readers the second one would fire halfway through the
+    walk -- after the APR exists and after some of the listed items had already moved.
+
+    THE FOUR REASONS ARE DERIVED, not enumerated per type: the item has to be readable, its type
+    has to be one this kind commits an edge for (`batch_closing_types`), its status has to sit on
+    that type's chain no further than the edge's source (past it, the approval would authorise
+    nothing this item still needs), and -- where the walk crosses the type's confirming edge -- the
+    proof that edge demands has to be in force already (`state.CONFIRMING_EVIDENCE` read through
+    `report.qa_verdicts`, which is the same reader `_assert_confirmed` uses, so the two cannot
+    answer differently). For `BUG` that fourth line IS BUG-0090's rule: VERIFIED only on a passing
+    test Evidence naming the bug.
+
+    AND A FIFTH ONCE THE BATCH IS SIGNED (`request` given): every way `_assert_the_list_covers`
+    can refuse -- the item is not in the list, the kernel moved it to another revision, its signed
+    content changed. Those three are the ONLY reasons the walk itself can still refuse, because
+    `state._transition_locked` proves the approval through that same check, and the first cut of
+    this function did not ask any of them: measured as a process, an `update` on one listed defect's
+    `acceptance_criteria` between question and click left BUG-0001 VERIFIED and archived, BUG-0002
+    at TRIAGED carrying an `approval_ref`, BUG-0003 untouched, the request consumed, and the hook
+    saying "no approval was created". All-or-nothing is the whole promise of a batch, so it is asked
+    HERE, before the first write -- not by the walk, which has none of its writes back.
+    At REQUEST time there is no signed list yet (the records are being built FROM the current
+    content), which is why the parameter is optional rather than a second function.
+    """
+    from . import report          # deferred: `report` imports this module at its own scope
+    from .state import CONFIRMING_EVIDENCE, PASSING_RESULT
+
+    types = batch_closing_types(kind)
+    if not types:
+        # A LIST-BOUND KIND WHOSE MINT WALKS NOTHING (`plan`) CAN BE BLOCKED BY NOTHING. Measured
+        # the moment `mint` began asking this of every listed subject: a plan approval over two
+        # goals was refused with "a plan approval commits no transition of a PR", i.e. the check
+        # answered a question nobody had asked -- whether the goals could be WALKED -- about an
+        # approval that only stands in for their own scope question.
+        return []
+    blockers = []
+    for item_id in item_ids:
+        try:
+            item_type, _number = parse_id(str(item_id))
+        except Exception:  # noqa: BLE001 -- an id nothing can parse names no item
+            blockers.append("%s: not an item id" % (item_id,))
+            continue
+        if item_type not in types:
+            blockers.append(
+                "%s: a %s approval commits no transition of a %s (%s). Remedy: take it out of the "
+                "batch." % (item_id, kind, item_type,
+                            "it commits %s" % "/".join(sorted(types)) if types
+                            else "it commits none at all"))
+            continue
+        try:
+            item = state.read_item(str(item_id))
+        except Exception as exc:  # noqa: BLE001 -- unreadable, absent, already archived
+            blockers.append("%s: %s" % (item_id, exc))
+            continue
+        if request is not None:
+            try:
+                _assert_the_list_covers(request, item)
+            except ApprovalError as exc:
+                blockers.append("%s: %s" % (item_id, exc))
+                continue
+        chain = AUTOMATA[item_type].chain
+        source = APPROVAL_TRANSITIONS[(item_type, kind)][0]
+        status = str(item.get("status") or "")
+        if status not in chain:
+            blockers.append(
+                "%s is %s, which is off the %s chain -- nothing walks out of it. Remedy: take it "
+                "out of the batch." % (item_id, status or "without a status", item_type))
+            continue
+        if chain.index(status) > chain.index(source):
+            blockers.append(
+                "%s is already %s, past the %s -> %s this approval commits, so it would authorise "
+                "nothing it still needs. Remedy: take it out of the batch and finish it with "
+                "`transition`." % (item_id, status, source,
+                                   APPROVAL_TRANSITIONS[(item_type, kind)][1]))
+            continue
+        end = batch_walk_end(item_type, kind)
+        confirming = confirming_edge(item_type)
+        proof = CONFIRMING_EVIDENCE.get(item_type)
+        if proof and confirming and confirming[1] == end:
+            verdict = report.qa_verdicts(state, str(item_id),
+                                         report.CONFIRMATION_QUESTION).get(proof)
+            if not verdict or verdict.get("result") != PASSING_RESULT:
+                blockers.append(
+                    "%s has no passing %r Evidence naming it (%s), and %s -> %s needs one -- the "
+                    "status would say the defect is gone with nothing having measured that. "
+                    "Remedy: re-run the test that covers it and record the run "
+                    "(`evidence --kind %s --result pass --related %s --run-scope selection "
+                    "--run-command <the node>`), then ask again."
+                    % (item_id, proof,
+                       "the current verdict is %r" % verdict.get("result") if verdict
+                       else "there is none",
+                       confirming[0], confirming[1], proof, item_id))
+    return blockers
+
+
+def batch_walk_end(item_type: str, kind: str) -> str:
+    """The status a batch mint of `kind` walks a listed item of `item_type` TO.
+
+    The type's CONFIRMING end when it has one (`backlog_types.confirming_edge` -- for `BUG` that is
+    VERIFIED), the approved edge's own target otherwise. Derived, because the two halves of the walk
+    have different guards and only the derivation keeps them honest: the approval opens the edge it
+    commits, and every step after it is either free or carries its own proof, which the caller has
+    already required (`batch_walk_blockers`). A hard-coded "VERIFIED" here would be this kernel's
+    third statement of the BUG chain.
+    """
+    confirming = confirming_edge(item_type)
+    return confirming[1] if confirming else APPROVAL_TRANSITIONS[(item_type, kind)][1]
+
+
+def verification_batch(state: ProjectState, item_ids) -> list:
+    """The records a verification approval would close -- refusing BY NAME what it cannot.
+
+    THE EVIDENCE IS READ, NEVER TYPED, for the reason every entry of `LINE_MANIFEST_RESOLVERS`
+    exists: what the hash covers has to be what the user is shown, and an evidence id typed on a
+    command line could only differ from the record that actually measured the defect. The verdict
+    comes from the SAME reader the confirming edge itself consults (`report.qa_verdicts` with
+    `CONFIRMATION_QUESTION`), so the id in the question is the id that will walk the item.
+
+    REFUSED AS A WHOLE, and with every offender named at once: a batch is put to the user in one
+    question, so a role fixing one id at a time would ask the store the same question 25 times.
+    `tools/test_approvals_dispatch.py::test_a_bug_without_a_passing_test_evidence_is_refused_from_the_batch_by_name`
+    """
+    from . import report          # deferred: `report` imports this module at its own scope
+    from .state import CONFIRMING_EVIDENCE
+
+    ids = [str(one) for one in (item_ids or [])]
+    duplicates = sorted({one for one in ids if ids.count(one) > 1})
+    if duplicates:
+        raise ApprovalError(
+            "a batch names %s twice -- an item cannot be closed two times by one answer. Remedy: "
+            "list every id once." % ", ".join(duplicates),
+            user_text="Es wurde keine Freigabe erteilt: in der Liste steht derselbe Eintrag "
+                      "mehrfach. " + NEXT_START_OVER)
+    blockers = batch_walk_blockers(state, VERIFICATION_KIND, ids)
+    if blockers:
+        raise ApprovalError(
+            "%d of %d listed items cannot be closed by this approval, so the question is not "
+            "asked: %s" % (len(blockers), len(ids), " | ".join(blockers)),
+            user_text="Es wurde keine Freigabe erteilt: %d der %d Einträge in der Liste sind noch "
+                      "nicht abschließbar — dein Assistent muss sie aus der Liste nehmen oder die "
+                      "fehlende Messung nachholen. %s"
+                      % (len(blockers), len(ids), NEXT_START_OVER))
+    records = []
+    for item_id in ids:
+        item = state.read_item(item_id)
+        item_type, _number = parse_id(item_id)
+        verdict = report.qa_verdicts(
+            state, item_id, report.CONFIRMATION_QUESTION).get(CONFIRMING_EVIDENCE[item_type], {})
+        records.append({
+            GOAL_ITEM_FIELD: item_id,
+            "revision": item.get("revision"),
+            GOAL_SCOPE_HASH_FIELD: listed_content_hash(item),
+            LISTED_EVIDENCE_FIELD: str(verdict.get("id") or ""),
+        })
+    return sorted(records, key=lambda record: record[GOAL_ITEM_FIELD])
+
+
+def verification_subject_manifest(bugs) -> dict:
+    """The subject of a verification approval: the repaired defects, each with its proof.
+
+    ONE KEY holding the list itself, for `plan_subject_manifest`'s reason -- what the user signs has
+    to be what the question shows, and a hash over a count would let the list change underneath a
+    matching digest.
+
+    BOUNDED AT `BATCH_LIMIT`, at the builder, before anybody is asked: the ids and their evidence
+    ride in the approving option's description, which is the text the gate compares character for
+    character, and a question whose list the person answering cannot read through is a reflex click
+    on a hundred defects. An EMPTY one is refused for the reason a routine bound to nothing is --
+    it would be a permission bound to no item at all.
+    """
+    bugs = [dict(record) for record in (bugs or []) if isinstance(record, dict)]
+    if not bugs:
+        raise ApprovalError(
+            "a verification approval closes the defects it lists and this batch lists none. "
+            "Remedy: name the ids on the command line -- an approval bound to an empty list would "
+            "approve nothing and still be minted.",
+            user_text="Es wurde keine Freigabe erteilt: die Liste der abzuschließenden Fehler ist "
+                      "leer. " + NEXT_START_OVER)
+    if len(bugs) > BATCH_LIMIT:
+        raise ApprovalError(
+            "a batch carries at most %d items and this one carries %d -- refused at the builder. "
+            "Remedy: cut the list into batches of %d (`tools/close_measured_pass.py` prints them "
+            "that way) and ask one question per batch."
+            % (BATCH_LIMIT, len(bugs), BATCH_LIMIT),
+            user_text="Es wurde keine Freigabe erteilt: die Liste ist zu lang, um sie in einer "
+                      "Frage zu lesen. " + NEXT_START_OVER)
+    return {"bugs": bugs}
+
+
+def _listed_entry(record) -> str:
+    """One entry of a list-bound subject as the user reads it in the approving option.
+
+    Tolerant of a record that is not one, and deliberately so: this text is composed from a STORED
+    manifest, so a request written before a key existed -- or by anything but the builder -- must
+    still render a question rather than raise out of the gate that was about to compare it.
+    """
+    if not isinstance(record, dict):
+        return str(record)
+    proof = record.get(LISTED_EVIDENCE_FIELD)
+    return ("%s (%s)" % (record.get(GOAL_ITEM_FIELD), proof) if proof
+            else str(record.get(GOAL_ITEM_FIELD)))
+
+
+def _verification_target_form(manifest: dict) -> str:
+    """The batch as the SENTENCE names it: how many defects, and where their list stands.
+
+    The opposite choice to `_plan_target_form`, and on a measured ground rather than a preference:
+    a plan carries a handful of goals and the sentence can hold them, while a verification batch
+    carries up to `BATCH_LIMIT` ids WITH their evidence ids. Both texts are compared character for
+    character by `gate_approval`, and the one that has to survive the provider's echo whole is the
+    approving option -- so the list rides there (`_verification_option_form`) and the sentence says
+    how many and where to look. The user is not asked to sign a number: the option beside the
+    sentence is the thing that mints, and it names every id.
+    """
+    bugs = manifest.get("bugs") or []
+    return ("diese %d Fehler, jeder mit dem Testlauf, der ihn misst — welche das sind, steht "
+            "Eintrag für Eintrag in der Freigabe-Option darunter" % len(bugs))
+
+
+def _verification_option_form(manifest: dict) -> str:
+    """The batch as the APPROVING OPTION carries it: every id with the Evidence that measured it.
+
+    This is the compared carrier (`build_question`'s option description, `gate_approval._mismatch`
+    walks every option key), so a relay that drops one id or renames one Evidence changes the text
+    and nothing mints. `tools/test_hooks_v2.py::test_a_tampered_option_description_is_blocked_too`
+    is that comparison; what this function owes is that every listed id is IN the text at all,
+    which is `tools/test_approvals_dispatch.py::test_the_batch_option_names_every_listed_bug_and_its_evidence`.
+    """
+    bugs = manifest.get("bugs") or []
+    return "%d gemessen behobene Fehler: %s" % (
+        len(bugs), "; ".join(_listed_entry(record) for record in bugs))
+
+
 def routine_subject_manifest(role: str, scope: str, trigger: str, cadence: str) -> dict:
     """What a recurring read-only run is bound to (spec II.2, II.10a): the ROLE the dispatcher
     holds the spawn to, the READ scope, the trigger and the cadence -- the four
@@ -945,7 +1270,8 @@ LINE_MANIFEST_BUILDERS = {"push": push_subject_manifest, "preset": preset_subjec
                           "filing_rule": filing_rule_subject_manifest,
                           "document_proposal": document_proposal_subject_manifest,
                           "document_revision": document_revision_subject_manifest,
-                          PLAN_KIND: plan_subject_manifest}
+                          PLAN_KIND: plan_subject_manifest,
+                          VERIFICATION_KIND: verification_subject_manifest}
 
 # How long an approval minted from a command-line manifest stays valid, FOR THE KINDS THAT CARRY A
 # CLOCK AT ALL. Which those are is `EXPIRING_KINDS` and the caller asks it (`cli`, the
@@ -1137,59 +1463,91 @@ def approved_content_hash(item_type: str, item: dict):
     return subject_manifest_hash({name: item.get(name) for name in fields})
 
 
-def _assert_the_plan_covers(request: dict, item: dict) -> None:
-    """Raise unless the plan behind `request` still covers `item` at its current content.
+def listed_items(request: dict) -> tuple:
+    """The item ids this subject manifest LISTS, in the order it lists them -- () when it lists none.
+
+    WHAT MAKES A VALUE A LIST OF ITEMS is a property of the record, not a table of kinds: an entry
+    counts when it carries the item id AND the content hash the user signed FOR that id
+    (`GOAL_ITEM_FIELD`, `GOAL_SCOPE_HASH_FIELD`). That pair is exactly what turns a mapping inside a
+    manifest into a signed statement about an item, and no other builder here produces one -- the
+    lists the other kinds carry hold strings (`tasks`, `roles`, `document_types`) or records of
+    something that is not an item. So `assert_apr_in_force` can ask the record in front of it
+    whether this approval binds a LIST or one item, and a third list-bound kind needs no entry
+    anywhere. `tools/test_approvals_dispatch.py::test_only_a_manifest_of_signed_item_records_reads_as_a_list`
+
+    THE HASH-COVERED COPY IS THE ONE READ in every caller: they pass the CONSUMED request, which is
+    what `consumed_request` proves provenance from, so the list walked here is the list the user
+    signed rather than a copy anybody could edit afterwards.
+    """
+    listed = []
+    for value in (request.get("subject_manifest") or {}).values():
+        if not isinstance(value, (list, tuple)):
+            continue
+        for record in value:
+            if (isinstance(record, dict) and record.get(GOAL_ITEM_FIELD)
+                    and record.get(GOAL_SCOPE_HASH_FIELD)):
+                listed.append(str(record[GOAL_ITEM_FIELD]))
+    return tuple(listed)
+
+
+def _assert_the_list_covers(request: dict, item: dict) -> None:
+    """Raise unless the LIST behind `request` still covers `item` at its current content.
 
     THE HASH-COVERED COPY IS THE ONE READ. `request` is the CONSUMED request, which is what
     `consumed_request` proves the approval's provenance from and which spec II.2 keeps forever --
-    the APR file itself carries only the digest. So the goal list this walks is the list the user
+    the APR file itself carries only the digest. So the list this walks is the list the user
     signed, not a copy anybody could edit afterwards.
 
-    THREE WAYS A COVERED GOAL STOPS BEING ONE, and each is the same invalidation a per-goal
-    approval has: the goal is not in the list at all (captured after the plan was approved), the
+    THREE WAYS A COVERED ITEM STOPS BEING ONE, and each is the same invalidation a per-item
+    approval has: the item is not in the list at all (captured after the list was approved), the
     kernel has moved it to another revision, or its scope content changed -- the last one measured
-    with `subject_manifest_hash(item_subject_manifest(item, PLAN_COVERED_KIND))`, i.e. the very
-    hash a single scope approval binds to. What that leaves open is what it leaves open there too
-    (see `_SCOPE_FIELDS`): an out-of-band edit of a field the scope manifest does not carry.
-    `tools/test_approvals_dispatch.py::test_a_plan_stops_covering_a_goal_the_moment_its_scope_moves`.
+    with `listed_content_hash`, i.e. the very hash a single scope approval binds to. What that
+    leaves open is what it leaves open there too (see `_SCOPE_FIELDS`): an out-of-band edit of a
+    field the scope manifest does not carry.
+
+    ONE CHECK FOR BOTH LIST-BOUND KINDS (`plan` since FR-0074, `verification` since PR-0012), which
+    is why it reads `listed_items` rather than the key `goals`: two copies of an invalidation rule
+    is how the second list-bound kind would come to be invalidated less than the first, and the
+    difference would show only as an approval that went on covering an item it no longer described.
+    `tools/test_approvals_dispatch.py::test_a_plan_stops_covering_a_goal_the_moment_its_scope_moves`
+    and `::test_a_batch_stops_covering_a_bug_whose_content_moved_after_the_question`.
     """
-    goals = {str(goal.get(GOAL_ITEM_FIELD)): goal
-             for goal in ((request.get("subject_manifest") or {}).get("goals") or [])
-             if isinstance(goal, dict)}
-    goal = goals.get(item["id"])
-    if goal is None:
+    listed = {}
+    for value in (request.get("subject_manifest") or {}).values():
+        if not isinstance(value, (list, tuple)):
+            continue
+        for record in value:
+            if isinstance(record, dict) and record.get(GOAL_ITEM_FIELD):
+                listed[str(record[GOAL_ITEM_FIELD])] = record
+    record = listed.get(item["id"])
+    if record is None:
         raise ApprovalError(
-            "the approved plan does not list %s (it lists %s), so it approves nothing about this "
-            "item. Remedy: a goal captured after the plan was approved needs its own scope "
-            "approval, or a fresh plan approval over the current list."
-            % (item["id"], ", ".join(sorted(goals)) or "no goal at all"))
-    if goal.get("revision") != item.get("revision"):
+            "the approved list does not name %s (it names %s), so it approves nothing about this "
+            "item. Remedy: an item captured after the list was approved needs its own approval, "
+            "or a fresh one over the current list."
+            % (item["id"], ", ".join(sorted(listed)) or "no item at all"))
+    if record.get("revision") != item.get("revision"):
         raise ApprovalError(
-            "the approved plan covers %s at revision %s and the item is at %s -- the plan no "
-            "longer describes it. Remedy: re-run the plan approval over the current list."
-            % (item["id"], goal.get("revision"), item.get("revision")))
-    current = subject_manifest_hash(item_subject_manifest(item, PLAN_COVERED_KIND))
-    if current != goal.get(GOAL_SCOPE_HASH_FIELD):
+            "the approved list covers %s at revision %s and the item is at %s -- it no longer "
+            "describes it. Remedy: re-run the approval over the current list."
+            % (item["id"], record.get("revision"), item.get("revision")))
+    if listed_content_hash(item) != record.get(GOAL_SCOPE_HASH_FIELD):
         raise ApprovalError(
-            "the content of %s changed since the plan was approved -- an out-of-band edit "
-            "invalidated the plan's cover for this goal (spec II.4 gate 4). Remedy: re-run the "
-            "plan approval, or restore the approved content." % item["id"])
+            "the content of %s changed since the list was approved -- an out-of-band edit "
+            "invalidated its cover for this item (spec II.4 gate 4). Remedy: re-run the "
+            "approval, or restore the approved content." % item["id"])
 
 
-def live_plan_approval(state: ProjectState, item: dict):
-    """The plan approval in force for this item, or None -- the FR-0074 stand-in for `scope`.
+def live_list_approval(state: ProjectState, item: dict, kind: str):
+    """The list-bound approval of `kind` in force for this item, or None.
 
     ONE VALIDITY TEST, not a second one: this walks the stored approvals and asks
     `assert_apr_in_force`, exactly as `assert_transition_approved` does for the item-bound kinds.
-    A plan that is revoked, unprovable, expired or no longer describing this goal simply does not
-    answer, and the caller reports "no approval in force" the way it always did.
-
-    NOT ASKED FIRST. `assert_transition_approved` looks for the item's OWN approval before it comes
-    here, so a per-goal approval still wins where one exists -- the plan is the fallback that makes
-    the goal walkable without one, never a replacement for the specific record.
+    An approval that is revoked, unprovable, expired or no longer describing this item simply does
+    not answer, and the caller reports "no approval in force" the way it always did.
     """
     for apr in _stored_approvals(state):
-        if apr.get("kind") != PLAN_KIND:
+        if apr.get("kind") != kind:
             continue
         try:
             assert_apr_in_force(state, apr, item)
@@ -1197,6 +1555,16 @@ def live_plan_approval(state: ProjectState, item: dict):
             continue
         return apr
     return None
+
+
+def live_plan_approval(state: ProjectState, item: dict):
+    """The plan approval in force for this item, or None -- the FR-0074 stand-in for `scope`.
+
+    NOT ASKED FIRST. `assert_transition_approved` looks for the item's OWN approval before it comes
+    here, so a per-goal approval still wins where one exists -- the plan is the fallback that makes
+    the goal walkable without one, never a replacement for the specific record.
+    """
+    return live_list_approval(state, item, PLAN_KIND)
 
 
 def assert_apr_in_force(state: ProjectState, apr: dict, item: dict) -> dict:
@@ -1223,12 +1591,14 @@ def assert_apr_in_force(state: ProjectState, apr: dict, item: dict) -> dict:
     # provenance first: an approval that cannot show its minted request is not a user approval at
     # all, whatever else it says (spec II.12)
     request = consumed_request(state, apr)
-    if apr.get("kind") == PLAN_KIND:
-        # A PLAN APPROVAL IS BOUND TO A LIST, NOT TO ONE ITEM (FR-0074), so the item test is the
-        # one below and the content test is inside it -- the goal's own scope hash. Everything
-        # else about "in force" is the same for both shapes, which is why this is a branch here
-        # rather than a second function beside it.
-        _assert_the_plan_covers(request, item)
+    if listed_items(request):
+        # AN APPROVAL BOUND TO A LIST, NOT TO ONE ITEM (`plan` FR-0074, `verification` PR-0012), so
+        # the item test is the one below and the content test is inside it -- each listed item's own
+        # scope hash. Everything else about "in force" is the same for both shapes, which is why
+        # this is a branch here rather than a second function beside it. The condition asks the
+        # stored MANIFEST whether it lists signed item records, not which kind wrote it, so the
+        # next such kind arrives covered.
+        _assert_the_list_covers(request, item)
     elif str(apr.get("item") or "") != item["id"]:
         raise ApprovalError(
             "approval %s belongs to %r, not to %s. Remedy: obtain an approval for this item."
@@ -1249,6 +1619,29 @@ def assert_apr_in_force(state: ProjectState, apr: dict, item: dict) -> dict:
                 % (item["id"], apr_ref,
                    os.path.relpath(state.active_path(item["id"]), state.root)))
     return request
+
+
+def _names_the_item(state: ProjectState, apr: dict, item: dict) -> bool:
+    """Is this approval's own subject about this item at all -- the id test, for BOTH shapes.
+
+    The cheap pre-filter `assert_transition_approved` walks the approval store with, generalised
+    from `apr["item"] == item["id"]` the moment an approval could bind a list instead (PR-0012). It
+    is deliberately only the ID test: whether such an approval is still IN FORCE is
+    `assert_apr_in_force`'s answer, and the caller wants the two apart so a revoked or invalidated
+    approval that really does name this item lands in its refusal message by name instead of being
+    skipped in silence.
+
+    THE ITEM FIELD IS ASKED FIRST because it also bounds the cost: an item-BOUND approval never
+    carries a list, so only the item-less ones pay for reading their consumed request back.
+    `tools/test_approvals_dispatch.py::test_a_batch_approval_authorises_only_the_bugs_it_lists`
+    """
+    if apr.get("item"):
+        return str(apr["item"]) == item["id"]
+    try:
+        request = consumed_request(state, apr)
+    except ApprovalError:
+        return False        # no provable request, no subject -- fail-closed
+    return item["id"] in listed_items(request)
 
 
 def assert_transition_approved(state: ProjectState, item: dict, item_type: str,
@@ -1318,7 +1711,7 @@ def assert_transition_approved(state: ProjectState, item: dict, item_type: str,
             continue        # an unreadable approval authorises nothing (fail-closed)
         if not isinstance(apr, dict) or apr.get("kind") not in kinds:
             continue
-        if str(apr.get("item") or "") != item["id"]:
+        if not _names_the_item(state, apr, item):
             continue
         try:
             assert_apr_in_force(state, apr, item)
@@ -1808,7 +2201,16 @@ TARGET_FORMS = {"push": _push_target_form, "preset": _preset_target_form,
                 "filing_correction": _filing_correction_target_form,
                 "filing_rule": _filing_rule_target_form,
                 "document_proposal": _document_proposal_target_form,
-                "document_revision": _document_revision_target_form}
+                "document_revision": _document_revision_target_form,
+                VERIFICATION_KIND: _verification_target_form}
+# WHERE A SUBJECT IS TOO LONG FOR THE SENTENCE, and what carries it instead. `build_question` puts
+# the sentence's target into the approving option too, which is right for every kind whose subject
+# fits in one line; a kind listed here renders a SECOND, fuller form for the option -- the text
+# `gate_approval` compares character for character -- while the sentence stays readable. A kind
+# absent from this table renders one text in both places, exactly as before, which is what
+# `tools/test_approvals_dispatch.py::test_only_a_kind_with_its_own_option_form_reads_differently_in_the_two_places`
+# holds from both ends.
+OPTION_FORMS = {VERIFICATION_KIND: _verification_option_form}
 
 
 def kind_label(kind: str) -> str:
@@ -1886,6 +2288,12 @@ def build_question(request: dict) -> dict:
                 else " (Revision %s)" % request["revision"])
     question = "Freigabe erbeten: %s für %s%s. [APR-REQ:%s]" % (
         label, target, revision, request["request_id"])
+    # THE OPTION MAY CARRY MORE THAN THE SENTENCE (`OPTION_FORMS`), never less: it is the compared
+    # carrier of everything a sentence a human has to read cannot hold -- the manifest hash and the
+    # request's path already, and for a list-bound subject the list itself.
+    option_form = OPTION_FORMS.get(request["kind"])
+    option_target = (option_form(request.get("subject_manifest") or {})
+                     if option_form is not None else target)
     return {
         "question": question,
         "header": "Freigabe",
@@ -1896,7 +2304,7 @@ def build_question(request: dict) -> dict:
                 "description": "Erteilt die Freigabe „%s“ für %s in exakt dieser Fassung -- nur "
                 "diese Option prägt sie. Gebunden an Prüfsumme %s… (Anfrage "
                 "approvals/pending/%s.yaml)."
-                % (label, target, request["subject_manifest_hash"][:DIGEST_SHOWN],
+                % (label, option_target, request["subject_manifest_hash"][:DIGEST_SHOWN],
                    request["request_id"]),
             },
             {
@@ -1955,6 +2363,12 @@ PROGRAMMATIC_MINT = "program_answer_via_agent_sdk"
 # outlives it: no member here is missing from `APR_KINDS`, and every kind of `APR_KINDS` is
 # classified one way or the other --
 # `tools/test_approvals_dispatch.py::test_every_approval_kind_is_classified_as_takeable_back_or_not`.
+# `verification` is judged REVISABLE (PR-0012, 2026-09-11), on `hole_exception`'s reading: what it
+# does is close defects of this project's own store -- the items are archived, never deleted, and a
+# defect closed wrongly is re-filed as a new item with its own measurement. Nothing leaves the
+# machine and no enforcement layer is rewritten. That it closes MANY items at once does not change
+# the class: the number is bounded by `BATCH_LIMIT` and every one of them needed a passing Evidence
+# before the question could be asked.
 IRREVERSIBLE_KINDS = frozenset(("push", "preset", "kit_update", "filing_correction",
                                 "filing_rule", "document_proposal", "document_revision"))
 
@@ -2390,6 +2804,23 @@ def mint(state: ProjectState, request_id: str, answer: str) -> dict:
                                   "sich geändert, nachdem die Frage gestellt wurde. "
                                   + NEXT_START_OVER
                     )
+        # THE WHOLE LIST IS RE-ASKED BEFORE ANYTHING IS WRITTEN, and the position is the whole
+        # point: the store can move between the question and the click -- an Evidence retracted, a
+        # listed defect walked by hand, a listed defect EDITED -- while
+        # `_close_what_the_batch_lists` runs AFTER the APR exists and after the request is consumed.
+        # A refusal down there leaves a real approval, a spent request and a batch closed halfway,
+        # which is measured and is why the coverage of every listed item is asked here too
+        # (`batch_walk_blockers(..., request)`, whose docstring carries the measurement). All or
+        # nothing: one blocker stops the mint, and the pending request survives for a fresh answer.
+        blocked = batch_walk_blockers(state, request["kind"], listed_items(request), request)
+        if blocked:
+            raise ApprovalError(
+                "the batch cannot be closed as it was asked -- %d of its items moved since the "
+                "question: %s. Remedy: ask again over the current list; nothing was minted."
+                % (len(blocked), " | ".join(blocked)),
+                user_text="Es wurde keine Freigabe erteilt: an %d der aufgelisteten Einträge hat "
+                          "sich etwas geändert, seit die Frage gestellt wurde. " % len(blocked)
+                          + NEXT_START_OVER)
         # idempotency guard (Fable-Check 8/#2): a crash between APR write and
         # request consume would leave the request pending -- a replayed mint
         # must not create a SECOND approval for the same request
@@ -2487,8 +2918,69 @@ def mint(state: ProjectState, request_id: str, answer: str) -> dict:
                 # skipped `assert_transition` and would skip the approval check too, which is one
                 # bypass in the one place a bypass would be invisible.
                 item = state._transition_locked(item["id"], edge[1])
+        _close_what_the_batch_lists(state, request, apr)
         state._regenerate_index_locked()
         return apr
+
+
+def _close_what_the_batch_lists(state: ProjectState, request: dict, apr: dict) -> list:
+    """Walk every item this approval LISTS to the end its mint commits, and archive it there.
+
+    THE SECOND HALF OF PR-0012 AC-1, and it runs where it does for `mint`'s own documented reason:
+    after the request is consumed, because `state._transition_locked` proves the approval through
+    that consumed request and there is no bypass parameter. Whether it runs at all is
+    `batch_closing_types` -- a list-bound kind that commits no edge of its own (`plan`) moves
+    nothing here, which is why this needs no kind name.
+
+    THE WALK IS THE TYPE'S OWN CHAIN, sliced from where the item stands to `batch_walk_end`, and
+    every step goes through `_transition_locked`: the approved edge is authorised by the approval
+    just minted (`_names_the_item` finds it through the list), the free steps are free, and the
+    confirming edge demands its Evidence exactly as it does for a hand-walked bug. So this closes
+    the item on the same guards a single mint plus three typed transitions would, with the same
+    refusals -- and `batch_walk_blockers` has already established, twice, that each guard will
+    pass.
+
+    ARCHIVED ONLY WHERE THE END IS TERMINAL, asked of the automaton rather than assumed: closing a
+    defect ends on a terminal and the item leaves `bugs/active/`, but a future type whose batch end
+    is mid-chain stays where the chain left it.
+    `tools/test_approvals_dispatch.py::test_the_batch_mint_walks_every_listed_bug_to_verified_and_archives_it`
+    """
+    kind = request["kind"]
+    types = batch_closing_types(kind)
+    walked = []
+    for item_id in listed_items(request):
+        item_type, _number = parse_id(item_id)
+        if item_type not in types:
+            continue
+        item = state.read_item(item_id)
+        # WHAT THE ITEM PRESENTS AND WHAT WAS APPROVED, written for the same two reasons the
+        # single-item branch of `mint` writes them: the approval is the item's own authorisation
+        # record from here on, and the mint is the one moment a user has just signed this content.
+        item["approval_ref"] = apr["id"]
+        content_hash = approved_content_hash(item_type, item)
+        if content_hash is not None:
+            item[APPROVED_CONTENT_HASH_FIELD] = content_hash
+        state._write_yaml_atomic(state.active_path(item_id), item)
+        chain = AUTOMATA[item_type].chain
+        end = batch_walk_end(item_type, kind)
+        # THE INDEX IS REBUILT ONCE FOR THE WHOLE MINT, not once per step -- `mint` regenerates
+        # unconditionally after this returns, and the rule is `_transition_locked`'s own: once per
+        # operation, not once per item it touches. Measured before it: a batch of 25 on a
+        # repo-sized store spent 100 rebuilds inside one hook call.
+        for status in chain[chain.index(str(item.get("status"))) + 1:chain.index(end) + 1]:
+            item = state._transition_locked(item_id, status, regenerate=False)
+        if is_terminal(item_type, str(item.get("status"))):
+            state._archive_locked(item_id, regenerate=False)
+        walked.append(item_id)
+    if walked:
+        # THE WRITER IS THE REFRESHER, once for the whole batch. `mint` regenerates after this
+        # returns as well, and that one is not redundant for the paths that walk no batch -- what
+        # would be wrong is a function that moves a hundred items and leaves the index and the
+        # board to a caller it does not control.
+        # `tools/test_board.py::test_no_kernel_writer_of_a_rendered_file_leaves_the_board_behind`
+        # derives that duty from the package rather than trusting this sentence.
+        state._regenerate_index_locked()
+    return walked
 
 
 def presents(item_type: str, kind: str) -> bool:

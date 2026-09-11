@@ -1,0 +1,17 @@
+id: EVD-0265
+kind: test
+related:
+- BUG-0070
+result: pass
+summary: 'tests naming BUG-0070: 4 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_gaplog.py::test_a_recorded_gap_survives_in_the_projects_own_state
+  tools/test_kernel.py::test_a_plan_this_kernel_cannot_append_to_is_refused_and_left_alone
+  tools/test_kernel.py::test_add_filing_rule_creates_the_rules_list_when_the_plan_carries_none
+  tools/test_office_package.py::test_add_filing_rule_creates_the_rules_list_on_an_old_stock_plan_through_the_entry_point
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:54:51'

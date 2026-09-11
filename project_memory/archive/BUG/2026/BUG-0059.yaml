@@ -1,0 +1,26 @@
+id: BUG-0059
+title: 'P4-1: update-kit is unreachable from old stock -- the one old-to-new lift
+  needs a human hand'
+observed: 'Pilot 4 half 1: the PM of a 2026.08.14-9 project found no update-kit on
+  harness.py --help (.claude/kernel lacks kitupdate.py/presets.py), honestly handed
+  the user two PowerShell lines plus restart; the non-technical persona failed at
+  them exactly as in pilot-3 B4. Operator ran the lines; after that 2026.08.21-10
+  and validate 0/0.'
+expected: A stock project one generation behind can reach the new self-update path
+  without the user operating a shell -- e.g. a transition instruction the PM can execute,
+  or a one-time bridge documented for the human.
+repro: v2-testbed/_round-scratch/TSK-0066/half1/logs/VERBATIM-1-2.md beat a; kit 2026.08.14-9
+  as installed stock
+severity: medium
+related_pr: PR-0001
+acceptance_criteria:
+- A project on the last pre-update-kit stock reaches the current kit without the user
+  typing shell commands, or the release notes carry the one-time manual bridge as
+  the named exception
+source: TSK-0066 pilot 4
+status: VERIFIED
+revision: 1
+approval_ref: APR-0039
+created: '2026-08-22T13:56:36'
+approved_hash: cdc94f03092ebc9eab557e055e2790110996e5087bdc3a693c1268182c6e0dea
+closed_at: '2026-09-11T18:46:55'

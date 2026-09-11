@@ -1,4 +1,4 @@
-generated_at: '2026-09-11T13:14:16'
+generated_at: '2026-09-11T18:49:15'
 items:
 - id: APR-0001
   type: APR
@@ -180,57 +180,81 @@ items:
   status: null
   revision: 1
   approval_ref: null
-- id: BUG-0001
-  type: BUG
-  title: Die Kommandoflaeche hat kein update -- ein Tippfehler kostet ein neues Item
-  status: TRIAGED
+- id: APR-0031
+  type: APR
+  title: null
+  status: null
   revision: 1
   approval_ref: null
-- id: BUG-0002
-  type: BUG
-  title: robocopy /MOVE liest als Kopie
-  status: TRIAGED
+- id: APR-0032
+  type: APR
+  title: null
+  status: null
   revision: 1
   approval_ref: null
-- id: BUG-0003
-  type: BUG
-  title: Die Ledger-Redirect-Regel liest rohen Text statt der aufgeloesten Zeichenkette
-  status: TRIAGED
+- id: APR-0033
+  type: APR
+  title: null
+  status: null
   revision: 1
   approval_ref: null
-- id: BUG-0004
-  type: BUG
-  title: premise_rechecks hat keinen Schreiber
-  status: TRIAGED
+- id: APR-0034
+  type: APR
+  title: null
+  status: null
   revision: 1
   approval_ref: null
-- id: BUG-0005
-  type: BUG
-  title: Der Sitzungsbrief verliert die letzte Nutzerentscheidung
-  status: TRIAGED
+- id: APR-0035
+  type: APR
+  title: null
+  status: null
   revision: 1
   approval_ref: null
-- id: BUG-0006
-  type: BUG
-  title: Die CLI-Ableitung der Ordering-Kommandos ist direkt, nicht transitiv
-  status: TRIAGED
+- id: APR-0036
+  type: APR
+  title: null
+  status: null
   revision: 1
   approval_ref: null
-- id: BUG-0007
-  type: BUG
-  title: ruff ist in CI ungepinnt -- das Ergebnis ist nicht reproduzierbar
-  status: TRIAGED
+- id: APR-0037
+  type: APR
+  title: null
+  status: null
   revision: 1
+  approval_ref: null
+- id: APR-0038
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0039
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0040
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0041
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0042
+  type: APR
+  title: null
+  status: null
+  revision: null
   approval_ref: null
 - id: BUG-0008
   type: BUG
   title: Ein PowerShell-Modulcache liegt unverfolgt im Repo-Wurzelverzeichnis
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0009
-  type: BUG
-  title: Lebenszyklus-Ereignisse zwischen zwei Items werden nicht verlinkt
   status: TRIAGED
   revision: 1
   approval_ref: null
@@ -241,37 +265,9 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: BUG-0011
-  type: BUG
-  title: Ein Satz, der die Abwesenheit des Kit-Markers behauptet, LOEST DIE UEBERGABE
-    AUS
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0012
-  type: BUG
-  title: Gate 1 liest eine Shell-Funktionsdefinition als Schreibzugriff auf den zugewiesenen
-    Wert
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0013
-  type: BUG
-  title: Kit-Hooks legen ihr eigenes Verzeichnis auf sys.path[0] und koennen damit
-    die Standardbibliothek verdecken
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: BUG-0014
   type: BUG
   title: Die Gate-Suite dieses Repos ist rot, und niemand hat es bemerkt
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0015
-  type: BUG
-  title: Die Migration empfiehlt ein Flag, das die Verfahrensdokumentation fuer die
-    Steuerberatung buchstabenweise fuellt
   status: TRIAGED
   revision: 1
   approval_ref: null
@@ -286,27 +282,6 @@ items:
   type: BUG
   title: Der Freigabe-/Mint-Mechanismus funktioniert im Headless-/SDK-Betrieb nicht
     und fuehrt zu Nutzer-Irrefuehrung
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0018
-  type: BUG
-  title: harness.py capture verstuemmelt Nicht-ASCII auf der Windows-Default-Codepage,
-    und die Unveraenderlichkeit treibt daraus Wurzelitem-Drift
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0020
-  type: BUG
-  title: Gate 1 vertraut der Aufruf-Form, nicht dem laufenden Kernel -- capture mit
-    fremdem PYTHONPATH und rm kanonischer Items laufen durch
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0021
-  type: BUG
-  title: capture verweigert einen stdin-Body mit UTF-8-BOM, obwohl die Fehlermeldung
-    selbst utf-8-sig als Abhilfe nennt
   status: TRIAGED
   revision: 1
   approval_ref: null
@@ -338,20 +313,6 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0028
-  type: BUG
-  title: Jede angewandte NOT-SEARCHED-Abhilfe erzeugt dauerhaft eine weitere NOT-SEARCHED-Zeile,
-    ohne Rueckweg
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0029
-  type: BUG
-  title: doctor kann das Kit eines V1-Projekts nicht benennen (kit unknown bei bekannter
-    kit_version)
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0030
   type: BUG
   title: Zwei literale Backspace-Zeichen (0x08) im Quelltext von gate_ledger_valid.py
@@ -379,66 +340,10 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: BUG-0035
-  type: BUG
-  title: Stale SR-0006 references in .claude/hooks/ after the SR-0009 supersession
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0036
-  type: BUG
-  title: doctor's hook_trust reason claims '/hooks confirmation' for every non-active
-    state -- including restart_required, whose only exit is a bare restart
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: BUG-0037
   type: BUG
   title: kit_trust_state.py prose claims 'nothing here leads OUT of hooks_trust_required'
     -- the running code exits it on a re-matching hash
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0038
-  type: BUG
-  title: Kernel-written fields outside the contract universe (design_refs, premise_rechecks,
-    supersedes) are read shape-assumingly -- freeze-design letter-splits a scalar
-    design_refs INTO CANONICAL STATE and validate stays silent
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0039
-  type: BUG
-  title: 'A non-verbatim approval relay mints NOTHING -- silently for the user: the
-    click ''Freigeben'' vanishes without any feedback'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0040
-  type: BUG
-  title: gate_dispatch knows only the ROOT item's acceptance criteria -- a task written
-    against CR-minted criteria is not dispatchable
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0041
-  type: BUG
-  title: 'A preset change after install is a dead end for non-developers: no writer
-    for project_config.yaml, the remedy is Notepad plus terminal plus restart'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0042
-  type: BUG
-  title: A running background dispatch survives NO session end -- 3 of 3 in-flight
-    specialists lost their work at a session break
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0043
-  type: BUG
-  title: Masterplan sign-off ran through the plan-mode dialog, not an explicit user
-    'passt' -- the review loop shrinks to one click
   status: TRIAGED
   revision: 1
   approval_ref: null
@@ -449,13 +354,6 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: BUG-0045
-  type: BUG
-  title: 'The hand-written root item carried an invented timestamp (created: 12:00:00)
-    instead of the real time'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: BUG-0046
   type: BUG
   title: Specialist narration and mixed-language jargon leak into the user's view,
@@ -463,38 +361,10 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: BUG-0047
-  type: BUG
-  title: Role memory writing fails on TWO mechanisms -- task-scope after submit-result,
-    and guard_memory_budget's content rule that also hits the PM
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0048
-  type: BUG
-  title: Shell-less specialist roles cannot fulfil the submit contract -- harness.py
-    submit-result demands a tool they do not have
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0049
-  type: BUG
-  title: gate_subagent_output's one-retry pass-through logs 'still missing nothing'
-    -- misleading message, and a second consecutive violation would pass unblocked
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: BUG-0050
   type: BUG
   title: 'The no-technical-questions property is hook-enforced and porous: guard_question_context
     caught 2, two technical questions reached the user uncaught'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0051
-  type: BUG
-  title: gate-suite shell arbitration picks a shell that cannot see this filesystem
-    once WSL answers
   status: TRIAGED
   revision: 1
   approval_ref: null
@@ -547,60 +417,10 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0059
-  type: BUG
-  title: 'P4-1: update-kit is unreachable from old stock -- the one old-to-new lift
-    needs a human hand'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0060
-  type: BUG
-  title: 'P4-7: evidence/ stays empty across two dev pilots -- the drawer exists,
-    nothing fills it'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0061
-  type: BUG
-  title: 'P4-9: the filing plan does not fully emerge from onboarding -- four drawers
-    had to be demanded by the user'
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0062
   type: BUG
   title: 'P4-13: only 5 of 28 registered office-kit hook entries carry a timeout --
     potential kill-passthrough class'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0063
-  type: BUG
-  title: 'Ultrareview bug_001: _ENTRY_POINT_RUN_RX trailing lookahead scans the whole
-    tail -- honest argument prose with '' -m''/'' -c''/'' -e'' re-refuses the P4-12
-    shape'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0064
-  type: BUG
-  title: gate_ledger_valid refuses its own advertised remedy -- the sanctioned way
-    out of a ledger block is not typable
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0065
-  type: BUG
-  title: 'gate_ledger_valid: a closing paren ends no word -- a command substitution
-    smuggles a write into scripts/ past the protected-dir check'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0066
-  type: BUG
-  title: Ein blankes CR hebelt gate_write_scope in allen drei Kits aus -- ein Aufruf,
-    eine Sitzung, .claude/settings.json ueberschrieben
   status: OPEN
   revision: 1
   approval_ref: null
@@ -611,49 +431,10 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0068
-  type: BUG
-  title: After update-kit the repo-template refresh lands in the USER's terminal --
-    and the pending list overstates what differs (live finding, real BuyPlugGo update)
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0069
   type: BUG
   title: GitHub CI is red on every push -- the delivery suite passes locally but fails
     on the hosted runners, so the one external check the user sees mails him failure
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0070
-  type: BUG
-  title: 'add-filing-rule refuses to CREATE the rules list it may append to -- an
-    old-stock filing_plan.yaml sends the non-developer user into a text editor (BUG-0041
-    dead-end class, live find #2)'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0071
-  type: BUG
-  title: 'Master-data categories have NO kernel writer -- the P4-12 gap measured AGAIN
-    in live use: the PM cannot add an EUeR category even with a minted approval (dead-end
-    class, live find #3)'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0072
-  type: BUG
-  title: Kit script einvoice_extract.py returns a non-reconciling net from a real
-    idealo ZUGFeRD/CII invoice -- wrong figure would pass silently without the bookkeeper's
-    cross-check
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0073
-  type: BUG
-  title: Approval requests reach the user as a German-English weave -- field VALUES
-    the user must judge are written in English because nothing says which language
-    values carry (all kits, live find)
   status: OPEN
   revision: 1
   approval_ref: null
@@ -685,14 +466,6 @@ items:
   title: 'Circular ordering: the PM skill wants the approved wireframe INSIDE the
     scope manifest, but gate_dispatch refuses the designer spawn that would draw it
     until the scope approval exists'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0078
-  type: BUG
-  title: 'kit_update_pending marker has no sanctioned remover: gate_write_scope refuses
-    every pipeline naming .claude, so a completed update leaves a stale nag the PM
-    can only report'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -1662,6 +1435,16 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
+- id: BUG-0279
+  type: BUG
+  title: 'The batch route''s evidence rule ''a test that NAMES the bug'' (DEC-0100
+    (3), tools/close_measured_pass.py nodes_naming) reads an incidental mention like
+    a measuring one: BUG-0050''s only naming test says ''nothing was caught'', BUG-0044''s
+    is a historical aside -- both would have been VERIFIED by a click (TSK-0138 verify
+    round 2)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
 - id: DEC-0002
   type: DEC
   title: ADR-Datensaetze werden DEC-Items, nicht getragene Belege
@@ -2260,15 +2043,6 @@ items:
   status: VALID
   revision: 1
   approval_ref: null
-- id: DEC-0086
-  type: DEC
-  title: 'Schliessweg eines reparierten Bugs entschieden: eine Nutzer-Muenzung (scope)
-    je Bug, vom Lead gebuendelt vorgelegt -- der ausgelieferte Automat bleibt; die
-    Kante TRIAGED -> FIXED fuer den bewiesenen Fall ist die Frage einer eigenen Runde
-    (DEC-0051 (2))'
-  status: VALID
-  revision: 1
-  approval_ref: null
 - id: DEC-0087
   type: DEC
   title: 'Die leichte Arbeitsform ab Generation 6: der Orchestrator baut nicht selbst,
@@ -2377,6 +2151,25 @@ items:
     faehrt (die App ueberspringt eine Aufgabe, solange eine andere laeuft), in der
     Codex-App zwei Automationen zur selben Zeit; angelegt vom Lead in der naechsten
     Desktop-Sitzung (Claude) und vom Nutzer in der Codex-App'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0099
+  type: DEC
+  title: 'Bug-Null vor Budget (Zusatz zu DEC-0095 (6) fuer PR-0012): der Nutzer setzt
+    Tempo ueber das Wochenbudget -- die drei Auftraege laufen Ruecken an Ruecken ohne
+    Warten, neue Agenten ohne die 50-%-Bremse; die Form bleibt (Opus, ein Schreiber
+    je Auftrag, Pruefung am Ziel)'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0100
+  type: DEC
+  title: 'Bug-Schliessweg, Buendelform (revidiert DEC-0086 (2)): der Kernel kennt
+    die Freigabe-Art `verification`, deren Subjekt eine LISTE von Fehlern samt dem
+    Nachweis ist, der jeden einzelnen misst -- der Nutzer unterschreibt weiter, zeichengenau
+    verglichen, jeder gelistete Fehler braucht weiter seine bestandene Test-Evidenz,
+    die ihn NENNT; nur die Zahl der Fragen sinkt'
   status: VALID
   revision: 1
   approval_ref: null
@@ -2998,6 +2791,1080 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0104
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0105
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0106
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0107
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0108
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0109
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0110
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0111
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0112
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0113
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0114
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0115
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0116
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0117
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0118
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0119
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0120
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0121
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0122
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0123
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0124
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0125
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0126
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0127
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0128
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0129
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0130
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0131
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0132
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0133
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0134
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0135
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0136
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0137
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0138
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0139
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0140
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0141
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0142
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0143
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0144
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0145
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0146
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0147
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0148
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0149
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0150
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0151
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0152
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0153
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0154
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0155
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0156
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0157
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0158
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0159
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0160
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0161
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0162
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0163
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0164
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0165
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0166
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0167
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0168
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0169
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0170
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0171
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0172
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0173
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0174
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0175
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0176
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0177
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0178
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0179
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0180
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0181
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0182
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0183
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0184
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0185
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0186
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0187
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0188
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0189
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0190
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0191
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0192
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0193
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0194
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0195
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0196
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0197
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0198
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0199
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0200
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0201
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0202
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0203
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0204
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0205
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0206
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0207
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0208
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0209
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0210
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0211
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0212
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0213
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0214
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0215
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0216
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0217
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0218
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0219
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0220
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0221
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0222
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0223
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0224
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0225
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0226
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0227
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0228
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0229
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0230
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0231
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0232
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0233
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0234
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0235
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0236
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0237
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0238
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0239
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0240
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0241
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0242
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0243
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0244
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0245
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0246
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0247
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0248
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0249
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0250
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0251
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0252
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0253
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0254
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0255
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0256
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0257
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0258
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0259
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0260
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0261
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0262
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0263
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0264
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0265
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0266
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0267
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0268
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0269
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0270
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0271
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0272
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0273
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0274
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0275
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0276
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0277
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0278
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0279
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0280
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0281
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0282
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -3076,7 +3943,7 @@ items:
   title: 'An invoice WRITER for the office kit: clean, norm-conformant e-invoices
     (XRechnung / ZUGFeRD, EN 16931) from ledger and master data, validated before
     they leave the house'
-  status: OPEN
+  status: TRIAGED
   revision: 1
   approval_ref: null
 - id: FR-0089
@@ -3085,7 +3952,7 @@ items:
     Fable-Agenten -- Recherche (was die Welt gemessen hat) und ein kontrolliertes
     Experiment (dieselbe Aufgabe, zwei Wege), bevor die naechste Produkt-Generation
     den Schnitt waehlt
-  status: OPEN
+  status: TRIAGED
   revision: 1
   approval_ref: null
 - id: FR-0090
@@ -3093,27 +3960,27 @@ items:
   title: 'Das Ablaufdatum in der deutschen Freigabe-Frage lesbar machen: ''25.09.2026,
     05:06 UTC'' statt ''2026-09-25T05:06:25Z'' -- gleich deterministisch, aber die
     Zeile, die der Nicht-Entwickler beurteilt, liest sich nicht mehr wie eine Maschine'
-  status: OPEN
+  status: TRIAGED
   revision: 1
   approval_ref: null
-- id: PR-0001
+- id: FR-0092
+  type: FR
+  title: Jeder gestartete Agent traegt in seinem sichtbaren Namen Rolle + Modell +
+    Aufwand + Buchstabe bei mehreren gleichen (z. B. 'Frontend Developer Opus xhigh
+    A' / 'Frontend Developer Sonnet medium B') -- in der Hintergrundaufgaben-Ansicht
+    sieht man sonst nicht, wer arbeitet und womit
+  status: TRIAGED
+  revision: 1
+  approval_ref: null
+- id: PR-0012
   type: PR
-  title: Migrationsweg V1 -> V2
+  title: 'Bug-Null: jeder offene Fehler dieses Repos ist geschlossen -- die ~100 gemessen
+    behobenen als VERIFIED mit ihrem Beweis (im Buendel geprägt, nicht einzeln), die
+    ~15 echten Restfehler behoben (rot-zuerst), die ~126 Loecher geschlossen oder
+    als unschliessbar mit Begrenzung vom Nutzer abgenommen; keine Wuensche'
   status: APPROVED
   revision: 1
-  approval_ref: APR-0005
-- id: PR-0002
-  type: PR
-  title: Dieses Repo fuehrt seinen eigenen Zustand
-  status: APPROVED
-  revision: 1
-  approval_ref: APR-0005
-- id: PR-0003
-  type: PR
-  title: Das V2-Harness ist auslieferbar
-  status: APPROVED
-  revision: 1
-  approval_ref: APR-0005
+  approval_ref: APR-0031
 - id: SR-0001
   type: SR
   title: 'Abschlusskriterium: keine V1-Form ausserhalb von archive/ und legacy/'
@@ -3161,5 +4028,17 @@ items:
   title: 'This repo''s enforcement: four gates, a bound session agent, and no history
     record without a verdict'
   status: ACCEPTED
+  revision: 1
+  approval_ref: null
+- id: TSK-0138
+  type: TSK
+  title: null
+  status: READY
+  revision: 1
+  approval_ref: null
+- id: TSK-0139
+  type: TSK
+  title: null
+  status: DRAFT
   revision: 1
   approval_ref: null

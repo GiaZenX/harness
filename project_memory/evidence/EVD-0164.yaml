@@ -1,0 +1,13 @@
+id: EVD-0164
+kind: test
+related:
+- BUG-0181
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0181
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_hooks.py::test_a_ledger_git_cannot_answer_for_stands_the_booking_gate_down_and_says_so
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:05:39'

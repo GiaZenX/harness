@@ -1,0 +1,13 @@
+id: EVD-0160
+kind: test
+related:
+- BUG-0162
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0162
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_hooks_v2.py::test_every_vouching_run_pattern_is_named_here
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:02:34'

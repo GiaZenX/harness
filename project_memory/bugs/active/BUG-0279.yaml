@@ -1,0 +1,53 @@
+id: BUG-0279
+title: 'The batch route''s evidence rule ''a test that NAMES the bug'' (DEC-0100 (3),
+  tools/close_measured_pass.py nodes_naming) reads an incidental mention like a measuring
+  one: BUG-0050''s only naming test says ''nothing was caught'', BUG-0044''s is a
+  historical aside -- both would have been VERIFIED by a click (TSK-0138 verify round
+  2)'
+related_pr: PR-0012
+severity: medium
+observed: 'MEASURED 2026-09-11 18:3x by the verifier (project_memory/staging/TSK-0138/verify-round-2.md,
+  B2 rest): of the 45 closable bugs 14 hang on exactly ONE naming test; all 14 naming
+  lines read; twelve are the test''s subject, two are not -- BUG-0050 (title: the
+  no-technical-questions property is hook-enforced and POROUS) named only in tools/test_hooks.py::test_a_warning_is_recorded_as_a_warning_and_not_as_a_block
+  at the line ''...the reading BUG-0050 was written from. Nothing was caught: the
+  hook exits 0 on both.''; BUG-0044 named only in test_the_field_a_kernel_command_owns_is_named_with_that_command_in_both_entry_gates
+  as ''(BUG-0044/BUG-0041)'', a historical aside. The same class the survey''s own
+  header warns of: a test naming a hole item is often the test that PINS the gap.
+  Mechanism: `nodes_naming` assigns a test to a bug by the id''s presence anywhere
+  in the test''s span (docstring, comment, parametrize id) -- presence, not predication;
+  the rule cannot tell ''measures BUG-nnnn'' from ''mentions BUG-nnnn''.'
+expected: 'A bug enters a batch only on a test that MEASURES it: the naming has to
+  stand where a test declares its subject (the docstring''s first paragraph, or a
+  parametrize case id, or a marker such as `pytest.mark.measures(''BUG-nnnn'')`),
+  not anywhere in the body; a mention outside that place holds the row back with the
+  line quoted; the two-ended tripwire: a test whose declared subject names a bug nobody
+  has in the store is red, and a bug closed by a test whose declared subject does
+  not name it cannot be built.'
+repro: 'python tools/close_measured_pass.py --dry-run over the survey: BUG-0050 and
+  BUG-0044 appear in the batch lines (2026-09-11 18:29 protocol section 2) although
+  their only naming tests do not measure them.'
+acceptance_criteria:
+- id: AC-1
+  text: nodes_naming (or its successor) returns no node for BUG-0050 and BUG-0044
+    on the shipped tests, and still every node for the twelve measuring single-node
+    cases the verifier read
+- id: AC-2
+  text: the rule is a place (declared subject), not a heuristic over the body; the
+    two-ended tripwire exists
+- id: AC-3
+  text: a held-back row quotes the mention line so the reader sees why
+limits: 'Bounded today by the lead''s hand: the verifier read all 14 single-node lines
+  and the lead removed BUG-0044 and BUG-0050 from the batches before asking (2026-09-11
+  18:45); multi-node bugs (31 of 45) are less exposed because ALL their naming tests
+  must pass and at least one usually measures the subject. What is not bounded: a
+  future run of close_measured_pass on a new survey repeats the class unless the rule
+  moves to the declared subject. Until closed, the lead reads every single-node line
+  before relaying a batch.'
+source: project_memory/staging/TSK-0138/verify-round-2.md (B2 rest); tools/close_measured_pass.py
+  nodes_naming; DEC-0100 (3); staging/TSK-0131/survey-table.md header
+hole_number: H195
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-11T18:49:14'

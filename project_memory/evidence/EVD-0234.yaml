@@ -1,0 +1,16 @@
+id: EVD-0234
+kind: test
+related:
+- BUG-0009
+result: pass
+summary: 'tests naming BUG-0009: 4 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_approvals_dispatch.py::test_only_a_kind_with_its_own_option_form_reads_differently_in_the_two_places
+  tools/test_backlog_types.py::test_the_fr_result_terminals_partition_the_fr_automaton
+  tools/test_report.py::test_a_converted_fr_must_name_its_result tools/test_report.py::test_a_superseding_decision_marks_the_older_one
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:48:29'

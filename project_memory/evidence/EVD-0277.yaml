@@ -1,0 +1,21 @@
+id: EVD-0277
+kind: test
+related:
+- BUG-0071
+result: pass
+summary: 'tests naming BUG-0071: 11 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_finance_dashboard.py::test_a_fresh_project_ships_a_category_vocabulary_the_p4_12_stall_cannot_recur_on
+  tools/test_hooks.py::test_a_kit_document_is_refused_with_the_truth_and_not_with_a_command_that_does_not_exist
+  tools/test_hooks.py::test_a_staged_proposal_reaches_a_kit_document_in_a_project_the_installers_built
+  tools/test_hooks.py::test_doctor_names_the_documents_that_wall_a_project_off tools/test_hooks.py::test_session_start_says_a_wall_document_is_still_the_template
+  tools/test_kernel.py::test_a_staged_proposal_is_applied_only_when_the_user_approved_exactly_it
+  tools/test_kernel.py::test_the_ordinary_ways_a_document_grows_are_not_refused tools/test_office_package.py::test_the_bookkeeper_extends_the_category_vocabulary_through_the_kernel_and_books_against_it
+  tools/test_presets.py::test_every_target_form_names_a_live_apr_kind tools/test_role_contracts.py::test_every_role_that_owns_a_kit_document_carries_the_route_that_writes_it
+  tools/test_staging_cli.py::test_no_proposal_path_can_reach_outside_the_tasks_own_staging
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T18:04:53'

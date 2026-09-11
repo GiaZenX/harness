@@ -1,0 +1,15 @@
+id: EVD-0239
+kind: test
+related:
+- BUG-0018
+result: pass
+summary: 'tests naming BUG-0018: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_e2e.py::test_e2e_capture_accepts_a_bom_prefixed_body_and_stores_it_without_bom
+  tools/test_e2e.py::test_e2e_capture_stores_umlaut_body_as_utf8_bytes_whatever_the_stdin_codepage
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:49:43'

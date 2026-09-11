@@ -368,8 +368,29 @@ def _plan_goals(state: ProjectState, _args) -> list:
     return approvals.plan_goals(state)
 
 
+def _verification_bugs(state: ProjectState, args) -> list:
+    """The defect records of a batch verification -- the IDS are typed, the PROOF is read.
+
+    The split is the reason this is a resolver at all (PR-0012 AC-1): which defects to close is the
+    role's statement and can only be typed, while the Evidence that measured each one is a record
+    in the store -- and a typed evidence id could only differ from the record the confirming edge
+    will actually read. `approvals.verification_batch` reads it with the very reader that edge uses
+    and refuses the whole question, by name, for any listed id that has none.
+    """
+    return approvals.verification_batch(state, getattr(args, BATCH_ARGUMENT, None) or [])
+
+
+# THE COMMAND-LINE ARGUMENT A BATCH KIND NAMES ITS ITEMS ON. Spelled once: the parser adds it, the
+# resolver above reads it, and `kinds_reading_argument` derives WHICH kinds may carry it.
+BATCH_ARGUMENT = "batch"
+
 LINE_MANIFEST_RESOLVERS = {
     "goals": (_plan_goals, "read from this project's own open product goals"),
+    # the third element names the command-line ARGUMENT this resolver reads, for the entries that
+    # read one at all -- see `kinds_reading_argument`
+    "bugs": (_verification_bugs,
+             "read from the ids on --batch and, per id, the Evidence that measured it",
+             BATCH_ARGUMENT),
     "content": (_document_content, "hashed from the document named on this line"),
     "head": (_worktree_head, "read from the worktree this state directory sits in"),
     "roles": (_preset_roles, "read from the kit's own presets.yaml for the preset on this line"),
@@ -383,6 +404,23 @@ LINE_MANIFEST_RESOLVERS.update(
     (name, (_proposal_key(name),
             "derived from the document and the staged proposal named on this line"))
     for name in ("base", "proposed", "changes", "replacements", "deletions", "additions"))
+
+
+def kinds_reading_argument(argument: str) -> frozenset:
+    """The line kinds whose subject manifest a resolver builds from this command-line argument.
+
+    DERIVED THROUGH THE RESOLVER, so the flag and the kinds that may carry it cannot become two
+    statements: an entry of `LINE_MANIFEST_RESOLVERS` names the argument it reads, a builder names
+    the manifest keys it takes, and a kind takes the flag exactly when its builder needs a key some
+    resolver builds from that argument. Written out as a set of kind names instead, `--batch` would
+    go on being accepted for `verification` after the key was renamed, or be refused for the second
+    batch kind the day it arrives -- and both of those are silent.
+    `tools/test_approvals_dispatch.py::test_the_batch_flag_belongs_to_the_kinds_whose_resolver_reads_it`
+    """
+    keys = {name for name, entry in LINE_MANIFEST_RESOLVERS.items()
+            if len(entry) > 2 and entry[2] == argument}
+    return frozenset(kind for kind, builder in approvals.LINE_MANIFEST_BUILDERS.items()
+                     if keys.intersection(manifest_parameters(builder)))
 
 
 def _line_manifest(state: ProjectState, kind: str, builder, args) -> dict:
@@ -753,6 +791,15 @@ def build_parser() -> argparse.ArgumentParser:
                          help="how many days the approval stays valid; required for `routine`, "
                               "optional for the other time-boxed kinds (default one hour), refused "
                               "for a kind that carries no clock")
+    # THE ITEMS ONE QUESTION CLOSES (PR-0012 AC-1). A list on the line rather than one id per call,
+    # because the whole point of the kind is that ONE answer of the user's settles all of them; the
+    # kinds it is accepted for are derived from the resolver that reads it, and it is refused for
+    # every other kind by name.
+    request.add_argument("--" + BATCH_ARGUMENT, nargs="+", metavar="ITEM_ID", default=None,
+                         help="the items one question closes -- for %s (at most %d per question); "
+                              "refused for every other kind"
+                              % ("/".join(sorted(kinds_reading_argument(BATCH_ARGUMENT)))
+                                 or "no kind on this build", approvals.BATCH_LIMIT))
     # The lease + header, in one command, because they are one moment: spec II.4 orders
     # "READY -> kurzlebige Dispatch-Lease mit Nonce und TTL -> Header", and the gate that reads the
     # header runs at PreToolUse of the spawn -- AFTER the model has composed the prompt. A lease
@@ -1686,6 +1733,17 @@ def main(argv=None) -> int:
                     "a %s approval carries no clock (it is invalidated by its content, not by "
                     "time), so --expires-in-days is refused for it. Remedy: drop the flag."
                     % args.kind)
+            batched = kinds_reading_argument(BATCH_ARGUMENT)
+            if getattr(args, BATCH_ARGUMENT, None) and args.kind not in batched:
+                raise UsageError(
+                    "a %s approval is not asked over a list of items, so --%s is refused for it "
+                    "(%s takes one). Remedy: drop the flag."
+                    % (args.kind, BATCH_ARGUMENT, "/".join(sorted(batched)) or "no kind here"))
+            if args.kind in batched and not getattr(args, BATCH_ARGUMENT, None):
+                raise UsageError(
+                    "a %s approval closes the items it lists and none was named. Remedy: `%s "
+                    "request-approval %s --%s <ITEM_ID> <ITEM_ID> ...` (at most %d per question)."
+                    % (args.kind, INVOCATION, args.kind, BATCH_ARGUMENT, approvals.BATCH_LIMIT))
             if builder is None:
                 if not args.item_id:
                     raise UsageError(

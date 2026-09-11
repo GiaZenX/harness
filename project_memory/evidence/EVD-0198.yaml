@@ -1,0 +1,13 @@
+id: EVD-0198
+kind: test
+related:
+- BUG-0243
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0243
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: .claude/hooks/test_gates.py::test_gate1_answers_before_its_registration_however_long_the_line_takes_to_read
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:08:38'

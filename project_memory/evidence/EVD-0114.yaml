@@ -1,0 +1,13 @@
+id: EVD-0114
+kind: test
+related:
+- BUG-0012
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0012
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: .claude/hooks/test_gates.py::test_gate1_reads_a_function_definition_as_the_command_inside_it
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T15:56:38'

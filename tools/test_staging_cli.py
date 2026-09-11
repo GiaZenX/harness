@@ -810,6 +810,14 @@ SUBJECT_SAMPLES = {
     # retyped key here would make this fixture describe a manifest the builder does not produce.
     "goals": [{approvals.GOAL_ITEM_FIELD: "PR-0001", "title": "Checkout", "revision": 1,
                approvals.GOAL_SCOPE_HASH_FIELD: "0" * 64}],
+    # The second list-bound subject (PR-0012 AC-1): a verification approval's subject is the batch
+    # of repaired defects, each with the Evidence that measured it. Same rule as `goals` above --
+    # the kernel's own key names, because a retyped key would make this fixture describe a manifest
+    # the builder does not produce -- and a record rather than a scalar, because the builder refuses
+    # a batch that lists nothing (an approval bound to no defect at all).
+    "bugs": [{approvals.GOAL_ITEM_FIELD: "BUG-0001", "revision": 1,
+              approvals.GOAL_SCOPE_HASH_FIELD: "0" * 64,
+              approvals.LISTED_EVIDENCE_FIELD: "EVD-0001"}],
 }
 
 

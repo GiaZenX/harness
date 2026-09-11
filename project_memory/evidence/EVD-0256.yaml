@@ -1,0 +1,14 @@
+id: EVD-0256
+kind: test
+related:
+- BUG-0050
+result: pass
+summary: 'tests naming BUG-0050: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_a_warning_is_recorded_as_a_warning_and_not_as_a_block
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:53:05'

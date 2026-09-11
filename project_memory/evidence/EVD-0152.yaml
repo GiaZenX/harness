@@ -1,0 +1,13 @@
+id: EVD-0152
+kind: test
+related:
+- BUG-0074
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0074
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_kernel.py::test_a_staged_proposal_is_applied_only_when_the_user_approved_exactly_it
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:01:32'

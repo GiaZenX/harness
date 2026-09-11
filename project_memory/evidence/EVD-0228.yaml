@@ -1,0 +1,15 @@
+id: EVD-0228
+kind: test
+related:
+- BUG-0002
+result: pass
+summary: 'tests naming BUG-0002: 3 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_board.py::test_a_hostile_field_cannot_add_an_element_or_an_attribute_to_the_page
+  tools/test_hooks.py::test_dashboard_survives_a_hand_written_item tools/test_hooks.py::test_fs_tripwire_reads_a_source_deleting_copier_as_a_move_out_of_the_archive
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:47:53'

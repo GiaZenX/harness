@@ -456,6 +456,12 @@ retry, and no `BUG` item is created. A bug found **after** acceptance, or any **
 `bug/BUG-nnnn-<slug>` branch, and a **mandatory regression test** (fails before the fix, passes after). QA's
 Evidence for that test is what moves the bug `FIXED` → `VERIFIED`; you never set it on a claim. A bug is NOT a
 user story and NOT a CR; it is a defect against approved behaviour (constitution §7).
+**Closing repaired bugs is ONE question, not one per bug** (`DEC-0100`): once each defect has its
+passing test Evidence, `python scripts/harness.py request-approval verification --batch BUG-a BUG-b ...` opens a
+single question whose approving option lists every id with the Evidence that measured it, and the user's answer
+walks all of them `TRIAGED` → `APPROVED` → `FIXED` → `VERIFIED` and archives them. An id without that Evidence, or
+one already past `TRIAGED`, is refused **by name** before the question is put — take it out and ask again; never
+relay a question the kernel refused to build.
 
 ## Ownership, status and git — one place each
 Who owns which item is constitution §6, the status automata and where they are DEFINED is §9, and the

@@ -1,0 +1,15 @@
+id: EVD-0267
+kind: test
+related:
+- BUG-0073
+result: pass
+summary: 'tests naming BUG-0073: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_role_contracts.py::test_every_kit_lead_is_told_which_language_an_approval_value_is_written_in
+  tools/test_role_contracts.py::test_the_value_language_rule_claims_no_enforcement_it_does_not_have
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:55:49'

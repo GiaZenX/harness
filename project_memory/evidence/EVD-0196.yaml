@@ -1,0 +1,13 @@
+id: EVD-0196
+kind: test
+related:
+- BUG-0241
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0241
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_review_procedure.py::test_every_test_pointer_the_harness_role_texts_write_resolves
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:08:21'

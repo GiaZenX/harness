@@ -37,7 +37,10 @@ source: user message 2026-09-06; the (g) tables of generation 3 (staging/TSK-012
   and generation 5 (staging/generation-5-streams.md); DEC-0063 (tiers), DEC-0081 (streams
   Opus, merge Fable), DEC-0034/0077 (ladders)
 related_pr: PR-0003
-status: OPEN
+status: TRIAGED
 revision: 1
 approval_ref: null
 created: '2026-09-06T16:30:57'
+triage_result: 'TRIAGED 2026-09-11 by the user''s word ''FR erstmal keine -- erstmal
+  alle Bugs beseitigen'': deferred behind PR-0012 (Bug-Null); nothing built here until
+  the bug list is true.'

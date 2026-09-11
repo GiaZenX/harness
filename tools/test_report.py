@@ -2004,6 +2004,29 @@ def test_the_approval_remedy_does_not_promise_a_mint_the_project_cannot_make(sta
     assert "request-approval scope" in str(wired.value)
 
 
+def test_the_route_says_or_between_approval_kinds_and_and_before_the_evidence():
+    """The rollup line is read by a role deciding what to obtain, so the join words carry a claim:
+    the approval kinds that commit one edge are ALTERNATIVES, the confirming Evidence is demanded on
+    top of whichever was given.
+
+    Measured on the running composer over the edge that really has two kinds since PR-0012 AC-1
+    (`BUG TRIAGED -> APPROVED` takes `scope` or `verification`) and over the edge that has one kind
+    and an Evidence -- both ends, so a fix that turns every join into "or" is as red as the "and"
+    it replaced.
+
+    RED WITHOUT the split in `_needs`: the line reads "needs a 'scope' approval and a
+    'verification' approval", which tells a role to obtain two approvals where one walks.
+    """
+    sentence = report._route_sentence("BUG", "TRIAGED")
+    assert "a 'scope' approval or a 'verification' approval" in sentence, sentence
+    assert "approval and a 'verification'" not in sentence, sentence
+    # the other end: what is NOT an alternative keeps its "and"
+    assert "VERIFIED (needs a passing 'test' Evidence)" in sentence, sentence
+    both = report._needs({"approvals": ("scope", "verification"), "evidence": "test"})
+    assert both == (" (needs a 'scope' approval or a 'verification' approval and a passing "
+                    "'test' Evidence)"), both
+
+
 def test_the_closing_route_of_a_bug_names_both_guards_between_it_and_verified(state):
     """H39, made visible: a repaired BUG passes a MINTED approval and a PASSING test Evidence.
 
@@ -2018,7 +2041,13 @@ def test_the_closing_route_of_a_bug_names_both_guards_between_it_and_verified(st
     assert [edge["to"] for edge in route["steps"]] == ["TRIAGED", "APPROVED", "FIXED", "VERIFIED"]
     assert route["choices"] == [], "VERIFIED ends the chain, so nothing is left to choose"
     guards = {edge["to"]: (edge["approvals"], edge["evidence"]) for edge in route["steps"]}
-    assert guards["APPROVED"] == (("scope",), None)
+    # BOTH kinds that commit this edge, by membership rather than as an ordered tuple: since
+    # PR-0012 AC-1 a `verification` approval commits the same TRIAGED -> APPROVED as `scope` does
+    # (one answer over a batch instead of one per defect), and the route is derived from
+    # `required_approval_kinds`, so it has to show both. Naming them here rather than comparing
+    # against that function keeps the assertion falsifiable instead of tautological.
+    assert "scope" in guards["APPROVED"][0] and guards["APPROVED"][1] is None, guards["APPROVED"]
+    assert approvals.VERIFICATION_KIND in guards["APPROVED"][0], guards["APPROVED"]
     assert guards["VERIFIED"] == ((), "test")
     assert guards["TRIAGED"] == ((), None) and guards["FIXED"] == ((), None)
 

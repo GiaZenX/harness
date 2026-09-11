@@ -1,0 +1,15 @@
+id: EVD-0255
+kind: test
+related:
+- BUG-0049
+result: pass
+summary: 'tests naming BUG-0049: 3 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_a_warning_is_recorded_as_a_warning_and_not_as_a_block
+  tools/test_hooks.py::test_the_give_up_line_says_what_the_retry_did tools/test_hooks_v2.py::test_the_same_idle_finding_refuses_only_one_turn_end
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:53:01'

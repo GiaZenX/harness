@@ -1,0 +1,51 @@
+id: BUG-0068
+title: After update-kit the repo-template refresh lands in the USER's terminal --
+  and the pending list overstates what differs (live finding, real BuyPlugGo update)
+related_pr: PR-0003
+observed: 'Live use 2026-08-25/26, the user''s REAL office project (OneDrive/4-BuyPlugGo,
+  2026.07.17-8 -> 2026.08.24-16): the kit update itself ran exactly as designed --
+  PM-driven, backup made, project_memory untouched, restart requested, state ''active'',
+  no marker left. THEN two defects in the follow-up template-refresh step: (1) THE
+  DEAD-END CLASS AGAIN (BUG-0041 family): .claude/kit_update_pending.repo says ''the
+  PM reviews each against the kit template, merges the kit''s fixes ... then DELETES
+  this file'' -- but the listed scripts include the ledger''s own guarded judge files
+  (scripts/ledger_add.py etc.), which NO agent may write from inside a session (deliberate,
+  the TSK-0083 hardening: every write path to the judge is refused). The PM therefore
+  handed the non-developer user literal cp lines to run ''im Terminal aus (im Projektordner)''.
+  The prose promises a merge the gates forbid; the escape hatch is a terminal step
+  for the one person who cannot comfortably operate it. (2) THE LIST WAS STALE OR
+  WRONGLY COMPUTED: of the four listed scripts, ALL FOUR are byte-identical to the
+  installed kit template (cmp), and three carry mtimes BEFORE the update (Jul 31 /
+  Aug 9 / Aug 14) -- so at least those four never needed a merge, and the user may
+  have been sent to the terminal for nothing. kit_update_pending.repo still stands
+  in the project, so session_status will nag every session until a PM reviews and
+  deletes it.'
+expected: Either a sanctioned, approval-gated kernel path refreshes kit-owned repo
+  templates (the set-preset/update-kit pattern -- the kernel is the writer, the user
+  signs the result), with the guarded judge files refreshed by the INSTALLER half
+  that already may write them; or the pending list splits honestly into 'the PM merges
+  these' and 'these need your hand, and here is why' -- never a blanket promise the
+  gates refuse. And the differ-computation must compare bytes against the installed
+  template so an identical file never appears on the list.
+repro: Old-stock office project, run the PM-driven update, read .claude/kit_update_pending.repo,
+  then cmp each listed scripts/ file against ~/.claude/team-kits/office-team/templates/repo/scripts/
+  -- identical files listed as differing; and ask the PM to merge scripts/ledger_add.py
+  -- every gated write path refuses, the PM escalates to the user's terminal.
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: an identical file never appears on the pending list (byte comparison against
+    the installed template; red-without-fix with a staged identical file)
+- id: AC-2
+  text: the guarded judge files are refreshed by a sanctioned route (installer half
+    or approval-gated kernel command), not by user-typed cp lines; measured end to
+    end on an old-stock copy
+- id: AC-3
+  text: the pending-list prose promises only what the gates allow, and names the user-hand
+    cases with their reason
+status: VERIFIED
+revision: 1
+approval_ref: APR-0039
+created: '2026-08-28T17:50:13'
+approved_hash: 69d9e58581100d15588ecb007d3bb3d1203d84a019b91ac362dcce7e704b46fe
+closed_at: '2026-09-11T18:47:07'

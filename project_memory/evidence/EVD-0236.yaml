@@ -1,0 +1,16 @@
+id: EVD-0236
+kind: test
+related:
+- BUG-0012
+result: pass
+summary: 'tests naming BUG-0012: 3 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest .claude/hooks/test_gates.py::test_gate1_cuts_a_declaration_head_because_it_is_one
+  .claude/hooks/test_gates.py::test_gate1_reads_a_function_definition_as_the_command_inside_it
+  .claude/hooks/test_gates.py::test_gate3_reads_a_declaration_head_with_the_same_cut_as_gate1
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:49:08'

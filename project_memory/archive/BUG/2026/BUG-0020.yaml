@@ -1,0 +1,60 @@
+id: BUG-0020
+title: Gate 1 vertraut der Aufruf-Form, nicht dem laufenden Kernel -- capture mit
+  fremdem PYTHONPATH und rm kanonischer Items laufen durch
+related_pr: PR-0002
+observed: 'Gemessen vom Pruefer 2026-08-10 (Runde 2), hoher Sicherheitsgrad. Die Garantie
+  ''der Kernel ist der einzige Schreiber kanonischen Zustands'' (SR-0006, gate_lead_write_scope)
+  ist ueber die KOMMANDOZEICHENKETTE durchgesetzt, nicht ueber die Identitaet des
+  laufenden Codes:
+
+
+  1. ''python -B -m kernel.cli --root project_memory capture ...'' schrieb kanonischen
+  Zustand durch, OBWOHL PYTHONPATH auf einen zurueckgesetzten (reverted, bug-behafteten)
+  Kernel ausserhalb des Repos zeigte. Das Gate erkennt die Form ''kernel.cli capture''
+  als erlaubt und prueft nicht, welcher kernel.cli tatsaechlich laeuft.
+
+  2. ''rm -f'' eines kanonischen Items (project_memory/decisions/active/DEC-*.yaml)
+  lief mit rc 0 durch.
+
+  3. Ein simples cp bzw. ein Write-Tool auf dieselbe Datei wird korrekt verweigert.
+
+
+  Daraus folgt: wer die Zeichenkette ''kernel.cli'' trifft, darf schreiben -- auch
+  mit einem fremden Kernel; und Loeschen (rm) ist gar nicht abgedeckt, nur Schreiben
+  ueber die erkannten Werkzeuge/Verben. Die Kette ist real und lief in einer Sitzung
+  durch (der Pruefer hat versehentlich genau darueber ein DEC im Repo-project_memory
+  erzeugt und wieder rm-en muessen, N5 desselben Berichts).
+
+
+  Nicht durch den BUG-0018-Fix eingefuehrt; tangential dabei aufgefallen.'
+expected: 'Der Schutz kanonischen Zustands haengt nicht an der Aufruf-Zeichenkette.
+  Entweder wird die Identitaet des schreibenden Kernels geprueft, oder das Loeschen
+  (rm/move) kanonischer Items wird ebenso erfasst wie das Schreiben -- oder die Grenze
+  wird als benannte, vom Nutzer abzunehmende Ausnahme gefuehrt (kein dritter Zustand).
+  DEC-0022: dies ist die Werkbank dieses Repos; ein Fix nur bei gemessener Kette --
+  die liegt vor.'
+repro: 1. Kernel-Kopie ausserhalb des Repos mit einer Aenderung. 2. PYTHONPATH auf
+  die Kopie, 'python -B -m kernel.cli --root project_memory capture DEC' mit Body
+  -> schreibt durch. 3. 'rm -f project_memory/decisions/active/DEC-<n>.yaml' -> rc
+  0. 4. Demgegenueber 'cp x project_memory/decisions/active/DEC-<n>.yaml' -> rc 2.
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: Ein capture ueber einen Kernel, der NICHT der des Repos ist (fremder PYTHONPATH),
+    wird entweder verweigert oder als solcher erkannt -- gemessen an einem echten
+    Hook-Prozess
+- id: AC-2
+  text: Das Loeschen/Verschieben eines kanonischen Items ueber die Shell wird erfasst
+    (verweigert oder als benannte Ausnahme gefuehrt), nicht nur das Schreiben -- gemessen
+- id: AC-3
+  text: Ein roter Test deckt beide Wege ab und wird ohne den Fix rot, in einem Klon
+    ausserhalb des Repos
+- id: AC-4
+  text: Wo die Kette nicht schliessbar ist, steht sie als benannte Ausnahme mit Begrenzung
+    in docs/POST_V2_WISHLIST.md -- kein dritter Zustand
+status: VERIFIED
+revision: 1
+approval_ref: APR-0038
+created: '2026-08-10T15:50:52'
+approved_hash: 35603091b6dc3668ffd573bd45df3eb4315f1dbff9b5dc8785dff1d41828c113
+closed_at: '2026-09-11T18:46:12'

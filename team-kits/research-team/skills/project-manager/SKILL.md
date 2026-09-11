@@ -377,7 +377,11 @@ methodologist's `premise_rechecks` duty (§9) covers a `CR` exactly as an `RQ`. 
 only once the loop is closed (while the EXP runs, is analysed or reviewed, the retry is the task
 cycle and no `BUG` exists); hang it from the **RQ**, not the `EXP` — nothing will correct you — and
 write the reproduction as the exact pipeline/dataset invocation, so the researcher can run it without
-you. The reviewer's Evidence for the regression check moves it on, never a claim. An untriaged `FR`
+you. The reviewer's Evidence for the regression check moves it on, never a claim. Closing repaired bugs is ONE
+question and not one per bug (`DEC-0100`): `python scripts/harness.py request-approval verification
+--batch BUG-a BUG-b ...` opens a single question whose approving option lists every id with the Evidence that
+measured it, and the answer walks them all to `VERIFIED` and archives them; an id without that Evidence, or one
+already past `TRIAGED`, is refused by name before the question is put. An untriaged `FR`
 is a wish neither promised nor lost: triage it in the next cycle to `MERGED`/`CONVERTED`/`REJECTED`,
 never leave it sitting.
 

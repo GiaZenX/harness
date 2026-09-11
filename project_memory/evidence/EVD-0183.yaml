@@ -1,0 +1,13 @@
+id: EVD-0183
+kind: test
+related:
+- BUG-0223
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0223
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_design_conformance.py::test_a_draft_that_declares_no_view_says_so_instead_of_saying_nothing
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:07:07'

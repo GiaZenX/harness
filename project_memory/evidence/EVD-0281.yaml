@@ -1,0 +1,17 @@
+id: EVD-0281
+kind: test
+related:
+- BUG-0072
+result: pass
+summary: 'tests naming BUG-0072: 6 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_a_wrong_but_reconciling_row_is_refused_although_the_arithmetic_holds
+  tools/test_hooks.py::test_einvoice_cii_document_allowance_net_is_the_tax_basis tools/test_hooks.py::test_einvoice_cii_invoice_no_not_guideline_urn
+  tools/test_hooks.py::test_einvoice_cii_multi_line_net_is_the_document_total_not_line_one
+  tools/test_kitupdate.py::test_every_kit_owned_path_is_shipped_by_some_kit tools/test_office_package.py::test_a_pdf_carrying_two_invoice_attachments_is_refused_not_guessed
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T18:27:24'

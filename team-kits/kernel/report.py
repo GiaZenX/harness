@@ -2013,8 +2013,19 @@ def closing_route(item_type: str, status: str) -> dict:
 
 
 def _needs(edge: dict) -> str:
-    """" (needs ...)" for one `_guarded_edge`, or "" when nothing stands in front of it."""
-    needed = ["a %r approval" % kind for kind in edge["approvals"]]
+    """" (needs ...)" for one `_guarded_edge`, or "" when nothing stands in front of it.
+
+    THE APPROVAL KINDS ARE ALTERNATIVES AND THE EVIDENCE IS NOT, so there is one "or" inside and
+    one "and" between. `required_approval_kinds` answers "which kinds COMMIT this edge" and any one
+    of them walks it, while a confirming Evidence is demanded on top of whichever was given. Until
+    a second kind existed for any edge both read the same and one join word said both -- the day
+    `BUG TRIAGED -> APPROVED` took `scope` OR `verification` (PR-0012 AC-1) that line started
+    telling every reader of the rollup to obtain two approvals where one walks.
+    `tools/test_report.py::test_the_route_says_or_between_approval_kinds_and_and_before_the_evidence`
+    """
+    needed = []
+    if edge["approvals"]:
+        needed.append(" or ".join("a %r approval" % kind for kind in edge["approvals"]))
     if edge["evidence"]:
         needed.append("a passing %r Evidence" % edge["evidence"])
     return " (needs %s)" % " and ".join(needed) if needed else ""

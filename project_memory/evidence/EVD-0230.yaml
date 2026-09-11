@@ -1,0 +1,14 @@
+id: EVD-0230
+kind: test
+related:
+- BUG-0004
+result: pass
+summary: 'tests naming BUG-0004: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_report.py::test_a_premise_recheck_naming_a_phantom_is_flagged
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:48:11'

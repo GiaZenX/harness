@@ -1,0 +1,14 @@
+id: EVD-0244
+kind: test
+related:
+- BUG-0035
+result: pass
+summary: 'tests naming BUG-0035: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest .claude/hooks/test_gates.py::test_no_statement_here_cites_a_replaced_contract_on_its_own
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:50:11'

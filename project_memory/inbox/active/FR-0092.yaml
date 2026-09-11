@@ -1,0 +1,38 @@
+id: FR-0092
+title: Jeder gestartete Agent traegt in seinem sichtbaren Namen Rolle + Modell + Aufwand
+  + Buchstabe bei mehreren gleichen (z. B. 'Frontend Developer Opus xhigh A' / 'Frontend
+  Developer Sonnet medium B') -- in der Hintergrundaufgaben-Ansicht sieht man sonst
+  nicht, wer arbeitet und womit
+request_text: 'User 2026-09-11 15:04 (screenshot of the background-tasks panel: ''Bug-Null
+  order 1: batch mint + re-runs (Opus) -- Agent 17:02 -- Opus 5 196k Tokens''): ''beim
+  Agenten soll immer das Modell stehen + Effort, und welcher Agent es ist, z. B. Frontend
+  Developer Opus XHigh, und dann noch eine Buchstabenkennzeichnung, wenn es mehrere
+  sind: Frontend Developer Opus XHigh A / Frontend Developer Sonnet Medium B. Wenn
+  ich die Hintergrundaufgaben oeffne, sieht man auf den ersten Blick nicht, wer arbeitet
+  und welches Modell.'''
+problem: 'The Agent tool''s `description` is what the panel shows; today the PM (and
+  this repo''s lead) writes it freely -- ''Bug-Null order 1: batch mint + re-runs
+  (Opus)'' names the order, not the role, and the effort not at all; with two builders
+  of one role nothing tells them apart. The lease already carries role, lease_rung,
+  lease_effort (PR-0010 AC-6, DEC-0091) -- the string exists in the state, it is just
+  not put on the spawn.'
+goal: (1) The kits' dispatch route hands the PM the exact spawn description -- '<Role
+  name> <Rung> <effort>' plus a letter A/B/C when more than one lease of that role
+  is live under the goal -- and gate_dispatch REFUSES a builder spawn whose description
+  does not carry the lease's role, rung and effort (structural, character-compared
+  like the approval question; no free text); (2) the reflection checkpoint prints
+  the string so the PM copies it; (3) this repo's lead uses the same form for its
+  own spawns from now on ('harness-implementer Opus high', 'harness-verifier Opus
+  high'); (4) red-first on the refusal and on the letter derivation (two live leases
+  of one role -> A and B; a third -> C; a finished one frees its letter).
+source: user message 2026-09-11 15:04 with screenshot; DEC-0091 (lease_rung/lease_effort);
+  DEC-0092 (the checkpoint); kits' hooks/gate_dispatch.py; PR-0010 AC-6
+related_pr: PR-0011
+status: TRIAGED
+revision: 1
+approval_ref: null
+created: '2026-09-11T15:05:18'
+triage_result: 'TRIAGED 2026-09-11: the user''s explicit wish, small and structural
+  (the lease carries the string already); queued behind PR-0012 per ''FR erstmal keine''
+  -- first order after Bug-Null, or folded into the next order touching gate_dispatch/the
+  checkpoint; the lead applies the naming form to its own spawns immediately.'

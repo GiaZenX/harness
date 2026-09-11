@@ -1,0 +1,13 @@
+id: EVD-0144
+kind: test
+related:
+- BUG-0064
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0064
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_hooks_v2.py::test_the_remedy_this_gate_prints_is_one_it_accepts
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:01:03'

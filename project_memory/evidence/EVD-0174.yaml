@@ -1,0 +1,13 @@
+id: EVD-0174
+kind: test
+related:
+- BUG-0203
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0203
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_finance_dashboard.py::test_an_invalid_ledger_is_named_on_the_page
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:06:18'

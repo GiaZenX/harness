@@ -1,0 +1,39 @@
+id: BUG-0021
+title: capture verweigert einen stdin-Body mit UTF-8-BOM, obwohl die Fehlermeldung
+  selbst utf-8-sig als Abhilfe nennt
+related_pr: PR-0001
+observed: 'Gemessen vom Pruefer 2026-08-10 (Runde 2, Neufund N1), hoher Sicherheitsgrad.
+  Der BUG-0018-Fix liest den capture-stdin-Body mit decode(''utf-8'') (team-kits/kernel/cli.py:505).
+  Das streift KEIN Byte-Order-Mark ab. Ein Produzent, der dem UTF-8-Strom ein BOM
+  voranstellt -- z. B. PowerShell-Here-String ueber eine Native-Pipe -- fuehrt zu:
+  ''the capture DEC body on stdin is not JSON (Unexpected UTF-8 BOM (decode using
+  utf-8-sig)...)'', exit 2. Die Meldung nennt utf-8-sig selbst als Remedy, der Code
+  wendet ihn nicht an.
+
+
+  KEIN Regress durch den Fix (vor dem Fix scheiterte der PowerShell-Weg anders), und
+  der Pilot benutzt fuer capture gemessen einen Bash-Heredoc ohne BOM -- beisst den
+  Piloten heute also nicht. Aber jeder BOM-vorangestellte UTF-8-Produzent (nicht nur
+  PowerShell) laesst capture scheitern, und das Repo hat an anderer Stelle bereits
+  Praezedenz, BOMs zu tolerieren (test_e2e_memory_complete_accepts_bom_config liest
+  Config als utf-8-sig, weil PowerShell BOMs schreibt).'
+expected: 'capture akzeptiert einen UTF-8-Body mit oder ohne BOM. Minimaler Fix: decode(''utf-8-sig'')
+  im stdin-Pfad, konsistent zum bestehenden Praezedenzfall der Config-Lesung.'
+repro: 'PowerShell: ein Here-String mit UTF-8-BOM ueber eine Native-Pipe an ''python
+  -B -m kernel.cli --root project_memory capture DEC''. Ergebnis: exit 2, ''Unexpected
+  UTF-8 BOM''.'
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: Ein capture-Body mit vorangestelltem UTF-8-BOM wird akzeptiert und korrekt
+    gespeichert -- gemessen an einem echten Aufruf, Byte-Ebene
+- id: AC-2
+  text: Ein Body ohne BOM funktioniert unveraendert weiter (kein Regress am Bash-Heredoc-Pfad)
+- id: AC-3
+  text: Ein Test deckt beide Faelle und wird ohne den Fix fuer den BOM-Fall rot
+status: VERIFIED
+revision: 1
+approval_ref: APR-0038
+created: '2026-08-10T15:51:14'
+approved_hash: 9adff96225a11548394e953d5734715fe8eb0b9a250f133e08a1dbb3c88557e1
+closed_at: '2026-09-11T18:46:13'

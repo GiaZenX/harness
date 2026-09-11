@@ -1,0 +1,40 @@
+id: PR-0001
+title: Migrationsweg V1 -> V2
+class: technical_enabler
+problem: 'Die V1-Verfassung sagt woertlich ''There is no migration tool''. Drei laufende
+  Projekte halten 958 Datensaetze in V1-Monolithen, die kein V2-Schreiber erreicht:
+  BuyPlugGo 16 PROC, synaipse 663, portfoliomanaigement 279 (gemessen 2026-08-04).
+  Ohne Migrationsweg ist V2 etwas, das nur neue Projekte bekommen, und jedes bestehende
+  sitzt fest.'
+goal: Jeder V1-Backlog-Datensatz wird ein typisiertes Item oder ein deklarierter Archiveintrag.
+  Ausserhalb des Archivs bleibt keine Datei mit einem Id-Datensatz liegen, damit nicht
+  dauerhaft alte und neue Struktur nebeneinander stehen.
+acceptance_criteria:
+- Ein Trockenlauf schreibt nichts und druckt eine Pruefsumme, die die Ausfuehrung
+  Byte fuer Byte reproduzieren muss.
+- Was das Werkzeug nicht mechanisch entscheiden kann, legt es als Entscheidung vor
+  statt zu raten.
+- Nach einem abgeschlossenen Lauf traegt keine Datei ausserhalb von archive/ und legacy/
+  mehr einen Id-Datensatz; validate setzt das durch.
+- Ein zweiter Lauf schreibt nichts.
+- Ein Lauf, der auf halber Strecke stirbt, benennt jede geschriebene Id und hinterlaesst
+  einen Beleg.
+invariants:
+- Der Kernel bleibt der einzige Schreiber des Zustands; migrate schreibt durch dasselbe
+  capture wie jede Rolle.
+- Was nicht uebersetzt werden kann, bleibt unangetastet liegen und wird mit Pruefsumme
+  beurkundet, nie verworfen.
+- Die Pruefsumme beweist Unveraendertheit des Zustands, nicht die Zustimmung eines
+  Nutzers.
+out_of_scope:
+- Marktplatz- und haendlerspezifische Ablaeufe aus dem Feldprojekt.
+- Ein Integritaetswaechter ueber zurueckbehaltene V1-Dateien (Spec II.10 verlangt
+  einen; legacy/ plus das Abschlusskriterium ersetzen ihn hier).
+- Rueckwirkendes Nachtragen des V2-Umbaus selbst als Backlog.
+priority: high
+status: ACCEPTED
+revision: 1
+approval_ref: APR-0037
+created: '2026-08-04T16:26:28'
+approved_hash: 2644797cd1eab9d8cda10d68ef296a6fa38dff4ed2483be7b1e154d3838537a1
+closed_at: '2026-09-11T14:58:14'

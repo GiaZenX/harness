@@ -1,0 +1,15 @@
+id: EVD-0253
+kind: test
+related:
+- BUG-0047
+result: pass
+summary: 'tests naming BUG-0047: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_a_role_writes_its_own_craft_memory_and_only_its_own
+  tools/test_role_contracts.py::test_the_memory_duty_is_only_prescribed_where_the_role_has_memory
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:52:33'

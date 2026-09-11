@@ -1,0 +1,15 @@
+id: EVD-0249
+kind: test
+related:
+- BUG-0042
+result: pass
+summary: 'tests naming BUG-0042: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_the_session_start_sweeps_a_dispatch_no_child_of_this_session_can_be_behind
+  tools/test_hooks.py::test_the_sweep_briefing_claims_only_the_dispatches_it_could_judge
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T17:51:59'

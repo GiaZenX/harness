@@ -1,0 +1,13 @@
+id: EVD-0185
+kind: test
+related:
+- BUG-0225
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0225
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_parallel_streams.py::test_a_route_the_caller_named_has_to_resolve_and_one_nobody_named_does_not
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:07:15'

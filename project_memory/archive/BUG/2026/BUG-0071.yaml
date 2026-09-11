@@ -1,0 +1,59 @@
+id: BUG-0071
+title: 'Master-data categories have NO kernel writer -- the P4-12 gap measured AGAIN
+  in live use: the PM cannot add an EUeR category even with a minted approval (dead-end
+  class, live find #3)'
+related_pr: PR-0003
+observed: 'Live use 2026-08-29, the user''s real office project: the tax-advisor invoice
+  needs the category ''Steuerberatungs- und Buchfuehrungskosten'' (the Anlage EUeR
+  has its own line for it), master_data.yaml carries no such key, and there is NO
+  kernel command for categories -- unlike filing rules, which got add-filing-rule
+  after pilot 4. The PM correctly identified it as a tool gap, not a guard doing its
+  job, and sent the user into the editor with a five-line YAML block (schema verified
+  correct by the lead against the neighbouring categories). This is the SAME finding
+  the office pilot already measured as P4-12 (''the bookkeeper hit an empty category
+  vocabulary in a kit document with no way to extend it'') -- the filing-plan half
+  was built (add-filing-rule), the master-data half was not. Third live dead-end of
+  the week after BUG-0068 and BUG-0070.'
+expected: A sanctioned, approval-gated kernel route extends the category list -- either
+  a dedicated add-category command following the add-filing-rule pattern (append-only,
+  schema-checked fields, refuses on duplicate key), or a general 'append to a named
+  list in a kit document' command whose allowed targets are a declared property of
+  the document templates rather than a hardcoded pair. The P4-12 lesson says the enumeration
+  'exactly two kernel commands write into kit documents' keeps producing this class
+  -- weigh the general mechanism in the round, do not just add a third special case
+  without naming why.
+repro: 'Office project, master_data.yaml without the needed category key, minted approval
+  present: no kernel command exists to add it; gate_write_scope refuses every agent
+  write; the PM escalates to the user''s editor.'
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: the PM can extend the category vocabulary through the kernel with an approval,
+    end to end on an old-stock copy outside the repo; red-without-fix reproduces the
+    dead end
+- id: AC-2
+  text: the command validates the entry against the category schema (required fields,
+    duplicate key refusal) and its message promises only what it builds
+- id: AC-3
+  text: the round records the special-case-vs-general-mechanism decision with its
+    reasons (P4-12 lineage)
+status: VERIFIED
+revision: 1
+approval_ref: APR-0040
+created: '2026-08-29T12:38:32'
+triage_result: 'BROADENED by the office PM''s own gap report 2026-08-29 (relayed by
+  the user): not one document but FOUR kit documents under project_memory/ have no
+  writer post-install -- content_guidelines.yaml, master_data.yaml, compliance_register.yaml,
+  business_profile.yaml -- while constitution paragraph 6 explicitly assigns their
+  CONTENT to roles; only filing_plan.yaml has a partial route (add-filing-rule, one
+  field). Measured consequence, four times in ONE day: a specialist works out the
+  content, can only place it in staging/, and the USER hand-copies it into the target
+  file. The PM proposed two shapes: per-document commands following the add-filing-rule
+  pattern, or a generic apply-proposal <file> --from staging/<TSK>/... with user approval.
+  That matches this item''s AC-3 (special-case vs general mechanism, decided with
+  reasons) -- the round now weighs BOTH shapes against the measured four-document
+  reality, and the P4-12 lineage note stands: the entry-phase rationale (no writer
+  after install) contradicts the constitution''s own role assignments, and the contradiction
+  is now measured, not suspected.'
+approved_hash: c98adc7bd90da47c34bf71599885799383121f6bd167a00f0ad1d90d549710e2
+closed_at: '2026-09-11T18:47:31'

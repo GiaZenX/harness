@@ -1,0 +1,13 @@
+id: EVD-0182
+kind: test
+related:
+- BUG-0222
+result: pass
+summary: re-run of the node TSK-0131 measured for BUG-0222
+artifact_refs:
+- staging/TSK-0138/rerun.log
+run_command: tools/test_hooks.py::test_shared_kit_files_identical
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T16:06:59'
