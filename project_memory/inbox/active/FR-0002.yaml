@@ -22,9 +22,9 @@ status: TRIAGED
 revision: 1
 approval_ref: null
 created: '2026-08-04T16:59:50'
-triage_result: 'USER VERDICT 2026-09-02 (FR survey, asked one by one via AskUserQuestion):
-  JA, BAUEN -- F1 is done via FR-0031/TSK-0102; F2-F6 as one template round, F7/F8
-  as own packages.'
+triage_result: PARTLY absorbed by PR-0009 (G5-3) -- the eight takeovers were not recounted
+  by the merge verifier (verify-round-1.md section 5); stays TRIAGED until the acceptance
+  of PR-0009 names which of the eight shipped
 source: 'RE-POINTED 2026-09-06 (TSK-0131, PR-0008 AC-2) from the generic PR-0003 bucket
   to the goal that carries the office package. The POINTER is written now and the
   STATUS is not: G5-3 (TSK-0132) is building against this goal in a parallel worktree,

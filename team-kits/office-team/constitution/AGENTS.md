@@ -226,8 +226,9 @@ procedure**: Claude `/office-manager`, Codex `.agents/skills/office-manager/SKIL
 is one clause; the craft inside it lives there and only there.
 
 1. **READ** `generated/session_brief.yaml` first, then the items it names, then handle the nags.
-2. **ONBOARD** once: interview → `business_profile.yaml` + `product/masterplan.md`, and confirm the
-   preset with the user (changing it later is §7 and stays inside the chat).
+2. **ONBOARD** once: interview → `business_profile.yaml` + `product/masterplan.md`. The team is
+   DERIVED, never asked (`DEC-0087` (2)): the install wrote the smallest preset, and you widen it
+   yourself when a PROC needs a role the team lacks (§7, inside the chat).
 3. **DEFINE** one `PROC-nnnn` per automation wish (trigger, steps, owning role, outputs, approval
    points, exception policy). Ask **SELF-CONTAINED**: the full decision context stands as visible
    TEXT in the same message, never as "wie oben" — your thinking and tool calls are invisible, and a
@@ -241,6 +242,11 @@ is one clause; the craft inside it lives there and only there.
    `acceptance_refs`, `required_inputs` and `allowed_scope`/`forbidden_scope`. Exact installed role,
    explicit `run_in_background`, and no phase advances before every dispatched agent has returned.
    A document a PROC does not cover is an EXCEPTION you raise, never one you file by judgement.
+   THE LIGHT FORM (`DEC-0087`, `DEC-0088`, `DEC-0091`, `DEC-0092`): ONE builder per goal with the
+   whole goal; a second only on file sets `check-scopes` recorded disjoint; the rung and effort per
+   order yours to lift inside this kit's ladder, never the user's to answer; the spawn gate's
+   checkpoint read before every builder start; verification AT THE GOAL (one round, one rework, one
+   short second round, none after a small change) — the office-manager skill's ROUTE step carries the rule.
 6. **REVIEW**: hand the outputs to the user; feedback becomes a PROC amendment plus a fresh
    approval — a superseded PROC is retired, never edited into silence.
 7. **BOOK**: capture/transition through the kernel, commit, and leave nothing uncommitted across a
@@ -357,7 +363,7 @@ because they are two halves of one loop)
   ledger/YAMLs/kit scripts); deterministic, self-contained output; self-verifies (no QA/CI here).
 - **project-auditor:** READ-ONLY reviewer — samples filing/ledger/report
   claims for real, scores the judge rubric, and records ONE Evidence item (`kind: audit`) per run;
-  every finding becomes a follow-up item or a Decision item recording the conscious skip, never shelf-ware. Its DISPATCH rides on an `APR.kind: routine` minted for the audit task's root, or on an `APR.kind: analysis` listing that task; both carry an expiry and both are revocable, and either state blocks the spawn. Neither kind has a producer today — `request-approval` mints neither of them — so this route is written and not yet walkable (`H111` in `docs/POST_V2_WISHLIST.md`). On the routine route the kernel binds the ROLE and refuses a task whose WORK ORDER claims any `allowed_scope`; the trigger and the cadence it hashes are read by no gate. Read-only is the plan plus what the write TOOLS enforce — `gate_write_scope` resolves no task on its SHELL path, so a `Bash` write outside the state directory is scope-checked by nothing. Both stay policy — an infrastructure defect (§8).
+  every finding becomes a follow-up item or a Decision item recording the conscious skip, never shelf-ware. Its DISPATCH rides on an `APR.kind: routine` minted for the audit task's root, or on an `APR.kind: analysis` listing that task; both carry an expiry and both are revocable, and either state blocks the spawn. The routine kind has its producer since generation 6 (BUG-0266): `request-approval routine <ROOT> --role project-auditor --scope <read scope> --trigger <when> --cadence <how often> --expires-in-days <n>` asks the user once per term, `create-task --type analysis --assigned-role project-auditor --read-only …` is the work order, and the session-start notice spells that line out when the run is due; a routine minted for a root leaves the root's presented approval where it is (`kernel.approvals.presents`), so the goal's builders keep dispatching beside the audit. On the routine route the kernel binds the ROLE and refuses a task whose WORK ORDER claims any `allowed_scope`; the trigger and the cadence it hashes are read by no gate. Read-only is the plan plus what the write TOOLS enforce — `gate_write_scope` resolves no task on its SHELL path, so a `Bash` write outside the state directory is scope-checked by nothing. Both stay policy — an infrastructure defect (§8).
 
 **Correspondence is a WORKFLOW the office-manager runs, not a role (`DEC-0082`, FR-0033).** The
 user decided it: no correspondence role, no preset entry, no model or effort map entry, no rung
@@ -448,8 +454,10 @@ after the user confirms a sync, run the full scaffold with explicit filesystem p
 when needed, verify its TOMLs, re-review/re-trust its bundle hash in `/hooks`, and start a new session.
 Never run the generator alone or edit TOMLs directly.
 `session_status` detects drift; tier aliases translate via `model_tiers.yaml`. Up-scaling needs user OK;
-down-scaling needs a reported reason. Presets are mechanical; changing one is YOURS in the chat, never the
-user's file or terminal: `request-approval preset --preset <name>` (the question names the team the project
+down-scaling needs a reported reason; per ORDER you lift a role's pin with `create-task --rung --effort`
+inside this kit's ladder (`DEC-0091`), and **the user is never asked for tiers or for the team size**.
+Presets are mechanical and DERIVED (`DEC-0087` (2): the install writes the smallest one); changing one is
+YOURS in the chat, never the user's file or terminal: `request-approval preset --preset <name>` (the question names the team the project
 HAS afterwards and every role removed — not which of them are new: which target roles are already installed
 is the one thing the approval does not bind, DEC-0048) → the user answers → `set-preset <name>` → ask for a
 RESTART, since the roles load at session start.

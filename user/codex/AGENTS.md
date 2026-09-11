@@ -85,19 +85,26 @@ Before every question, write one or two short sentences explaining the context a
 recommendation. Use Codex's structured question tool when it is available; otherwise ask one concise
 question in plain prose. Discovery questions concern product goals, research goals, business needs,
 constraints, and user-owned preferences. Workflow and confirmation questions are also allowed when
-required below: structured/free choice, kit/preset selection, assessment and plan approval, managed
+required below: memory/free choice, kit selection, assessment and plan approval, managed
 file replacement consent, mode switch, trust, and restart. Never ask the user to choose architecture,
 frameworks, hardware, experiment design, or implementation details that belong to the team.
 
 ## First-contact gate - ASK, never assume
 
-Recommend the structured manager because it preserves requirements, decisions, validation, and
-handoffs; state that the user can choose Free mode instead. Then ask exactly:
+Say in one or two sentences what the long-term memory buys (a project file that survives every
+session - the decisions, the approvals, the evidence - and a Project Manager who keeps it) and that
+Free mode stays available. Then ask exactly (`DEC-0087` (4)):
 
-**"Strukturiert ueber einen Project Manager arbeiten?"**
+**"Mit Langzeit-Gedaechtnis fuer das Projekt (Projektakte, Entscheidungen, Beweise) - oder erstmal frei?"**
 
-- **Ja - strukturiert** -> run **Auto-Init** below.
-- **Nein - frei/unstrukturiert** -> enter **Free mode** below.
+- **Mit Langzeit-Gedaechtnis** -> run **Auto-Init** below: the kit is installed at once, in the light
+  form - ONE builder per goal, the team derived from the goal by the Project Manager, never asked of
+  the user (`DEC-0087` (1)/(2)).
+- **Erstmal frei** -> enter **Free mode** below.
+
+What is NOT asked here or later: how many specialists, which team size, which model tier. The
+Project Manager derives those (`DEC-0088`, `DEC-0091`); the user is asked for the plan, the scope,
+the delivery and the acceptance, and for a missing role only when the work needs one (`DEC-0048`).
 
 Until the user answers, write no code and create no project files.
 
@@ -119,21 +126,14 @@ Then read the selected team's `requires_before_install` in the same file and car
 the interview below. Those files have no writer once the kit is installed, so whatever you do not
 draft with the user now, nobody can add later.
 
-Read the selected kit's `presets.yaml` and ask which TEAM SIZE the user wants, as its own question:
-how many specialists work on their project, and therefore what it costs in time and tokens, is a
-product decision and belongs to them. Offer that kit's presets by name, describe what each one brings
-in plain words rather than as a role list, recommend one with a reason, and obtain explicit
-confirmation. What you write in step 4.3 is their answer, not your recommendation, and never the
-template default left standing as an unconfirmed placeholder. Say in the same breath that it is **not
-a one-way door**: whenever the work needs another role the installed lead asks them again and applies
-that answer with `set-preset` — and the question they will see names the team as it stands AFTERWARDS
-plus what falls away, never which roles are new (`DEC-0048`).
-**The QUESTION ITSELF has to carry that**, not the prose in front of it: put this clause verbatim
-into the question text — »Diese Wahl ist nicht endgültig: fehlt später eine Rolle, fragt der Project
-Manager dich erneut und passt das Team an.« Pilot 4 measured a team question whose FULL text — header,
-question and every option — never mentioned it, while this paragraph had demanded it "in the same
-breath" since 2026-08-15; a user reading only the question chooses as if the door were one-way
-(`P4-6`).
+The team is NOT asked (`DEC-0087` (2)/(4)): the kit installs in its light form with the SMALLEST
+preset - the one with the fewest roles in its own `presets.yaml` (`solo` in dev-team and
+research-team, `core` in office-team) - and every further role is the
+installed lead's derivation later - it asks the user again only when the work needs a role the team
+lacks and applies the answer with `set-preset` (`DEC-0048`: that question names the team as it stands
+AFTERWARDS plus what falls away, never which roles are new). Until 2026-09-11 this step asked which
+team size the user wanted, as its own question with a reversibility clause (P4-6); the light form
+removed the question and kept only its escape.
 
 ### 2. Detect greenfield versus existing repository - READ ONLY
 
@@ -185,7 +185,7 @@ Draft a substantial MASTERPLAN, not a stub. It must contain:
 - one to three clearly marked recommendations of your own, each tied to a concrete goal, risk, or
   trade-off;
 - a rough delivery or investigation outline;
-- the selected team kit and recommended preset;
+- the selected team kit (the team itself is derived by the lead, not a plan item);
 - for an onboarded repository, a factual summary of the current state and the gaps that still need
   specialist assessment.
 
@@ -261,9 +261,10 @@ the confirmed bootstrap draft, using the schemas shipped by the selected kit:
      fields a rule carries, and it is the authority on them, not this file. Do not create or approve a
      `PROC` (`procedures/active/PROC-nnnn.yaml`) here; the Office Manager does that with the user after
      handover.
-3. In `project_memory/project_config.yaml`, set the confirmed `project.name` and the `project.preset`
-   the user ANSWERED the team-size question with — their answer, not your recommendation and not the
-   template default.
+3. In `project_memory/project_config.yaml`, set the confirmed `project.name` and `project.preset`
+   to the light form's default - the kit's smallest preset (fewest roles: `solo` where the kit has
+   one, otherwise its smallest, `core` for the office kit), never the template placeholder
+   (`DEC-0087` (2)/(4)); the lead derives every further role later and asks only when one is missing.
    Where the schema contains `project.repo_mode`, set it to `greenfield` or `onboarded` from step 2. Fill
    the rest of the config for the same reason as the masterplan: nothing writes it after the install
    (`set-preset` owns `project.preset` and nothing else), and
@@ -345,7 +346,7 @@ Use this handover wording as the model:
 > Starte anschliessend noch eine neue Session und schreibe zum Beispiel `weiter`. Der Manager
 > uebernimmt den Entwurf und macht genau dort weiter.
 
-## Free mode (user chose "Nein")
+## Free mode (user chose "erstmal frei")
 
 Work normally and directly. Create and maintain no `project_memory/` at all - no items, no masterplan,
 nothing generated from them. Mention only occasionally - not every turn - that the structured manager is

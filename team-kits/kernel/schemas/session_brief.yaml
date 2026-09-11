@@ -47,6 +47,13 @@ fields:
     item_type: dict
     required: true
     item_required: [id, title, decision]
+  lease_distribution:
+    # ADDITIVE beyond the II.5 list (DEC-0092 (4)): the last-N leases of this project as the habit
+    # they show -- builders per goal, rungs, runs to done per rung -- plus the one `line` a user
+    # reads. Derived in report.py (`lease_distribution`) from the task items alone; the same
+    # reading the spawn gate's checkpoint hands the PM (DEC-0092 (3)(d)).
+    type: dict
+    required: true
   budget_status:
     type: dict
     required: true

@@ -10,9 +10,13 @@ request_text: 'Thin FR from the wishlist pass of TSK-0110 (FR-0036), docs/POST_V
   wants it -- NOT for a GmbH (FR-0076). Acceptance from the section itself: year-versioned
   template, legal space named, mapping category -> EUeR line testable against the
   shipped form year.'
-status: OPEN
+status: MERGED
 revision: 1
 approval_ref: null
 created: '2026-09-02T19:50:11'
 source: RE-POINTED 2026-09-06 (TSK-0131, PR-0008 AC-2) from FR-0032 (a wish is not
   a goal) to the office package goal. The status waits for G5-3.
+resulting_item: PR-0009
+triage_result: 'DELIVERED in generation 5 (G5-3): chart_of_accounts.yaml (SKR03/SKR04
+  + EUeR mapping, year-versioned) with its kernel writer; merged TSK-0133'
+closed_at: '2026-09-11T01:50:58'

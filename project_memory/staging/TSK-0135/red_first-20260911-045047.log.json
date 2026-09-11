@@ -1,0 +1,19 @@
+{
+  "clock_start": "2026-09-11 04:50:49",
+  "tree": "C:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\tree",
+  "rows": [
+    {
+      "id": "P3-AC2",
+      "file": "team-kits/office-team/skills/office-manager/SKILL.md",
+      "defect": "AC-2: the office lead asks the user for the team size again",
+      "suite": "test_hooks.py",
+      "test": "test_no_entry_file_and_no_lead_text_asks_the_user_for_the_team_size",
+      "rc": 1,
+      "failure_line": "AssertionError: these texts still ask the user for the team size: {'team-kits\\\\office-team\\\\skills\\\\office-manager\\\\SKILL.md': ['Preset confirm (recommend `core` first \ufffd presets are MECHANICAL; ask which TEAM SIZE the user wants and obtain explicit confirmation) -- and you widen it yourse']} | assert not {'team-kits\\\\office-team\\\\skills\\\\office-manager\\\\SKILL.md': ['Preset confirm (recommend `core",
+      "summary": "1 failed, 1019 deselected in 2.85s",
+      "clock": "04:50:53"
+    }
+  ],
+  "clock_end": "2026-09-11 04:50:53",
+  "restored": true
+}

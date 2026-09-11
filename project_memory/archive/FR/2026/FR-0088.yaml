@@ -23,7 +23,12 @@ request_text: 'User 2026-09-05: ''Wieso laeuft der codex watcher eigentlich nie?
 source: user statement 2026-09-05 ('Astra - Sol - Terra'); team-kits/model_tiers.yaml:8,13,23,43-49;
   radar/ listing (0 codex reports); DEC-0034; FR-0047
 related_pr: PR-0010
-status: OPEN
+status: MERGED
 revision: 1
 approval_ref: null
 created: '2026-09-05T10:06:55'
+resulting_item: PR-0010
+triage_result: 'DELIVERED in generation 5 (G5-2, TSK-0130): model_tiers.yaml three
+  rungs per provider (astra/sol/terra = fable/opus/sonnet), generator refusal of a
+  light pin, ladder.yaml per kit, escalation in the dispatcher; merged TSK-0133'
+closed_at: '2026-09-11T01:50:42'

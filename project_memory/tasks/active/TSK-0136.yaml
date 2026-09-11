@@ -1,0 +1,123 @@
+id: TSK-0136
+product_requirement: PR-0011
+derives_from: PR-0011
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-3
+allowed_scope:
+- team-kits/dev-team/ladder.yaml
+- team-kits/research-team/ladder.yaml
+- team-kits/office-team/ladder.yaml
+- team-kits/dev-team/agents/project-manager.md
+- team-kits/research-team/agents/research-lead.md
+- team-kits/office-team/agents/office-manager.md
+- team-kits/dev-team/constitution/AGENTS.md
+- team-kits/research-team/constitution/AGENTS.md
+- team-kits/office-team/constitution/AGENTS.md
+- team-kits/dev-team/skills/project-manager/SKILL.md
+- team-kits/research-team/skills/project-manager/SKILL.md
+- team-kits/office-team/skills/office-manager/SKILL.md
+- team-kits/model_tiers.yaml
+- team-kits/kernel/dispatch.py
+- .claude/agents/harness-lead.md
+- .claude/agents/harness-implementer.md
+- tools/test_ladder.py
+- tools/test_model_ladder.py
+- tools/test_light_kit.py
+- tools/test_role_contracts.py
+- tools/test_review_procedure.py
+- tools/lead_package_sizes.json
+- docs/reviews/phase0-disposition.md
+- docs/POST_V2_WISHLIST.md
+- README.md
+- CLAUDE.md
+- tools/test_hooks.py
+- tools/provider_observations.json
+forbidden_scope:
+- .claude/settings.json
+- .claude/hooks/**
+- project_memory/**
+- user/**
+- radar/**
+- team-kits/*/hooks/**
+- team-kits/*/settings/**
+required_inputs:
+- DEC-0095 (builder default opus; orchestrator opus; verifier opus; Fable only for
+  the architecture step of a LARGE goal and as the escalation target after a failed
+  opus build; cost discipline) -- cited by every file that implements it; DEC-0088
+  (1) is superseded on the tier line and stays on cadence; DEC-0091 (rung per order,
+  max() with the floor) and DEC-0034 rule 2 (one rung per FAIL) are the mechanics
+  Fable is reached through
+- 'DEC-0096 (escalation: effort before rung; FAIL 1 effort +1, FAIL 2 re-cut, FAIL
+  3 rung +1; the two thresholds as config values with their DEC line) -- the mechanic
+  this order builds beside DEC-0095''s pins'
+- 'the committed generation-6 tree (base after TSK-0135''s commit): team-kits/*/ladder.yaml
+  classes today -- dev/research planning: top, architecture: top, design: opus, qa:
+  opus, build: pin; office planning: top (= opus), qa: opus, build: pin, reading:
+  pin; pins today -- dev project-manager `model: fable`, office-manager `lead`, build
+  roles `worker`; this repo: harness-implementer opus, harness-verifier opus, harness-lead
+  NO model line (the session runs on the platform default); tools/test_ladder.py +
+  test_model_ladder.py + test_light_kit.py read the ladders, the pins and the constitutions''
+  ladder paragraph (one bold statement carrying both axes)'
+- 'the (g) tables of generations 5 and 6 (round logs) -- the numbers the change is
+  measured against later: rounds-to-PASS per rung in report.lease_distribution'
+- 'HOST RULES: one pytest at a time with timeouts derived from measured durations;
+  reading suites only (a slice under a goal, DEC-0088 (d)); no full run; clock read;
+  scratch under C:/Offline Repos/v2-testbed/_round-scratch/(this task id)/; agents
+  read end lines and named sections, never whole logs (DEC-0095 (6))'
+- forbidden_scope project_memory/** EXCEPTS project_memory/staging/(this task id)/
+expected_outputs:
+- 'LADDERS (DEC-0095 (1)/(2)/(4)): in dev-team and research-team ladder.yaml `build:
+  opus` and `planning: opus`, `architecture: top` kept, design/qa unchanged; office-team
+  UNCHANGED (its floors are DEC-0078''s: build and reading stay pin, top is opus already)
+  -- the protocol states why; each changed line cites DEC-0095; red-first: the ladder
+  reader (tools/test_ladder.py) has a test asserting the build class of dev/research
+  starts on opus and the architecture class on top, red on the old `build: pin`.'
+- 'PINS (DEC-0095 (2)): dev project-manager.md `model: opus`, research-lead.md and
+  office-manager.md on the opus rung (the `lead` alias resolves to opus -- keep or
+  spell, say which), this repo''s .claude/agents/harness-lead.md gets `model: opus`
+  (effective at the next session start -- the protocol says so), harness-implementer
+  stays opus; test_model_pins / test_role_contracts red on a `fable` PM pin.'
+- 'TEXTS: the constitutions'' ladder paragraph (the ONE bold statement carrying both
+  axes -- seam N18 / H191''s reader) says: build starts on opus, architecture on the
+  top rung, escalation climbs one rung per failed run, Fable is reached by failure
+  or by the architecture step, never chosen as a standing tier; the PM skills'' three-line
+  rule (DEC-0091) unchanged; model_tiers.yaml''s header names DEC-0095 beside DEC-0076;
+  README''s tier sentence follows; the reading tests (test_review_procedure, test_model_ladder)
+  stay green and one of them is red on a paragraph that names fable as the build start.'
+- 'COST DISCIPLINE TEXT (DEC-0095 (6)): the harness-implementer / harness-verifier
+  role texts of this repo and the kits'' implementing roles carry the reading rule
+  (end lines and named sections, never whole logs; short reports) -- byte-identical
+  where shared (the comment-discipline pattern), with the tripwire test extended.'
+- 'RUNS: tools/test_ladder.py, test_model_ladder.py, test_light_kit.py, test_role_contracts.py,
+  test_review_procedure.py, test_model_pins.py in full; `python tools/bump_kit_version.py`
+  (kit files change -> one stamp); ruff + validate.py green; protocol in project_memory/staging/(this
+  task id)/protocol.md with the file table, the red-first rows (arbiter''s failure
+  line), the (g) row, the patch path; no commit, no push.'
+- 'ESCALATION ORDER (DEC-0096): `escalation.effort_steps_before_rung: 2` and `escalation.failed_runs_per_rung:
+  3` in the three ladder.yaml (each line citing DEC-0096; office''s ceiling makes
+  its first step a no-op -- said there); kernel/dispatch.py ladder_for_order derives
+  from the order''s FAILED count: FAIL 1 -> same rung, effort +1 (capped by the kit''s
+  ceiling), FAIL 2 -> same rung at the raised effort, FAIL 3 -> rung +1 with the effort
+  back at the kit''s default; the lease `why` and the checkpoint print ''FAIL n: ...'';
+  report.lease_distribution records rounds-to-PASS per rung AND per effort; red-first:
+  a test per FAIL count (0/1/2/3) on a synthetic ladder plus the real dev ladder,
+  red on today''s one-rung-per-FAIL; the constitutions'' ladder statement says effort
+  before rung.'
+- 'EDITORIAL LINES from verify-goal-2.md (TSK-0135 round 2, items 1 and 3): tools/test_hooks.py:6086-6088
+  -- the two dead alternatives of the AC-2 vocabulary (`nie gefragt`, `no team-size
+  question`, each carrying 0 shipped sentences) removed or named as deliberately forward-standing
+  beside the comment that declares dead entries a rule; tools/provider_observations.json
+  headless_pm_stop_point.run_1 -- the label ''64.9 s of API time'' corrected to ''64.9
+  s wall-clock (27.5 s API)'' per the raw record (duration_ms 64921 / duration_api_ms
+  27464); no test change beyond the vocabulary''s own tripwire.'
+dependencies:
+- TSK-0135
+rung: opus
+effort: high
+root_revision: 1
+status: DRAFT
+revision: 1
+approval_ref: null
+created: '2026-09-11T07:13:36'

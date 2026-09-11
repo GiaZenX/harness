@@ -216,7 +216,7 @@ def test_a_project_without_a_scaffold_record_gets_no_rung_and_no_refusal(tmp_pat
     assert dispatch.RUNG_KEY not in lease and dispatch.EFFORT_KEY not in lease
     header = json.loads(dispatch.dispatch_header(lease)[len(dispatch.HEADER_PREFIX):])
     assert dispatch.RUNG_KEY not in header and dispatch.EFFORT_KEY not in header
-    assert dispatch.RUNG_KEY not in state.read_item(task["id"])
+    assert dispatch.LEASE_RUNG_FIELD not in state.read_item(task["id"])
     assert "no rung" in dispatch.ladder_line(lease)
 
 
@@ -372,7 +372,7 @@ def test_an_order_that_failed_climbs_one_rung_per_failed_run_capped_at_the_top(s
         state.transition(task["id"], "READY", approved_retry=True)
         lease, item = lease_of(state, task)
         assert lease[dispatch.RUNG_KEY] == expected, lease[dispatch.LADDER_KEY]
-        assert item[dispatch.FAILED_RUNS] == count and item[dispatch.RUNG_KEY] == expected
+        assert item[dispatch.FAILED_RUNS] == count and item[dispatch.LEASE_RUNG_FIELD] == expected
         assert lease[dispatch.LADDER_KEY]["failed_runs"] == count
 
 
@@ -489,6 +489,14 @@ def test_the_filing_pair_starts_on_its_pin_at_low_effort_and_still_climbs(store)
             "changed, the two texts that describe it have to change with it: %s"
             % (role, climbed[dispatch.LADDER_KEY]))
         assert climbed[dispatch.EFFORT_KEY] == "low", climbed[dispatch.LADDER_KEY]
+        # ...AND AN ORDER'S ASK DOES NOT LIFT THE FLOOR EITHER (DEC-0091 (2) with DEC-0047's
+        # reason): the exception is floor and ceiling. Measured lifted to `high` at TSK-0135's
+        # mid-goal check (B2) before this line; the answer names the ask and the exception both.
+        asked, _item = lease_of(state, store.order(state, pr, role=role, type="review",
+                                                   **{dispatch.EFFORT_KEY: "high"}))
+        assert asked[dispatch.EFFORT_KEY] == "low", (role, asked[dispatch.LADDER_KEY])
+        assert "the order asks high, but the exception fixes low" in asked[dispatch.LADDER_KEY]["why"], (
+            asked[dispatch.LADDER_KEY]["why"])
 
 
 def test_a_top_below_a_pin_lowers_it_and_the_answer_says_so(store):
@@ -508,7 +516,7 @@ def test_a_top_below_a_pin_lowers_it_and_the_answer_says_so(store):
     state, pr = store.project("lowtop", "low-top", {"backend-developer": "opus"})
     lease, item = lease_of(state, store.order(state, pr))
     assert lease[dispatch.RUNG_KEY] == "sonnet", lease[dispatch.LADDER_KEY]
-    assert item[dispatch.RUNG_KEY] == "sonnet"
+    assert item[dispatch.LEASE_RUNG_FIELD] == "sonnet"
     why = lease[dispatch.LADDER_KEY]["why"]
     assert "pin opus" in why and "top sonnet" in why, why
     assert "rung sonnet" in dispatch.ladder_line(lease) and "pin opus" in dispatch.ladder_line(lease)
@@ -553,13 +561,23 @@ def test_an_exception_moves_one_roles_top_and_the_climb_stops_there(store):
 
 def test_the_header_and_the_task_carry_the_rung_and_effort(store):
     """DEC-0077 (5): the two values reach the lead in the header it copies and the task item the
-    brief reads; the derivation itself stays on the lease."""
+    brief reads; the derivation itself stays on the lease.
+
+    ON THE TASK THEY LAND UNDER THE `LEASE_*` NAMES and never under `rung`/`effort`, because those
+    two on a task are the PM's ASK (DEC-0091 (1)) -- written back there, the derived value would
+    be the next lease's floor and an order that climbed once would climb twice
+    (`test_an_order_rung_lifts_the_start_and_the_climb_begins_there` measures the climb from the
+    ask). The class rides along for the distribution (DEC-0092 (4)).
+    """
     store.kit("kit")
     state, pr = store.project("p", "kit", {"backend-developer": "sonnet"})
     lease, item = lease_of(state, store.order(state, pr))
     header = json.loads(dispatch.dispatch_header(lease)[len(dispatch.HEADER_PREFIX):])
     assert (header[dispatch.RUNG_KEY], header[dispatch.EFFORT_KEY]) == ("sonnet", "high")
-    assert (item[dispatch.RUNG_KEY], item[dispatch.EFFORT_KEY]) == ("sonnet", "high")
+    assert (item[dispatch.LEASE_RUNG_FIELD], item[dispatch.LEASE_EFFORT_FIELD]) == ("sonnet", "high")
+    assert item[dispatch.LEASE_CLASS_FIELD] == "build"
+    assert dispatch.RUNG_KEY not in item and dispatch.EFFORT_KEY not in item, (
+        "the lease wrote its answer under the ask's name: %s" % item)
     assert lease[dispatch.LADDER_KEY]["why"].startswith("sonnet: pin sonnet")
     assert "rung sonnet, effort high" in dispatch.ladder_line(lease)
 

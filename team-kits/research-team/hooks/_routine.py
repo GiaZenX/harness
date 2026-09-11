@@ -48,11 +48,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 STATE_DIRNAME = "project_memory"
 
-# THE ROLE THIS KIT'S RECURRING AUDIT RUNS AS. It is named here rather than derived, and the reason
-# is measured rather than assumed: the carrier the constitutions point at — an `APR.kind: routine`,
-# whose manifest hashes role/scope/trigger/cadence — has NO producer in any kit (`H111`). Neither
-# `kernel/cli.py` nor a kit's `scripts/harness.py` can create one, so a module that read the role
-# off an approval would read nothing, forever.
+# THE ROLE THIS KIT'S RECURRING AUDIT RUNS AS. It is named here rather than derived: this notice
+# fires BEFORE any routine approval exists in a fresh project (the first session start owes the
+# first run), so a module that read the role off an approval would have nothing to read exactly
+# when it has to speak. Since PR-0011 AC-8 the entry point can produce the approval
+# (`request-approval routine <ROOT> --role ... --expires-in-days ...`); this constant is what
+# the notice proposes that line with.
 # `tools/test_routine_feed.py::test_the_audited_role_is_a_role_every_kit_ships` keeps this name from
 # pointing at an agent that no longer exists, in all three kits at once.
 # THE OTHER DIRECTION IS UNCOVERED and stays that way here: a SECOND auditing role appearing beside
@@ -157,9 +158,14 @@ def routine_duties(root, today):
     due = today - datetime.timedelta(days=today.isocalendar()[2] - 1)
     duties.append(duty(
         "the %s has not run in %s (last run in this project's event log: %s) — propose it to the "
-        "user and spawn it yourself; no hook starts a run"
+        "user and spawn it yourself on its READ-ONLY route: `python scripts/harness.py "
+        "request-approval routine <ROOT_ID> --role %s --scope <read scope> --trigger <when> "
+        "--cadence <how often> --expires-in-days <n>` (relay the question verbatim; the user answers, "
+        "once per term), then `create-task --type analysis --assigned-role %s --read-only ...`, "
+        "`transition <TSK> READY`, `dispatch <TSK>`; the report lands as items through the kernel. "
+        "No hook starts a run"
         % (AUDIT_ROLE, period,
-           when.strftime(RUN_TIME_FORMAT) if when is not None else "none"),
+           when.strftime(RUN_TIME_FORMAT) if when is not None else "none", AUDIT_ROLE, AUDIT_ROLE),
         due, "%s/.audit run records" % STATE_DIRNAME))
     return duties, unreadable
 

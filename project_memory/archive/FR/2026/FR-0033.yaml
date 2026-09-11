@@ -12,13 +12,14 @@ request_text: 'Gap named by the lead and prioritised by the user 2026-08-15 (all
   and is guarded). Design question for the round: role vs taught workflow -- measure
   what the PROC mechanism can already carry before adding a role. Source: user selection
   2026-08-15.'
-status: TRIAGED
+status: MERGED
 revision: 1
 approval_ref: null
 created: '2026-08-15T23:03:40'
-triage_result: 'USER VERDICT 2026-09-02 (FR survey, asked one by one via AskUserQuestion):
-  Spaeter -- outbox/ is the shared outgoing tray for every role (clarified); the invoice
-  WRITER became FR-0073.'
+triage_result: 'DELIVERED in generation 5 (G5-3, DEC-0082): correspondence as a teachable
+  workflow (letter_draft.py, correspondence.yaml, skills/correspondence); merged TSK-0133'
 related_pr: PR-0009
 source: 'RE-POINTED 2026-09-06 (TSK-0131, PR-0008 AC-2): PR-0009''s own title names
   this wish as its subject (the correspondence capability). The status waits for G5-3.'
+resulting_item: PR-0009
+closed_at: '2026-09-11T01:50:54'

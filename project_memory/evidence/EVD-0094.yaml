@@ -1,0 +1,17 @@
+id: EVD-0094
+kind: review
+related:
+- TSK-0133
+result: pass
+summary: 'verifier PASS for diff:8cfd09fcac72d33d8dc19560acc7d6fb8a9fd8761a44a8ba997e7d7039ac9f69
+  -- TSK-0133 generation-5 merge, verify round 2 (Opus, 2026-09-11 01:37-01:45): B1-B4
+  of round 1 closed with the verifier''s unchanged mutations turning red (m23, v01,
+  w01/w01r; CRLF: everything staged, test_repo_hygiene 32 passed), P1-P6 in order,
+  stamps unchanged x3 (dev/research 2026.09.06-1, office 2026.09.10-1), hole index
+  = store; N1/N2 captured as BUG-0274/H190 and BUG-0275/H191 (non-blocking, PR-0011);
+  the tree after the reindex of H190/H191 is the one this digest names'
+artifact_refs:
+- staging/TSK-0133/verify-round-2.md
+revision: 1
+approval_ref: null
+created: '2026-09-11T01:50:11'

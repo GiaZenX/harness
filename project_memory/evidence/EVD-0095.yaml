@@ -1,0 +1,20 @@
+id: EVD-0095
+kind: test
+related:
+- PR-0011
+- TSK-0135
+result: pass
+summary: 'TSK-0135 delivery run after stamp 2026.09.11-4: tools/ 4882 passed / 14
+  skipped / 0 failed in 2395 s (run 2; run 1 on -3 had 8 reds, each closed red-first),
+  .claude/hooks/test_gates.py 548 passed in 757 s, both with the delivery prefix;
+  ruff and validate green; 41 red-first rows red (red_first-20260911-045313.log.json);
+  pilot rig green per kit (light_kit_pilot.log.json)'
+artifact_refs:
+- staging/TSK-0135/protocol.md
+- staging/TSK-0135/full-tools-run-2.log
+- staging/TSK-0135/full-gates-run-1.log
+run_command: DELIVERY_RUN=TSK-0135 python -B -m pytest tools/ -q -p no:cacheprovider
+run_scope: full
+revision: 1
+approval_ref: null
+created: '2026-09-11T08:52:21'

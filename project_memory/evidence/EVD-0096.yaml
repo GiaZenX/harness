@@ -1,0 +1,25 @@
+id: EVD-0096
+kind: test
+related:
+- PR-0011
+- TSK-0135
+result: pass
+summary: 'TSK-0135 rework after the goal round (B1-B5, P1-P5, P7): 12 red-first rows
+  R1-R12 all rc 1 with the arbiter''s failure line (red_first_rework-20260911-082057.log.json
+  08:21:18-08:25:30 and -084034 08:40:36-08:40:44, own copy); AC-6 arm B prepared
+  (5 steps rc 0) and the asserted reason MEASURED in two claude -p runs, zero AskUserQuestion,
+  filed as headless_pm_stop_point in tools/provider_observations.json; reading suites
+  green after the changes: test_light_kit 26, test_repo_hygiene+test_shortening_net
+  68, test_role_contracts+test_context_budget 72, test_hooks -k entry/team_size/first_contact/deadline
+  26, test_hooks_v2 -k provider/channel/event 12; ruff and validate green; bump_kit_version
+  unchanged (2026.09.11-4) x3'
+artifact_refs:
+- staging/TSK-0135/protocol.md
+- staging/TSK-0135/red_first_rework-20260911-082057.log.json
+- staging/TSK-0135/red_first_rework-20260911-084034.log.json
+- staging/TSK-0135/experiment/probe-20260911-081402.summary.json
+run_command: python -B -m pytest tools/test_light_kit.py -q -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T08:52:26'

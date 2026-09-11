@@ -6055,53 +6055,149 @@ def test_entry_restart_step_forbids_an_invented_trust_ceremony():
 # reach the user WORD FOR WORD.
 ENTRY_FILES = (os.path.join(ROOT, "user", "claude", "CLAUDE.md"),
                os.path.join(ROOT, "user", "codex", "AGENTS.md"))
-# A user-facing string an entry file prescribes verbatim, in the quotation marks these files use for
-# exactly that (the restart message is the older one). Read as a SHAPE, so the clause itself lives in
-# the instruction files and not a second time here.
-_VERBATIM_CLAUSE_RX = re.compile(r"»([^«»]+)«")
+# The texts that instruct a USER question about the team: the two entry files above and every kit's
+# lead skill and constitution. Derived from the tree, not listed by kit name.
+def _lead_texts():
+    for kit in sorted(glob.glob(os.path.join(ROOT, "team-kits", "*", "constitution", "AGENTS.md"))):
+        kit_dir = os.path.dirname(os.path.dirname(kit))
+        yield kit
+        for skill in sorted(glob.glob(os.path.join(kit_dir, "skills", "*", "SKILL.md"))):
+            with open(skill, encoding="utf-8") as handle:
+                head = handle.read(600)
+            if "name: project-manager" in head or "name: office-manager" in head:
+                yield skill
 
 
-def _team_size_blocks(text):
-    """The blocks of an entry file that instruct the TEAM SIZE question.
+# WHAT MAKES A BLOCK A TEAM-SIZE QUESTION -- two things at once: the block is about the size of the
+# team (a preset offered as a choice, "how many specialists"), and it tells the agent to ASK the user.
+# The escape DEC-0048 keeps is neither: `request-approval preset` / `set-preset` is the PM applying a
+# DERIVED team when a role is missing, and the user approves that one preset rather than choosing among
+# them. A vocabulary rather than a property, so its two ends are measured against fixtures below
+# (`test_the_team_size_reader_can_tell_a_question_from_the_escape`).
+_TEAM_SIZE_SUBJECT_RX = re.compile(
+    r"TEAM SIZE|team size|Teamgr[öo]|which preset|presets? by name|how many specialists|"
+    r"welche Teamgr|Preset confirm|preset selection", re.IGNORECASE)
+_ASKS_THE_USER_RX = re.compile(
+    r"\bask(s|ed|ing)?\b|AskUserQuestion|request_user_input|confirm(ation)?\b|obtain explicit",
+    re.IGNORECASE)
+# The negation is the NEGATED ASK, never a word that merely occurs in this text family: `derived`
+# stood here and excused "ask which TEAM SIZE they want and write down the preset DERIVED from
+# the answer" (the goal-round verifier's AC-2 c, measured GREEN), so it is gone. Three alternatives
+# went with it that could not decide anything either: `never asked` and `NEVER ask` are both already
+# matched by `never ask` (prefix, and this pattern is IGNORECASE) -- a dead entry in a vocabulary is
+# the half of house rule 1 that rots quietly. Both shipped wordings stay covered, and by a test each:
+# `test_the_team_size_reader_can_tell_a_question_from_the_escape` carries the "NEVER ask the team
+# size" sentence, and the shipped "DERIVED, never asked" sits in the texts the test below reads.
+_DERIVED_NOT_ASKED_RX = re.compile(
+    r"\bnever ask|\bnot asked|\bnie gefragt|"
+    r"removed the question|no team-size question", re.IGNORECASE)
 
-    Blocks, not the whole file: the point of the check is that the clause stands WITH that question,
-    and a sentence four hundred lines away is the failure `_markdown_blocks` was written for.
+
+def _team_size_questions(text):
+    """The SENTENCES that instruct a team-size question -- subject AND ask in one sentence, and no
+    negation in that same sentence. Per sentence and not per block, because a block that says
+    "no team-size question to the user" three lines under "ask which TEAM SIZE they want" would
+    otherwise be excused by its own disclaimer -- measured green on exactly that mutation
+    (TSK-0135 rig row P3-AC2) before this reader was narrowed. Sentences end at `.`, `!` or `?`;
+    a `;` keeps its halves together, because the entry files' "asked which … ; the light form
+    removed the question" is one statement and not an order."""
+    flat = re.sub(r"\s+", " ", text)
+    return [sentence.strip() for sentence in re.split(r"(?<=[.!?])\s+", flat)
+            if _TEAM_SIZE_SUBJECT_RX.search(sentence) and _ASKS_THE_USER_RX.search(sentence)
+            and not _DERIVED_NOT_ASKED_RX.search(sentence)]
+
+
+def test_no_entry_file_and_no_lead_text_asks_the_user_for_the_team_size():
+    """PR-0011 AC-2 (DEC-0087 (2)/(4)): the team size is DERIVED by the Project Manager, never asked
+    -- not at the entry, not in a lead skill, not in a constitution. Until 2026-09-11 both entry
+    files carried a team-size question with a reversibility clause (P4-6, pilot 4), and this test's
+    predecessor held the two files to the SAME clause; the light form removed the question and
+    kept only DEC-0048's escape (`set-preset` when a role is missing), which this reader lets
+    through.
+
+    RED on a SENTENCE that names the team size (or a preset offered as a choice) together with an
+    instruction to ask the user and carries no negated ask itself -- a vocabulary, so a wording
+    outside it passes; the reader's two ends, including the "derived" wording it once excused, are
+    `test_the_team_size_reader_can_tell_a_question_from_the_escape`.
     """
-    return [block for block in _markdown_blocks(text) if "TEAM SIZE" in block]
+    offenders = {}
+    for path in list(ENTRY_FILES) + list(_lead_texts()):
+        with open(path, encoding="utf-8") as handle:
+            found = _team_size_questions(handle.read())
+        if found:
+            offenders[os.path.relpath(path, ROOT)] = [block[:160] for block in found]
+    assert not offenders, "these texts still ask the user for the team size: %s" % offenders
 
 
-def test_both_entry_files_hand_the_team_question_the_same_verbatim_reversibility_clause():
-    """P4-6: the team question never told the user the choice can be undone -- although it can.
+# THE FIRST-CONTACT QUESTION (DEC-0087 (4), PR-0011 AC-5), as the entry files prescribe it in the
+# quotation marks they use for the one user-facing string they hand over verbatim. Read as a SHAPE
+# off the claude twin, so the words live in the instruction file and not a second time here; the
+# codex twin is written in ASCII transliteration, which `_transliterated` folds before comparing.
+# either twin's bold-and-quote order: the claude file quotes the bold, the codex file bolds the quote
+_FIRST_CONTACT_RX = re.compile(r'(?:"\*\*|\*\*")(Mit Langzeit-Ged[äa]e?chtnis[^"*]+\?)(?:\*\*"|"\*\*)')
+_OLD_FIRST_CONTACT_RX = re.compile(r"Strukturiert (über|ueber) einen Project Manager arbeiten\?")
 
-    MEASURED (pilot 4, half 2): the full text of the team question -- header, question and every
-    option -- carried nothing about reversibility, while `set-preset` had been built for exactly
-    that (BUG-0041) and both entry files had demanded the sentence "in the same breath" since
-    2026-08-15. A duty phrased as "say it in the same breath" is satisfied by prose the user skims;
-    what reaches them is the question. So the files now prescribe a CLAUSE for the question text
-    itself, the way they already prescribe the restart message.
 
-    WHAT THIS TEST CAN AND CANNOT DO, because the difference matters: it reads the instruction, not
-    the session. That an entry agent really puts the clause into the question is measurable only in
-    a live run -- the same limit `test_entry_restart_step_forbids_an_invented_trust_ceremony` names
-    for its own subject. What it DOES buy is the property the pilot found broken twice over: the
-    clause exists, it sits in the team-size step, and the two provider twins say the SAME thing --
-    a drift between them is how one provider's users lose a duty the other keeps.
+def _transliterated(text):
+    return (text.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("Ä", "Ae")
+            .replace("Ö", "Oe").replace("Ü", "Ue").replace("ß", "ss").replace(" — ", " - ").replace("—", "-"))
+
+
+def test_both_entry_files_ask_the_same_first_contact_question_and_never_the_old_one():
+    """PR-0011 AC-5: the first-contact question is the light form's -- "mit Langzeit-Gedächtnis …
+    oder erstmal frei?" -- in BOTH provider twins, the same words up to transliteration, and the
+    question it replaced ("Strukturiert über einen Project Manager arbeiten?") stands in neither.
+
+    MEASURED OPEN at the goal round (B5): the round had removed P4-6's positive reader with the
+    team question and kept only the negative one, so either twin could fall back to the old
+    question with 1099 tests green. RED on either twin carrying the old question (the verifier's
+    AC-5 a/b) and on the two twins drifting apart.
     """
-    clauses = {}
+    found = {}
     for path in ENTRY_FILES:
         with open(path, encoding="utf-8") as handle:
-            blocks = _team_size_blocks(handle.read())
-        assert blocks, "%s no longer instructs the TEAM SIZE question at all" % path
-        # whitespace-flattened, because the same clause is wrapped at a different column in each
-        # file -- what has to agree is the sentence the user hears, not the line breaks around it
-        found = {re.sub(r"\s+", " ", clause).strip() for block in blocks
-                 for clause in _VERBATIM_CLAUSE_RX.findall(block)}
-        assert found, (
-            "%s asks for the team size without prescribing the verbatim clause that tells the user "
-            "the choice is reversible (P4-6)" % os.path.relpath(path, ROOT))
-        clauses[os.path.relpath(path, ROOT)] = sorted(found)
-    assert len(set(map(tuple, clauses.values()))) == 1, (
-        "the two entry files prescribe DIFFERENT wording for the same question: %s" % clauses)
+            text = handle.read()
+        assert not _OLD_FIRST_CONTACT_RX.search(text), (
+            "%s still asks the question the light form replaced" % os.path.relpath(path, ROOT))
+        questions = {_transliterated(re.sub(r"\s+", " ", q)) for q in _FIRST_CONTACT_RX.findall(text)}
+        assert len(questions) == 1, (
+            "%s carries %d first-contact questions: %s" % (os.path.relpath(path, ROOT), len(questions), questions))
+        found[os.path.relpath(path, ROOT)] = questions.pop()
+    assert len(set(found.values())) == 1, "the two entry files ask different questions: %s" % found
+    assert "oder erstmal frei?" in next(iter(found.values()))
+
+
+def test_the_team_size_reader_can_tell_a_question_from_the_escape():
+    """The reader above is a vocabulary, so both ends are measured: the two sentences the entry
+    files carried until 2026-09-11 (the claude and the codex wording) are read as questions; the
+    DEC-0048 escape and the sentence that says the team is derived are not."""
+    asked = (
+        "- **Ask which TEAM SIZE they want, and ask it as its own question.** This is a product "
+        "decision, not a technical one. Offer that kit's presets by name from `registry.yaml`.",
+        "Read the selected kit's `presets.yaml` and ask which TEAM SIZE the user wants, as its own "
+        "question: how many specialists work on their project. Offer that kit's presets by name and "
+        "obtain explicit confirmation.",
+        "   Preset confirm (recommend `core` first — presets are MECHANICAL; changing one later is "
+        "`request-approval preset`).",
+    )
+    escape = (
+        "- **Presets are the half you CAN carry out yourself**: `request-approval preset --preset "
+        "<name>` asks the user (the question names the team the project HAS afterwards, DEC-0048) "
+        "and `set-preset <name>` then records it and installs those roles.",
+        "**NEVER ask the team size or a model tier** — the Project Manager derives the team from "
+        "the goal (`DEC-0087` (2)); the escape is `set-preset` when a role is missing.",
+    )
+    for text in asked:
+        assert _team_size_questions(text), "a team-size question was not read as one: %r" % text
+    for text in escape:
+        assert not _team_size_questions(text), "the escape was read as a team-size question: %r" % text
+    # ...and a block's own disclaimer excuses nothing: the order and the negation in two sentences
+    mixed = ("Preset confirm (recommend `core` first; ask which TEAM SIZE the user wants and obtain "
+             "explicit confirmation). No team-size question to the user.")
+    assert len(_team_size_questions(mixed)) == 1, _team_size_questions(mixed)
+    # ...nor does the word "derived" in the same sentence (goal-round finding B3 / AC-2 c)
+    derived = ("- **Ask which TEAM SIZE they want** und write down the preset DERIVED from the answer.")
+    assert _team_size_questions(derived) == [derived], _team_size_questions(derived)
 
 
 # Where an exemption below is allowed to be used. ANY = the file genuinely has no template in V2, so

@@ -18,16 +18,15 @@ four things it hashes the kernel acts on two: your ROLE, and the WORK ORDER — 
 to write. That is a plan check, not a sandbox: the write tools enforce the empty scope, the shell path of
 `gate_write_scope` resolves no task, so a `Bash` write outside the state directory is SCOPE-CHECKED by
 nothing — it still refuses a pipeline that names the state directory or the enforcement layer. The TRIGGER and the CADENCE, and the read scope beside them, sit inside the same hashed
-manifest but no gate reads them: nothing in the kernel records when a routine last ran. Neither of the two kinds your
-dispatch rides on has a producer on the entry point either — `python scripts/harness.py request-approval` offers the
-kinds a subject manifest can be BUILT for, from an item id or from flags a role types, and neither a routine's
-role/scope/trigger/cadence nor an analysis' listed tasks is either — so the approval you ride on is created by a
-library call today. And minting a routine
-for a root MOVES that root's `approval_ref` onto it, which stops the root's delivery tasks dispatching
-until its scope approval is obtained again — and again at EVERY renewal, which a time-boxed weekly
-approval needs by construction, so this is not a one-off ordering question. The refusal names the remedy;
-the recurrence is what belongs in your report. Report all four gaps; never conclude from a refused spawn
-that you may run unapproved.
+manifest but no gate reads them: nothing in the kernel records when a routine last ran. The routine kind
+has its producer on the entry point since generation 6 (BUG-0266): `python scripts/harness.py
+request-approval routine <ROOT> --role project-auditor --scope <read scope> --trigger <when> --cadence
+<how often> --expires-in-days <n>` — the user answers once per term, and the date is in the question — and
+your work order is `create-task --type analysis --assigned-role project-auditor --read-only …`. An
+analysis approval's listed tasks still have no line producer. Minting a routine for a root leaves that
+root's presented approval where it is (`kernel.approvals.presents`), so the goal's builders keep
+dispatching beside you. Report the gaps that remain (the unread trigger/cadence/scope, the shell path);
+never conclude from a refused spawn that you may run unapproved.
 
 ## Read first
 The previous audit Evidence in `evidence/` — every finding there carries a `fingerprint`, and you dedupe
@@ -66,6 +65,13 @@ actual `archive/` tree, `master_data.yaml`, the latest `reports/euer_*.md`, and
    2. Which finding class repeated, and what would have caught it one round earlier?
    3. Which Decision item's premise no longer holds?
    4. What would make the next round cheaper, as ONE change somebody can order?
+   5. Did the builder count fit the goal, and did the rung fit the slice (`DEC-0092` (5))? Compare the
+      builders per goal against the disjoint sets `check-scopes` measured, the wall-clock of the goal
+      against what those sets would have allowed in parallel, and the rung against the outcome — runs
+      to hand-back per rung in the brief's `lease_distribution`, the finding class of the round — and
+      write the verdict as its own line, with the numbers: »solo where parallel would have paid« (one
+      builder, N disjoint sets, wall-clock X) or »fable where sonnet handed back first run« are named,
+      never felt (`DEC-0087` (2): the solo-habit catcher).
    Then THREE lines the orchestrator can hand the user unchanged: what the last stretch cost, what
    keeps coming back, what you would change. They go into the Evidence `summary`, because that is the
    field the orchestrator relays. You propose no taste and you ask the user nothing — the decisions are

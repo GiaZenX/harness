@@ -1,4 +1,4 @@
-generated_at: '2026-09-11T01:49:33'
+generated_at: '2026-09-11T08:52:28'
 items:
 - id: APR-0001
   type: APR
@@ -1552,6 +1552,22 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
+- id: BUG-0276
+  type: BUG
+  title: A module added under tools/ shadows the team-kits module of the same name
+    for every `python tools/<script>.py` entry point, and nothing measures the collision
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0277
+  type: BUG
+  title: scaffold_team warns and continues when the staging carries no write_kit_state.py,
+    so a project installs green with no hook-bundle trust recorded -- and the missing
+    file is a kit-hash input, so every later stamp check refuses the same staging
+    (new, TSK-0135, DEC-0092 (6) rig)
+  status: OPEN
+  revision: 1
+  approval_ref: null
 - id: DEC-0002
   type: DEC
   title: ADR-Datensaetze werden DEC-Items, nicht getragene Belege
@@ -2224,6 +2240,32 @@ items:
   status: VALID
   revision: 1
   approval_ref: null
+- id: DEC-0094
+  type: DEC
+  title: 'Retrospektive der Generation 5 (Nachfolger von DEC-0080): was der Schnitt,
+    die Uebergaben und der Merge gemessen haben -- und die Regeln, die Generation
+    6 daraus mitnimmt'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0095
+  type: DEC
+  title: 'Bauer-Standard OPUS (loest DEC-0088 (1) ''top rung'' ab): Fable ist als
+    Dauerstufe nicht tragbar; Fable nur noch fuer den benannten Architektur-Schritt
+    eines grossen Ziels und als Eskalationsziel nach einem gescheiterten Opus-Bau
+    -- Orchestrator/PM, Bauer und Pruefer laufen auf Opus'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0096
+  type: DEC
+  title: 'Eskalation: erst AUFWAND, dann SPROSSE (Zusatz zu DEC-0034 Regel 2 / DEC-0095
+    (4)): der erste Fehlschlag hebt den Aufwand auf derselben Sprosse (high -> xhigh),
+    die Sprosse steigt erst nach wiederholtem Scheitern -- Fable wird beim dritten
+    Fehlschlag erreicht, nicht beim ersten'
+  status: VALID
+  revision: 1
+  approval_ref: null
 - id: EVD-0001
   type: EVD
   title: null
@@ -2782,6 +2824,24 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0094
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0095
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0096
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -2791,19 +2851,6 @@ items:
 - id: FR-0004
   type: FR
   title: 'Stufe 5: Spec II.12 gegen das Gebaute abgleichen, seitliche V2-RC'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: FR-0007
-  type: FR
-  title: 'Die Kommentardisziplin in die Kits: Verfassung und Rollendefinitionen'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: FR-0012
-  type: FR
-  title: Eine Entscheidung, die in Prosa landet statt in einem Item, hat heute keinen
-    Faenger
   status: TRIAGED
   revision: 1
   approval_ref: null
@@ -2856,13 +2903,6 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: FR-0033
-  type: FR
-  title: 'Office: Schriftverkehr-Faehigkeit -- Angebote, Mahnungen, Kundenkorrespondenz
-    als Rolle oder beibringbarer Workflow'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: FR-0043
   type: FR
   title: Latenz-Bench aus II.12 in den ausgelieferten CI-Workflow (klein, nicht blockierend)
@@ -2875,33 +2915,11 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: FR-0058
-  type: FR
-  title: 'Der Bestand luegt nach oben: gelieferte Wuensche und reparierte Fehler stehen
-    weiter als offen -- eine Bestandsaufnahme plus ein ableitbarer Erledigt-Begriff'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: FR-0073
   type: FR
   title: 'An invoice WRITER for the office kit: clean, norm-conformant e-invoices
     (XRechnung / ZUGFeRD, EN 16931) from ledger and master data, validated before
     they leave the house'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: FR-0081
-  type: FR
-  title: 'Wunschliste §5: Kontenrahmen (SKR03/SKR04) + Konto-zu-EUeR-Zeile-Abbildung
-    als jahresversionierte Vorlage mit benanntem Rechtsraum'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: FR-0088
-  type: FR
-  title: 'OpenAI ladder in model_tiers.yaml is a generation behind: map Astra (Fable-equivalent)
-    / Sol / Terra to lead / worker / light for the codex provider, measured first
-    by a codex-watcher run that has never happened'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -2911,6 +2929,14 @@ items:
     Fable-Agenten -- Recherche (was die Welt gemessen hat) und ein kontrolliertes
     Experiment (dieselbe Aufgabe, zwei Wege), bevor die naechste Produkt-Generation
     den Schnitt waehlt
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: FR-0090
+  type: FR
+  title: 'Das Ablaufdatum in der deutschen Freigabe-Frage lesbar machen: ''25.09.2026,
+    05:06 UTC'' statt ''2026-09-25T05:06:25Z'' -- gleich deterministisch, aber die
+    Zeile, die der Nicht-Entwickler beurteilt, liest sich nicht mehr wie eine Maschine'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -3054,31 +3080,19 @@ items:
   status: ACCEPTED
   revision: 1
   approval_ref: null
-- id: TSK-0130
+- id: TSK-0134
   type: TSK
   title: null
   status: CANCELLED
   revision: 1
   approval_ref: null
-- id: TSK-0131
-  type: TSK
-  title: null
-  status: CANCELLED
-  revision: 1
-  approval_ref: null
-- id: TSK-0132
-  type: TSK
-  title: null
-  status: CANCELLED
-  revision: 1
-  approval_ref: null
-- id: TSK-0133
+- id: TSK-0135
   type: TSK
   title: null
   status: READY
   revision: 1
   approval_ref: null
-- id: TSK-0134
+- id: TSK-0136
   type: TSK
   title: null
   status: DRAFT

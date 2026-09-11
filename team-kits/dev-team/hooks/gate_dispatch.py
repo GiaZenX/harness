@@ -7,7 +7,9 @@ lifecycle is one story and splitting it across files would let the halves drift:
                                 installed enforcement bundle is not the one this project recorded
                                 trust for (`_kernel.bundle_trust`); then validate the
                                 HARNESS_DISPATCH header against the lease and CLAIM the lease for
-                                this one dispatch, which opens the bind window
+                                this one dispatch, which opens the bind window; for a BUILD-class
+                                lease hand the model the fact-based checkpoint (DEC-0092 (3)) as
+                                context on the allowed call -- a mirror, never a refusal
   SubagentStart(*)              bind that lease to the child's agent_id (gate layer 3 needs the
                                 agent_id -> task mapping while the child is still running)
   PostToolUse(Agent|Task)       the spawn STARTED: re-verify the header, bind the agent_id
@@ -82,7 +84,9 @@ except BaseException as exc:  # noqa: BLE001 — a hook that cannot load must no
                      "usual cause.\n" % (exc,))
     sys.exit(2)
 
-import _compat  # noqa: E402 — after GATE_PREAMBLE, which must stay the first executable statement
+import json  # noqa: E402 — after GATE_PREAMBLE, which must stay the first executable statement
+
+import _compat  # noqa: E402
 
 HOOK = "gate_dispatch"
 SPAWN_TOOLS = ("Agent", "Task")
@@ -228,13 +232,59 @@ def handle_pre_tool_use(data):
         # 2026-09-05: it arrives here when the lead passes it, and it overrides the role's pin);
         # the kernel holds it against the rung the lease derived -- `dispatch.spawn_model_refusal`
         # says when its absence is fine and when it is not.
-        dispatch.validate_dispatch(state, header, tool_input.get("subagent_type"), claim=True,
-                                   prompt_id=data.get("prompt_id"),
-                                   session_id=data.get("session_id"),
-                                   spawn_model=tool_input.get("model"))
+        verified = dispatch.validate_dispatch(state, header, tool_input.get("subagent_type"),
+                                              claim=True, prompt_id=data.get("prompt_id"),
+                                              session_id=data.get("session_id"),
+                                              spawn_model=tool_input.get("model"))
     except dispatch.DispatchError as exc:
         _kernel.block(HOOK, "specialist spawn refused.\n%s" % exc, event="PreToolUse")
+    _mirror_the_builder_start(state, dispatch, verified)
     sys.exit(0)
+
+
+def _mirror_the_builder_start(state, dispatch, verified):
+    """The fact-based checkpoint before a BUILDER starts (DEC-0092 (3)) -- handed to the model as
+    context on the same event that just allowed the spawn, and NEVER a refusal.
+
+    ONLY FOR THE BUILD CLASS, read off the lease's own ladder answer: the habit DEC-0092 mirrors
+    is how many builders a goal gets and on which rung, so a QA or design spawn gets no mirror,
+    and a kit-less project (no ladder answer) gets none either. The four lines are the kernel's
+    (`dispatch.reflection_checkpoint`), delivered on `hookSpecificOutput.additionalContext` and
+    then audited as a note so the mirror is on the record too. Which channel of THIS event reaches
+    the model is `tools/provider_observations.json` -> `hook_output_channels.pre_tool_use`, a
+    measurement of its own (2026-09-11); the PostToolUse entry beside it measured a different
+    event and is not this claim's source.
+
+    NOTHING IN HERE REFUSES, and the whole body is under one guard because of where this stands:
+    AFTER `validate_dispatch(claim=True)`, so the lease's claim is already spent. A refusal here
+    would leave the order LEASED with no child and no way back but the TTL -- measured at the
+    mid-goal check (B1): with only the derivation guarded, an audit sink that raised gave rc 2 and
+    `dispatched_at` set. So the derivation has its own fallback line, the context is written
+    BEFORE the audit note (a lost note costs the record, a lost mirror costs the PM's reading),
+    and any failure of either simply ends the mirror. `SystemExit` is re-raised because nothing
+    below calls it, and swallowing one would hide a gate that spoke.
+    `tools/test_light_kit.py::test_the_mirror_still_exits_zero_when_its_audit_sink_is_gone`
+    """
+    try:
+        lease = verified.get("lease") or {}
+        answer = lease.get(dispatch.LADDER_KEY)
+        if not isinstance(answer, dict) or answer.get("role_class") != dispatch.BUILD_CLASS:
+            return
+        try:
+            lines = dispatch.reflection_checkpoint(state, verified["task"], verified["root"], lease)
+        except Exception as exc:  # noqa: BLE001 -- the mirror never turns into a refusal
+            lines = ["the checkpoint could not be derived (%s: %s); the spawn stands, the mirror "
+                     "does not" % (type(exc).__name__, exc)]
+        text = "CHECKPOINT before builder %s starts (DEC-0092 (3)):\n%s" % (
+            verified["task"].get("id"), "\n".join(lines))
+        sys.stdout.write(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse",
+                                                            "additionalContext": text}}))
+        sys.stdout.flush()
+        _kernel.record_note(HOOK, text)
+    except SystemExit:
+        raise
+    except BaseException:  # noqa: BLE001 -- the claim is spent; a refusal now protects nothing
+        return
 
 
 def _report(message, and_stop=True):

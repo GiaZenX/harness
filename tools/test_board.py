@@ -738,6 +738,9 @@ _WRITERS_THE_BOARD_DOES_NOT_RENDER = {
     ("dispatch.py", "bind_agent_by_role"): "the lease file",
     ("dispatch.py", "bind_agent"): "the lease file",
     ("dispatch.py", "validate_dispatch"): "the lease file (the claim)",
+    ("scopes.py", "write_record"): "tasks/scope-checks/ -- the record of one check-scopes run "
+                                   "(DEC-0092 (2)), a measurement the dispatcher reads and not an "
+                                   "item; no ACTIVE_DIRS home, so no card",
     ("dispatch.py", "_release_lease_locked"): "resets the TASK, but every caller regenerates -- "
                                               "checked below, because one of them did not",
     ("staging.py", "freeze_design"): "its DSN manifest, then `_update_item_locked` on the root, "

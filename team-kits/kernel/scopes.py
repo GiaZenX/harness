@@ -34,19 +34,25 @@ overlap only in a region no witness lands in and no file exists in yet passes he
 `docs/POST_V2_WISHLIST.md`, with the chain).
 
 WHAT THIS REFUSES: nothing. It is a check a caller runs before it hands out work, and its answer is
-an exit code. The refusal at dispatch time is a separate requirement that is NOT built here (C-2 in
-stream D's protocol) -- named rather than implied, because a reader of a check command may
-otherwise take it for a gate.
+an exit code. The refusals at dispatch time live in `kernel.dispatch` and read what this leaves
+behind: a running lease over a shared file is refused there from the live computation (stream D's
+C-2), and a SECOND build lease under one goal is refused there unless a RECORD of this check
+measured the pair disjoint (DEC-0092 (2), `write_record` / `covering_record` below) -- named
+rather than implied, because a reader of a check command may otherwise take it for a gate.
 """
 from __future__ import annotations
 
+import datetime
+import hashlib
+import json
 import os
 import re
 import subprocess
 import sys
+import uuid
 
-from .backlog_types import field_elements, is_terminal
-from .state import ProjectState
+from .backlog_types import TSK_EFFORT_FIELD, TSK_RUNG_FIELD, field_elements, is_terminal
+from .state import ProjectState, _now_iso
 
 # WHAT A WILDCARD RUN BECOMES IN A WITNESS. One segment, because `**` matches any depth including a
 # single segment and `*` matches inside one -- so a single placeholder satisfies both readings of
@@ -59,6 +65,15 @@ SEAM_FIELD = "seam_scope"
 # How many shared paths a pair prints before the list is cut. A cut list still decides the exit
 # code; it is only the reading that is bounded.
 PATHS_SHOWN = 10
+# WHERE A RUN OF THIS CHECK LEAVES ITS RECORD (DEC-0092 (2)). Until generation 6 the check refused
+# nothing and recorded nothing; the dispatcher now asks, before it grants a SECOND build lease
+# under one goal, whether the two orders' file sets were MEASURED disjoint -- and this record is
+# the measurement. One file per run, beside the leases, in the kernel-written part of the state
+# (`kernel.layout.kernel_written_subtrees` lists it), so no role can write one by hand any more
+# than it can write a lease. Which orders a record covers is decided by DIGEST
+# (`order_digest`), not by id alone: an order re-scoped after the check is a different cut.
+RECORDS_DIR = ("tasks", "scope-checks")
+RECORD_SUFFIX = ".check.yaml"
 
 
 class ScopeCheckError(RuntimeError):
@@ -220,11 +235,186 @@ def open_orders(state: ProjectState, only=None) -> list:
             continue
         orders.append({
             "id": str(item["id"]),
+            "root": str(item.get("product_requirement") or ""),
             "allowed": scope_entries(item, "allowed_scope"),
             "forbidden": scope_entries(item, "forbidden_scope"),
             "seam": scope_entries(item, SEAM_FIELD),
+            # The PM's tier ask per order (DEC-0091 (3): "beside the order in check-scopes, so two
+            # parallel orders show their two rungs side by side"). Read, never derived: the lease
+            # derives, this prints what was asked.
+            "asks": {TSK_RUNG_FIELD: item.get(TSK_RUNG_FIELD), TSK_EFFORT_FIELD: item.get(TSK_EFFORT_FIELD)},
         })
     return sorted(orders, key=lambda order: order["id"])
+
+
+def asks_line(order: dict) -> str:
+    """One order's tier ask as the check prints it beside the order."""
+    asks = order.get("asks") or {}
+    named = ["%s %s" % (field, asks[field]) for field in (TSK_RUNG_FIELD, TSK_EFFORT_FIELD)
+             if asks.get(field)]
+    return ("asks %s (DEC-0091; the lease derives the final pair)" % ", ".join(named)
+            if named else "no tier ask (the ladder's own answer applies)")
+
+
+def order_digest(order: dict) -> str:
+    """What a record has to agree with for the order it names: the three scope fields, folded.
+
+    A DIGEST AND NOT THE ID, because the id survives a re-scope and the measurement does not: the
+    plan fields are frozen once an order leaves DRAFT, so past that point the digest is the id's
+    twin, and while the order is still being planned a changed scope stops every earlier record
+    from covering it. Nothing else of the order is in it -- a title or an ask changing does not
+    move a file set.
+    """
+    body = {"allowed": sorted(order["allowed"]), "forbidden": sorted(order["forbidden"]),
+            "seam": sorted(order["seam"])}
+    return hashlib.sha256(json.dumps(body, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def _records_dir(state: ProjectState) -> str:
+    return os.path.join(state.root, *RECORDS_DIR)
+
+
+def _record_path(state: ProjectState, name: str) -> str:
+    return os.path.join(_records_dir(state), name + RECORD_SUFFIX)
+
+
+def write_record(state: ProjectState, orders: list, colliding: set, files: int, gate: str) -> str:
+    """The record of ONE run: every compared order with its digest, and every pair's verdict.
+
+    Every pair is written out as measured -- `disjoint` and `overlapping` are both lists of pairs
+    -- so a reader asking about two ids finds an answer or finds the pair absent, and absent is
+    "not compared in this run", never "disjoint" (the same three-way honesty `check` prints).
+    """
+    ids = [order["id"] for order in orders]
+    pairs = [(first, second) for index, first in enumerate(ids) for second in ids[index + 1:]]
+    record = {
+        "checked_at": _now_iso(),
+        "matcher": gate,
+        "files_in_tree": int(files),
+        "orders": {order["id"]: {"root": order["root"], "digest": order_digest(order),
+                                 "allowed": list(order["allowed"]),
+                                 "forbidden": list(order["forbidden"]),
+                                 "seam": list(order["seam"])}
+                   for order in orders},
+        "disjoint": [list(pair) for pair in pairs if frozenset(pair) not in colliding],
+        "overlapping": [list(pair) for pair in pairs if frozenset(pair) in colliding],
+    }
+    # THE NAME ORDERS THE RECORDS (`records` sorts by it, `covering_record` asks the newest naming
+    # a pair), so it carries microseconds: two runs inside one second are the ordinary case in a
+    # test and a real one after a re-scope, and with a seconds stamp their order was the nonce's.
+    stamp = datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S.%f")
+    path = _record_path(state, "%s-%s" % (stamp, uuid.uuid4().hex[:8]))
+    state._write_yaml_atomic(path, record)
+    _drop_records_about_closed_orders(state, {order["id"] for order in open_orders(state)})
+    return path
+
+
+def _drop_records_about_closed_orders(state: ProjectState, open_ids: set) -> list:
+    """Remove every record none of whose orders is still open; returns what went.
+
+    THE BOUND ON THE DIRECTORY, by a property and not by a count: a record covers a pair only
+    while both orders are open (`covering_record` asks `open_orders`), so a record about orders
+    that have all ended can never answer again and only makes every later `records()` read longer.
+    Pruned at every run of the check, so the directory holds at most the runs made while the
+    orders they name were live. WHAT THIS DOES NOT BOUND, said rather than implied: a project that
+    runs the check many times over the same long-lived orders keeps every one of those runs until
+    the orders close -- named in TSK-0135's protocol as the residual, with the reading cost.
+    `tools/test_light_kit.py::test_a_check_scopes_record_about_closed_orders_is_dropped_at_the_next_run`
+    """
+    gone = []
+    for record in records(state):
+        if not any(order_id in open_ids for order_id in record.get("orders") or {}):
+            try:
+                os.remove(record["path"])
+                gone.append(record["path"])
+            except OSError:
+                continue
+    return gone
+
+
+def records(state: ProjectState) -> list:
+    """Every readable record, NEWEST FIRST -- the order a reader wants, because the newest run
+    over a pair is the one that measured the orders as they stand."""
+    directory = _records_dir(state)
+    if not os.path.isdir(directory):
+        return []
+    found = []
+    for name in sorted(os.listdir(directory), reverse=True):
+        if not name.endswith(RECORD_SUFFIX):
+            continue
+        try:
+            record = state._read_yaml(os.path.join(directory, name))
+        except Exception:  # noqa: BLE001 -- an unreadable record covers nothing
+            continue
+        if isinstance(record, dict) and isinstance(record.get("orders"), dict):
+            record["path"] = os.path.join(directory, name)
+            found.append(record)
+    return found
+
+
+def covering_record(state: ProjectState, first: str, second: str):
+    """The NEWEST record that names the pair at all -- and it, if it measured `first` and `second`
+    disjoint AS THEY STAND NOW; otherwise None.
+
+    THE NEWEST MEASUREMENT OF THE PAIR IS THE ONE THAT COUNTS, whatever it found: a later run that
+    measured the same two orders overlapping (a file created in the tree since) REVOKES the older
+    disjoint verdict, so only the newest record naming the pair is asked, never the newest one that
+    happens to say disjoint. Measured the other way at the mid-goal check (B3): the older
+    verdict admitted the second builder while a newer record said OVERLAP, held back only by the
+    live file check in `dispatch._assert_no_running_lease_owns_the_same_file_locked` -- which
+    still stands behind this one for the file class it catches.
+    "As they stand now" is the digest comparison: the record's digest of each order has to equal
+    the digest of the order the store holds today. A pair no record names covers nothing.
+    `tools/test_light_kit.py::test_a_record_stops_covering_an_order_whose_scope_moved_since`
+    `tools/test_light_kit.py::test_a_newer_overlap_record_revokes_an_older_disjoint_verdict`
+    """
+    current = {order["id"]: order_digest(order)
+               for order in open_orders(state, {first, second})}
+    if len(current) != 2:
+        return None
+    wanted = frozenset((first, second))
+    for record in records(state):
+        named = [key for key in ("disjoint", "overlapping")
+                 if any(frozenset(pair) == wanted for pair in record.get(key) or ())]
+        if not named:
+            continue
+        stored = record["orders"]
+        if named == ["disjoint"] and all(
+                isinstance(stored.get(one), dict) and stored[one].get("digest") == current[one]
+                for one in wanted):
+            return record
+        return None
+    return None
+
+
+def goal_partition(state: ProjectState, root_id: str, declared=()) -> list:
+    """The measured-disjoint SETS a goal's open orders fall into -- DEC-0092 (3)(a)'s line.
+
+    Two orders that share a path (outside their declared seam) are one set; the sets are the
+    connected components of that relation, so "this goal splits into N sets" is a statement about
+    file ownership and not about how many orders the PM happened to cut. One order is one set;
+    no order is no set.
+    """
+    orders = [order for order in open_orders(state) if order["root"] == str(root_id)]
+    if len(orders) < 2:
+        return [[order["id"] for order in orders]] if orders else []
+    matches, _gate = matcher()
+    files = tracked_files(os.path.dirname(os.path.abspath(state.root)))
+    parent = {order["id"]: order["id"] for order in orders}
+
+    def find(one):
+        while parent[one] != one:
+            parent[one] = parent[parent[one]]
+            one = parent[one]
+        return one
+
+    for pair in overlaps(matches, orders, files, declared):
+        if pair["files"] or pair["witnesses"]:
+            parent[find(pair["a"])] = find(pair["b"])
+    groups = {}
+    for order in orders:
+        groups.setdefault(find(order["id"]), []).append(order["id"])
+    return sorted(sorted(group) for group in groups.values())
 
 
 def pair_seam(first: dict, second: dict, declared=()) -> list:
@@ -325,10 +515,15 @@ def check(state: ProjectState, only=None, declared=()) -> tuple:
     files = tracked_files(tree)
     lines = ["matcher: %s | %d open orders | %d files in the tree"
              % (gate, len(orders), len(files))]
+    for order in orders:
+        lines.append("order %s under %s: %s" % (order["id"], order["root"] or "?", asks_line(order)))
     undeclared = 0
+    colliding = set()
     for pair in overlaps(matches, orders, files, declared):
         collides = bool(pair["files"] or pair["witnesses"])
         undeclared += 1 if collides else 0
+        if collides:
+            colliding.add(frozenset((pair["a"], pair["b"])))
         lines.append("%s %s x %s" % ("OVERLAP" if collides else "seam only", pair["a"], pair["b"]))
         for path in pair["files"][:PATHS_SHOWN]:
             lines.append("    file      %s" % path)
@@ -341,6 +536,11 @@ def check(state: ProjectState, only=None, declared=()) -> tuple:
         for order_id in pair["swallowed"]:
             lines.append("    NOT A SEAM: the declaration leaves %s owning nothing of its own, so "
                          "it hands the whole scope over rather than sharing a file" % order_id)
+    # THE RECORD, written for every run that compared something -- a refused cut is a measurement
+    # too, and the dispatcher reads the pairs, not the exit code (DEC-0092 (2)).
+    record = write_record(state, orders, colliding, len(files), gate)
+    lines.append("recorded: %s (the dispatcher reads this before it grants a second builder under "
+                 "one goal, DEC-0092 (2))" % os.path.relpath(record, state.root).replace(os.sep, "/"))
     if not undeclared:
         lines.append("disjoint: no pair of open orders owns a common path outside the declared "
                      "seam.")

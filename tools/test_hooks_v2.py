@@ -2571,7 +2571,11 @@ def routine_dispatched_repo(tmp_path):
     satisfy_the_architect_step(state, state.read_item(task["id"]),
                                state.read_item(pr["id"]))
     lease = dispatch.create_lease(state, task["id"])
-    apr_id = state.read_item(pr["id"])["approval_ref"]
+    # the routine approval is read off the approvals directory, not off the root's
+    # `approval_ref` -- a hanging kind no longer lands there (`approvals.presents`, PR-0011 AC-8)
+    apr_id = sorted(name for name in os.listdir(os.path.join(state.root, "approvals"))
+                    if name.startswith("APR-") and name.endswith(".yaml"))[-1][:-5]
+    assert state.read_item(pr["id"])["approval_ref"] is None, "the routine mint took approval_ref"
     return state, task, dispatch.dispatch_header(lease), apr_id
 
 
@@ -3760,6 +3764,29 @@ def test_a_reworded_approval_question_is_blocked(tmp_path, field, value):
     assert result.returncode == 2
     assert "NOT the one the kernel generated" in result.stderr
     assert field in result.stderr
+
+
+def test_a_tampered_option_description_is_blocked_too(tmp_path):
+    """BUG-0271 AC-2 / PR-0011 AC-7: the manifest hash and the request's file path moved out of the
+    question sentence into the approving option's DESCRIPTION, so that field has to be part of what
+    the gate compares -- or the move would have taken them out of the comparison. A description
+    with one digit of the hash changed is refused, on both events.
+
+    RED WITHOUT the per-key option comparison in `_mismatch`: the tampered description passes.
+    """
+    _state, _pr, request, question = pending(tmp_path)
+    shown = request["subject_manifest_hash"][:approvals.DIGEST_SHOWN]
+    assert shown in question["options"][0]["description"], question["options"][0]
+    assert shown not in question["question"], "the hash is back in the sentence"
+    tampered = json.loads(json.dumps(question))
+    tampered["options"][0]["description"] = tampered["options"][0]["description"].replace(
+        shown, shown[:-1] + ("0" if shown[-1] != "0" else "1"))
+    result = run_approval(tmp_path, ask(tmp_path, tampered))
+    assert result.returncode == 2 and "option 0 description differs" in result.stderr, result.stderr
+    minted = run_approval(tmp_path, answered(tmp_path, tampered, approvals.approve_label(request["mint_code"]),
+                                             echo=tampered))
+    assert minted.returncode == 0 and "NOT the one the kernel generated" in minted.stderr
+    assert _state.read_item(_pr["id"])["approval_ref"] is None
 
 
 def test_a_relabelled_approve_option_is_blocked(tmp_path):
@@ -9857,7 +9884,9 @@ def test_the_approval_question_names_what_gets_published(tmp_path):
     entire point of the rule: explicit approval means the user knew what they released."""
     work = git_repo(tmp_path)
     question = approve_push(work, "origin", "main", git_head(work))
-    assert "origin/main" in question["question"]
+    # the form is German since BUG-0271 (PR-0011 AC-7): the branch, the remote and the head all
+    # stand in the sentence, in the user's words rather than as `remote/branch @ head`
+    assert "des Zweigs „main“ nach origin" in question["question"], question["question"]
     assert git_head(work)[:8] in question["question"]
 
 

@@ -1789,7 +1789,10 @@ def test_the_two_document_routes_each_resolve_their_own_plan_on_the_command_line
                      "--kit-document", "master_data.yaml", "--proposal", revision,
                      "--reason", "Steuerberater gewechselt"]) == 0
     asked = capsys.readouterr().out
-    assert "document_revision" in asked and "GELÖSCHT WIRD" in asked, asked
+    # the kind stands in the question as its plain-words label since BUG-0271 (PR-0011 AC-7)
+    from kernel.approvals import KIND_LABELS
+    assert KIND_LABELS["document_revision"] in asked and "GELÖSCHT WIRD" in asked, asked
+    assert "document_revision" not in json.loads(asked)["question"], asked
 
     addition = _stage_proposal(state, _with_new_category(), name="added.yaml")
     assert cli.main(["--root", state.root, "request-approval", "document_proposal",

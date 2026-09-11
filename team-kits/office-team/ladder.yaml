@@ -71,7 +71,10 @@ roles:
   filing-reviewer: reading
 
 # Named per-role exceptions: `top` (a higher or lower endpoint for one role), `effort` (a fixed
-# effort that replaces the pair), `rung` (a fixed starting rung that replaces class and pin).
+# effort that replaces the pair -- floor AND ceiling, an order's `effort` ask cannot move it,
+# DEC-0091 (2) with DEC-0047's reason: the filing pair reads, so `--effort high` on a clerk buys
+# nothing), `rung` (the floor the start is taken from instead of class and pin; an order's `rung`
+# ask may lift it, never lower it).
 exceptions:
   office-developer:
     top: fable                        # DEC-0078 (1): the one office role that may climb to fable

@@ -1,0 +1,52 @@
+id: DEC-0096
+title: 'Eskalation: erst AUFWAND, dann SPROSSE (Zusatz zu DEC-0034 Regel 2 / DEC-0095
+  (4)): der erste Fehlschlag hebt den Aufwand auf derselben Sprosse (high -> xhigh),
+  die Sprosse steigt erst nach wiederholtem Scheitern -- Fable wird beim dritten Fehlschlag
+  erreicht, nicht beim ersten'
+context: 'USER 2026-09-11 ~07:20: ''Soll lieber nur auf Fable eskaliert werden, wenn
+  Opus es 3x nicht hinbekommt, und vorher nur der Effort steigen? Weil durch die erste
+  Pruefung fallen wir in der Regel immer durch.'' MEASURED: every stream of generations
+  3-5 and both generation-5/6 goal packages FAILED their first verification round
+  (TSK-0130/0131/0132 round 1, TSK-0133 round 1, TSK-0135''s mid-goal check found
+  six code lines); the first round''s findings are mostly prose-vs-code and the fix''s
+  own edges, not a lack of model capability (DEC-0088 (c) finding classes). Today''s
+  ladder (dev/research/office ladder.yaml `escalation: failed_runs_per_rung: 1`, DEC-0034
+  rule 2 ''one rung per FAIL'') would therefore lift an Opus builder to Fable after
+  the first round of almost every goal -- the standing Fable cost DEC-0095 just removed,
+  back through the side door. DEC-0077 (2) made the thresholds config values with
+  their DEC line for exactly this: a pilot may move them.'
+decision: '(1) ORDER OF THE TWO AXES ON FAILURE: FAIL 1 -> same rung, effort one step
+  up (high -> xhigh; an order already at the kit''s ceiling stays); FAIL 2 -> same
+  rung at the raised effort, and the lead applies DEC-0088 (c): a re-cut by finding
+  class (prose-vs-code -> the builder''s checklist grows, no escalation; coordination
+  -> the cut was wrong; product defects -> the goal was too big); FAIL 3 -> the rung
+  climbs one step (opus -> fable, DEC-0034 rule 2), from where the effort restarts
+  at the kit''s default. (2) CONFIG, NOT CONSTANTS (DEC-0077 (2)): `escalation.effort_steps_before_rung:
+  2` and `escalation.failed_runs_per_rung: 3` in every kit''s ladder.yaml, each line
+  carrying this DEC; the dispatcher derives effort and rung from the order''s FAILED
+  count and these two values; a kit may declare other numbers (office''s ceiling is
+  high, so its first step is a no-op and it climbs to opus at FAIL 3 -- said in its
+  ladder). (3) COUNTED PER ORDER, as today: a re-cut order starts its own count --
+  the re-cut IS the reset, by design (a smaller order on the same rung is the cheaper
+  correction). (4) SHOWN: the lease and the checkpoint print ''FAIL n of the order:
+  effort/rung derived as ...'', the (g) table records rounds-to-PASS per rung and
+  per effort, so the two thresholds are re-measured over generations. (5) CARRIER:
+  TSK-0136 (DEC-0095''s order) -- one mechanic, one place (kernel/dispatch.py ladder_for_order
+  + the three ladder.yaml + tests red-first on FAIL 1/2/3).'
+consequences: 'The first verification FAIL costs an effort step, not the top model;
+  Fable stays what DEC-0095 made it -- the architecture step and a measured last resort.
+  Cost: a goal that truly needs the top rung pays two more Opus rounds before it gets
+  there -- bounded by DEC-0088''s two-round cap and the re-cut in between. Rejected:
+  one rung per FAIL as the default (the measured first-round FAIL rate makes it a
+  standing Fable cost); escalating on the verifier''s finding class automatically
+  (no kernel reader can classify prose-vs-code -- the lead does, at the re-cut).'
+work:
+- TSK-0136
+- PR-0011
+source: user message 2026-09-11 ~07:20; DEC-0034; DEC-0077 (2); DEC-0088 (b)/(c);
+  DEC-0095; the verification histories of TSK-0130..0135 (round logs generation-5/6-streams.md);
+  team-kits/*/ladder.yaml escalation block
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-11T07:18:14'

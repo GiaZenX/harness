@@ -619,6 +619,18 @@ DEC_WORK_FIELD = "work"
 # difference between the honest silence and the DEC-0034 case.
 DEC_WORK_NONE = "none"
 
+# THE PM'S TIER ASK ON A WORK ORDER (DEC-0091 (1)): the rung and the effort the PM judges THIS slice
+# needs, set at `create-task` and changeable while the order is still being planned. They are an
+# INPUT of the dispatcher's derivation and never its answer: `kernel.dispatch.ladder_for_order`
+# takes the higher of the ladder's floor and this ask (DEC-0091 (2)), and what the lease then
+# derived lands on the task under `kernel.dispatch.LEASE_RUNG_FIELD` / `LEASE_EFFORT_FIELD`. Two
+# names for two facts, because the derived value written back under the ask's name would become the
+# next lease's floor and climb twice. Spelled here and imported by `dispatch` (its `RUNG_KEY` /
+# `EFFORT_KEY`), so the contract and its reader cannot come to spell the field differently;
+# `tools/test_light_kit.py::test_the_order_fields_are_the_contracts_and_frozen_with_the_plan`.
+TSK_RUNG_FIELD = "rung"
+TSK_EFFORT_FIELD = "effort"
+
 # Fields a type owes when a caller CAPTURES it, and never in the store (DEC-0083 (1)). The two are
 # not the same duty: `REQUIRED_FIELDS` is read by the validator too, so putting `work` there would
 # turn every decision this project already holds into an error no command repairs -- the same
@@ -676,7 +688,9 @@ OPTIONAL_FIELDS = {
     # share nothing, and a required empty list would be a field every planner types to say
     # "nothing". `kernel.scopes` subtracts it before it judges a pair, and only where BOTH orders
     # of that pair declare it -- see `scopes.pair_seam` for why a one-sided declaration is not one.
-    "TSK": ("design_ref", "seam_scope"),
+    # `TSK_RUNG_FIELD` / `TSK_EFFORT_FIELD` are the PM's ask per order (DEC-0091 (1)); optional
+    # because most orders take the ladder's own answer, and an ask is the exception the PM names.
+    "TSK": ("design_ref", "seam_scope", TSK_RUNG_FIELD, TSK_EFFORT_FIELD),
     # OPTIONAL and not required, and the reason is the type: an `EVD` is immutable, so a field
     # made required here would turn every Evidence a project already holds into a validator error
     # with no command that could repair it. What that costs is counted where it is judged -- H108
@@ -1281,6 +1295,10 @@ TSK_PLAN_FIELDS = frozenset((
     # added to a LEASED order re-decides a cut that has already been handed out. Declaring one
     # later is legitimate -- it just has to be visible, like every other re-planning.
     "seam_scope",
+    # The tier ask for the same reason one step further still: it is an input of the rung the
+    # dispatcher derives at the lease, and DEC-0091 (1) says "changeable while DRAFT" -- which is
+    # exactly the freeze this tuple carries, so the rule needs no second mechanism.
+    TSK_RUNG_FIELD, TSK_EFFORT_FIELD,
 ))
 
 

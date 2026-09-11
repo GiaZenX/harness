@@ -1,0 +1,32 @@
+id: FR-0007
+title: 'Die Kommentardisziplin in die Kits: Verfassung und Rollendefinitionen'
+related_pr: PR-0008
+request_text: 'SR-0008 gilt fuer dieses Repo. In den Kits muss dieselbe Vorgabe stehen,
+  sonst schreiben die Spezialisten in JEDEM Projekt weiter Essays -- und dort ist
+  der Schaden groesser, weil dort niemand mit einer Pruefrunde gegenhaelt.
+
+
+  Zwei Orte: die Verfassung (team-kits/*/constitution/AGENTS.md) traegt die Regel,
+  und die Rollendefinitionen (team-kits/*/agents/*.md) tragen sie fuer die, die schreiben.
+  Gespiegelt, byte-identisch, wie alles andere.
+
+
+  Der Verweis-Teil ist in einem Projekt sogar staerker als hier: dort FUEHRT der Kernel
+  die Items ohnehin, also ist ''siehe SR-0042'' ein Sprung zu einer Datei, die validate
+  prueft. Ein Kommentar kann von einer Anforderung nicht mehr wegdriften, wenn er
+  sie nur nennt.
+
+
+  Offen: ob es dafuer einen messbaren Wachhund gibt oder ob es Prosa bleibt. Ein Test,
+  der Kommentare auf ''behauptet eine Eigenschaft'' prueft, waere eine Heuristik ueber
+  Prosa -- genau das, was wir nicht bauen. Wahrscheinlich traegt hier nur die Rollendefinition
+  plus die Pruefrunde.'
+status: MERGED
+revision: 1
+approval_ref: null
+created: '2026-08-05T07:00:07'
+triage_result: 'DELIVERED in generation 5 (G5-1): the comment-discipline duty in the
+  three constitutions (byte-identical) and nine implementing roles, mechanical half
+  = sweep-pointers; merged TSK-0133'
+resulting_item: PR-0008
+closed_at: '2026-09-11T01:50:48'

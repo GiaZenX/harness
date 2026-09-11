@@ -1,0 +1,47 @@
+id: BUG-0277
+title: scaffold_team warns and continues when the staging carries no write_kit_state.py,
+  so a project installs green with no hook-bundle trust recorded -- and the missing
+  file is a kit-hash input, so every later stamp check refuses the same staging (new,
+  TSK-0135, DEC-0092 (6) rig)
+related_pr: PR-0011
+severity: low
+observed: 'MEASURED 2026-09-11 04:38-04:46 by tools/light_kit_pilot.py and rig/update_route.py
+  (C:/Offline Repos/v2-testbed/_round-scratch/TSK-0135/). A kit store copied WITHOUT
+  write_kit_state.py (the habit the TSK-0130 pilot rig had) scaffolds a dev/research/office
+  pilot with rc 0: scaffold_team.ps1 line ~718 finds no recorder beside the kit and
+  prints `[warn] ... no hook-bundle trust recorded` and goes on (kit_state.json unwritten,
+  `doctor` hook_trust unverified). The SAME store then fails every stamp comparison:
+  `request-approval kit_update` refused it with `does not hash to the content in its
+  own VERSION (1e2664f5005e vs cf05ce7e9cb9)`, because write_kit_state.py is one of
+  `kernel.hashing.kit_hash_inputs` (rig/hash_compare.py: repo cf05ce7e9cb9 = fresh
+  copy with the recorder; copy without it 1e2664f5005e). So the first install from
+  a partial staging succeeds with a warning nobody reads, while the update route refuses
+  the identical staging with a sentence.'
+expected: The scaffold refuses a staging whose kit does not hash to its own stamp
+  BEFORE it installs anything -- the same check update-kit and request-approval kit_update
+  already run -- or at least refuses when the recorder that would vouch for the bundle
+  is missing, instead of warning. Either way a project never comes out of a first
+  install with hook_trust unverified and a green scaffold log.
+repro: 'Copy team-kits to a HOME store, delete write_kit_state.py, run scaffold_team.ps1
+  -Team dev-team -Preset solo into an empty git repo: rc 0, `[warn]` line, no .claude/kit_state.json.
+  Then `python scripts/harness.py request-approval kit_update` in that project after
+  any restamp: refused as an unstamped staging.'
+acceptance_criteria:
+- id: AC-1
+  text: scaffold_team refuses (rc != 0, sentence names the stamp) a staging whose
+    kit hash does not match its VERSION content, measured as a process on a copy without
+    the recorder
+- id: AC-2
+  text: the two pilot rigs (TSK-0130, TSK-0135) keep the recorder in their store copies
+    -- TSK-0135's does since 04:46
+limits: 'A project installed this way runs with `hook_trust: unverified` (doctor names
+  it) rather than with a forged trust: gate_dispatch refuses spawns only when trust
+  is WITHDRAWN, so nothing blocks such a project, but nothing vouches for it either.
+  The update route is the bound that holds: `update-kit` / `request-approval kit_update`
+  refuse the recorder-less staging by the hash (measured), so the defect stops at
+  the first install and cannot be carried into an update.'
+hole_number: H193
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-11T04:55:54'

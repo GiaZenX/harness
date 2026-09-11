@@ -89,9 +89,9 @@ Occasion: `BUG-0073`.
    `tax.founding_year` comes from "In welchem Jahr hast du das Geschäft angemeldet?" as a
    four-digit year; without it the § 19 watch cannot decide the case "no previous year in the
    ledger" and says so instead of deciding.
-   Preset confirm (recommend `core` first — presets are
-   MECHANICAL; changing one later is `request-approval preset` → the user answers →
-   `set-preset` → restart, and stays inside the chat: §7).
+   The team is DERIVED, never asked (`DEC-0087` (2)): the install wrote the smallest preset, and you
+   widen it yourself when a PROC needs a role the team lacks — `request-approval preset` → the user
+   answers → `set-preset` → restart, inside the chat (§7, `DEC-0048`). No team-size question to the user.
 3. **DEFINE PROCs** — capture one `PROC-nnnn` per automation wish
    (trigger, steps, owning role, outputs, approval points, exception policy); the kernel allocates the id
    and sets status `DRAFT`.
@@ -133,8 +133,42 @@ Occasion: `BUG-0073`.
    one an order is about to CREATE in a directory that is empty today. Wishes whose file lists
    overlap are merged into ONE `PROC` at triage and that goal gets ONE `TSK` — never several
    requirements inside one work order, which the kernel cannot represent and no board can see
-   (`DEC-0067`); and no more goals run at once than you can carry through their rework rounds. Nothing refuses an overlapping pair, so this reading
-   is the whole of the protection, and this kit ships no procedure document for the rest of it.
+   (`DEC-0067`); and no more goals run at once than you can carry through their rework rounds. The
+   kernel refuses the second build lease under one goal until `check-scopes` has RECORDED the two
+   file sets disjoint (`DEC-0092` (2)), and the overlap it can see live it refuses as well; this kit
+   ships no procedure document for the rest of it.
+   **THE LIGHT FORM (`DEC-0087`, `DEC-0088`, `DEC-0091`, `DEC-0092`) — how many builders, and on which
+   rung.** ONE builder per goal, with the WHOLE goal (the PROC with its criteria, the profile, the open
+   questions) — a peer-level model that thinks and builds end to end; you keep the items, the
+   decisions, the approvals and the evidence and write no product code (`gate_write_scope` refuses
+   it). A SECOND builder under the same goal only on two file sets `check-scopes` measured disjoint:
+   the kernel refuses the second build lease without that record and writes the record it was
+   admitted on onto the lease (`measured_disjoint`); a light model only for a MECHANICAL slice with a
+   complete spec and an acceptance criterion. The TIERS are yours to derive, never the user's to
+   answer: this kit's ladder gives every role its floor and its ceiling (`DEC-0078`: opus at the top
+   for every role but the office-developer, `medium`/`high`, no `xhigh`), and per ORDER you lift the
+   floor with `create-task --rung <rung> --effort <effort>` by what the slice needs — the user's
+   three-line rule: »der eine passt nur x an — sonnet high/xhigh; der andere arbeitet y ab,
+   komplexer — opus high/xhigh; der dritte macht z, extrem viel Aufwand, Feinarbeit,
+   Bewertungspotenzial — fable high/xhigh« (inside this kit's ladder; the filing pair's `low` is
+   floor and ceiling at once). The ask lifts the floor and never lowers a role below its class, and
+   `top` still caps. Both values stand on the lease, in the brief and beside the order in
+   `check-scopes`. **You never ask the user for tiers or for the team size** — he is asked for the
+   PROC, the scope, the delivery and the acceptance, and for a missing role only when the work needs
+   one (`request-approval preset`, `DEC-0048`). Before every builder spawn the spawn gate hands you
+   four fact lines — the goal's disjoint sets, the order's size signals, the rung with its floor, the
+   last orders' distribution — and one question you answer to yourself, not in a field: does the
+   rung fit the slice, and is one builder still the right count? Nothing blocks on it, and nothing
+   can read whether you judged well: that shows only in the outcome — rounds, cost, the user's
+   verdict — which the brief's `lease_distribution` line and the auditor's retrospective put in front
+   of you (`DEC-0092` (7)).
+   **VERIFICATION AT THE GOAL (`DEC-0087` (3), `DEC-0088` cadence):** no reviewer DURING the build —
+   the builder keeps a red-first test per fix and runs the reading checks; ONE review round when the
+   goal is delivered, a verdict per acceptance criterion; a FAIL gets ONE rework and ONE short second
+   round over the failed criteria only; a THIRD round is a re-cut by finding class; a small change
+   under an existing goal gets NO separate reviewer — the delivery approval is the human gate; a goal
+   you marked LARGE gets one mid-goal check; the merge stays its own verification. You do not order a
+   reviewer after every rework — that was the measured cost driver.
    **The prose you hand the user is a deliverable too, and `/humanizer` (Codex
    `.agents/skills/humanizer/SKILL.md`) is the reference skill for it.** It reaches you by no other
    route: a reference skill rides on a dispatch header (`kernel.references.for_task`, stamped onto

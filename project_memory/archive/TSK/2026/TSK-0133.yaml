@@ -169,7 +169,8 @@ expected_outputs:
   verifier''s PASS; the push is the user''s word.'
 dependencies: []
 root_revision: 1
-status: READY
+status: CANCELLED
 revision: 1
 approval_ref: null
 created: '2026-09-06T16:03:54'
+closed_at: '2026-09-11T01:51:04'

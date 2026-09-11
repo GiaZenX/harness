@@ -1,0 +1,173 @@
+id: TSK-0135
+product_requirement: PR-0011
+derives_from: PR-0011
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-1
+allowed_scope:
+- team-kits/**
+- tools/**
+- docs/**
+- user/claude/CLAUDE.md
+- user/codex/**
+- .claude/agents/harness-lead.md
+- .claude/agents/harness-implementer.md
+- .claude/agents/harness-verifier.md
+- .claude/hooks/test_gates.py
+- README.md
+- CLAUDE.md
+- NOTICES.md
+forbidden_scope:
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- project_memory/**
+- radar/20*.md
+- radar/decided.md
+- .claude/agents/claude-watcher.md
+- .claude/agents/codex-watcher.md
+- .codex/agents/**
+required_inputs:
+- 'PR-0011 (DRAFT at the cut, plan/scope mint deferred to the user''s return by DEC-0093
+  (3)) -- the WHOLE goal: title, user story, problem, goal, the twelve ACs, invariants,
+  out_of_scope; you build all of it, in the order the seams dictate (kernel contract
+  first: TSK rung/effort fields and the dispatcher''s max(); then the gate rule and
+  the checkpoint; then the texts that describe them; then the entry file; the experiment
+  arm last)'
+- 'The decisions this goal implements, each cited by the code that implements it (CLAUDE.md:
+  a built file names its DEC): DEC-0087 (the light form), DEC-0088 (tiers per goal,
+  cadence, cost discipline), DEC-0091 (rung/effort per order, max() with the ladder
+  floor), DEC-0092 (no free-text field; structural gate; the fact-based checkpoint;
+  distribution line; retrospective rule; pilot rig; the honest limit), DEC-0089/DEC-0090
+  (watcher duo -- delivered by TSK-0134 before you start: read its protocol, do not
+  redo it), DEC-0093 (this order''s mandate); DEC-0076/0077/0078 (three rungs, two
+  axes, ladders per kit), DEC-0034 (escalation), DEC-0048 (ask again when a role is
+  missing), DEC-0083 (a decision names its work), DEC-0050/DEC-0080 (test scope, the
+  gen-4 rules)'
+- 'The defects this goal closes with their chains: BUG-0271 + BUG-0073 (the approval
+  question: kernel/approvals.py build_question + TARGET_FORMS; gate_approval compares
+  character for character; the value-language rule of BUG-0073 measured by test_role_contracts),
+  BUG-0266/H184 (the auditor''s read-only route: the `routine` approval kind, session_status/_routine.py,
+  dispatch), FR-0089 + staging/FR-0089/*.md (the experiment design: same frontend
+  task, two arms, tokens/wall-clock/rounds/the user''s verdict -- you PREPARE both
+  arms and run the kit arm; the user''s verdict is his and waits)'
+- 'The committed generation-5 tree (the base): dev-team/research-team/office-team
+  ladder.yaml, kernel/dispatch.py (ladder_for_order, create_lease, the escalation
+  count), kernel/report.py (session brief, stock rollup, decision-carrier validator),
+  kernel/backlog_types.py (TSK contract, TSK_PLAN_FIELDS), kernel/cli.py, the PM skills
+  and constitutions with their ladder paragraphs (one bold statement carrying both
+  axes -- G5-1''s seam N18), user/claude/CLAUDE.md (the entry gate; FR-0048 lineage),
+  tools/test_ladder.py / test_model_ladder.py / test_review_procedure.py / test_role_contracts.py
+  / test_hooks*.py as the reading suites'
+- 'FR-0062 + kernel/gaplog.py + tools/harvest_kit_gaps.py (AC-11: the harvest runs
+  from this repo against the three installed projects under C:/Offline Repos/ -- read-only
+  on them; its state file lives here)'
+- 'HOST RULES: one pytest at a time, every run with a timeout, no CPU-saturating rig
+  (four freezes measured); gate 5 live -- the full tools/ suite ONCE at the end with
+  `DELIVERY_RUN=(this task id)`, after the stamp (DEC-0080 (5)); clock READ in every
+  protocol time; scratch only under C:/Offline Repos/v2-testbed/_round-scratch/(this
+  task id)/'
+- forbidden_scope project_memory/** EXCEPTS project_memory/staging/(this task id)/;
+  canonical state through the kernel only; the lead runs evidence / transitions /
+  migrate-holes --reindex
+expected_outputs:
+- 'AC-1: ONE WRITER PER GOAL (DEC-0087 (1)): Given an approved goal, When the PM dispatches
+  it, Then exactly one builder lease exists for it carrying the whole goal (PR + ACs
+  + masterplan + architecture/product questions) and the PM''s own write scope is
+  unchanged (gate_write_scope measured refusing a PM code write); a second builder
+  needs check-scopes evidence of disjoint file sets on the lease (DEC-0087 (2)); red-first
+  on the dispatcher'
+- 'AC-2: TEAM SIZE DERIVED (DEC-0087 (2)): the presets question is gone from the entry
+  interview (user/claude/CLAUDE.md + the PM skill), presets become the PM''s derivation
+  with DEC-0048''s ''ask again when a role is missing'' as the escape; a structural
+  test reads the entry file and the PM skill for a team-size question and is red on
+  it'
+- 'AC-3: TIERS DERIVED PER GOAL AND PER ORDER (DEC-0088 (1)-(5), the per-order tiers
+  DEC): the TSK contract carries optional `rung` and `effort`; create-task accepts
+  them; the dispatcher''s lease rung = max(ladder class/pin rung, order rung), effort
+  = max(goal effort, order effort), floors and `top` kept, escalation from wherever
+  the order starts; both on the lease, in the session brief and beside the order in
+  check-scopes; a test refuses a rung outside the kit''s ladder vocabulary and an
+  effort outside low|medium|high|xhigh; the PM duty text carries the user''s three-line
+  rule and never asks the user for tiers'
+- 'AC-4: VERIFICATION AT THE GOAL (DEC-0087 (3), DEC-0088 cadence (a)-(f)): the PM
+  skill and constitutions describe the cadence (no verifier during the build; ONE
+  round at the goal per AC; one rework + one short second round over failed ACs; a
+  third round is a re-cut by finding class; small changes under a goal get no separate
+  verifier; merge stays its own round); a reading test is red on any kit text that
+  still orders a verifier after every rework; the retrospective step at the goal records
+  wall-clock against measured-disjoint scopes (the solo-habit catcher)'
+- 'AC-5: ENTRY (DEC-0087 (4)): the first-contact question is ''Mit Langzeit-Gedaechtnis
+  fuer das Projekt (Projektakte, Entscheidungen, Beweise) -- oder erstmal frei?'';
+  ''with'' installs the kit at once with the solo default; the product interview stays
+  but shorter; measured on a scaffolded pilot; the German-report rule holds on that
+  surface (FR-0048)'
+- 'AC-6: THE EXPERIMENT (FR-0089): the same frontend task with the same brief run
+  two ways -- (a) one Fable alone, (b) the kit in the light form -- measured on tokens,
+  wall-clock, rounds and the USER''s quality verdict, recorded as EVD with the numbers;
+  the kits'' builder default tier (Fable, or Opus with Fable for architecture/design)
+  is decided from it as a DEC'
+- 'AC-7: APPROVAL QUESTION IN GERMAN (BUG-0271, BUG-0073): build_question yields a
+  German sentence with the kind in plain words from ONE table beside the enum (two-sided
+  tripwire), the item''s title or German-labelled manifest values, no hash / request
+  id / YAML path in the question text (moved into the compared option description);
+  the gate still compares character for character (red-first: a tampered description
+  refused); the PM''s value-language rule of BUG-0073 kept'
+- 'AC-8: AUDITOR READ-ONLY ROUTE (BUG-0266/H184): the project-auditor is dispatched
+  through a `routine` approval kind that binds a read-only manifest, runs from the
+  session-start due reading without a code write, and its report lands as items through
+  the kernel; measured end to end on a scaffolded pilot per kit'
+- 'AC-9: WATCHER DUO (DEC-0089, DEC-0090; TSK-0134): claude-watcher / codex-watcher
+  on the opus rung on both providers, report name with runner suffix, --due per watcher
+  AND runner, radar/routine.json recording the four local routines as told with the
+  report cadence as evidence, --describe printing the four Instructions texts; the
+  four routines created at the next local session (two Claude Desktop tasks by asking
+  Claude Desktop, two Codex app Automations by the user), the first cross-provider
+  report as the evidence'
+- 'AC-10: BUILT IN ITS OWN FORM (DEC-0087 (7)): this goal is delivered by ONE builder
+  on the top rung with ONE verifier round at the goal (plus at most one mid-goal check,
+  this goal being LARGE), the merge/integration its own round; the (g) table compares
+  its tokens/rounds/wall-clock with generation 5''s per-stream numbers -- the first
+  measurement of the form on itself'
+- 'AC-11: ROLLOUT AND HARVEST: the three installed projects receive the stamp at their
+  next session start (update-kit route), the kit-gap harvest (FR-0062) runs once from
+  this repo as a recorded lead routine and its entries are triaged into items; what
+  the harvest finds is the first input of the generation-6 retrospective'
+- 'AC-12: HONEST TEAM AND TIER CHOICE (DEC-0092): a second concurrent build lease
+  under one goal is refused without a check-scopes record of disjoint file sets; the
+  spawn/dispatch gate prints the fact-based four-line checkpoint (disjoint sets, size
+  signals, rung + floor, last-N distribution) before every builder start and never
+  blocks on it; the session brief carries the distribution line; the retrospective
+  step writes the habit verdict with numbers; the pilot rig (three orders of different
+  size) runs at every stamp touching the ladder or PM texts; red-first on the two
+  refusals; no free-text justification field anywhere'
+- 'BUILT IN ITS OWN FORM (AC-10, DEC-0087 (7)): ONE builder (you, Fable high) with
+  the whole goal; red-first per fix in a copy outside the repo; NO verifier during
+  the build; ONE mid-goal check by the Opus verifier at the half (this goal is LARGE:
+  you report ''half'' when the kernel contract + gate + checkpoint are built and measured,
+  before the texts and the entry file); ONE verifier round at the goal against the
+  twelve ACs; at most one rework + one short second round over failed ACs; the (g)
+  table compares your tokens/rounds/wall-clock against generation 5''s per-stream
+  rows -- the first measurement of the form on itself.'
+- 'STAMP BEFORE THE FULL RUN: one release stamp across the three kits after the last
+  change (tools/bump_kit_version.py), THEN the full tools/ suite ONCE with the delivery
+  prefix, plus .claude/hooks/test_gates.py in full, ruff, tools/validate.py; every
+  red a finding fixed red-first, then the suites that read the changed files, then
+  ONE more stamp and ONE more full run.'
+- 'PROTOCOL in project_memory/staging/(this task id)/protocol.md: per AC the measured
+  line (test name, red-first mutation, run), the seams touched, new holes through
+  the kernel (`capture BUG --hole`, H189+; the lead runs `migrate-holes --reindex`
+  after your last), the (g) table, the two EVD lines for the lead (state-relative
+  artifact refs inside the repo, no digest), the user lines (plan/scope mint of PR-0011,
+  the experiment''s verdict, the four local routines, push, acceptance mints), the
+  one-line rejected alternative. No commit, no push, no install into the user''s projects
+  (rollout = the update route at their next session start; you measure that the route
+  WOULD carry the stamp, on a scaffolded pilot).'
+dependencies:
+- TSK-0134
+root_revision: 1
+status: READY
+revision: 1
+approval_ref: null
+created: '2026-09-11T01:51:27'

@@ -37,6 +37,10 @@ def make_brief(**overrides):
         "open_approvals": [{"request_id": "req-1", "kind": "scope", "item": "PR-0002"}],
         "staging_pointers": ["staging/PR-0002/"],
         "standing_decisions": [{"id": "DEC-0001", "title": "Local-only", "decision": "SQLite, no cloud"}],
+        # the shape `report.lease_distribution` writes (DEC-0092 (4)); required, like every section
+        "lease_distribution": {"window": 10, "orders": 0, "goals_with_builders": 0,
+                               "builders_per_goal": {}, "rungs": {}, "runs_to_hand_back_per_rung": {},
+                               "line": "no lease recorded in this project yet -- no habit to show"},
         "budget_status": {"memory_md": "ok"},
     }
     brief.update(overrides)

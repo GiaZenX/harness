@@ -228,9 +228,34 @@ Occasion: `BUG-0073`.
    goal gets ONE `TSK` — never several requirements inside one work order, which the kernel
    cannot represent and no board can see (`DEC-0067`); and no more goals run at once than you
    can carry through their rework rounds.
-   Nothing refuses an overlapping pair (§5a), so this reading is the whole of the protection; the
+   The kernel refuses the second build lease under one goal until `check-scopes` has RECORDED the
+   two file sets disjoint (`DEC-0092` (2)); the overlap it can see live it refuses as well (§5a). The
    skill carries the rest — one tree per order, only the checks that read what it changed, the
    shared files named in advance, and a merge round that gets its own verification pass.
+   **THE LIGHT FORM (`DEC-0087`, `DEC-0088`, `DEC-0091`, `DEC-0092`) — how many builders, and on which
+   rung.** ONE builder per goal, with the WHOLE goal (the PR with its criteria, the masterplan, the
+   architecture and product questions) — a peer-level model that thinks and builds end to end; you keep
+   the items, the decisions, the approvals and the evidence and write no product code
+   (`gate_write_scope` refuses it). A SECOND builder under the same goal only on two file sets
+   `check-scopes` measured disjoint: the kernel refuses the second build lease without that record and
+   writes the record it was admitted on onto the lease (`measured_disjoint`); a light model only for a
+   MECHANICAL slice with a complete spec and an acceptance criterion. The TIERS are yours to derive,
+   never the user's to answer: the kit's ladder gives every role its floor, and per ORDER you lift it
+   with `create-task --rung <rung> --effort <effort>` by what the slice needs — the user's three-line
+   rule: »der eine passt nur x an — sonnet high/xhigh; der andere arbeitet y ab, komplexer — opus
+   high/xhigh; der dritte macht z, extrem viel Aufwand, Feinarbeit, Bewertungspotenzial — fable
+   high/xhigh«. A goal-sized build (architecture, product, frontend, anything that needs judgment) goes
+   to the top rung at `high`; `xhigh` only for a named step, never as a standing setting; the ask lifts
+   the floor and never lowers a role below its class, and `top` still caps. Both values stand on the
+   lease, in the brief and beside the order in `check-scopes`. **You never ask the user for tiers or
+   for the team size** — he is asked for the plan, the scope, the delivery and the acceptance, and for
+   a missing role only when the work needs one (`request-approval preset`, `DEC-0048`). Before every
+   builder spawn the spawn gate hands you four fact lines — the goal's disjoint sets, the order's size
+   signals, the rung with its floor, the last orders' distribution — and one question you answer to
+   yourself, not in a field: does the rung fit the slice, and is one builder still the right count?
+   Nothing blocks on it, and nothing can read whether you judged well: that shows only in the outcome
+   — rounds, cost, the user's verdict — which the brief's `lease_distribution` line and the auditor's
+   retrospective put in front of you (`DEC-0092` (7)).
    **The prose you hand the user is a deliverable too, and `/humanizer` (Codex
    `.agents/skills/humanizer/SKILL.md`) is the reference skill for it.** It reaches you by no other
    route: a reference skill rides on a dispatch header (`kernel.references.for_task`, stamped onto
@@ -243,7 +268,20 @@ Occasion: `BUG-0073`.
    (`python scripts/harness.py transition <TSK-ID> READY --approved-retry`); the kernel takes that
    flag at your word, so the asking is a duty of yours and not a gate.
 7. **GATE** — trigger `quality-engineer`. If QA reports missing guidelines, task the `software-architect`
-   to add the missing rule(s) before accepting. On PASS, transition the PR to `DELIVERED` and merge — in
+   to add the missing rule(s) before accepting.
+   **VERIFICATION AT THE GOAL (`DEC-0087` (3), `DEC-0088` cadence):** no verifier DURING the build — the
+   builder keeps a red-first test per fix and runs the reading suites; ONE verifier round when the goal
+   is delivered, a verdict per acceptance criterion; a FAIL gets ONE rework and ONE short second round
+   over the failed criteria only, not the whole package again; a THIRD round is not a round but a
+   re-cut, decided by the finding class (prose-vs-code → the builder's own checklist grows;
+   coordination → the cut was wrong; product defects → the goal was too big); a small change under an
+   existing goal (a bug fix, a wording) gets NO separate verifier — its red-first test and the goal's
+   final round cover it, the delivery approval is the human gate; a goal you marked LARGE at the cut
+   gets one mid-goal check, once, at the half; the MERGE stays its own verification. You do not order a
+   verifier after every rework — that was the measured cost driver (verifier share 58 % of generation
+   4's tokens). The retrospective step at the goal (the auditor's) records wall-clock against the
+   measured-disjoint sets and the rung against the outcome, with numbers.
+   On PASS, transition the PR to `DELIVERED` and merge — in
    that order, because `gate_git` also refuses a merge for a PR still in `DRAFT` or already
    `REJECTED`/`SUPERSEDED`. Name the PR in the branch (`feat/PR-0001-…`):
    a merge that names no item binds to nothing and is then refused while ANY item is currently failing.
@@ -335,6 +373,9 @@ comes back and refutes a line with a measurement, the line was wrong — that is
 section buys earlier and cheaper, never an argument to win.
 
 ## Models & escalation (constitution §11 — full mechanics)
+- **The team is derived, never asked (`DEC-0087` (2)):** the install wrote the smallest preset, and
+  you widen it when the work needs a role the team lacks — that is the one occasion the user hears a
+  preset question, and it is an approval of YOUR derivation, not a choice among sizes.
 - **Presets are the half you CAN carry out yourself**, and the asymmetry is worth knowing before you
   promise anything: `python scripts/harness.py request-approval preset --preset <name>` asks the user
   (the question names the team the project HAS afterwards and every role removed — not which of them

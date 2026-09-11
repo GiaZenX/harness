@@ -1197,8 +1197,11 @@ def test_the_routine_question_names_everything_the_route_binds_to(state):
         approval_expires=time.time() + 3600)
     question = approvals.build_question(request)
     assert question == approvals.build_question(request)
+    # every field under its plain-words label (BUG-0271 / PR-0011 AC-7): the English key names
+    # stay out of the sentence, the values the route binds to stay in it
     for field in approvals.ROUTINE_MANIFEST_FIELDS:
-        assert "%s:" % field in question["question"], (field, question["question"])
+        assert "%s:" % approvals.MANIFEST_LABELS[field] in question["question"], (field, question["question"])
+        assert "%s:" % field not in question["question"], (field, question["question"])
     for shown in ("project-auditor", "weekly + after kit update", "project_memory/**", "src/**"):
         assert shown in question["question"], shown
     # THE EXPIRY, and as a date. It is the fifth thing the manifest hashes, the one the kernel
@@ -1207,7 +1210,7 @@ def test_the_routine_question_names_everything_the_route_binds_to(state):
     # hashed manifest is rendered, so "what the hash covers" is literally what is shown.
     assert set(request["subject_manifest"]) == set(
         approvals.ROUTINE_MANIFEST_FIELDS) | {approvals.EXPIRY_FIELD}
-    assert "%s: %s" % (approvals.EXPIRY_FIELD, time.strftime(
+    assert "%s: %s" % (approvals.MANIFEST_LABELS[approvals.EXPIRY_FIELD], time.strftime(
         "%Y-%m-%dT%H:%M:%SZ",
         time.gmtime(request["subject_manifest"][approvals.EXPIRY_FIELD]))) in question["question"]
     exposed = (question["question"] + question["header"]
@@ -1341,21 +1344,20 @@ def test_a_root_approval_that_cannot_be_read_refuses_in_the_dispatch_vocabulary(
     assert apr["id"] in str(refused.value)
 
 
-def test_minting_a_routine_on_a_live_root_takes_its_approval_ref(state):
-    """A NAMED consequence of the routine route, pinned rather than claimed away.
+def test_minting_a_routine_on_a_live_root_leaves_its_approval_ref_alone(state):
+    """PR-0011 AC-8 (BUG-0266): the routine approval the auditor's route is written for no longer
+    displaces the goal's presented approval -- `approvals.presents` keeps a HANGING kind out of
+    `approval_ref` -- so the builder under that goal still leases after the routine is minted, and
+    the routine still covers the auditor, read off the approvals directory.
 
-    `mint` writes `approval_ref` for every item-bound approval, and the DELIVERY route reads that
-    one field ("the approval the root PRESENTS", `_assert_root_approval_locked`). So a routine
-    approval minted for a root that already carries a scope or delivery approval takes the
-    reference with it, and implementation tasks under that root stop dispatching until the scope
-    approval is obtained again.
-
-    The interaction is older than this route -- an `analysis` approval minted with an item id does
-    the same, and so does `acceptance` after `delivery` -- but this route is the first that INVITES
-    it, so it is measured here instead of being discovered by a project. It is not fixed by
-    widening the delivery route to search the approval store: which APR that route rides on is a
-    written decision next to it, and changing it would change a route this round was asked to
-    leave alone. What the kernel does give is a message that names the cause and the one action.
+    UNTIL GENERATION 6 THIS TEST PINNED THE OPPOSITE ("takes its approval_ref"): a routine minted
+    for a root moved the scope approval out of the field and every implementation task under it
+    stopped dispatching until the scope question was asked again -- at every weekly renewal. The
+    light form runs the auditor from the session-start due reading beside a goal being built, so
+    that interaction had to go rather than stay named. `acceptance` after `delivery` still moves
+    the field, because it commits an edge of the root's own automaton.
+    RED WITHOUT `presents` in `mint`: the builder's lease below is refused with "obtain the scope
+    approval".
     """
     pr, task = make_ready_task(state)                      # scope approval, task dispatchable
     assert dispatch.create_lease(state, task["id"])
@@ -1363,13 +1365,19 @@ def test_minting_a_routine_on_a_live_root_takes_its_approval_ref(state):
     state.transition(task["id"], "READY")
     scope_apr = state.read_item(pr["id"])["approval_ref"]
 
-    _routine_apr(state, pr["id"])
-    moved = state.read_item(pr["id"])["approval_ref"]
-    assert moved != scope_apr, "the routine mint no longer takes approval_ref -- rewrite this"
-    assert approvals.read_apr(state, scope_apr)["revoked"] is False   # still valid, just unread
-    with pytest.raises(DispatchError, match="obtain the scope approval") as refused:
-        dispatch.create_lease(state, task["id"])
-    assert "covers role" in str(refused.value)
+    routine = _routine_apr(state, pr["id"])
+    assert state.read_item(pr["id"])["approval_ref"] == scope_apr, "the routine mint moved approval_ref"
+    assert approvals.read_apr(state, scope_apr)["revoked"] is False
+    assert dispatch.create_lease(state, task["id"])["task_id"] == task["id"]
+    dispatch._remove_lease(state, task["id"])
+    # ...and the routine covers the auditor's read-only order under the same root
+    audit = dispatch.create_task(state, dict(AUDIT_TSK_FIELDS, product_requirement=pr["id"],
+                                             derives_from=pr["id"]))
+    state.transition(audit["id"], "READY")
+    covering, _refusals = dispatch._covering_routine_apr(
+        state, state.read_item(audit["id"]), state.read_item(pr["id"]))
+    assert covering is not None and covering["id"] == routine["id"]
+    assert not approvals.presents("PR", "routine") and approvals.presents("PR", "acceptance")
 
 
 def test_the_routine_route_leaves_the_other_three_alone(state):
@@ -2312,7 +2320,7 @@ def _persisted_names(tree, function_name):
 _UNREADABLE_KEY = object()
 
 
-def _module_string_constants(tree):
+def _module_string_constants(tree, imported=None):
     """{name: value} for module-level `NAME = "literal"` bindings that hold ONE string, always.
 
     A subscript key spelled as such a constant is as readable as a quoted one -- `item[FIELD] = x`
@@ -2321,7 +2329,15 @@ def _module_string_constants(tree):
     every write site. A name that is ever bound to something else, or to two different strings, is
     left out: "I can see one of its values" is not the same as "I know what it is", and the whole
     point of the reader below is that the second answer is the only safe one.
+
+    `imported` is {name: literal} for names this module takes from a sibling where they ARE such a
+    constant (`_imported_string_constants`), so a module-level ALIAS of one -- `RUNG_KEY =
+    TSK_RUNG_FIELD`, which is how `dispatch` spells the field `backlog_types` declares (DEC-0091)
+    -- reads as the literal it stands for. Without it the alias was an unreadable key and every
+    write through it an offender (measured 2026-09-11 on `create_lease`). The same rule as for a
+    literal: bound twice, or to anything else as well, and the name is out.
     """
+    imported = dict(imported or {})
     values, rejected = {}, set()
     for node in tree.body:
         if not isinstance(node, ast.Assign):
@@ -2329,15 +2345,47 @@ def _module_string_constants(tree):
         for target in node.targets:
             if not isinstance(target, ast.Name):
                 continue
-            if not (isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)):
+            if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                literal = node.value.value
+            elif isinstance(node.value, ast.Name) and node.value.id in imported:
+                literal = imported[node.value.id]
+            else:
                 rejected.add(target.id)
-            elif values.setdefault(target.id, node.value.value) != node.value.value:
+                continue
+            if values.setdefault(target.id, literal) != literal:
                 rejected.add(target.id)
+    # a name imported and then rebound in this module is rebound, whatever it was imported as
+    for name in list(imported):
+        if name in values or name in rejected:
+            rejected.add(name)
+    values.update({name: value for name, value in imported.items() if name not in rejected})
     return {name: value for name, value in values.items() if name not in rejected}
 
 
-def _status_writes(tree):
+def _imported_string_constants(tree, siblings):
+    """{name as imported: literal} for every `from .<sibling> import NAME` whose NAME is a one-string
+    constant of that sibling (`siblings` is {module name: its `_module_string_constants`}).
+
+    ONE HOP, deliberately: the sibling's constants are read without following ITS imports, so a
+    chain two modules long stays unreadable and surfaces as an offender rather than resolving to
+    a guess. A name imported under an alias is known by the alias, which is the name the module
+    then writes with.
+    """
+    found = {}
+    for node in tree.body:
+        if not isinstance(node, ast.ImportFrom) or not node.module or node.level != 1:
+            continue
+        constants = siblings.get(node.module.split(".")[0], {})
+        for alias in node.names:
+            if alias.name in constants:
+                found[alias.asname or alias.name] = constants[alias.name]
+    return found
+
+
+def _status_writes(tree, constants=None):
     """(function name, value node or None) for every expression that can SET an ITEM's `status`.
+    `constants` is the module's readable string constants; the module's own literals when the
+    caller passes none, the package-resolved map (`_imported_string_constants`) when it does.
 
     THE READER IS FAIL-CLOSED IN BOTH DIRECTIONS, and it was not. It first read only
     `x["status"] = ...`, so `x.update({"status": "APPROVED"})` walked past it (mutation-measured
@@ -2362,7 +2410,7 @@ def _status_writes(tree):
             for inner in ast.walk(node):
                 holder[inner] = node.name
     persisted = {name: _persisted_names(tree, name) for name in set(holder.values())}
-    constants = _module_string_constants(tree)
+    constants = _module_string_constants(tree) if constants is None else constants
     found = []
 
     def persisted_receiver(node, where):
@@ -2572,6 +2620,29 @@ def test_the_reader_that_finds_direct_status_writes_sees_every_shape_it_claims_t
     rebound = ('K = "approved_hash"\nK = "status"\n'
                'def f(i, s, p):\n    i[K] = "x"\n' + persist)
     assert _status_writes(ast.parse(rebound)) == [("f", None)], "rebound module constant"
+    # A CONSTANT IMPORTED FROM A SIBLING, and an alias of it, read as the literal they stand for
+    # (`dispatch.RUNG_KEY = TSK_RUNG_FIELD`, DEC-0091) -- in both directions: an alias of the
+    # status key IS a status write, an alias of another field is not, and an imported name this
+    # module REBINDS is unreadable again. One hop only: a name the sibling itself imports is not
+    # resolved (`chained`), so it surfaces as unbounded rather than as a guess.
+    declaring = ast.parse('FIELD = "status"\nOTHER = "approved_hash"\nFAR = "status"\n')
+    siblings = {"contract": _module_string_constants(declaring),
+                "hop": _module_string_constants(ast.parse("from .contract import FAR\n"))}
+    aliasing = ast.parse('from .contract import FIELD, OTHER\nKEY = FIELD\nELSE = OTHER\n'
+                         'def f(i):\n    i[KEY] = "APPROVED"\n'
+                         'def g(i):\n    i[ELSE] = "APPROVED"\n'
+                         'def h(i):\n    i[FIELD] = "APPROVED"\n')
+    resolved = _module_string_constants(aliasing, _imported_string_constants(aliasing, siblings))
+    assert resolved == {"FIELD": "status", "OTHER": "approved_hash", "KEY": "status",
+                        "ELSE": "approved_hash"}, resolved
+    assert sorted(where for where, _value in _status_writes(aliasing, resolved)) == ["f", "h"]
+    rebinds = ast.parse('from .contract import FIELD\nFIELD = "title"\n'
+                        'def f(i, s, p):\n    i[FIELD] = "x"\n' + persist)
+    rebinds_map = _module_string_constants(rebinds, _imported_string_constants(rebinds, siblings))
+    assert "FIELD" not in rebinds_map and _status_writes(rebinds, rebinds_map) == [("f", None)]
+    chained = ast.parse('from .hop import FAR\ndef f(i, s, p):\n    i[FAR] = "x"\n' + persist)
+    chained_map = _module_string_constants(chained, _imported_string_constants(chained, siblings))
+    assert "FAR" not in chained_map and _status_writes(chained, chained_map) == [("f", None)]
     # the guard that makes an unreadable merge provably safe, and its absence
     guarded = ('def g(c, i):\n'
                '    bad = [k for k in c if k in ("id", "status")]\n'
@@ -2991,13 +3062,17 @@ def test_no_direct_status_write_can_produce_a_status_an_approval_commits():
     destinations = _approval_bound_statuses()
     kernel_dir = os.path.join(TEAM_KITS, "kernel")
     offenders, writers = [], []
+    trees = {}
     for name in sorted(os.listdir(kernel_dir)):
-        if not name.endswith(".py"):
-            continue
-        with open(os.path.join(kernel_dir, name), encoding="utf-8") as handle:
-            tree = ast.parse(handle.read())
-        module_constants = _module_string_constants(tree)
-        for function, value_node in _status_writes(tree):
+        if name.endswith(".py"):
+            with open(os.path.join(kernel_dir, name), encoding="utf-8") as handle:
+                trees[name] = ast.parse(handle.read())
+    # every module's own one-string constants first, so an import of one resolves one hop away
+    siblings = {name[:-3]: _module_string_constants(tree) for name, tree in trees.items()}
+    for name, tree in trees.items():
+        module_constants = _module_string_constants(
+            tree, _imported_string_constants(tree, siblings))
+        for function, value_node in _status_writes(tree, module_constants):
             where = "%s:%s" % (name, function)
             if where == "state.py:_transition_locked":
                 continue
@@ -3225,11 +3300,13 @@ def test_an_amendment_edited_past_the_kernel_stops_widening(state):
 
 
 def test_an_approval_that_does_not_sign_the_criteria_does_not_widen(state):
-    """The reachable interaction, not a hypothetical: `mint` writes `approval_ref` for EVERY
-    item-bound approval, so a later `routine` approval on an already-APPROVED amendment leaves
-    `status: APPROVED` beside a reference whose kind hashes nothing at all. Reading the KIND's own
-    subject manifest -- rather than trusting the status, or naming `scope` -- is what keeps that
-    from switching the content check off for this amendment.
+    """The interaction this guarded against no longer arises through `mint` (`approvals.presents`
+    keeps a hanging kind out of `approval_ref` since PR-0011 AC-8), so the reachable shape is now
+    a reference written PAST the kernel: an already-APPROVED amendment whose `approval_ref` is
+    pointed at a routine approval by hand leaves `status: APPROVED` beside a reference whose kind
+    hashes nothing at all. Reading the KIND's own subject manifest -- rather than trusting the
+    status, or naming `scope` -- is what keeps that from switching the content check off for this
+    amendment. The routine mint itself is measured to leave the field alone on the way.
     """
     pr, cr = _root_with_amendment(state)
     routine = approvals.create_pending_request(
@@ -3238,8 +3315,12 @@ def test_an_approval_that_does_not_sign_the_criteria_does_not_widen(state):
                   "scope": ["src/**"], "trigger": "weekly", "cadence": "weekly"},
         approval_expires=time.time() + 3600)
     mint_via_hook(state, routine)
-    assert state.read_item(cr["id"])["approval_ref"] != cr["approval_ref"], (
-        "premise of this test: the routine mint takes the approval_ref with it")
+    minted = _latest_apr(state)
+    assert state.read_item(cr["id"])["approval_ref"] == cr["approval_ref"], (
+        "the routine mint moved the amendment's approval_ref (PR-0011 AC-8)")
+    forged = state.read_item(cr["id"])
+    forged["approval_ref"] = minted["id"]
+    state._write_yaml_atomic(state.active_path(cr["id"]), forged)
     header = _dispatchable(state, pr["id"], derives_from=pr["id"], acceptance_refs=["AC-11"])
     with pytest.raises(DispatchError) as exc:
         dispatch.validate_dispatch(state, header, TSK_FIELDS["assigned_role"])
@@ -4377,6 +4458,10 @@ def test_the_architect_step_is_owed_by_the_kits_delivery_not_the_projects_stock(
     spared.transition(second["id"], "READY")
     assert not dispatch.architect_step_owed(spared, spared.read_item(second["id"]), root), (
         "a directory created inside the project switched the duty back on (R2-B1)")
+    # a SECOND builder under one goal is leased only on a check-scopes record (DEC-0092 (2)); the
+    # measurement here is the architect step, so the record is made the way a PM makes it
+    from kernel import scopes
+    assert scopes.check(spared)[0] == 0
     assert dispatch.create_lease(spared, second["id"])["task_id"] == second["id"]
 
 

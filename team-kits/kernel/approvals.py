@@ -75,6 +75,55 @@ from .state import ProjectState, StateError, _now_iso, names_a_drive
 APR_KINDS = ("analysis", "scope", "delivery", "acceptance", "routine", "push", "preset",
              "kit_update", "filing_correction", "filing_rule", "document_proposal",
              "document_revision", "plan", "hole_exception")
+# THE KIND IN THE USER'S WORDS (BUG-0271, PR-0011 AC-7): what `build_question` puts where the enum
+# value used to stand -- "Freigabe erbeten: scope für PR-0001" asked a non-developer to sign an
+# English field value. ONE table beside the enum, read by the question and by nothing else, with a
+# two-sided tripwire: a kind without a label and a label without a kind are both red
+# (`tools/test_light_kit.py::test_every_approval_kind_has_one_plain_word_label_and_no_label_is_orphaned`).
+# The labels say what is being permitted, not how the kernel files it.
+KIND_LABELS = {
+    "analysis": "Untersuchung (nur lesen)",
+    "scope": "Arbeitsbereich",
+    "delivery": "Lieferung",
+    "acceptance": "Abnahme",
+    "routine": "Dauer-Erlaubnis für eine wiederkehrende Prüfung",
+    "push": "Veröffentlichung (Push)",
+    "preset": "Teamgröße",
+    "kit_update": "Kit-Aktualisierung",
+    "filing_correction": "Ablage-Korrektur",
+    "filing_rule": "Ablage-Regel",
+    "document_proposal": "Dokument-Ergänzung",
+    "document_revision": "Dokument-Überarbeitung",
+    "plan": "Plan",
+    "hole_exception": "Ausnahme für eine bekannte Lücke",
+}
+# THE MANIFEST KEYS IN THE USER'S WORDS, for the kinds whose manifest the generic branch of
+# `build_question` renders key by key (a routine, an analysis, a kit update; every kind with a
+# `TARGET_FORMS` entry writes its own sentence). A key this table does not know is rendered under
+# its own name -- and `tools/test_light_kit.py::test_no_approval_question_shows_an_english_enum_word_a_hash_or_a_path`
+# renders every kind and refuses an English key in the sentence, so a new manifest key arrives
+# here or turns that test red.
+MANIFEST_LABELS = {
+    "role": "Rolle",
+    "scope": "Lesebereich",
+    "read_only_scope": "Lesebereich",
+    "trigger": "Auslöser",
+    "cadence": "Takt",
+    "expires": "gültig bis",
+    "question": "Frage",
+    "expected_result": "erwartetes Ergebnis",
+    "tasks": "Aufträge",
+    "kit": "Kit",
+    "from_version": "von Version",
+    "from_content": "bisheriger Inhalt (Prüfsumme)",
+    "to_version": "auf Version",
+    "to_content": "neuer Inhalt (Prüfsumme)",
+}
+# The one line kind that HANGS FROM AN ITEM: a routine approval is built from flags (role, scope,
+# trigger, cadence) and minted FOR a root, because `dispatch._covering_routine_apr` reads it off
+# that root's approvals. `cli` treats it as both -- an item id AND the flags -- which no other kind
+# is.
+ROUTINE_KIND = "routine"
 # THE USER ACCEPTING A MEASURED GAP (FR-0087, DEC-0073). A hole that will not be closed ends in
 # `ACCEPTED_EXCEPTION`, and that ending is a USER statement about risk -- so it is bound to a mint
 # and not to a status the apparatus can set for itself. A kind of its own rather than `scope`,
@@ -877,7 +926,20 @@ def _plan_target_form(manifest: dict) -> str:
         for goal in goals)
 
 
+def routine_subject_manifest(role: str, scope: str, trigger: str, cadence: str) -> dict:
+    """What a recurring read-only run is bound to (spec II.2, II.10a): the ROLE the dispatcher
+    holds the spawn to, the READ scope, the trigger and the cadence -- the four
+    `ROUTINE_MANIFEST_FIELDS`, typed on the `request-approval routine <ROOT>` line; the expiry is
+    the kernel's (`create_pending_request`). Built here so the entry point can produce the kind at
+    all: until PR-0011 AC-8 it could not (BUG-0266 / H184), and the auditor ran as an ordinary
+    order with a writable scope.
+    """
+    return {ROUTINE_ROLE_FIELD: str(role or ""), "scope": str(scope or ""),
+            "trigger": str(trigger or ""), "cadence": str(cadence or "")}
+
+
 LINE_MANIFEST_BUILDERS = {"push": push_subject_manifest, "preset": preset_subject_manifest,
+                          ROUTINE_KIND: routine_subject_manifest,
                           "kit_update": kit_update_subject_manifest,
                           "filing_correction": filing_correction_subject_manifest,
                           "filing_rule": filing_rule_subject_manifest,
@@ -1498,6 +1560,12 @@ def create_pending_request(
             "kind": kind,
             "item": item_id,
             "revision": revision,
+            # THE ITEM'S TITLE, frozen into the request so the question can name it (BUG-0271:
+            # "Freigabe erbeten: scope für PR-0001" showed the user an id) while staying
+            # deterministic from the request alone -- the gate rebuilds the question from THIS
+            # record, and an item retitled between question and answer must not make the two
+            # differ. Absent on requests stored before this field; those show the id.
+            "item_title": str(item.get("title") or "") if item_id is not None else "",
             "subject_manifest": manifest,
             "subject_manifest_hash": subject_manifest_hash(manifest),
             "created": _now_iso(),
@@ -1550,8 +1618,10 @@ def _push_target_form(manifest: dict) -> str:
     it here is deterministic (the PreToolUse gate compares this text character for character) and it
     is the whole point of the rule: "explizite Userfreigabe" means the user knew what they released.
     """
-    return "push -> %s/%s @ %s" % (manifest.get("remote", "?"), manifest.get("branch", "?"),
-                                   str(manifest.get("head", "?"))[:8])
+    # in the user's words (BUG-0271): what leaves the machine, from which branch, to where
+    return "den Stand %s des Zweigs „%s“ nach %s" % (str(manifest.get("head", "?"))[:8],
+                                                     manifest.get("branch", "?"),
+                                                     manifest.get("remote", "?"))
 
 
 def _preset_target_form(manifest: dict) -> str:
@@ -1741,17 +1811,48 @@ TARGET_FORMS = {"push": _push_target_form, "preset": _preset_target_form,
                 "document_revision": _document_revision_target_form}
 
 
+def kind_label(kind: str) -> str:
+    """The plain-words label of an APR kind, from `KIND_LABELS` -- refused, never invented, for a
+    kind the table does not carry (the two-sided tripwire is the test named on the table)."""
+    try:
+        return KIND_LABELS[kind]
+    except KeyError:
+        raise ApprovalError(
+            "kind %r has no plain-words label in KIND_LABELS, so no question can be composed for "
+            "it (BUG-0271: the user is never shown the enum value). Remedy: add the label beside "
+            "the kind." % kind,
+            user_text="Es wurde keine Freigabe erteilt: für diese Art von Freigabe fehlt dem "
+                      "Programm die Bezeichnung in Klartext. " + NEXT_START_OVER) from None
+
+
+def _item_target(request: dict) -> str:
+    """The item as the user reads it: its title in quotation marks with the id behind it, or the id
+    alone for a request stored before titles travelled in it."""
+    title = str(request.get("item_title") or "")
+    return "„%s“ (%s)" % (title, request["item"]) if title else str(request["item"])
+
+
 def build_question(request: dict) -> dict:
     """The COMPLETE approval question, deterministic from the request alone.
 
     The model must relay this verbatim; the PreToolUse hook enforces string
     equality of question text, header AND all options for marked questions.
+
+    WHAT STANDS IN THE SENTENCE AND WHAT MOVED OUT OF IT (BUG-0271, PR-0011 AC-7): the sentence
+    names the kind in plain words (`KIND_LABELS`), the item by its title (`_item_target`) or the
+    manifest with German labels (`MANIFEST_LABELS`), the revision, and the request marker the
+    gate resolves the request by -- the one machine token that cannot leave, because
+    `gate_approval.MARKER_RX` reads it off the question. The manifest hash and the request's file
+    path moved into the DESCRIPTION of the approving option, where the same gate still compares
+    them character for character (`_mismatch` walks every option key) --
+    `tools/test_hooks_v2.py::test_a_tampered_option_description_is_blocked_too`.
     """
-    target = request["item"] if request["item"] else request["kind"]
+    label = kind_label(request["kind"])
+    target = _item_target(request) if request["item"] else label
     form = None if request["item"] else TARGET_FORMS.get(request["kind"])
     if form is not None:
         target = form(request.get("subject_manifest") or {})
-    elif request["kind"] == "routine" or request["item"] is None:
+    elif request["kind"] == ROUTINE_KIND or request["item"] is None:
         # WHAT THE HASH COVERS IS WHAT THE USER IS SHOWN, and the condition is that property rather
         # than the kinds it happens to hold for today. A request whose subject is a MANIFEST -- a
         # routine permission hanging from an item it is not about, or any kind with no item at all
@@ -1774,25 +1875,17 @@ def build_question(request: dict) -> dict:
         # only in the option label.
         manifest = request.get("subject_manifest") or {}
         rendered = "[%s]" % ", ".join(
-            "%s: %s" % (field, _render_manifest_value(field, manifest[field]))
+            "%s: %s" % (MANIFEST_LABELS.get(field, field), _render_manifest_value(field, manifest[field]))
             for field in sorted(manifest))
         # The kind is already the first half of the sentence this goes into, so an item-less
         # request shows the manifest ALONE -- naming the kind again in front of it says the word
         # twice and reads like a machine to the person who has to judge it. With an item, the
         # item stays in front of the manifest: that is what a routine approval hangs from.
         target = ("%s %s" % (target, rendered)) if request["item"] else rendered
-    question = (
-        "Freigabe erbeten: %s für %s (Revision %s, subject_manifest sha256 %s…). "
-        "Details: approvals/pending/%s.yaml [APR-REQ:%s]"
-        % (
-            request["kind"],
-            target,
-            request["revision"] if request["revision"] is not None else "-",
-            request["subject_manifest_hash"][:DIGEST_SHOWN],
-            request["request_id"],
-            request["request_id"],
-        )
-    )
+    revision = ("" if request["revision"] is None
+                else " (Revision %s)" % request["revision"])
+    question = "Freigabe erbeten: %s für %s%s. [APR-REQ:%s]" % (
+        label, target, revision, request["request_id"])
     return {
         "question": question,
         "header": "Freigabe",
@@ -1800,8 +1893,11 @@ def build_question(request: dict) -> dict:
         "options": [
             {
                 "label": approve_label(request["mint_code"]),
-                "description": "Erteilt die %s-Freigabe für %s in exakt dieser Revision "
-                "(nur diese Option prägt die Freigabe)." % (request["kind"], target),
+                "description": "Erteilt die Freigabe „%s“ für %s in exakt dieser Fassung -- nur "
+                "diese Option prägt sie. Gebunden an Prüfsumme %s… (Anfrage "
+                "approvals/pending/%s.yaml)."
+                % (label, target, request["subject_manifest_hash"][:DIGEST_SHOWN],
+                   request["request_id"]),
             },
             {
                 "label": _CHANGE_LABEL,
@@ -2369,7 +2465,7 @@ def mint(state: ProjectState, request_id: str, answer: str) -> dict:
         # satisfied by a store write that has not happened yet.
         state._write_yaml_atomic(_request_path(state, request_id, consumed=True), request)
         os.remove(path)
-        if item is not None:
+        if item is not None and presents(parse_id(apr["item"])[0], request["kind"]):
             item["approval_ref"] = apr_id
             item_type, _ = parse_id(apr["item"])
             # STAMP WHAT WAS APPROVED. The mint is the only moment at which a user has just said
@@ -2393,6 +2489,28 @@ def mint(state: ProjectState, request_id: str, answer: str) -> dict:
                 item = state._transition_locked(item["id"], edge[1])
         state._regenerate_index_locked()
         return apr
+
+
+def presents(item_type: str, kind: str) -> bool:
+    """Does an approval of `kind` become the item's PRESENTED approval (`approval_ref`)?
+
+    THE PROPERTY, not a list of kinds: an approval that binds the item's own state -- one that
+    commits an edge of its automaton (`APPROVAL_TRANSITIONS`) or that a root's dispatch route
+    reads off `approval_ref` (`ROOT_DISPATCH_KINDS`) -- is the approval the item presents. One
+    that merely HANGS from the item and is found by its own reader (a routine, read by
+    `dispatch._covering_routine_apr` out of the approvals directory; an analysis with an item id,
+    read by the analysis route out of its listing) is not, and leaves the presented one standing.
+
+    WHY THIS EXISTS (PR-0011 AC-8): until it, `mint` wrote `approval_ref` for EVERY item-bound
+    approval, so the routine approval the auditor's route is written for MOVED a goal's scope
+    approval out of the root's field and every builder under that goal stopped dispatching until
+    the scope question was asked again -- at every weekly renewal. Measured and pinned as current
+    behaviour in `tools/test_approvals_dispatch.py::test_minting_a_routine_on_a_live_root_leaves_its_approval_ref_alone`,
+    which now measures the opposite, with the builder's next lease as the proof.
+    `report._check_dispatch_approval_presented` keeps warning about stores where the older mint
+    left that state behind.
+    """
+    return (item_type, kind) in APPROVAL_TRANSITIONS or kind in ROOT_DISPATCH_KINDS
 
 
 def revoke(state: ProjectState, apr_id: str) -> dict:

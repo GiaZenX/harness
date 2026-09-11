@@ -101,7 +101,7 @@ def kernel_written_subtrees(root: str) -> tuple:
     """
     # Local import: `approvals`, `dispatch` and `staging` all import `state`, and this module
     # imports them -- keeping it inside the call keeps the package's import graph a tree.
-    from . import approvals, dispatch, staging
+    from . import approvals, dispatch, scopes, staging
 
     state = ProjectState(root)
     # DIRECTORY builders answer with the directory itself; FILE builders answer with a file whose
@@ -120,6 +120,7 @@ def kernel_written_subtrees(root: str) -> tuple:
         paths.add(approvals._request_path(state, _PROBE_REQUEST_ID, **flags))
     paths.add(dispatch._lease_path(state, _PROBE_TASK_ID))
     paths.add(dispatch._envelope_path(state, _PROBE_TASK_ID))
+    paths.add(scopes._record_path(state, _PROBE_TASK_ID))
     directories.update(os.path.dirname(path) for path in paths)
     return tuple(sorted(_relative(state.root, directory) for directory in directories))
 

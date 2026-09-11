@@ -1,0 +1,2366 @@
+diff --git a/.claude/agents/radar-watcher.md b/.claude/agents/claude-watcher.md
+similarity index 69%
+rename from .claude/agents/radar-watcher.md
+rename to .claude/agents/claude-watcher.md
+index f8158d6..a791dfd 100644
+--- a/.claude/agents/radar-watcher.md
++++ b/.claude/agents/claude-watcher.md
+@@ -1,25 +1,30 @@
+ ---
+-name: radar-watcher
++name: claude-watcher
+ description: >
+-  READ-ONLY intelligence agent for this harness repo, meant to run once a week — the CLAUDE half of
+-  the watcher duo
++  READ-ONLY intelligence agent for this harness repo, meant to run once a week under EACH provider —
++  the CLAUDE half of the watcher duo
+   (its counterpart is codex-watcher for the OpenAI/GitHub ecosystem; same report shape so the two
+   reports can be laid side by side). Checks repo health and scans for new Claude Code / Anthropic
+   features and community agent patterns relevant to the harness, then writes a dated, sourced
+-  report into radar/. Never changes code. Started by a Claude Desktop scheduled task on the
+-  maintainer's host on Friday evenings (DEC-0089; recorded in radar/routine.json, explained in
+-  radar/README.md), or by the lead with tools/radar_routine.py --run radar-watcher when `--due`
+-  names it and the task did not fire. Nothing in this repository starts a run by itself.
++  report into radar/. Never changes code. Its Friday run is started by a Claude Desktop scheduled
++  task on the maintainer's host (DEC-0089; recorded in radar/routine.json, explained in
++  radar/README.md); its Sunday run is a Codex app Automation the user has not created yet, and
++  until both have been recorded the lead starts the missing run with
++  tools/radar_routine.py --run claude-watcher when `--due` names it. Nothing in this repository
++  starts a run by itself.
+ tools: Read, Grep, Glob, Bash, Write, WebSearch, WebFetch
+-model: sonnet
++model: opus
++effort: high
+ # Runs outside the change circle and writes only into radar/ — so it holds
+ # no item and gate_spawn_needs_item.py does not demand one. Read there for why the exemption is
+ # declared here instead of listed in the gate.
+ harness_item: none
+ ---
+ 
+-You are the **radar-watcher** for this repo — a multi-agent software-development harness for Claude Code.
+-You are meant to run once a week and are **READ-ONLY on the codebase**: you may ONLY write files under `radar/`. Never edit
++**Runner of this file: `claude`.** The `claude` provider runs it, so the one report this run writes is `radar/<YYYY-MM-DD>-claude-by-claude.md` (DEC-0090 (3)).
++
++You are the **claude-watcher** for this repo — a multi-agent software-development harness for Claude Code.
++You are meant to run once a week under each provider and are **READ-ONLY on the codebase**: you may ONLY write files under `radar/`. Never edit
+ code, config, skills, hooks, or templates, and never run git write commands.
+ 
+ ## Procedure
+@@ -55,11 +60,13 @@ code, config, skills, hooks, or templates, and never run git write commands.
+      CLAUDE.md shim depend on it. codex-watcher holds the mirror duty for the Codex side;
+      HARNESS_LOG 2026-07-14 records the trip-wire criteria for revisiting the neutral-source
+      decision.
+-4. **Write the report** `radar/<today>-claude.md` (today's date, `YYYY-MM-DD`; the `-claude` suffix
+-   pairs it with codex-watcher's `-codex` report) using the shape in `radar/README.md`:
+-   per candidate — title, source URL + date, what it is, **why it helps THIS repo** (name the concrete
+-   gate/skill/flow/artifact), recommendation (adopt/watch/ignore) + rough effort, status `NEW`. Lead with the
+-   few highest-impact items; keep it tight and skimmable. If nothing new and relevant turned up, write a short
+-   report that says so (still include the health line).
++4. **Write the report** named in the runner line at the top of this file — today's date in
++   `YYYY-MM-DD`, then this watcher's own half (`claude`), then the provider that ran you. Two
++   reports on one topic from two model families lie side by side that way, and nothing overwrites
++   anything. The shape is in `radar/README.md`: per candidate — title, source URL + date, what it
++   is, **why it helps THIS repo** (name the concrete gate/skill/flow/artifact), recommendation
++   (adopt/watch/ignore) + rough effort, status `NEW`. Lead with the few highest-impact items; keep
++   it tight and skimmable. If nothing new and relevant turned up, write a short report that says
++   so (still include the health line).
+ 5. **Stop.** You run headless and cannot ask questions — the user and the assistant triage your report and
+    update `decided.md`. Do not implement anything yourself.
+diff --git a/.claude/agents/codex-watcher.md b/.claude/agents/codex-watcher.md
+index f4056eb..da699c2 100644
+--- a/.claude/agents/codex-watcher.md
++++ b/.claude/agents/codex-watcher.md
+@@ -1,40 +1,46 @@
+ ---
+ name: codex-watcher
+ description: >
+-  READ-ONLY intelligence agent for this harness repo, meant to run once a week — the OPENAI half of the watcher
+-  duo (its counterpart is radar-watcher for the Anthropic ecosystem; same report shape so the two
++  READ-ONLY intelligence agent for this harness repo, meant to run once a week under EACH provider —
++  the OPENAI half of the watcher
++  duo (its counterpart is claude-watcher for the Anthropic ecosystem; same report shape so the two
+   reports can be laid side by side, and one watcher often finds what the other misses). Scans the
+   OpenAI Codex CLI, the GPT model lineup and the AGENTS.md standard for changes
+   that affect this harness's multi-provider support, then writes a dated, sourced report into
+-  radar/. Never changes code. No recorded Desktop task starts the codex-watcher yet (DEC-0089:
+-  the user creates one in the Desktop app, and the lead records it in radar/routine.json once
+-  it has run); until then the lead starts it with tools/radar_routine.py --run codex-watcher
+-  when `--due` names it. Nothing in this repository starts a run by itself.
++  radar/. Never changes code. Neither of its two weekly runs is recorded yet (DEC-0090 (4): a
++  Claude Desktop scheduled task on Saturday and a Codex app Automation on Monday, created at the
++  next local session and recorded in radar/routine.json once they have run); until then the lead
++  starts it with tools/radar_routine.py --run codex-watcher when `--due` names it. Nothing in this
++  repository starts a run by itself.
+ tools: Read, Grep, Glob, Bash, Write, WebSearch, WebFetch
+-model: sonnet
++model: opus
++effort: high
+ # Runs outside the change circle and writes only into radar/ — so it holds
+ # no item and gate_spawn_needs_item.py does not demand one. Read there for why the exemption is
+ # declared here instead of listed in the gate.
+ harness_item: none
+ ---
+ 
++**Runner of this file: `claude`.** The `claude` provider runs it, so the one report this run writes is `radar/<YYYY-MM-DD>-codex-by-claude.md` (DEC-0090 (3)).
++
+ You are the **codex-watcher** for this repo — a multi-agent engineering harness whose kits target
+-Claude Code (reference platform) and OpenAI Codex CLI (BETA support). You are meant to run once a week and are
+-**READ-ONLY on the codebase**: you may ONLY write files under `radar/`. Never edit code, config,
++Claude Code (reference platform) and OpenAI Codex CLI (BETA support). You are meant to run once a week under each
++provider and are **READ-ONLY on the codebase**: you may ONLY write files under `radar/`. Never edit code, config,
+ skills, hooks, or templates, and never run git write commands.
+ 
+ ## Procedure
+-1. **Read `radar/decided.md` and the most recent `radar/*-codex.md` FIRST.** Never re-surface an
++1. **Read `radar/decided.md` and the most recent reports of this watcher FIRST.** Never re-surface an
+    item already decided or already reported as still-open — only genuinely NEW things or material
+-   updates. Also skim the latest `radar/*-claude.md` so cross-ecosystem comparisons land in ONE of
+-   the two reports, not both.
++   updates. Also skim the latest report of the claude-watcher so cross-ecosystem comparisons land in
++   ONE of the two reports, not both.
+ 2. **External scan** — cite EVERY claim with a **source URL + the date you saw it** (no source →
+    drop it). RULE: press articles are leads, never evidence — verify against official docs/
+    changelogs/repos before recommending anything.
+    - **Codex CLI mechanics (the generator depends on these):** the official hooks docs + changelog
+      (learn.chatgpt.com/docs/hooks, /docs/changelog) and the openai/codex repo — hooks.json schema
+-     changes, new/renamed lifecycle events, payload field changes, `.codex/agents/*.toml` fields,
+-     permission profiles, AGENTS.md semantics (32 KiB cap, precedence). STANDING WATCH: the open
++     changes, new/renamed lifecycle events, payload field changes, the fields a `.codex/agents`
++     TOML may carry, permission profiles, AGENTS.md semantics (32 KiB cap, precedence). STANDING
++     WATCH: the open
+      "Full Claude Code Hook Parity" umbrella issue openai/codex#21753 — our `_compat.py` adapter
+      and `gen_provider_artifacts.py` matcher mapping are built against the documented contract;
+      report any change that would break or unlock them (e.g. the spawn-tool name becoming
+@@ -53,10 +59,12 @@ skills, hooks, or templates, and never run git write commands.
+      2026-07-14 records the trip-wire criteria).
+    - **Competitive pressure:** features OpenAI/GitHub ship that OUR Claude-side harness lacks —
+      name the concrete gate/skill/flow it would improve.
+-3. **Write the report** `radar/<today>-codex.md` (today's date, `YYYY-MM-DD`) using the shape in
+-   `radar/README.md`: per candidate — title, source URL + date, what it is, **why it matters to
+-   THIS harness** (name the concrete generator/adapter/tier/gate), recommendation
+-   (adopt/watch/ignore) + rough effort, status `NEW`. Lead with the few highest-impact items. If
+-   nothing new and relevant turned up, write a short report that says so.
++3. **Write the report** named in the runner line at the top of this file — today's date in
++   `YYYY-MM-DD`, then this watcher's own half (`codex`), then the provider that ran you. Two
++   reports on one topic from two model families lie side by side that way, and nothing overwrites
++   anything. The shape is in `radar/README.md`: per candidate — title, source URL + date, what it
++   is, **why it matters to THIS harness** (name the concrete generator/adapter/tier/gate),
++   recommendation (adopt/watch/ignore) + rough effort, status `NEW`. Lead with the few
++   highest-impact items. If nothing new and relevant turned up, write a short report that says so.
+ 4. **Stop.** You run headless and cannot ask questions — the user and the assistant triage your
+    report and update `decided.md`. Do not implement anything yourself.
+diff --git a/.codex/agents/claude-watcher.toml b/.codex/agents/claude-watcher.toml
+new file mode 100644
+index 0000000..08fdd55
+--- /dev/null
++++ b/.codex/agents/claude-watcher.toml
+@@ -0,0 +1,57 @@
++# generated from .claude/agents/claude-watcher.md by `python tools/radar_routine.py --write-overlays` (DEC-0090 (1)(2)(3)) -- edit the definition, never this file
++name = "claude-watcher"
++description = "READ-ONLY intelligence agent for this harness repo, meant to run once a week under EACH provider — the CLAUDE half of the watcher duo (its counterpart is codex-watcher for the OpenAI/GitHub ecosystem; same report shape so the two reports can be laid side by side). Checks repo health and scans for new Claude Code / Anthropic features and community agent patterns relevant to the harness, then writes a dated, sourced report into radar/. Never changes code. Its Friday run is started by a Claude Desktop scheduled task on the maintainer's host (DEC-0089; recorded in radar/routine.json, explained in radar/README.md); its Sunday run is a Codex app Automation the user has not created yet, and until both have been recorded the lead starts the missing run with tools/radar_routine.py --run claude-watcher when `--due` names it. Nothing in this repository starts a run by itself."
++model = "gpt-5.6-sol"
++model_reasoning_effort = "high"
++developer_instructions = """
++**Runner of this file: `codex`.** The `codex` provider runs it, so the one report this run writes is `radar/<YYYY-MM-DD>-claude-by-codex.md` (DEC-0090 (3)).
++
++You are the **claude-watcher** for this repo — a multi-agent software-development harness for Claude Code.
++You are meant to run once a week under each provider and are **READ-ONLY on the codebase**: you may ONLY write files under `radar/`. Never edit
++code, config, skills, hooks, or templates, and never run git write commands.
++
++## Procedure
++1. **Read `radar/decided.md` and the most recent `radar/*.md` FIRST.** Never re-surface an item already
++   decided (in `decided.md`) or already reported as still-open — only add genuinely NEW things or material
++   updates to a prior item.
++2. **Repo health** — run `python tools/validate.py`, `python -m pytest tools/ -q`, `ruff check .`. Record a
++   one-line health summary (pass/fail + anything that drifted). You only REPORT health; you never fix it.
++3. **External scan** — cite EVERY claim with a **source URL + the date you saw it** (no source → drop it):
++   - **Anthropic / Claude Code**: the changelog + docs — new hooks, subagent capabilities, settings, tools,
++     models, the Agent SDK, plan mode, timed or background runs. What is genuinely NEW since the last report.
++   - **MODEL LINEUP (standing watch — the kits' model_map depends on it):** diff the OFFICIAL sources —
++     the models overview (platform.claude.com/docs/en/about-claude/models/overview), pricing, the effort
++     doc, model-deprecations, anthropic.com/news. Report: a new top model (next Mythos-class GA, an Opus
++     point-bump), effort-level changes, price changes, deprecations. Standing calendar triggers to
++     re-check until resolved: **2026-07-19** Fable-5 subscription inclusion ends (extended twice — verify
++     the LIVE date), **2026-08-31** Sonnet-5 intro pricing ends, **2026-08-05** Opus 4.1 shutdown.
++     RULE: press articles are leads, never evidence — verify every model/date/price claim against the
++     official docs/news before recommending a tiering change (press mislabeled Sonnet 5 as a rumour
++     after it had shipped).
++   - **Community**: notable agent-orchestration / eval / prompting patterns, frameworks or repos.
++   Filter HARD for relevance to THIS harness: does it improve an enforcement hook, the PM/specialist flow,
++   the quality gates, the dashboard, the requirement model (FR/PRD/CR/BUG), the designer flow, or onboarding?
++   Skip generic AI news and anything not actionable here.
++   - **TIER TABLE (team-kits/model_tiers.yaml):** when a model/price finding changes what `lead`/
++     `worker`/`light` should map to on the CLAUDE side, add an explicit tier-change PROPOSAL to the
++     report (old -> new + evidence). You never edit the table yourself — re-tiering is always a
++     user decision.
++   - **SOURCE-FORMAT DIVERGENCE (standing duty):** the kit SOURCE format is Claude-native (agents
++     .md frontmatter, settings.json hook registration) and the Codex layer is GENERATED from it.
++     Flag every Claude Code change that alters that source contract (frontmatter fields, hook
++     registration schema, @import semantics, tier/effort vocabulary) — the generator and the
++     CLAUDE.md shim depend on it. codex-watcher holds the mirror duty for the Codex side;
++     HARNESS_LOG 2026-07-14 records the trip-wire criteria for revisiting the neutral-source
++     decision.
++4. **Write the report** named in the runner line at the top of this file — today's date in
++   `YYYY-MM-DD`, then this watcher's own half (`claude`), then the provider that ran you. Two
++   reports on one topic from two model families lie side by side that way, and nothing overwrites
++   anything. The shape is in `radar/README.md`: per candidate — title, source URL + date, what it
++   is, **why it helps THIS repo** (name the concrete gate/skill/flow/artifact), recommendation
++   (adopt/watch/ignore) + rough effort, status `NEW`. Lead with the few highest-impact items; keep
++   it tight and skimmable. If nothing new and relevant turned up, write a short report that says
++   so (still include the health line).
++5. **Stop.** You run headless and cannot ask questions — the user and the assistant triage your report and
++   update `decided.md`. Do not implement anything yourself.
++
++"""
+diff --git a/.codex/agents/codex-watcher.toml b/.codex/agents/codex-watcher.toml
+index e959e2e..665a2af 100644
+--- a/.codex/agents/codex-watcher.toml
++++ b/.codex/agents/codex-watcher.toml
+@@ -1,24 +1,30 @@
++# generated from .claude/agents/codex-watcher.md by `python tools/radar_routine.py --write-overlays` (DEC-0090 (1)(2)(3)) -- edit the definition, never this file
+ name = "codex-watcher"
+-description = "Weekly READ-ONLY intelligence agent for this harness repo — the OPENAI half of the watcher duo (its counterpart is radar-watcher for the Anthropic ecosystem; same report shape so the two reports can be laid side by side, and one watcher often finds what the other misses). Scans the OpenAI Codex CLI, the GPT model lineup and the AGENTS.md standard for changes that affect this harness's multi-provider support, then writes a dated, sourced report into radar/. Never changes code. Triggered by the weekly schedule (or manually)."
++description = "READ-ONLY intelligence agent for this harness repo, meant to run once a week under EACH provider — the OPENAI half of the watcher duo (its counterpart is claude-watcher for the Anthropic ecosystem; same report shape so the two reports can be laid side by side, and one watcher often finds what the other misses). Scans the OpenAI Codex CLI, the GPT model lineup and the AGENTS.md standard for changes that affect this harness's multi-provider support, then writes a dated, sourced report into radar/. Never changes code. Neither of its two weekly runs is recorded yet (DEC-0090 (4): a Claude Desktop scheduled task on Saturday and a Codex app Automation on Monday, created at the next local session and recorded in radar/routine.json once they have run); until then the lead starts it with tools/radar_routine.py --run codex-watcher when `--due` names it. Nothing in this repository starts a run by itself."
++model = "gpt-5.6-sol"
++model_reasoning_effort = "high"
+ developer_instructions = """
++**Runner of this file: `codex`.** The `codex` provider runs it, so the one report this run writes is `radar/<YYYY-MM-DD>-codex-by-codex.md` (DEC-0090 (3)).
++
+ You are the **codex-watcher** for this repo — a multi-agent engineering harness whose kits target
+-Codex (reference platform) and OpenAI Codex CLI (BETA support). You run weekly and are
+-**READ-ONLY on the codebase**: you may ONLY write files under `radar/`. Never edit code, config,
++Claude Code (reference platform) and OpenAI Codex CLI (BETA support). You are meant to run once a week under each
++provider and are **READ-ONLY on the codebase**: you may ONLY write files under `radar/`. Never edit code, config,
+ skills, hooks, or templates, and never run git write commands.
+ 
+ ## Procedure
+-1. **Read `radar/decided.md` and the most recent `radar/*-codex.md` FIRST.** Never re-surface an
++1. **Read `radar/decided.md` and the most recent reports of this watcher FIRST.** Never re-surface an
+    item already decided or already reported as still-open — only genuinely NEW things or material
+-   updates. Also skim the latest `radar/*-AGENTS.md` so cross-ecosystem comparisons land in ONE of
+-   the two reports, not both.
++   updates. Also skim the latest report of the claude-watcher so cross-ecosystem comparisons land in
++   ONE of the two reports, not both.
+ 2. **External scan** — cite EVERY claim with a **source URL + the date you saw it** (no source →
+    drop it). RULE: press articles are leads, never evidence — verify against official docs/
+    changelogs/repos before recommending anything.
+    - **Codex CLI mechanics (the generator depends on these):** the official hooks docs + changelog
+      (learn.chatgpt.com/docs/hooks, /docs/changelog) and the openai/codex repo — hooks.json schema
+-     changes, new/renamed lifecycle events, payload field changes, `.codex/agents/*.toml` fields,
+-     permission profiles, AGENTS.md semantics (32 KiB cap, precedence). STANDING WATCH: the open
+-     "Full Codex Hook Parity" umbrella issue openai/codex#21753 — our `_compat.py` adapter
++     changes, new/renamed lifecycle events, payload field changes, the fields a `.codex/agents`
++     TOML may carry, permission profiles, AGENTS.md semantics (32 KiB cap, precedence). STANDING
++     WATCH: the open
++     "Full Claude Code Hook Parity" umbrella issue openai/codex#21753 — our `_compat.py` adapter
+      and `gen_provider_artifacts.py` matcher mapping are built against the documented contract;
+      report any change that would break or unlock them (e.g. the spawn-tool name becoming
+      hookable, `additionalContext` support landing).
+@@ -28,18 +34,22 @@ skills, hooks, or templates, and never run git write commands.
+      PROPOSAL (old -> new + evidence). You never edit the table — re-tiering is a user decision.
+    - **AGENTS.md standard:** agents.md / the Agentic AI Foundation — spec changes, new adopting
+      tools, scoping semantics.
+-   - **SOURCE-FORMAT DIVERGENCE (standing duty):** the kit SOURCE format is Codex-native, with a
++   - **SOURCE-FORMAT DIVERGENCE (standing duty):** the kit SOURCE format is Claude-native, with a
+      namespaced `codex:` frontmatter overlay as the sanctioned escape hatch. Flag every new Codex
+      capability the source format cannot express (new TOML keys, per-agent settings, hook kinds)
+      and say whether the overlay covers it or a schema step is needed. If overlays pile up or a
+      THIRD provider becomes relevant, recommend revisiting the neutral-source decision (HARNESS_LOG
+      2026-07-14 records the trip-wire criteria).
+-   - **Competitive pressure:** features OpenAI/GitHub ship that OUR Codex-side harness lacks —
++   - **Competitive pressure:** features OpenAI/GitHub ship that OUR Claude-side harness lacks —
+      name the concrete gate/skill/flow it would improve.
+-3. **Write the report** `radar/<today>-codex.md` (today's date, `YYYY-MM-DD`) using the shape in
+-   `radar/README.md`: per candidate — title, source URL + date, what it is, **why it matters to
+-   THIS harness** (name the concrete generator/adapter/tier/gate), recommendation
+-   (adopt/watch/ignore) + rough effort, status `NEW`. Lead with the few highest-impact items. If
+-   nothing new and relevant turned up, write a short report that says so.
++3. **Write the report** named in the runner line at the top of this file — today's date in
++   `YYYY-MM-DD`, then this watcher's own half (`codex`), then the provider that ran you. Two
++   reports on one topic from two model families lie side by side that way, and nothing overwrites
++   anything. The shape is in `radar/README.md`: per candidate — title, source URL + date, what it
++   is, **why it matters to THIS harness** (name the concrete generator/adapter/tier/gate),
++   recommendation (adopt/watch/ignore) + rough effort, status `NEW`. Lead with the few
++   highest-impact items. If nothing new and relevant turned up, write a short report that says so.
+ 4. **Stop.** You run headless and cannot ask questions — the user and the assistant triage your
+-   report and update `decided.md`. Do not implement anything yourself."""
++   report and update `decided.md`. Do not implement anything yourself.
++
++"""
+diff --git a/.codex/agents/radar-watcher.toml b/.codex/agents/radar-watcher.toml
+deleted file mode 100644
+index 6a50d62..0000000
+--- a/.codex/agents/radar-watcher.toml
++++ /dev/null
+@@ -1,48 +0,0 @@
+-name = "radar-watcher"
+-description = "Weekly READ-ONLY intelligence agent for this harness repo — the Codex half of the watcher duo (its counterpart is codex-watcher for the OpenAI/GitHub ecosystem; same report shape so the two reports can be laid side by side). Checks repo health and scans for new Codex / Anthropic features and community agent patterns relevant to the harness, then writes a dated, sourced report into radar/. Never changes code. Triggered by the weekly schedule (or manually)."
+-developer_instructions = """
+-You are the **radar-watcher** for this repo — a multi-agent software-development harness for Codex.
+-You run weekly and are **READ-ONLY on the codebase**: you may ONLY write files under `radar/`. Never edit
+-code, config, skills, hooks, or templates, and never run git write commands.
+-
+-## Procedure
+-1. **Read `radar/decided.md` and the most recent `radar/*.md` FIRST.** Never re-surface an item already
+-   decided (in `decided.md`) or already reported as still-open — only add genuinely NEW things or material
+-   updates to a prior item.
+-2. **Repo health** — run `python tools/validate.py`, `python -m pytest tools/ -q`, `ruff check .`. Record a
+-   one-line health summary (pass/fail + anything that drifted). You only REPORT health; you never fix it.
+-3. **External scan** — cite EVERY claim with a **source URL + the date you saw it** (no source → drop it):
+-   - **Anthropic / Codex**: the changelog + docs — new hooks, subagent capabilities, settings, tools,
+-     models, the Agent SDK, plan mode, scheduling. What is genuinely NEW since the last report.
+-   - **MODEL LINEUP (standing watch — the kits' model_map depends on it):** diff the OFFICIAL sources —
+-     the models overview (platform.Codex.com/docs/en/about-Codex/models/overview), pricing, the effort
+-     doc, model-deprecations, anthropic.com/news. Report: a new top model (next Mythos-class GA, an Opus
+-     point-bump), effort-level changes, price changes, deprecations. Standing calendar triggers to
+-     re-check until resolved: **2026-07-19** Fable-5 subscription inclusion ends (extended twice — verify
+-     the LIVE date), **2026-08-31** Sonnet-5 intro pricing ends, **2026-08-05** Opus 4.1 shutdown.
+-     RULE: press articles are leads, never evidence — verify every model/date/price claim against the
+-     official docs/news before recommending a tiering change (press mislabeled Sonnet 5 as a rumour
+-     after it had shipped).
+-   - **Community**: notable agent-orchestration / eval / prompting patterns, frameworks or repos.
+-   Filter HARD for relevance to THIS harness: does it improve an enforcement hook, the PM/specialist flow,
+-   the quality gates, the dashboard, the requirement model (FR/PRD/CR/BUG), the designer flow, or onboarding?
+-   Skip generic AI news and anything not actionable here.
+-   - **TIER TABLE (team-kits/model_tiers.yaml):** when a model/price finding changes what `lead`/
+-     `worker`/`light` should map to on the Codex side, add an explicit tier-change PROPOSAL to the
+-     report (old -> new + evidence). You never edit the table yourself — re-tiering is always a
+-     user decision.
+-   - **SOURCE-FORMAT DIVERGENCE (standing duty):** the kit SOURCE format is Codex-native (agents
+-     .md frontmatter, settings.json hook registration) and the Codex layer is GENERATED from it.
+-     Flag every Codex change that alters that source contract (frontmatter fields, hook
+-     registration schema, @import semantics, tier/effort vocabulary) — the generator and the
+-     AGENTS.md shim depend on it. codex-watcher holds the mirror duty for the Codex side;
+-     HARNESS_LOG 2026-07-14 records the trip-wire criteria for revisiting the neutral-source
+-     decision.
+-4. **Write the report** `radar/<today>-AGENTS.md` (today's date, `YYYY-MM-DD`; the `-Codex` suffix
+-   pairs it with codex-watcher's `-codex` report) using the shape in `radar/README.md`:
+-   per candidate — title, source URL + date, what it is, **why it helps THIS repo** (name the concrete
+-   gate/skill/flow/artifact), recommendation (adopt/watch/ignore) + rough effort, status `NEW`. Lead with the
+-   few highest-impact items; keep it tight and skimmable. If nothing new and relevant turned up, write a short
+-   report that says so (still include the health line).
+-5. **Stop.** You run headless and cannot ask questions — the user and the assistant triage your report and
+-   update `decided.md`. Do not implement anything yourself."""
+diff --git a/docs/POST_V2_WISHLIST.md b/docs/POST_V2_WISHLIST.md
+index d6703ce..522e89b 100644
+--- a/docs/POST_V2_WISHLIST.md
++++ b/docs/POST_V2_WISHLIST.md
+@@ -2479,4 +2479,5 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die
+ | H189 | BUG-0273 | OPEN | The radar claim reader admits a cadence sentence that names no mechanism word: 'The watcher duo runs once a week without a human.' passes tools/test_radar_trigger.py by design, because a claim is recognised by its WORD (schedule, automatic, cron, Desktop task, the cloud option's names, a weekday) and a cadence alone is read as intent -- so a sentence asserting agentless recurrence in plain words is judged by nobody (TSK-0133 verify round 1, P6; beside H182) |
+ | H190 | BUG-0274 | OPEN | The claim reader's list of names for the rejected cloud routine (`cloud_option.named_as`) has no tripwire at either end: the shipped README's own words for that option ('hosted code routine of the platform', 'sandbox routine against the remote') pass the reader as a mechanism claim (verify round 2 N1, TSK-0133) |
+ | H191 | BUG-0275 | OPEN | The ladder-paragraph reader's lead-in branch (`_states_the_scaling_rule`) accepts rung and effort a whole bullet apart while its docstring says a rule states both axes 'in one breath': moving the word effort into the bold lead-in and deleting the effort RULE keeps the constitution qualifying (verify round 2 N2, TSK-0133) |
++| H192 | BUG-0276 | OPEN | A module added under tools/ shadows the team-kits module of the same name for every `python tools/<script>.py` entry point, and nothing measures the collision |
+ 
+diff --git a/radar/README.md b/radar/README.md
+index 9ceb579..c8b02fc 100644
+--- a/radar/README.md
++++ b/radar/README.md
+@@ -3,52 +3,86 @@
+ A **watcher duo** writes dated reports here, same report shape so the two can be laid side by side
+ (one watcher often finds what the other misses):
+ 
+-- **radar-watcher** (`.claude/agents/radar-watcher.md`) — the Anthropic/Claude half →
+-  `radar/YYYY-MM-DD-claude.md`. Also runs **repo health** (`tools/validate.py`, `pytest tools/`,
+-  `ruff check .`) and notes any drift.
+-- **codex-watcher** (`.claude/agents/codex-watcher.md`) — the OpenAI/Codex half →
+-  `radar/YYYY-MM-DD-codex.md` (Codex CLI mechanics, GPT model lineup, AGENTS.md standard).
+-
+-**How a run starts (DEC-0089).** The mechanism is a **Claude Desktop scheduled task per watcher**
+-on the maintainer's host — a local routine of the Desktop app, not anything this repository runs;
+-where no such task is recorded yet, the lead starts a run by hand.
+-
+-- **The radar-watcher's Desktop task exists and runs**: created by this repository's session agent
+-  on 2026-06-30 (`~/.claude/scheduled-tasks/radar-watcher/SKILL.md`, delegating to
+-  `.claude/agents/radar-watcher.md`), it starts the radar-watcher on Friday evenings, and the
+-  reports show it — `2026-07-17` to `2026-08-28` were written between 20:10 and 20:47 on Fridays,
+-  with one Sunday catch-up on `2026-08-16`. It is recorded in `radar/routine.json`.
+-- **The codex-watcher has no recorded Desktop task yet**: the user creates one of the same kind in
+-  the Desktop app (DEC-0089 names Saturday ~20:00, a day apart because the app skips a task while
+-  another is running), and until the lead records it and it has run twice on its weekday, the lead
+-  starts the codex-watcher by hand with `--run codex-watcher` when `--due` names it.
+-- **The rejected alternative** — a hosted code routine of the platform, running in a sandbox against
+-  the remote and returning each report as a pull request (DEC-0085) — is NOT built; `--describe`
+-  keeps it under `cloud_option` only as a documented option that says so.
+-
+-**What the repository can measure of that, and what it cannot.** The radar-watcher's task keeps
+-its day, hour and enabled flag in the Desktop app and in no file here; what `radar/routine.json`
+-holds is the schedule as the user stated it, with its source, and what the reports themselves show. So `starts_itself` is
+-derived per watcher from both — a recorded task AND at least two of that watcher's reports on the
+-recorded weekday — and whether the task file is present on THIS host is reported beside it and
+-judged by nothing. The limit is named rather than hidden: the app fires the radar-watcher's task
+-only while it is open and the machine awake (one catch-up run within seven days), so a week with the
+-app closed is silent, and `--due` is what notices.
++- **claude-watcher** (`.claude/agents/claude-watcher.md`) — the Anthropic/Claude half. Also runs
++  **repo health** (`tools/validate.py`, `pytest tools/`, `ruff check .`) and notes any drift.
++- **codex-watcher** (`.claude/agents/codex-watcher.md`) — the OpenAI/Codex half (Codex CLI
++  mechanics, GPT model lineup, AGENTS.md standard).
++
++The duo was renamed in DEC-0090 (1): the Claude half used to be named after this directory, and that
++name survives only in history — the dated reports below, `decided.md`, archived items, and the
++folder on the maintainer's host named in the bullet list further down. **This directory and
++`tools/radar_routine.py` keep their names on purpose**: radar is the DUO's product, not one
++watcher's.
++
++## Four reports a week, because each watcher runs under both providers
++
++DEC-0090 (3): every watcher is executed by **both** model families — what one misses the other may
++find — so a report name carries the watcher AND the runner:
++
++| file | watcher (what was scanned) | runner (who executed it) |
++|---|---|---|
++| `radar/<date>-claude-by-claude.md` | claude-watcher | Claude |
++| `radar/<date>-claude-by-codex.md` | claude-watcher | Codex |
++| `radar/<date>-codex-by-claude.md` | codex-watcher | Claude |
++| `radar/<date>-codex-by-codex.md` | codex-watcher | Codex |
++
++The reports written before that decision keep their two-part names (`<date>-claude.md`,
++`<date>-codex.md`) — history is not rewritten. `tools/radar_routine.py` counts such a name as a run
++of that watcher by its own provider, which keeps the history countable; the file names of those
++weeks simply do not record who ran them.
++
++## How a run starts (DEC-0089, DEC-0090 (4))
++
++The mechanism is a **local routine of the app that runs it** — a Claude Desktop scheduled task for
++each of the two Claude halves, an Automation of the Codex app for each of the two Codex halves, four
++in all and on four evenings so that no two fire at once, and until each of them is created and
++recorded the lead starts that run by hand. `python tools/radar_routine.py --describe` prints all
++four with the exact Instructions text that creates each one, and the lead reads that out rather than
++retyping it here.
++
++- **Recorded and running: the claude-watcher's Friday run.** A Claude Desktop scheduled task
++  created by this repository's session agent on 2026-06-30
++  (`~/.claude/scheduled-tasks/radar-watcher/SKILL.md` — the folder keeps the name the task was
++  created under) started it on Friday evenings, and the reports show it: `2026-07-17` to
++  `2026-08-28` were written between 20:10 and 20:47, with one Sunday catch-up on `2026-08-16`. It
++  is the one entry in `radar/routine.json`.
++- **Not created yet: the other three.** Until the user has made them in the two apps and each has
++  run twice on its own evening, the lead starts what is missing by hand — `--run <watcher>` when
++  `--due` names it, which starts a Claude run and can start no other.
++- **The rejected alternative** — a hosted code routine of the platform, running in a sandbox
++  against the remote and returning each report as a pull request (DEC-0085) — is not built;
++  `--describe` keeps it under `cloud_option` only as a documented option that says so.
++
++**What the repository can measure of that, and what it cannot.** Every Desktop task and every Codex
++Automation keeps its day, hour and enabled flag in the app that owns it and in no file here; what
++`radar/routine.json` holds is the schedule as the user stated it to the lead, with its source, and
++what the reports themselves show. So
++`starts_itself` is derived per watcher from both — a recorded routine AND at least two of that
++watcher-and-runner's reports on the recorded weekday, for **every** run that watcher owes — and
++whether a recorded task's file is present on THIS host is reported beside it and judged by nothing.
++The limit is named rather than hidden: an app fires its routine only while it is open and the
++machine awake (one catch-up run within seven days), so a week with an app closed is silent, and
++`--due` is what notices.
+ 
+ **The session half** is `tools/radar_routine.py` itself:
+ 
+-- `python tools/radar_routine.py` — which watcher owes a run this ISO week, and what its last dated
++- `python tools/radar_routine.py` — which routine owes a run this ISO week, and what its last dated
+   report was;
+-- `python tools/radar_routine.py --run <watcher>` — starts that watcher here and now, and reports
+-  which dated file appeared (a second run in a week that already has its report is refused unless
+-  `--force` is given);
+-- `python tools/radar_routine.py --describe` — the whole declaration as JSON, including how many
+-  reports this directory holds (derived, never written into prose that then rots).
++- `python tools/radar_routine.py --run <watcher>` — starts that watcher here and now (the runner is
++  Claude, because that is the CLI this starts), and reports which dated file appeared; a second run
++  in a week that already has that report is refused unless `--force` is given;
++- `python tools/radar_routine.py --describe` — the whole declaration as JSON: the four routines with
++  their Instructions texts, what is recorded, and how many reports this directory holds (derived,
++  never written into prose that then rots);
++- `python tools/radar_routine.py --write-overlays` — regenerates `.codex/agents/<watcher>.toml` from
++  the Claude definition and `team-kits/model_tiers.yaml`. The Claude definition is the source a
++  human edits; the Codex overlay is generated, which is why the model id and the effort are never
++  typed twice.
+ 
+ **These sentences are guarded**: `tools/test_radar_trigger.py` reads this file and both watcher
+-definitions against `--describe`, per watcher — a sentence about a watcher no recorded task starts
+-has to say who starts a run, and a sentence that names the rejected cloud alternative as the
+-mechanism is refused in every state.
++definitions against `--describe`, per watcher — a sentence about a watcher whose weekly runs are not
++all started by a recorded routine has to say who starts the rest, and a sentence that names the
++rejected alternative as the mechanism is refused in every state.
+ 
+ **Triage stays the lead's**: no run, however started, writes `decided.md`.
+ 
+diff --git a/radar/routine.json b/radar/routine.json
+index 14c2cf2..de64fcf 100644
+--- a/radar/routine.json
++++ b/radar/routine.json
+@@ -1,19 +1,22 @@
+ {
+-  "desktop_tasks": [
++  "routines": [
+     {
++      "id": "claude-watcher-by-claude",
++      "watcher": "claude-watcher",
++      "runner": "claude",
+       "kind": "desktop_task",
+-      "watcher": "radar-watcher",
+       "path": "~/.claude/scheduled-tasks/radar-watcher/SKILL.md",
+-      "schedule": {
++      "schedule_as_told": {
+         "day": "friday",
+         "time_local": "~20:00",
+-        "as_told_by": "the user, 2026-09-06 (DEC-0089); the task was created by this repository's session agent on 2026-06-30 and delegates to .claude/agents/radar-watcher.md",
+-        "source": "DEC-0089; radar/ file mtimes 2026-07-17 20:10, 07-24 20:12, 07-31 20:16, 08-07 20:47, 08-21 20:16, 08-28 20:12 (Fridays) and 08-16 20:25 (a Sunday catch-up run)"
++        "as_told_by": "the user, 2026-09-06 (DEC-0089, DEC-0090 (4)); the task was created by this repository's session agent on 2026-06-30"
+       },
+-      "first_measured_report": "2026-07-17",
+-      "last_measured_report": "2026-08-28",
++      "source": "DEC-0089; radar/ file mtimes 2026-07-17 20:10, 07-24 20:12, 07-31 20:16, 08-07 20:47, 08-21 20:16, 08-28 20:12 (Fridays) and 08-16 20:25 (a Sunday catch-up run). The task's FOLDER keeps the name it was created under on 2026-06-30 -- the Desktop app owns it and nobody renames it; what the lead edits at the next local session is the pointer INSIDE that SKILL.md, which after DEC-0090 (1) has to name the claude-watcher definition.",
++      "first_report": "2026-07-17",
++      "last_report": "2026-09-04",
+       "recorded": "2026-09-06"
+     }
+   ],
+-  "recorded_by": "the generation-5 merge (TSK-0133) from DEC-0089's measurement; the codex half is added by the lead once the user has created its task in the Desktop app (Saturday ~20:00, DEC-0089 (1))"
++  "recorded_by": "the generation-5 merge (TSK-0133) from DEC-0089's measurement, re-shaped by TSK-0134 for DEC-0090 (3): a routine is now a WATCHER and a RUNNER. The three routines DEC-0090 (4) adds -- codex-watcher by claude (Saturday), claude-watcher by codex (Sunday), codex-watcher by codex (Monday) -- are not created yet and therefore have no entry here; `python tools/radar_routine.py --describe` lists all four with the Instructions text that creates each one.",
++  "note": "one entry per routine that EXISTS and has run. An entry for a routine nobody created would make `starts_itself` lie, which is the direction this record fails in."
+ }
+diff --git a/tools/radar_routine.py b/tools/radar_routine.py
+index 1c16580..a4a6934 100644
+--- a/tools/radar_routine.py
++++ b/tools/radar_routine.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+-"""The RADAR ROUTINE: a Claude DESKTOP scheduled task per watcher starts it weekly on the
+-maintainer's host (DEC-0089); this module declares what the repository can measure of that and
+-offers the session half (`--due`, `--run`).
++"""The RADAR ROUTINE: four weekly LOCAL routines start the watcher duo on the maintainer's host
++(DEC-0089 for the kind, DEC-0090 for the four); this module declares what the repository can
++measure of that and offers the session half (`--due`, `--run`).
+ 
+ WHAT WAS MEASURED, in the order the answer changed inside one round -- the log files are named in
+ `project_memory/staging/TSK-0130/stream-protocol.md`, section 3, and the correction in DEC-0089:
+@@ -13,30 +13,31 @@ WHAT WAS MEASURED, in the order the answer changed inside one round -- the log f
+   * DEC-0085 then chose the cloud routine -- on the premise, read off this repository's audit log
+     and the account's empty RemoteTrigger list, that no report had ever been started by a mechanism.
+   * DEC-0089 supersedes it: that premise was FALSE. A Claude Desktop LOCAL scheduled task for the
+-    radar half has existed since 2026-06-30 (`~/.claude/scheduled-tasks/radar-watcher/SKILL.md`,
+-    delegating to `.claude/agents/radar-watcher.md`, whose report name carries the `-claude`
+-    suffix), and the reports in `radar/` show its cadence: Friday evenings from 2026-07-17 to
+-    2026-08-28 (file mtimes 20:10 to 20:47) plus one Sunday catch-up on 2026-08-16. A Desktop task
+-    starts its own session, which writes no spawn event into THIS repository's audit log -- the log
+-    was the wrong place to look, and the timestamps in `radar/` had been there the whole time.
+-
+-SO THE MECHANISM IS THE DESKTOP TASK, one per watcher (DEC-0089 (1)). The radar half exists and is
+-recorded; the codex half is the USER's to create in the Desktop app (Saturday ~20:00, a day apart
+-because the app skips a task while another one is running) and is recorded by the lead once it
+-exists. The cloud routine is the REJECTED alternative and stays below only as a documented option
+-that says it is not built (`CLOUD_OPTION`).
+-
+-WHAT THIS MODULE CAN AND CANNOT READ, said once. The task's day, hour and enabled flag live in the
+-Desktop app and in no file (code.claude.com/docs/en/desktop-scheduled-tasks), the app fires a task
+-only while it is open and the machine awake, and a missed time gets one catch-up run within seven
+-days -- so a week with the app closed is silent. `starts_itself` is therefore DERIVED from the two
++    claude half has existed since 2026-06-30 (`~/.claude/scheduled-tasks/radar-watcher/SKILL.md`,
++    delegating to this repository's claude-watcher definition, whose report name carries the
++    `claude` suffix), and the reports in `radar/` show its cadence: Friday evenings from 2026-07-17
++    to 2026-08-28 (file mtimes 20:10 to 20:47) plus one Sunday catch-up on 2026-08-16. A Desktop
++    task starts its own session, which writes no spawn event into THIS repository's audit log --
++    the log was the wrong place to look, and the timestamps in `radar/` had been there all along.
++
++SO THE MECHANISM IS A LOCAL APP ROUTINE, and DEC-0090 (3) makes it FOUR of them, because every
++watcher runs under BOTH providers: a Claude Desktop scheduled task and a Codex app Automation per
++watcher, staggered across four evenings so no two fire at once. What a run produces therefore
++carries TWO names -- the watcher whose subject was scanned and the RUNNER that executed it -- and
++so does its report (`report_name`). The cloud routine is the REJECTED alternative and stays below
++only as a documented option that says it is not built (`CLOUD_OPTION`, DEC-0089 (2)).
++
++WHAT THIS MODULE CAN AND CANNOT READ, said once. A routine's day, hour and enabled flag live in the
++app that owns it and in no file (code.claude.com/docs/en/desktop-scheduled-tasks for the Desktop
++task, learn.chatgpt.com/docs/automations for the Codex Automation), the app fires a routine only
++while it is open and the machine awake, and a missed time gets one catch-up run within seven days
++-- so a week with the app closed is silent. `starts_itself` is therefore DERIVED from the two
+ things the repository holds: the RECORD the lead writes (`radar/routine.json`, shape in
+-`ROUTINE_RECORD_SHAPE`: kind, watcher, path, the schedule AS TOLD BY THE USER with its source) and
+-the CADENCE EVIDENCE in the reports themselves -- dated files of that watcher falling on the recorded
+-weekday, at least `CADENCE_EVIDENCE_MIN` of them. Whether the task's file is present on THIS host is
+-reported beside that answer and judged by nothing, because a clone on another machine must not turn
+-a true sentence false. `tools/test_radar_trigger.py` holds the three texts to that answer, per
+-watcher.
++`ROUTINE_RECORD_SHAPE`) and the CADENCE EVIDENCE in the reports themselves -- dated files of that
++watcher AND that runner falling on the recorded weekday, at least `CADENCE_EVIDENCE_MIN` of them.
++Whether a recorded task's file is present on THIS host is reported beside that answer and judged by
++nothing, because a clone on another machine must not turn a true sentence false.
++`tools/test_radar_trigger.py` holds the three texts to that answer, per watcher.
+ """
+ import argparse
+ import datetime
+@@ -48,13 +49,15 @@ import subprocess
+ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ RADAR = os.path.join(ROOT, "radar")
+ 
+-# THE DECLARATION. One entry per watcher: the agent a task or `--run` starts and the suffix its dated
+-# report carries. The suffix decides which report counts as a run of which watcher.
++# THE DECLARATION. One entry per watcher: the agent a routine or `--run` starts and the suffix its
++# dated report carries. The suffix decides which report counts as a run of which watcher, and it is
++# also the watcher's OWN provider -- the ecosystem it scans -- which is why it has to be a key of
++# `RUNNERS` (`assert_the_vocabularies_agree`).
+ # `tools/test_radar_trigger.py::test_the_texts_this_reads_are_the_ones_that_describe_the_watchers`
+ # derives the watcher set from the tracked tree and holds it against this one, so a third watcher
+ # joins the declaration or turns that test red.
+ WATCHERS = {
+-    "radar-watcher": {
++    "claude-watcher": {
+         "suffix": "claude",
+         "scans": "Anthropic / Claude Code",
+         "sources": "the Claude Code changelog and docs (hooks, subagents, settings, tools, models, "
+@@ -68,40 +71,156 @@ WATCHERS = {
+                    "prices and effort vocabulary, and the AGENTS.md standard",
+     },
+ }
++
++# THE RUNNERS: the providers a watcher can be executed BY (DEC-0090 (3)). The keys are not a list
++# kept here -- they are the providers `team-kits/model_tiers.yaml` knows, which is what
++# `tools/test_radar_trigger.py::test_the_runner_vocabulary_is_the_ladders_provider_vocabulary`
++# measures FROM BOTH ENDS: a provider the ladder gains and this table does not is red, and a runner
++# here the ladder does not know is red too. That is the definition behind the four routines -- the
++# duo times the providers -- and the reason the count is nowhere written down as a number.
++# Each entry holds what differs per app: the record's `kind`, the app that owns the schedule, and
++# the ONE line of the Instructions text that says which artifact the run is to follow.
++RUNNERS = {
++    "claude": {
++        "kind": "desktop_task",
++        "app": "Claude Desktop (Routines -> New routine -> Local, or by asking Claude in any "
++               "Desktop session)",
++        "follow": "Follow .claude/agents/%(watcher)s.md exactly.",
++    },
++    "codex": {
++        "kind": "codex_automation",
++        "app": "the Codex app (Automations)",
++        "follow": "Run the agent defined in .codex/agents/%(watcher)s.toml and follow its "
++                  "developer_instructions exactly.",
++    },
++}
++# The runner `--run` produces, and it is a PROPERTY of the command in `run_watcher` rather than a
++# choice: that function starts the `claude` CLI, so every report it produces is a claude run.
++# Starting a Codex run from here is not built -- the Codex app's Automations are that mechanism
++# (DEC-0090 (4)) and nothing in this repository has measured a headless Codex agent run.
++SESSION_RUNNER = "claude"
+ CADENCE = "weekly"
+ # The period a run covers, spelled the way the kits' own routine spells it
+ # (`hooks/_routine.audit_period_id`): an ISO week, so "has it run in this period" needs no date
+ # arithmetic that a run late on a Sunday would fall out of.
+ PERIOD = "ISO week"
+-REPORT_RX = re.compile(r"^(\d{4}-\d{2}-\d{2})(?:-([a-z0-9]+))?\.md$")
+-REPORT_PATTERN = "radar/{date}-{suffix}.md"
++# A report name carries the date, then the WATCHER's suffix, then `-by-<runner>`. The last part is
++# OPTIONAL when read and always written (DEC-0090 (3)): the reports written before that decision
++# keep their two-part names, and `report_runner` says how they are counted.
++REPORT_RX = re.compile(r"^(\d{4}-\d{2}-\d{2})(?:-([a-z0-9]+)(?:-by-([a-z0-9]+))?)?\.md$")
++REPORT_PATTERN = "radar/{date}-{suffix}-by-{runner}.md"
++
++
++def assert_the_vocabularies_agree():
++    """Every watcher's suffix is a runner id -- the property the four routines are derived from.
++
++    A watcher is named after the ecosystem it SCANS and its report suffix is that provider's id;
++    the runners are the providers that can EXECUTE a run. The two vocabularies are the same one,
++    which is what makes `report_runner`'s reading of a legacy two-part name possible at all.
++    `tools/test_radar_trigger.py::test_the_runner_vocabulary_is_the_ladders_provider_vocabulary`
++    """
++    stray = sorted(entry["suffix"] for entry in WATCHERS.values() if entry["suffix"] not in RUNNERS)
++    if stray:
++        raise SystemExit("watcher suffixes that name no runner: %s" % ", ".join(stray))
++    if SESSION_RUNNER not in RUNNERS:
++        raise SystemExit("`--run` would produce runs of %r, which is no declared runner"
++                         % SESSION_RUNNER)
++
++
++assert_the_vocabularies_agree()
++
++
++def routine_id(watcher, runner):
++    """The id of one weekly routine: which watcher, run by which provider."""
++    return "%s-by-%s" % (watcher, runner)
++
++
++def report_name(watcher, runner, date="<YYYY-MM-DD>"):
++    """The file one run writes -- the only place this repository spells a report name."""
++    return REPORT_PATTERN.format(date=date, suffix=WATCHERS[watcher]["suffix"], runner=runner)
++
++
++def report_runner(suffix, runner):
++    """The runner a report NAME is counted for -- `runner` when the name carries one, else the
++    watcher's own provider.
++
++    THE SECOND HALF IS A COUNTING CONVENTION AND NOT A PROVENANCE CLAIM, which is worth the
++    sentence because the two look alike. Every report written before DEC-0090 carries only the
++    watcher's suffix, so the runner is simply not in the name; reading it as the watcher's own
++    provider keeps the history countable (`--due` does not demand a run that already happened) and
++    is what DEC-0090 (3) asks for. What it is NOT is a measurement of who ran those files -- a
++    two-part name records no runner at all, and at least one pair of this directory's `-codex`
++    reports came from `--run`, which starts the `claude` CLI (`SESSION_RUNNER`; the measurement is
++    in the refusal comment in `main`). The limit is named rather than hidden -- from the first
++    cross-provider run on, every name carries both.
++    """
++    return runner or suffix
++
+ 
+ # THE RECORD the lead writes, and the only thing beside the reports that `starts_itself` reads.
+ ROUTINE_RECORD = os.path.join(ROOT, "radar", "routine.json")
+-DESKTOP_TASK_KIND = "desktop_task"
+ WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+ # HOW MANY REPORTS ON THE RECORDED WEEKDAY COUNT AS THE CADENCE. One is a coincidence a hand-started
+-# run produces (this directory holds Saturday reports the lead started by hand on 2026-08-01 and
+-# 2026-08-29); two on the recorded weekday is the smallest number one hand run cannot fake. Measured
+-# against the reports this directory held on 2026-09-06: seven Friday reports of the radar half,
+-# one Saturday report of the codex half -- so the radar half qualifies and the codex half does not
+-# until its task has run twice. `tools/test_radar_trigger.py::test_the_self_start_reader_answers_off_the_record_and_the_reports`
++# run produces -- this directory holds reports the lead started by hand, on the weekday he happened
++# to be working -- and two on the recorded weekday is the smallest number one hand run cannot fake.
++# HOW MANY there are today is deliberately not written here: it grows every week, and `--describe`
++# counts it per routine (`cadence_evidence`).
++# `tools/test_radar_trigger.py::test_the_self_start_reader_answers_off_the_record_and_the_reports`
+ CADENCE_EVIDENCE_MIN = 2
++
++# THE FOUR ROUTINES the user asked for (DEC-0090 (4)), and the ONE thing about them this repository
++# cannot derive: the evening the user picked for each. Staggered on purpose -- an app skips a task
++# while another scheduled task of the same app is running -- which is a property and is measured as
++# one (`::test_the_routine_plan_covers_every_watcher_on_every_runner_and_staggers_them`), not a
++# sentence about four weekdays. The PAIRS are derived from `WATCHERS` x `RUNNERS` by `routine_plan`;
++# this table carries only the schedule, so a third watcher cannot be half-added.
++# None of the four is created from a remote session (DEC-0090 (5)): the schedule lives in the app,
++# and `description()` hands out the Instructions text the lead gives Claude Desktop and the user
++# pastes into the Codex app.
++SCHEDULE_AS_TOLD = {
++    "claude-watcher-by-claude": {"day": "friday", "time_local": "~20:00"},
++    "codex-watcher-by-claude": {"day": "saturday", "time_local": "~20:00"},
++    "claude-watcher-by-codex": {"day": "sunday", "time_local": "~20:00"},
++    "codex-watcher-by-codex": {"day": "monday", "time_local": "~20:00"},
++}
++SCHEDULE_SOURCE = ("the user, 2026-09-06 (DEC-0090 (4)) -- as TOLD, not readable from disk: the "
++                   "day, the hour and the enabled flag live in the app that owns the routine")
++# ONE template for all four Instructions bodies; what differs per app is `RUNNERS[...]['follow']`.
++# The lead hands the two `claude` texts to Claude Desktop and the user pastes the two `codex` texts
++# into the Codex app (DEC-0090 (5)); both are printed verbatim by `--describe`.
++INSTRUCTIONS_TEMPLATE = (
++    "You are the weekly %(watcher)s run of the agents-and-skills harness repository.\n"
++    "%(follow)s\n"
++    "READ-ONLY on the codebase: write nothing outside radar/, change no code, run no git write "
++    "command, and do not commit.\n"
++    "Read radar/decided.md and the newest reports of this watcher FIRST, so nothing already "
++    "decided or already open is re-surfaced.\n"
++    "Write exactly one file, %(report)s, with today's date in YYYY-MM-DD: this run's watcher is "
++    "%(watcher)s and its runner is %(runner)s, and the name carries both (DEC-0090 (3)).\n"
++    "Leave the report for triage and stop -- you cannot ask questions and you decide nothing."
++)
++
+ ROUTINE_RECORD_SHAPE = {
+-    "desktop_tasks": [{
+-        "kind": DESKTOP_TASK_KIND,
++    "routines": [{
++        "id": "<watcher>-by-<runner>, the four of DEC-0090 (4)",
+         "watcher": "<one of the declared watchers>",
+-        "path": "<the task's SKILL.md under ~/.claude/scheduled-tasks/<name>/, as the app keeps it>",
+-        "schedule": {"day": "<weekday, lower case>",
+-                     "time_local": "<hh:mm, approximate -- the app adds a few minutes>",
+-                     "as_told_by": "<who stated the schedule and when; it is not on disk>",
+-                     "source": "<the record that holds the measurement, e.g. a DEC id and the "
+-                               "report timestamps>"},
+-        "first_measured_report": "<ISO date of the first report on that weekday>",
+-        "last_measured_report": "<ISO date of the last one measured when this was written>",
++        "runner": "<one of the declared runners: the provider that EXECUTES the run>",
++        "kind": "<the runner's kind: %s>" % " | ".join(
++            sorted(entry["kind"] for entry in RUNNERS.values())),
++        "schedule_as_told": {"day": "<weekday, lower case>",
++                             "time_local": "<hh:mm, approximate -- the app adds a few minutes>",
++                             "as_told_by": "<who stated the schedule and when; it is not on disk>"},
++        "source": "<the record that holds the measurement, e.g. a DEC id and the report timestamps>",
++        "path": "<where the app keeps this routine's prompt, when it keeps one on disk at all; "
++                "a Codex Automation keeps none>",
++        "first_report": "<ISO date of the first report of this routine>",
++        "last_report": "<ISO date of the last one measured when this was written>",
+         "recorded": "<ISO date this entry was written>",
+     }],
+     "recorded_by": "<who wrote this record and from which measurement>",
++    "note": "one entry per routine that EXISTS. A routine the user has not created yet has no "
++            "entry, and `--describe` lists it as not recorded with the Instructions text that "
++            "creates it -- an entry for a routine nobody created would make `starts_itself` lie.",
+ }
+ 
+ # THE REJECTED ALTERNATIVE, kept as a documented option and nothing more (DEC-0089 (2)): a claude.ai
+@@ -114,7 +233,7 @@ REMOTE = "https://github.com/GiaZenX/harness.git"
+ BASE_BRANCH = "feat/harness-v2"
+ BRANCH_PATTERN = "radar/{date}-{watcher}"
+ PR_TITLE_PATTERN = "radar: {watcher} {date}"
+-CLOUD_SCHEDULE = {"radar-watcher": {"day": "monday", "time_utc": "06:00"},
++CLOUD_SCHEDULE = {"claude-watcher": {"day": "monday", "time_utc": "06:00"},
+                   "codex-watcher": {"day": "tuesday", "time_utc": "06:00"}}
+ # ONE TEMPLATE, not a list of lines joined by hand: the first cut built the prompt out of adjacent
+ # string literals and Python concatenated two of them WITHOUT the newline between them, which a
+@@ -149,6 +268,157 @@ HOW IT COMES BACK
+    report is indistinguishable from a week the routine did not run."""
+ 
+ 
++# WHERE EACH PROVIDER READS A WATCHER FROM. The Claude definition is the SOURCE a human edits; the
++# Codex overlay is GENERATED from it by `--write-overlays` below, which is why the two can never
++# drift into the state this repository shipped until 2026-09-11: the overlays were hand-copied in
++# 2026-07 with a blind word substitution and told a Codex run to read
++# `platform.Codex.com/docs/en/about-Codex/models/overview` and to write `radar/<today>-AGENTS.md`.
++# `tools/test_radar_trigger.py::test_every_codex_overlay_is_the_one_its_claude_definition_generates`
++DEFINITION = ".claude/agents/%s.md"
++OVERLAY = ".codex/agents/%s.toml"
++OVERLAY_MARKER = ("# generated from %s by `python tools/radar_routine.py --write-overlays` "
++                  "(DEC-0090 (1)(2)(3)) -- edit the definition, never this file")
++# THE ONE LINE THAT DIFFERS between a watcher's two artifacts: which provider is running it, and
++# therefore which report name this run writes. Everything else is the same text, so the runner is
++# the only thing the generator has to decide -- and a body that states it in prose somewhere else
++# would be a second answer. The pattern is what `--write-overlays` REPLACES; the definition carries
++# the `claude` rendering of it and must, or the generator refuses.
++RUNNER_LINE_RX = re.compile(r"(?m)^\*\*Runner of this file:.*$")
++RUNNER_LINE_TEMPLATE = ("**Runner of this file: `%(runner)s`.** The `%(runner)s` provider runs it, "
++                        "so the one report this run writes is `%(report)s` (DEC-0090 (3)).")
++
++
++def runner_line(watcher, runner):
++    """The line that tells a run which provider is executing it and what to call its report.
++
++    The date placeholder is `report_name`'s own default and is deliberately not spelled a second
++    way here: two spellings of the same placeholder is how a run learns two date formats.
++    """
++    return RUNNER_LINE_TEMPLATE % {"runner": runner, "report": report_name(watcher, runner)}
++
++
++def _kit_generator():
++    """The kit's provider generator, loaded BY PATH and only when an overlay is generated.
++
++    BY PATH AND LAZILY, both for measured reasons. By path, because `tools/` is `sys.path[0]` for
++    everything started as `python tools/...`: a module of this name under `tools/` shadows the kit's
++    for `tools/validate.py`, whose own step 8 imports four names from it -- measured 2026-09-11 in a
++    copy of this tree, `ImportError: cannot import name 'load_tiers'`, and no structural check ran.
++    That measurement is also why the overlay generator lives in THIS module and not in a second
++    `gen_provider_artifacts.py`. Lazily, because `--due` and `--describe` must not pay for a
++    1400-line import that reads YAML.
++    """
++    import importlib.util
++    import sys
++    path = os.path.join(ROOT, "team-kits", "gen_provider_artifacts.py")
++    spec = importlib.util.spec_from_file_location("radar_routine_kit_generator", path)
++    module = importlib.util.module_from_spec(spec)
++    before = sys.dont_write_bytecode
++    sys.dont_write_bytecode = True          # never cache bytecode into the hashed kit tree
++    try:
++        spec.loader.exec_module(module)
++    finally:
++        sys.dont_write_bytecode = before
++    return module
++
++
++def overlay_text(watcher, runner="codex", root=None):
++    """The `.codex/agents/<watcher>.toml` this watcher's Claude definition generates.
++
++    NOTHING IS TYPED TWICE. The model id comes from `team-kits/model_tiers.yaml` through the kit
++    generator's own `provider_model`, so the definition pins a RUNG (`opus`) and the table says what
++    that rung is on this provider; the key the effort is written under is that provider's
++    `effort_field` row of the same table; the instructions are the definition's own body with the
++    one runner line rewritten. A pin the table cannot place is REFUSED with the kit's own sentence,
++    which names DEC-0076 -- the same refusal `tools/validate.py` gives a kit source.
++    """
++    where = ROOT if root is None else root
++    generator = _kit_generator()
++    tiers, aliases = generator.load_tiers()
++    with open(os.path.join(where, DEFINITION % watcher), encoding="utf-8-sig") as handle:
++        meta, body = generator.parse_frontmatter(handle.read())
++    pin = meta.get("model")
++    if pin is None or not generator.table_places(pin, tiers, aliases):
++        raise SystemExit(generator.unplaceable_pin_sentence(DEFINITION % watcher, pin,
++                                                            tiers, aliases))
++    effort_field = tiers[runner][generator.EFFORT_FIELD_KEY]
++    effort = meta.get(tiers[generator.REFERENCE_PROVIDER][generator.EFFORT_FIELD_KEY])
++    if not effort:
++        raise SystemExit("%s pins no effort, so this generator would have to invent one; DEC-0076 "
++                         "asks for an explicit `%s:` in the definition"
++                         % (DEFINITION % watcher,
++                            tiers[generator.REFERENCE_PROVIDER][generator.EFFORT_FIELD_KEY]))
++    if not RUNNER_LINE_RX.search(body):
++        raise SystemExit("%s carries no `**Runner of this file:` line, so nothing here knows which "
++                         "sentence to rewrite for %s" % (DEFINITION % watcher, runner))
++    # A LAMBDA, not a replacement string: `re.sub` reads `\g`, `\1` and `\\` out of a literal
++    # replacement, and the line it inserts is prose this module does not control character by
++    # character. A function replacement is handed through untouched.
++    instructions = generator.codex_text(
++        RUNNER_LINE_RX.sub(lambda _match: runner_line(watcher, runner), body, count=1))
++    return "\n".join([
++        OVERLAY_MARKER % (DEFINITION % watcher),
++        'name = "%s"' % watcher,
++        'description = "%s"' % " ".join(str(meta.get("description", watcher)).split())
++                                  .replace('"', "'"),
++        'model = "%s"' % generator.provider_model(pin, runner, tiers, aliases),
++        '%s = "%s"' % (effort_field, effort),
++        "developer_instructions = " + generator.toml_str(instructions),
++    ]) + "\n"
++
++
++def write_overlays(root=None):
++    """Write every watcher's Codex overlay from its Claude definition. Returns the paths written."""
++    where = ROOT if root is None else root
++    written = []
++    for watcher in sorted(WATCHERS):
++        target = os.path.join(where, OVERLAY % watcher)
++        os.makedirs(os.path.dirname(target), exist_ok=True)
++        with open(target, "w", encoding="utf-8", newline="\n") as handle:
++            handle.write(overlay_text(watcher, root=where))
++        written.append(OVERLAY % watcher)
++    return written
++
++
++def routine_plan():
++    """The four weekly routines: every watcher on every runner, with the schedule as told.
++
++    DERIVED from `WATCHERS` x `RUNNERS` -- the count is a product and never a number written down --
++    and joined with `SCHEDULE_AS_TOLD`, the one thing no file here can compute. A pair the schedule
++    table does not name is a half-added routine and raises, which is the direction that fails
++    closed: `--describe` would otherwise publish a routine with no evening in it.
++    """
++    plan = {}
++    for watcher in sorted(WATCHERS):
++        for runner in sorted(RUNNERS):
++            key = routine_id(watcher, runner)
++            told = SCHEDULE_AS_TOLD.get(key)
++            if told is None:
++                raise SystemExit("no schedule was ever told for the routine %s -- DEC-0090 (4) "
++                                 "names an evening for each watcher on each runner" % key)
++            plan[key] = {
++                "id": key,
++                "watcher": watcher,
++                "runner": runner,
++                "kind": RUNNERS[runner]["kind"],
++                "app": RUNNERS[runner]["app"],
++                "schedule_as_told": dict(told, as_told_by=SCHEDULE_SOURCE),
++                "writes": report_name(watcher, runner),
++                "instructions": instructions_for(watcher, runner),
++            }
++    return plan
++
++
++def instructions_for(watcher, runner):
++    """The Instructions body the lead gives the app that is to run this routine, verbatim."""
++    return INSTRUCTIONS_TEMPLATE % {
++        "watcher": watcher,
++        "runner": runner,
++        "follow": RUNNERS[runner]["follow"] % {"watcher": watcher},
++        "report": report_name(watcher, runner),
++    }
++
++
+ def period_id(day):
+     """The ISO week a day belongs to -- the id a run is compared against."""
+     year, week, _weekday = day.isocalendar()[:3]
+@@ -156,11 +426,13 @@ def period_id(day):
+ 
+ 
+ def runs(directory=None):
+-    """[(date, suffix)] for every dated report in `radar/`, newest last.
++    """[(date, suffix, runner)] for every dated report in `radar/`, oldest first.
+ 
+     THE SUFFIX MAY BE ABSENT and that is not a defect: the first two reports of this directory
+     (2026-07-03, 2026-07-06) predate the split into two watchers and carry none. They count as
+-    runs of the directory, not of a named watcher, which is exactly how `--due` treats them.
++    runs of the directory, not of a named watcher, which is exactly how `--due` treats them -- and
++    their runner is None for the same reason. A name that carries a suffix but no `-by-` part gets
++    its runner from `report_runner`.
+     """
+     where = RADAR if directory is None else directory
+     found = []
+@@ -169,33 +441,46 @@ def runs(directory=None):
+         if not match:
+             continue
+         try:
+-            found.append((datetime.date.fromisoformat(match.group(1)), match.group(2)))
++            date = datetime.date.fromisoformat(match.group(1))
+         except ValueError:
+             continue
++        suffix = match.group(2)
++        found.append((date, suffix,
++                      report_runner(suffix, match.group(3)) if suffix else None))
+     return sorted(found)
+ 
+ 
+ def due(today=None):
+-    """{watcher: last run date or None} for every watcher that owes a run in today's period."""
++    """{routine id: last run date or None} for every routine that owes a run in today's period.
++
++    PER WATCHER **AND** RUNNER since DEC-0090 (3): the duo runs four times a week, so a report of
++    the claude-watcher written by Claude clears exactly one of the four duties. Counting per watcher
++    alone -- what this did until the cross-provider decision -- would let one provider's run silently
++    clear the other's.
++    `tools/test_radar_trigger.py::test_the_routine_counts_a_run_per_watcher_and_runner_and_period`
++    """
+     today = today or datetime.date.today()
+     here = period_id(today)
++    found = runs()
+     owed = {}
+-    for name, entry in sorted(WATCHERS.items()):
+-        mine = [day for day, suffix in runs() if suffix == entry["suffix"]]
++    for key, entry in sorted(routine_plan().items()):
++        suffix = WATCHERS[entry["watcher"]]["suffix"]
++        mine = [day for day, found_suffix, runner in found
++                if found_suffix == suffix and runner == entry["runner"]]
+         if not mine or period_id(mine[-1]) != here:
+-            owed[name] = mine[-1].isoformat() if mine else None
++            owed[key] = mine[-1].isoformat() if mine else None
+     return owed
+ 
+ 
+-def desktop_tasks(record=None):
+-    """The well-formed desktop-task entries of the lead's record, or [].
++def recorded_routines(record=None):
++    """The well-formed routine entries of the lead's record, or [].
+ 
+-    WELL-FORMED is asked field by field and never as a string search: the kind is this module's
+-    one recordable kind, the watcher is one this routine declares, the path is a non-empty string,
+-    and the schedule names a weekday this module can compare a report date against. Everything
+-    else -- a missing or unreadable record, an entry of another kind, an unknown watcher, a day that
+-    is not a weekday, a mention of a task in some other field -- is the fail-closed direction and
+-    starts nothing.
++    WELL-FORMED is asked field by field and never as a string search: the watcher and the runner are
++    ones this module declares, the kind is the one that runner's app produces, and the schedule names
++    a weekday this module can compare a report date against. Everything else -- a missing or
++    unreadable record, an unknown watcher or runner, a kind that does not belong to the runner, a day
++    that is not a weekday, a routine merely MENTIONED in some other field -- is the fail-closed
++    direction and starts nothing.
+     `tools/test_radar_trigger.py::test_the_self_start_reader_answers_off_the_record_and_the_reports`
+     """
+     path = ROUTINE_RECORD if record is None else record
+@@ -204,24 +489,27 @@ def desktop_tasks(record=None):
+             written = json.load(handle)
+     except (OSError, ValueError):
+         return []
+-    entries = written.get("desktop_tasks") if isinstance(written, dict) else None
++    entries = written.get("routines") if isinstance(written, dict) else None
+     if not isinstance(entries, list):
+         return []
+     kept = []
+     for entry in entries:
+-        if not isinstance(entry, dict) or entry.get("kind") != DESKTOP_TASK_KIND:
++        if not isinstance(entry, dict):
++            continue
++        watcher, runner = entry.get("watcher"), entry.get("runner")
++        if watcher not in WATCHERS or runner not in RUNNERS:
+             continue
+-        if entry.get("watcher") not in WATCHERS or not str(entry.get("path") or "").strip():
++        if entry.get("kind") != RUNNERS[runner]["kind"]:
+             continue
+-        schedule = entry.get("schedule")
++        schedule = entry.get("schedule_as_told")
+         if not isinstance(schedule, dict) or str(schedule.get("day") or "").lower() not in WEEKDAYS:
+             continue
+         kept.append(entry)
+     return kept
+ 
+ 
+-def cadence_evidence(watcher, day, directory=None):
+-    """The dated reports of `watcher` that fall on the weekday `day` -- the runs a task left behind.
++def cadence_evidence(watcher, runner, day, directory=None):
++    """The dated reports of this WATCHER and RUNNER that fall on the weekday `day`.
+ 
+     Read off the report NAMES, not off file times: a filename's date survives a clone, a file's mtime
+     does not, and the answer has to be the same on every checkout of this repository. The mtimes
+@@ -229,31 +517,57 @@ def cadence_evidence(watcher, day, directory=None):
+     """
+     weekday = WEEKDAYS.index(str(day).lower())
+     suffix = WATCHERS[watcher]["suffix"]
+-    return [date for date, found in runs(directory)
+-            if found == suffix and date.weekday() == weekday]
++    return [date for date, found_suffix, found_runner in runs(directory)
++            if found_suffix == suffix and found_runner == runner and date.weekday() == weekday]
+ 
+ 
+-def starts_itself(record=None, directory=None):
+-    """{watcher: bool} -- is this watcher started by a recorded Desktop task whose cadence the
++def live_routines(record=None, directory=None):
++    """{routine id: bool} -- is this one of the four started by a recorded routine whose cadence the
+     reports show? Derived, never a constant somebody can flip (a constant here stayed green under
+     mutation on 2026-09-06, which is what turned it into a reader).
+ 
+-    TRUE needs both halves: an entry of the lead's record for this watcher (`desktop_tasks`) AND at
+-    least `CADENCE_EVIDENCE_MIN` of the watcher's reports on the recorded weekday. A record alone is
+-    a sentence; reports alone are runs somebody may have started by hand. What is NOT asked is
+-    whether the task's file is present on this host -- `description()` reports that separately.
++    TRUE needs both halves: an entry of the lead's record for this watcher AND runner, AND at least
++    `CADENCE_EVIDENCE_MIN` of that pair's reports on the recorded weekday. A record alone is a
++    sentence; reports alone are runs somebody may have started by hand. What is NOT asked is whether
++    a recorded task's file is present on this host -- `description()` reports that separately.
+     """
+-    answer = {name: False for name in WATCHERS}
+-    for entry in desktop_tasks(record):
+-        evidence = cadence_evidence(entry["watcher"], entry["schedule"]["day"], directory)
++    answer = {key: False for key in routine_plan()}
++    for entry in recorded_routines(record):
++        key = routine_id(entry["watcher"], entry["runner"])
++        if key not in answer:
++            continue
++        evidence = cadence_evidence(entry["watcher"], entry["runner"],
++                                    entry["schedule_as_told"]["day"], directory)
+         if len(evidence) >= CADENCE_EVIDENCE_MIN:
+-            answer[entry["watcher"]] = True
++            answer[key] = True
+     return answer
+ 
+ 
++def starts_itself(record=None, directory=None):
++    """{watcher: bool} -- is EVERY weekly run this watcher owes started by a routine?
++
++    ALL, not ANY, and that is the whole clause. Since DEC-0090 (3) a watcher owes one run per
++    runner, so a watcher whose Desktop task fires every Friday while its Codex Automation does not
++    exist is started by a mechanism for HALF of what it owes -- and a text saying "the claude-watcher
++    runs weekly through its routine" would then be true of one run and false of the other. The
++    fail-closed reading makes such a sentence name who starts the rest, which is what the claim
++    reader in `tools/test_radar_trigger.py` asks of it.
++    """
++    live = live_routines(record, directory)
++    return {watcher: all(live[key] for key, entry in routine_plan().items()
++                         if entry["watcher"] == watcher)
++            for watcher in WATCHERS}
++
++
+ def task_file_present(entry):
+-    """Whether the recorded task file is on THIS host -- reported, and held against no text."""
+-    return os.path.isfile(os.path.expanduser(str(entry.get("path") or "")))
++    """Whether a recorded routine's prompt file is on THIS host -- reported, held against no text.
++
++    A Codex Automation keeps no file at all (learn.chatgpt.com/docs/automations): its record entry
++    carries no `path`, and the answer is then simply False and means nothing, which is why nothing
++    reads it.
++    """
++    path = str(entry.get("path") or "")
++    return bool(path) and os.path.isfile(os.path.expanduser(path))
+ 
+ 
+ def cloud_prompt(watcher):
+@@ -265,23 +579,49 @@ def cloud_prompt(watcher):
+         "base": BASE_BRANCH,
+         "scans": entry["scans"],
+         "sources": entry["sources"],
+-        "report": REPORT_PATTERN.format(date="<YYYY-MM-DD>", suffix=entry["suffix"]),
++        # the cloud option was written before the runner suffix and would be its own runner; the
++        # name it would write is spelled through the one function that spells report names.
++        "report": report_name(watcher, entry["suffix"]),
+         "branch": BRANCH_PATTERN.format(date="<YYYY-MM-DD>", watcher=watcher),
+         "pr_title": PR_TITLE_PATTERN.format(watcher=watcher, date="<YYYY-MM-DD>"),
+     }
+ 
+ 
+-def _started_by(watcher, live, tasks):
+-    if live:
+-        entry = [one for one in tasks if one["watcher"] == watcher][0]
+-        return ("a Claude Desktop scheduled task on the maintainer's host (%s), %ss %s local, "
+-                "recorded in %s; the lead starts a run by hand with `python tools/radar_routine.py "
+-                "--run %s` when `--due` names one and the task did not fire"
+-                % (entry["path"], entry["schedule"]["day"], entry["schedule"].get("time_local", ""),
+-                   os.path.relpath(ROUTINE_RECORD, ROOT).replace(os.sep, "/"), watcher))
+-    return ("a person or the lead, by running `python tools/radar_routine.py --run %s`; no Desktop "
+-            "task with a measured cadence is recorded for this watcher in %s"
+-            % (watcher, os.path.relpath(ROUTINE_RECORD, ROOT).replace(os.sep, "/")))
++def _started_by(watcher, live):
++    """One sentence per watcher: what starts its weekly runs, and who starts the rest."""
++    record = os.path.relpath(ROUTINE_RECORD, ROOT).replace(os.sep, "/")
++    mine = {key: entry for key, entry in routine_plan().items() if entry["watcher"] == watcher}
++    running = sorted(key for key in mine if live[key])
++    # The silent half splits by RUNNER and not by watcher: `--run` starts the `SESSION_RUNNER` CLI,
++    # so it is an answer for the routines of that provider and for no other -- naming it for the
++    # rest would send the lead to a command that writes a different report.
++    by_hand = sorted(key for key in mine
++                     if not live[key] and mine[key]["runner"] == SESSION_RUNNER)
++    elsewhere = sorted(key for key in mine
++                       if not live[key] and mine[key]["runner"] != SESSION_RUNNER)
++    said = []
++    if running:
++        # The APP is named, not just the routine id: a reader of this sentence has to be able to go
++        # and look at the thing that starts the run, and `tools/test_radar_trigger.py`'s claim
++        # reader asks every shipped sentence for exactly that.
++        said.append("%s on the maintainer's host for %s (%s, recorded in %s)"
++                    % (", ".join(sorted({mine[key]["app"] for key in running})),
++                       ", ".join(running),
++                       ", ".join("%ss %s" % (mine[key]["schedule_as_told"]["day"],
++                                             mine[key]["schedule_as_told"]["time_local"])
++                                 for key in running),
++                       record))
++    if by_hand:
++        said.append("the lead, by running `python tools/radar_routine.py --run %s`, for %s -- no "
++                    "routine with a measured cadence is recorded for those in %s"
++                    % (watcher, ", ".join(by_hand), record))
++    if elsewhere:
++        said.append("nothing this repository can start, for %s -- those runs come from %s, and "
++                    "until the user has created them and %s reports show the cadence they do not "
++                    "happen" % (", ".join(elsewhere),
++                                ", ".join(sorted({mine[key]["app"] for key in elsewhere})),
++                                CADENCE_EVIDENCE_MIN))
++    return "; ".join(said)
+ 
+ 
+ def description():
+@@ -289,41 +629,52 @@ def description():
+ 
+     THE HONEST FIELD is `starts_itself`, per watcher and ASKED rather than stated -- a text may
+     claim a schedule for a watcher only as far as that answer goes, and `tools/test_radar_trigger.py`
+-    reads it out of `--describe` rather than out of a sentence. `desktop_tasks` carries each recorded
+-    task with its cadence evidence and whether its file is on this host; `cloud_option` is the
+-    rejected alternative and says so.
++    reads it out of `--describe` rather than out of a sentence. `routines` carries all four of
++    DEC-0090 (4) with the Instructions text that creates each one, whether it is recorded, its
++    cadence evidence and whether its prompt file is on this host; `cloud_option` is the rejected
++    alternative and says so.
+     """
+     reports = runs()
+-    tasks = desktop_tasks()
+-    live = starts_itself()
++    recorded = {routine_id(entry["watcher"], entry["runner"]): entry
++                for entry in recorded_routines()}
++    live = live_routines()
+     return {
+-        "mechanism": "a Claude Desktop scheduled task per watcher on the maintainer's host "
+-                     "(DEC-0089); declared and measured by %s"
++        "mechanism": "a local app routine per watcher and runner on the maintainer's host -- a "
++                     "Claude Desktop scheduled task or a Codex app Automation (DEC-0089, "
++                     "DEC-0090 (4)); declared and measured by %s"
+                      % os.path.relpath(os.path.abspath(__file__), ROOT).replace(os.sep, "/"),
+         "shape": "routine",
+         "watchers": sorted(WATCHERS),
++        "runners": sorted(RUNNERS),
+         "cadence": CADENCE,
+         "period": PERIOD,
+-        "starts_itself": live,
+-        "started_by": {name: _started_by(name, live[name], tasks) for name in sorted(WATCHERS)},
+-        "desktop_tasks": [dict(entry,
+-                               cadence_evidence=[date.isoformat() for date in cadence_evidence(
+-                                   entry["watcher"], entry["schedule"]["day"])],
+-                               cadence_evidence_min=CADENCE_EVIDENCE_MIN,
+-                               task_file_present_on_this_host=task_file_present(entry))
+-                          for entry in tasks],
++        "starts_itself": starts_itself(),
++        "started_by": {name: _started_by(name, live) for name in sorted(WATCHERS)},
++        "routines": [dict(entry,
++                          recorded=key in recorded,
++                          starts_itself=live[key],
++                          cadence_evidence=[date.isoformat() for date in cadence_evidence(
++                              entry["watcher"], entry["runner"],
++                              entry["schedule_as_told"]["day"])],
++                          cadence_evidence_min=CADENCE_EVIDENCE_MIN,
++                          recorded_path=recorded.get(key, {}).get("path"),
++                          task_file_present_on_this_host=task_file_present(recorded.get(key, {})))
++                     for key, entry in sorted(routine_plan().items())],
+         "record": {"path": os.path.relpath(ROUTINE_RECORD, ROOT).replace(os.sep, "/"),
+                    "written_by": "the lead, from a measurement: the user's statement of the "
+                                  "schedule and the report timestamps that show it",
+                    "shape": ROUTINE_RECORD_SHAPE},
+         "limits": [
+-            "The task's day, hour and enabled flag live in the Desktop app and in no file; what this "
+-            "repository holds is the record of what the user said and the reports that show it.",
+-            "The app fires a task only while it is open and the machine awake, with one catch-up "
++            "A routine's day, hour and enabled flag live in the app that owns it and in no file; "
++            "what this repository holds is the record of what the user said and the reports that "
++            "show it.",
++            "An app fires a routine only while it is open and the machine awake, with one catch-up "
+             "run within seven days -- a week with the app closed is silent, and `--due` is what "
+             "notices.",
+-            "The codex half is recorded only once the user has created its task and it has run "
+-            "twice on its weekday; until then a run of it is started by hand.",
++            "A routine is recorded only once the user has created it and it has run %d times on "
++            "its weekday; until then a run of it is started by hand." % CADENCE_EVIDENCE_MIN,
++            "`--run` starts the `%s` CLI, so it can produce a `%s` run and no other; a run by any "
++            "other provider comes from that provider's own app." % (SESSION_RUNNER, SESSION_RUNNER),
+             "Triage stays the lead's: no run writes `radar/decided.md`.",
+         ],
+         "cloud_option": {
+@@ -332,8 +683,10 @@ def description():
+             # THE NAMES A TEXT USES FOR THIS OPTION, published by the declaration so the claim
+             # reader refuses a sentence naming a mechanism that is not built WHATEVER ELSE the
+             # sentence says -- measured (TSK-0133 verify round 1, B3): "The claude.ai cloud
+-            # routine starts the radar-watcher every Friday from the Desktop." passed a reader
+-            # that only asked whether the Desktop task was named.
++            # routine starts the claude-watcher every Friday from the Desktop." passed a reader
++            # that only asked whether the Desktop task was named. This list has no tripwire at
++            # either end -- a wording of the option the list does not carry passes the reader --
++            # which is BUG-0274 / H190 and is not closed here.
+             # `tools/test_radar_trigger.py::test_the_claim_rule_follows_the_record_per_watcher`
+             "named_as": ["claude.ai", "cloud routine", "RemoteTrigger"],
+             "why": "it would run with the machine off, but against a fresh clone of the remote "
+@@ -343,7 +696,7 @@ def description():
+             "remote": REMOTE,
+             "base_branch": BASE_BRANCH,
+             "schedule": CLOUD_SCHEDULE,
+-            "writes": {name: REPORT_PATTERN.format(date="<YYYY-MM-DD>", suffix=entry["suffix"])
++            "writes": {name: report_name(name, entry["suffix"])
+                        for name, entry in sorted(WATCHERS.items())},
+             "must_not_write": ["radar/decided.md", "everything outside radar/"],
+             "branch": BRANCH_PATTERN,
+@@ -355,22 +708,28 @@ def description():
+     }
+ 
+ 
+-def run_watcher(name, model="sonnet", timeout=1800, extra=()):
++def run_watcher(name, model=None, timeout=1800, extra=()):
+     """Start one watcher headless and return the completed process.
+ 
+     `claude -p --agent <watcher>` in the repository root: measured rc 0 on this host. The watcher's
+     own definition is what limits it to writing under `radar/`; this function grants nothing.
++
++    NO `--model` IS PASSED unless one is asked for, and that is the correction of DEC-0090 (2): the
++    definitions pin the `opus` rung, and a default flag here would have overridden that pin on every
++    hand-started run -- the flag used to default to `sonnet`, which is the rung the user replaced.
+     """
+     if name not in WATCHERS:
+         raise SystemExit("unknown watcher %r -- the routine declares %s"
+                          % (name, ", ".join(sorted(WATCHERS))))
+     prompt = ("Run your weekly scan now and write your dated report into radar/ as your definition "
+-              "describes. You were started by the radar routine (tools/radar_routine.py).")
+-    return subprocess.run(
+-        ["claude", "-p", prompt, "--agent", name, "--model", model,
+-         "--output-format", "json"] + list(extra),
+-        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
+-        timeout=timeout)
++              "describes; this run's runner is %s, so the report name ends in `-by-%s.md`. You "
++              "were started by the radar routine (tools/radar_routine.py)."
++              % (SESSION_RUNNER, SESSION_RUNNER))
++    command = ["claude", "-p", prompt, "--agent", name, "--output-format", "json"]
++    if model:
++        command += ["--model", model]
++    return subprocess.run(command + list(extra), cwd=ROOT, capture_output=True, text=True,
++                          encoding="utf-8", errors="replace", timeout=timeout)
+ 
+ 
+ def main(argv=None):
+@@ -379,14 +738,23 @@ def main(argv=None):
+     parser.add_argument("--describe", action="store_true",
+                         help="print the declaration as JSON (what every claim is held against)")
+     parser.add_argument("--due", action="store_true",
+-                        help="print which watchers owe a run in the current period")
++                        help="print which routines owe a run in the current period")
+     parser.add_argument("--run", metavar="WATCHER",
+-                        help="start one watcher headless and print what it did")
+-    parser.add_argument("--model", default="sonnet", help="the model the watcher runs on")
++                        help="start one watcher headless here (runner: %s) and print what it did"
++                             % SESSION_RUNNER)
++    parser.add_argument("--model", default=None,
++                        help="override the model the watcher runs on; by default the definition's "
++                             "own pin governs and nothing is passed")
+     parser.add_argument("--timeout", type=int, default=1800, help="seconds before the run is killed")
+     parser.add_argument("--force", action="store_true",
+                         help="run a watcher again in a period that already has its report")
++    parser.add_argument("--write-overlays", action="store_true",
++                        help="regenerate .codex/agents/<watcher>.toml from the Claude definitions")
+     args = parser.parse_args(argv)
++    if args.write_overlays:
++        for relative in write_overlays():
++            print("wrote %s" % relative)
++        return 0
+     if args.describe:
+         print(json.dumps(description(), indent=2, sort_keys=True))
+         return 0
+@@ -396,11 +764,15 @@ def main(argv=None):
+         # watcher (about 130k tokens and four minutes each) and the second produced
+         # `new_reports: []` -- it had overwritten the same dated file. The routine knew: `--due`
+         # already said nobody owed a run. So it asks itself first, and says what to do about it.
+-        if args.run in WATCHERS and args.run not in due() and not args.force:
++        # The question is asked of THIS run's routine -- the watcher run by `SESSION_RUNNER` --
++        # because since DEC-0090 (3) the same watcher's run under the other provider is a
++        # different file and a different duty.
++        mine = routine_id(args.run, SESSION_RUNNER)
++        if args.run in WATCHERS and mine not in due() and not args.force:
+             print("%s already has a report in %s -- `--due` says no run is owed. A second run "
+                   "rewrites the same dated file and starts the watcher again (roughly four minutes "
+                   "and a hundred thousand tokens). Re-run with --force if that is what you want."
+-                  % (args.run, period_id(datetime.date.today())))
++                  % (mine, period_id(datetime.date.today())))
+             return 1
+         # WHAT THE RUN PRODUCED is answered by the directory, before and after, not by the model's
+         # own account of itself: a watcher that reports success and writes nothing is exactly the
+@@ -408,33 +780,44 @@ def main(argv=None):
+         before = set(runs())
+         started = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+         proc = run_watcher(args.run, model=args.model, timeout=args.timeout)
+-        answer = {"watcher": args.run, "started": started, "rc": proc.returncode,
++        answer = {"routine": mine, "watcher": args.run, "runner": SESSION_RUNNER,
++                  "started": started, "rc": proc.returncode,
+                   "finished": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+         try:
+             answer["result"] = str(json.loads(proc.stdout).get("result", ""))[-800:]
+         except ValueError:
+             answer["result"] = (proc.stdout or "")[-800:]
+         answer["stderr"] = (proc.stderr or "")[-800:]
+-        answer["new_reports"] = sorted("%s%s" % (day.isoformat(), "-" + suffix if suffix else "")
+-                                       for day, suffix in set(runs()) - before)
++        answer["new_reports"] = sorted(
++            "%s%s%s" % (day.isoformat(), "-" + suffix if suffix else "",
++                        "-by-" + runner if suffix else "")
++            for day, suffix, runner in set(runs()) - before)
+         answer["still_due"] = sorted(due())
+         print(json.dumps(answer, indent=2))
+         return proc.returncode
+     owed = due()
+     if not owed:
+-        print("no watcher owes a run in %s (the cadence is one run per %s, not one every "
+-              "seven days)" % (period_id(datetime.date.today()), PERIOD))
++        print("no routine owes a run in %s (the cadence is one run per routine per %s, not one "
++              "every seven days)" % (period_id(datetime.date.today()), PERIOD))
+         return 0
+-    live = starts_itself()
+-    for name, last in sorted(owed.items()):
+-        waits = ("its Desktop task is recorded and has not fired yet this period -- the app runs "
+-                 "it only while it is open" if live[name]
+-                 else "no Desktop task with a measured cadence is recorded for it")
++    live = live_routines()
++    plan = routine_plan()
++    for key, last in sorted(owed.items()):
++        waits = ("its routine is recorded and has not fired yet this period -- the app runs it "
++                 "only while it is open" if live[key]
++                 else "no routine with a measured cadence is recorded for it")
++        # WHAT TO DO ABOUT IT depends on the routine's RUNNER and not on the watcher: `--run`
++        # starts the `SESSION_RUNNER` CLI, so offering it for a routine of the other provider
++        # would name a command that writes a different report and clears a different duty.
++        remedy = ("Start it with `python tools/radar_routine.py --run %s`" % plan[key]["watcher"]
++                  if plan[key]["runner"] == SESSION_RUNNER else
++                  "Nothing here can start it: a %s run comes from %s" % (plan[key]["runner"],
++                                                                        plan[key]["app"]))
+         print("ROUTINE DUE (%s, counted per %s -- not every seven days): %s has not run in %s "
+-              "(last dated report: %s; %s) -- start it with `python tools/radar_routine.py "
+-              "--run %s`. This half PROPOSES; nothing in this repository starts a run by itself."
+-              % (CADENCE, PERIOD, name, period_id(datetime.date.today()), last or "none", waits,
+-                 name))
++              "(last dated report: %s; %s) -- it writes %s. %s. This half PROPOSES; nothing in "
++              "this repository starts a run by itself."
++              % (CADENCE, PERIOD, key, period_id(datetime.date.today()), last or "none", waits,
++                 plan[key]["writes"], remedy))
+     return 0
+ 
+ 
+diff --git a/tools/test_radar_trigger.py b/tools/test_radar_trigger.py
+index 5dfadb9..6d25cc9 100644
+--- a/tools/test_radar_trigger.py
++++ b/tools/test_radar_trigger.py
+@@ -1,37 +1,41 @@
+ #!/usr/bin/env python3
+ """A claim of automation about the radar watchers is a mechanism this repo can measure, never a
+-sentence (PR-0010 AC-1, invariant 1 of that goal).
++sentence (PR-0010 AC-1, invariant 1 of that goal) -- and since DEC-0090 the same is true of the
++duo's ARTIFACTS: the names they carry, the rung they pin, and the report name they write.
+ 
+ MEASURED 2026-09-05 before this existed: `radar/README.md` line 3 said "A scheduled watcher duo
+ runs once a week", both watcher definitions said "Triggered by the weekly schedule", and nothing IN
+-THIS REPOSITORY started a run. What started the radar half was outside it and went unread for a
++THIS REPOSITORY started a run. What started the claude half was outside it and went unread for a
+ day: a Claude DESKTOP scheduled task on the maintainer's host, whose Friday-evening reports had been
+ in `radar/` since 2026-07-17 (DEC-0089, correcting DEC-0085). So this module reads the three texts
+ that describe how a run starts and refuses any AUTOMATION claim the declaration does not back --
+-PER WATCHER, because the two halves are in different states: the radar half is recorded and shows
+-its cadence, the codex half has no task yet. HOW MANY reports there were is deliberately not
+-written here: the number grows every week, and `tools/radar_routine.py --describe` counts it.
+-
+-WHAT COUNTS AS A CLAIM (`automation_claims`): a SENTENCE carrying a form of "schedule",
+-"automatic", "cron", the Task Scheduler, a weekday, the Desktop task/routine/app, or the rejected
+-cloud routine by name -- unless the same sentence names the ABSENCE of a mechanism (`DISCLAIMER_RX`).
+-The word half is deliberately coarse in one direction: a sentence that uses the word about
+-something else is refused too, and the text answers by rewording. A cadence on its own ("once a
+-week", "weekly") is an intent and not a claim of a mechanism. A LIMIT is not a disclaimer: "fires
+-only while the app is open" says how the mechanism runs and is judged as a claim about it
++PER WATCHER, because the halves are in different states: the claude half's Friday run is recorded
++and shows its cadence, its Sunday run and both codex runs do not exist yet. HOW MANY reports there
++were is deliberately not written here: the number grows every week, and
++`tools/radar_routine.py --describe` counts it.
++
++WHAT COUNTS AS A CLAIM (`automation_claims`): a SENTENCE carrying a form of "schedule", "automatic"
++or "automation", "cron", the Task Scheduler, a weekday, an app's task/routine/automation, or the
++rejected cloud routine by name -- unless the same sentence names the ABSENCE of a mechanism
++(`DISCLAIMER_RX`). The word half is deliberately coarse in one direction: a sentence that uses the
++word about something else is refused too, and the text answers by rewording. A cadence on its own
++("once a week", "weekly") is an intent and not a claim of a mechanism. A LIMIT is not a disclaimer:
++"fires only while the app is open" says how the mechanism runs and is judged as a claim about it
+ (DEC-0089 (4)) -- the two spellings that used to be read as exemptions are in
+ `test_the_claim_reader_reads_what_it_claims` as claims.
+ 
+ WHAT BACKS A CLAIM is `tools/radar_routine.py --describe`, asked as a PROCESS, and its
+ `starts_itself` is a map per watcher DERIVED from the lead's record (`radar/routine.json`) and the
+-cadence the reports show. The rule lives in `schedule_claim_offence`, one reader for the shipped
+-texts and the synthetic ones:
++cadence the reports show -- for EVERY run that watcher owes, which since DEC-0090 (3) is one per
++provider. The rule lives in `schedule_claim_offence`, one reader for the shipped texts and the
++synthetic ones:
+ 
+-  * a claiming sentence names the mechanism -- the module or the Desktop task -- or it is refused;
++  * a claiming sentence names the mechanism -- the module, or one of the kinds of local app routine
++    the declaration publishes -- or it is refused;
+   * the watchers it is about are the ones it names, or both when it names none; if every one of
+-    them is recorded and shows its cadence, naming the mechanism is enough;
++    them is started by a recorded routine for every run it owes, naming the mechanism is enough;
+   * otherwise the sentence has to say WHO starts a run (`STARTER_RX`), because for that watcher
+-    nothing does by itself.
++    something does not.
+ 
+ Both states are walked by `test_the_claim_rule_follows_the_record_per_watcher` on sentences it
+ writes itself, so neither branch waits for the repository to reach it.
+@@ -56,11 +60,11 @@ from test_model_pins import under_an_agents_directory  # noqa: E402 -- one role-
+ # watcher definitions. `test_the_texts_this_reads_are_the_ones_that_describe_the_watchers` derives
+ # the second half from the tracked tree -- every role definition that names `radar/` -- so a third
+ # watcher joins the subject or turns that test red.
+-TEXTS = ("radar/README.md", ".claude/agents/radar-watcher.md", ".claude/agents/codex-watcher.md")
++TEXTS = ("radar/README.md", ".claude/agents/claude-watcher.md", ".claude/agents/codex-watcher.md")
+ RADAR_README = TEXTS[0]
+-WATCHER_ROLES = ("radar-watcher", "codex-watcher")
++WATCHER_ROLES = ("claude-watcher", "codex-watcher")
+ MECHANISM = os.path.join(ROOT, "tools", "radar_routine.py")
+-# WHO STARTS A RUN, as the shapes a true sentence can take for a watcher nothing starts by itself.
++# WHO STARTS A RUN, as the shapes a true sentence can take for a run nothing starts by itself.
+ # It is an enumeration of wordings and it is guarded from both ends by
+ # `test_the_starter_reader_reads_a_named_starter_and_nothing_else`: a sentence with none of them is
+ # refused, and each one is shown to admit a sentence that really does name a starter.
+@@ -68,13 +72,16 @@ STARTER_RX = re.compile(
+     r"\brun by\b|\bstarted by\b|\bstart(?:s|ed)? it\b|\byou (?:run|start)\b|\bthe lead\b|"
+     r"\bby hand\b|\bwhen (?:you|the lead|somebody)\b|--run\b",
+     re.IGNORECASE)
+-# The words that make a sentence a claim about a mechanism. The Desktop app and the cloud routine
+-# are named here because the natural true sentence about either carries none of the older words
+-# ("the Desktop task starts the radar-watcher every Friday") -- measured 2026-09-06 for the cloud
+-# shape, whose sentence the previous reader looked straight past.
++# The words that make a sentence a claim about a mechanism. The two apps and the cloud routine are
++# named here because the natural true sentence about any of them carries none of the older words
++# ("the Desktop task starts the claude-watcher every Friday") -- measured 2026-09-06 for the cloud
++# shape, whose sentence the previous reader looked straight past. `automat` rather than `automatic`
++# since DEC-0090: a Codex AUTOMATION is the codex half's mechanism, and a reader that only knew the
++# adjective would have let "the Codex app Automation runs it every Monday" through un-judged.
++_APP_ROUTINE = r"(?:desktop|codex|local|app)[ -](?:task|routine|automation|app)s?"
+ AUTOMATION_CLAIM_RX = re.compile(
+-    r"\bschedul|\bautomatic|\bcron\b|task scheduler|aufgabenplanung"
+-    r"|\bdesktop (?:task|routine|app)\b|\bclaude\.ai\b|\bcloud routine\b|\bremotetrigger\b"
++    r"\bschedul|\bautomat|\bcron\b|task scheduler|aufgabenplanung"
++    r"|\b" + _APP_ROUTINE + r"\b|\bclaude\.ai\b|\bcloud routine\b|\bremotetrigger\b"
+     r"|\b(?:mon|tues|wednes|thurs|fri|satur|sun)days?\b",
+     re.IGNORECASE)
+ # A sentence that NAMES the absence of a mechanism is not a claim of one; these are the shapes
+@@ -137,6 +144,22 @@ def mechanism_description():
+     return json.loads(run.stdout)
+ 
+ 
++def mechanism_names(described):
++    """The words a sentence may use to NAME the mechanism, derived from the declaration.
++
++    The module's own stem, plus the words of every routine KIND the declaration publishes that are
++    not a runner id. That last clause is what keeps `codex` out of the set: `codex-watcher` is a
++    watcher's name, and a sentence naming it would otherwise count as naming a mechanism. What is
++    left of `desktop_task` is "desktop" and "task", of `codex_automation` "automation" -- which is
++    exactly how a true sentence about either app names it.
++    """
++    runners = set(described["runners"])
++    words = {os.path.splitext(os.path.basename(MECHANISM))[0]}
++    for routine in described["routines"]:
++        words |= {part for part in str(routine["kind"]).split("_") if part not in runners}
++    return words
++
++
+ def test_no_text_claims_a_schedule_the_repo_does_not_build():
+     """The invariant, on the shipped texts, in whatever state the record is in.
+ 
+@@ -144,8 +167,9 @@ def test_no_text_claims_a_schedule_the_repo_does_not_build():
+     is judged by `schedule_claim_offence` against the declaration's per-watcher answer.
+ 
+     RED against the texts of b7f282e (three files, five claiming lines); RED again the day a text
+-    calls the rejected cloud routine the mechanism, or says the codex half is scheduled while no
+-    task with a measured cadence is recorded for it -- the mutation the generation-5 merge measured.
++    calls the rejected cloud routine the mechanism, or promises a schedule for a run
++    `radar/routine.json` does not record -- which since DEC-0090 (3) includes the three routines
++    the user has not created yet.
+     """
+     described = mechanism_description()
+     claims = {relative: automation_claims(read(relative)) for relative in TEXTS}
+@@ -175,21 +199,23 @@ def schedule_claim_offence(sentence, described):
+     `test_the_claim_rule_follows_the_record_per_watcher` are judged by the same reader:
+ 
+       * a sentence naming a mechanism the DECLARATION lists as not built (`cloud_option`, by the
+-        names it publishes) is refused whatever else it says -- naming the Desktop task beside it
++        names it publishes) is refused whatever else it says -- naming a real routine beside it
+         does not rescue it;
+-      * the sentence names the mechanism -- the module, or the Desktop task -- so a reader can go
+-        and see what it does; a sentence naming neither (a bare "schedule") is refused;
++      * the sentence names the mechanism -- the module, or one of the kinds of local app routine
++        the declaration publishes -- so a reader can go and see what it does; a sentence naming
++        neither (a bare "schedule") is refused;
+       * the watchers it speaks about are the ones it names, or both when it names none; for every
+-        one of them the declaration's `starts_itself` says whether a recorded task with a measured
+-        cadence starts it;
+-      * where every named watcher is started by such a task, naming the mechanism is enough; where
+-        one is not, the sentence has to say who starts a run for it, because nothing does by itself.
++        one of them the declaration's `starts_itself` says whether every run it owes is started by
++        a recorded routine with a measured cadence;
++      * where every named watcher is, naming the mechanism is enough; where one is not, the sentence
++        has to say who starts the rest, because nothing does by itself.
+     """
+     # A MECHANISM THE DECLARATION LISTS AS NOT BUILT is refused first and whatever else the
+     # sentence says: naming the Desktop task in the same breath did not make "the claude.ai cloud
+-    # routine starts the radar-watcher every Friday from the Desktop" true, and a reader that only
++    # routine starts the claude-watcher every Friday from the Desktop" true, and a reader that only
+     # asked for the mechanism's name let it pass (verify round 1 of TSK-0133, B3). The names are
+-    # the declaration's own (`cloud_option.named_as`), not a list kept here.
++    # the declaration's own (`cloud_option.named_as`), not a list kept here -- and that list has no
++    # tripwire at either end, which is BUG-0274 / H190 and is open.
+     for key, option in described.items():
+         if isinstance(option, dict) and option.get("built") is False:
+             named = [word for word in option.get("named_as", ())
+@@ -197,16 +223,18 @@ def schedule_claim_offence(sentence, described):
+             if named:
+                 return ("names %s (%r), which the declaration lists as not built"
+                         % (key, named[0]))
+-    stem = os.path.splitext(os.path.basename(MECHANISM))[0]
+-    if stem not in sentence and not re.search(r"\bdesktop\b", sentence, re.IGNORECASE):
+-        return "names neither %s nor the Desktop task as the mechanism" % stem
++    named_mechanism = [word for word in mechanism_names(described)
++                       if re.search(r"\b%s\b" % re.escape(word), sentence, re.IGNORECASE)]
++    if not named_mechanism:
++        return ("names none of %s as the mechanism"
++                % ", ".join(sorted(mechanism_names(described))))
+     named = [watcher for watcher in WATCHER_ROLES if watcher in sentence] or list(WATCHER_ROLES)
+     silent = [watcher for watcher in named if not described["starts_itself"].get(watcher)]
+     if not silent:
+         return None
+     return None if STARTER_RX.search(sentence) else (
+-        "no recorded task with a measured cadence starts %s, so the sentence has to say who does"
+-        % ", ".join(silent))
++        "not every weekly run of %s is started by a recorded routine with a measured cadence, so "
++        "the sentence has to say who starts the rest" % ", ".join(silent))
+ 
+ 
+ def routine_module(name="radar_routine_under_test"):
+@@ -216,23 +244,36 @@ def routine_module(name="radar_routine_under_test"):
+ def a_record_naming(directory, name="routine.json", entries=None, **overrides):
+     """A `radar/routine.json` in the shape the declaration publishes, written to `directory`.
+ 
+-    One well-formed entry for the radar half by default; `overrides` bend that entry, `entries`
+-    replaces the list outright.
++    One well-formed entry for the claude half's claude-run by default; `overrides` bend that entry,
++    `entries` replaces the list outright.
+     """
+-    entry = {"kind": "desktop_task", "watcher": "radar-watcher",
++    entry = {"id": "claude-watcher-by-claude", "watcher": "claude-watcher", "runner": "claude",
++             "kind": "desktop_task",
+              "path": "~/.claude/scheduled-tasks/radar-watcher/SKILL.md",
+-             "schedule": {"day": "friday", "time_local": "~20:00",
+-                          "as_told_by": "the user, 2026-09-06", "source": "DEC-0089"},
+-             "first_measured_report": "2026-07-17", "last_measured_report": "2026-08-28",
++             "schedule_as_told": {"day": "friday", "time_local": "~20:00",
++                                  "as_told_by": "the user, 2026-09-06"},
++             "source": "DEC-0089", "first_report": "2026-07-17", "last_report": "2026-08-28",
+              "recorded": "2026-09-06"}
+     entry.update(overrides)
+     path = os.path.join(directory, name)
+     with io.open(path, "w", encoding="utf-8", newline="\n") as handle:
+-        json.dump({"desktop_tasks": [entry] if entries is None else entries,
++        json.dump({"routines": [entry] if entries is None else entries,
+                    "recorded_by": "a test"}, handle)
+     return path
+ 
+ 
++def every_routine_recorded(directory, name="all-four.json"):
++    """A record holding all four routines of the plan, each on the evening the plan names."""
++    routine = routine_module("radar_routine_full_record")
++    entries = [{"id": key, "watcher": entry["watcher"], "runner": entry["runner"],
++                "kind": entry["kind"],
++                "schedule_as_told": {"day": entry["schedule_as_told"]["day"],
++                                     "time_local": "~20:00", "as_told_by": "a test"},
++                "source": "a test"}
++               for key, entry in sorted(routine.routine_plan().items())]
++    return a_record_naming(directory, name=name, entries=entries)
++
++
+ def a_radar_dir_with(directory, *names):
+     """A radar directory holding exactly these dated report names (empty files)."""
+     where = os.path.join(directory, "radar")
+@@ -245,8 +286,87 @@ def a_radar_dir_with(directory, *names):
+ 
+ 
+ # 2026-07-17 / 07-24 are Fridays; 2026-09-05 / 09-12 are Saturdays; 2026-07-15 is a Wednesday.
+-FRIDAYS = ("2026-07-17-claude.md", "2026-07-24-claude.md")
+-SATURDAYS = ("2026-09-05-codex.md", "2026-09-12-codex.md")
++# 2026-09-06 / 09-13 are Sundays; 2026-09-07 / 09-14 are Mondays.
++FRIDAYS = ("2026-07-17-claude-by-claude.md", "2026-07-24-claude-by-claude.md")
++SATURDAYS = ("2026-09-05-codex-by-claude.md", "2026-09-12-codex-by-claude.md")
++SUNDAYS = ("2026-09-06-claude-by-codex.md", "2026-09-13-claude-by-codex.md")
++MONDAYS = ("2026-09-07-codex-by-codex.md", "2026-09-14-codex-by-codex.md")
++
++
++def test_the_runner_vocabulary_is_the_ladders_provider_vocabulary():
++    """The RUNNERS table is an enumeration, so both its ends are held against the ladder (DEC-0090).
++
++    A watcher runs under every provider the harness knows, and the harness knows its providers in
++    exactly one place: `team-kits/model_tiers.yaml`. So the runner ids ARE that file's provider
++    keys -- a provider the ladder gains and this table does not is red (the new runner would silently
++    owe no routine), and a runner here the ladder cannot place a model for is red too (its overlay
++    could not be generated). That is also why the FOUR routines are nowhere written down as a number:
++    four is `len(WATCHERS) * len(RUNNERS)`.
++
++    AND THE SUFFIXES: every watcher's report suffix has to be one of those provider ids, because
++    `report_runner` reads a legacy two-part name as a run by the watcher's own provider. The module
++    refuses at import when that breaks; this states it where a reader looks for it.
++    """
++    routine = routine_module("radar_routine_vocabulary")
++    tiers = load_kit_module("gen_provider_artifacts_for_runners",
++                            os.path.join(ROOT, "team-kits", "gen_provider_artifacts.py"))
++    providers, _aliases = tiers.load_tiers()
++    assert set(routine.RUNNERS) == set(providers), (
++        "the runners and the ladder's providers disagree: %s vs %s"
++        % (sorted(routine.RUNNERS), sorted(providers)))
++    assert {entry["suffix"] for entry in routine.WATCHERS.values()} <= set(routine.RUNNERS)
++    assert routine.SESSION_RUNNER in routine.RUNNERS
++    for runner, entry in routine.RUNNERS.items():
++        assert entry["kind"] and entry["app"] and "%(watcher)s" in entry["follow"], runner
++
++
++def test_the_routine_plan_covers_every_watcher_on_every_runner_and_staggers_them():
++    """The four routines of DEC-0090 (4): the PAIRS are derived, the evenings are the user's.
++
++    Three properties, and each one is a way the plan could be wrong without anybody noticing:
++    every watcher is planned on every runner (the product, not a list somebody maintains); no two
++    routines share an evening, because an app skips a scheduled task while another one of its own is
++    running, which is the reason the user was asked for four different days at all; and every
++    routine names the report it writes, so the four never collide on one file name.
++
++    The staggering is measured rather than described: two routines moved onto one evening make this
++    red, and until 2026-09-11 the four weekdays stood only in a decision's prose.
++    """
++    routine = routine_module("radar_routine_plan")
++    plan = routine.routine_plan()
++    assert set(plan) == {routine.routine_id(watcher, runner)
++                         for watcher in routine.WATCHERS for runner in routine.RUNNERS}
++    days = [entry["schedule_as_told"]["day"] for entry in plan.values()]
++    assert len(set(days)) == len(days), "two routines share an evening: %s" % sorted(days)
++    assert set(days) <= set(routine.WEEKDAYS), sorted(days)
++    writes = [entry["writes"] for entry in plan.values()]
++    assert len(set(writes)) == len(writes), "two routines write the same report name: %s" % writes
++    for key, entry in plan.items():
++        assert entry["kind"] == routine.RUNNERS[entry["runner"]]["kind"], key
++        assert entry["instructions"].count(entry["writes"]) == 1, key
++        assert entry["watcher"] in entry["instructions"] and entry["runner"] in entry["instructions"]
++
++
++def test_the_describe_output_hands_the_lead_an_instructions_text_for_every_routine():
++    """DEC-0090 (5): nothing here can create a routine, so `--describe` has to hand out the text.
++
++    The lead asks Claude Desktop for the two Claude tasks and the USER pastes the two Codex texts
++    into the Codex app; a text that does not say which artifact to follow, or that leaves the report
++    name out, produces a run that overwrites the other provider's report. Read out of the PROCESS,
++    so what is measured is what the lead would really copy.
++    """
++    described = mechanism_description()
++    assert len(described["routines"]) == len(described["watchers"]) * len(described["runners"])
++    for entry in described["routines"]:
++        body = entry["instructions"]
++        assert entry["writes"] in body, entry["id"]
++        assert "radar/decided.md" in body and "READ-ONLY" in body, entry["id"]
++        assert re.search(r"\.(?:md|toml)\b", body), (
++            "%s does not say which artifact the run is to follow" % entry["id"])
++        assert entry["schedule_as_told"]["day"] and entry["schedule_as_told"]["as_told_by"]
++        assert "not readable from disk" in entry["schedule_as_told"]["as_told_by"], (
++            "the schedule is published without saying it is a statement and not a measurement")
++        assert isinstance(entry["recorded"], bool) and isinstance(entry["starts_itself"], bool)
+ 
+ 
+ def test_the_self_start_reader_answers_off_the_record_and_the_reports():
+@@ -254,133 +374,163 @@ def test_the_self_start_reader_answers_off_the_record_and_the_reports():
+ 
+     The field decides how far every text in `TEXTS` may go, so a constant there would be a claim
+     nothing checks -- and it WAS one until 2026-09-06, when the mutation that flipped it stayed
+-    green. It answers True for a watcher whose record entry is well-formed AND whose reports show
+-    the recorded weekday at least `CADENCE_EVIDENCE_MIN` times, and False for every way short of
+-    that: no record, an unreadable one, an entry of another kind, an unknown watcher, no path, a
+-    day that is not a weekday, too few reports on the day, reports on other days, and a task merely
+-    MENTIONED in some other field. All of them are the fail-closed direction -- a half-written
+-    record or a run somebody started by hand never makes a sentence truer than the mechanism.
++    green. A ROUTINE is live when its record entry is well-formed AND that watcher-and-runner's
++    reports show the recorded weekday at least `CADENCE_EVIDENCE_MIN` times, and False for every way
++    short of that: no record, an unreadable one, an unknown watcher or runner, a kind that is not
++    the runner's, a day that is not a weekday, too few reports on the day, reports of the other
++    runner, and a routine merely MENTIONED in some other field. All of them are the fail-closed
++    direction -- a half-written record or a run somebody started by hand never makes a sentence
++    truer than the mechanism.
++
++    AND THE WATCHER ANSWER IS `all`, not `any` (DEC-0090 (3)): a watcher whose Friday task fires
++    while its Sunday Automation does not exist is started for half of what it owes, and a text may
++    not say it runs weekly through its routine. Measured below: the record that makes the claude
++    half's Friday run live leaves `starts_itself` False for both.
+     """
+     routine = routine_module("radar_routine_self_start")
+     with tempfile.TemporaryDirectory() as directory:
+         radar = a_radar_dir_with(directory, *FRIDAYS)
+         live = a_record_naming(directory)
+-        assert routine.starts_itself(live, radar) == {"radar-watcher": True, "codex-watcher": False}
+-        assert routine.starts_itself(os.path.join(directory, "no-such-file.json"), radar) == {
+-            "radar-watcher": False, "codex-watcher": False}
++        assert routine.live_routines(live, radar)["claude-watcher-by-claude"] is True
++        assert sum(routine.live_routines(live, radar).values()) == 1
++        assert routine.starts_itself(live, radar) == {"claude-watcher": False,
++                                                      "codex-watcher": False}, (
++            "one of two weekly runs counted as the watcher being started by a mechanism")
++        assert not any(routine.live_routines(
++            os.path.join(directory, "no-such-file.json"), radar).values())
+         broken = os.path.join(directory, "broken.json")
+         with io.open(broken, "w", encoding="utf-8", newline="\n") as handle:
+             handle.write("{not json")
+-        assert not any(routine.starts_itself(broken, radar).values())
+-        # every way a recorded entry fails to be a desktop task this routine can count
++        assert not any(routine.live_routines(broken, radar).values())
++        # every way a recorded entry fails to be a routine this module can count
+         for label, overrides in (("another kind", {"kind": "cloud_trigger"}),
++                                 ("the other runner's kind", {"kind": "codex_automation"}),
+                                  ("unknown watcher", {"watcher": "not-a-watcher"}),
+-                                 ("no path", {"path": "  "}),
+-                                 ("not a weekday", {"schedule": {"day": "weekly"}}),
+-                                 ("no schedule", {"schedule": None})):
++                                 ("unknown runner", {"runner": "not-a-runner"}),
++                                 ("not a weekday", {"schedule_as_told": {"day": "weekly"}}),
++                                 ("no schedule", {"schedule_as_told": None})):
+             half = a_record_naming(directory, name="half.json", **overrides)
+-            assert not any(routine.starts_itself(half, radar).values()), label
++            assert not any(routine.live_routines(half, radar).values()), label
+         for entry in ("a string where an entry should be", 42):
+             odd = os.path.join(directory, "odd.json")
+             with io.open(odd, "w", encoding="utf-8", newline="\n") as handle:
+-                json.dump({"desktop_tasks": [entry]}, handle)
+-            assert not any(routine.starts_itself(odd, radar).values()), entry
+-        # ...and NO string search: a record that merely MENTIONS a task in another field is not one
++                json.dump({"routines": [entry]}, handle)
++            assert not any(routine.live_routines(odd, radar).values()), entry
++        # ...and NO string search: a record that merely MENTIONS a routine in another field is not one
+         mention = os.path.join(directory, "mention.json")
+         with io.open(mention, "w", encoding="utf-8", newline="\n") as handle:
+-            json.dump({"note": "kind desktop_task, watcher radar-watcher, friday, path set",
+-                       "desktop_tasks": []}, handle)
+-        assert not any(routine.starts_itself(mention, radar).values())
++            json.dump({"note": "kind desktop_task, watcher claude-watcher, runner claude, friday",
++                       "routines": []}, handle)
++        assert not any(routine.live_routines(mention, radar).values())
+         # THE SECOND HALF: the record alone is a sentence; the reports have to show the weekday
+         one_friday = a_radar_dir_with(directory, FRIDAYS[0])
+-        assert routine.starts_itself(live, one_friday)["radar-watcher"] is False, (
++        assert routine.live_routines(live, one_friday)["claude-watcher-by-claude"] is False, (
+             "one report on the weekday counted as a cadence -- a hand-started run can produce one")
+-        other_days = a_radar_dir_with(directory, "2026-07-15-claude.md", "2026-08-01-claude.md")
+-        assert routine.starts_itself(live, other_days)["radar-watcher"] is False
+-        wrong_suffix = a_radar_dir_with(directory, "2026-07-17-codex.md", "2026-07-24-codex.md")
+-        assert routine.starts_itself(live, wrong_suffix)["radar-watcher"] is False, (
++        other_days = a_radar_dir_with(directory, "2026-07-15-claude-by-claude.md",
++                                      "2026-08-01-claude-by-claude.md")
++        assert routine.live_routines(live, other_days)["claude-watcher-by-claude"] is False
++        wrong_watcher = a_radar_dir_with(directory, "2026-07-17-codex-by-claude.md",
++                                         "2026-07-24-codex-by-claude.md")
++        assert routine.live_routines(live, wrong_watcher)["claude-watcher-by-claude"] is False, (
+             "the other watcher's reports counted as this watcher's cadence")
+-        undated = a_radar_dir_with(directory, "2026-07-03.md", "2026-07-10.md")     # Fridays, no suffix
+-        assert routine.starts_itself(live, undated)["radar-watcher"] is False, (
++        wrong_runner = a_radar_dir_with(directory, "2026-07-17-claude-by-codex.md",
++                                        "2026-07-24-claude-by-codex.md")
++        assert routine.live_routines(live, wrong_runner)["claude-watcher-by-claude"] is False, (
++            "the other RUNNER's reports counted as this routine's cadence -- the whole point of "
++            "the suffix DEC-0090 (3) added")
++        undated = a_radar_dir_with(directory, "2026-07-03.md", "2026-07-10.md")   # Fridays, no suffix
++        assert routine.live_routines(live, undated)["claude-watcher-by-claude"] is False, (
+             "a report with no watcher suffix counted as a named watcher's run")
+-        # ...and the codex half turns True the same way and no other
+-        both = a_record_naming(directory, name="both.json", entries=[
+-            json.load(io.open(live, encoding="utf-8"))["desktop_tasks"][0],
+-            dict(json.load(io.open(live, encoding="utf-8"))["desktop_tasks"][0],
+-                 watcher="codex-watcher", path="~/.claude/scheduled-tasks/codex-watcher/SKILL.md",
+-                 schedule={"day": "saturday", "time_local": "~20:00"})])
+-        assert routine.starts_itself(both, a_radar_dir_with(directory, *FRIDAYS, *SATURDAYS)) == {
+-            "radar-watcher": True, "codex-watcher": True}
+-        assert routine.starts_itself(both, a_radar_dir_with(directory, *FRIDAYS, SATURDAYS[0])) == {
+-            "radar-watcher": True, "codex-watcher": False}
+-    # ...and the repository's own answer, which is what the texts are held against today: the radar
+-    # half is recorded (DEC-0089) and shows its Fridays, the codex half has no task yet. The day the
+-    # lead records that task and its second Saturday report lands, this line is the one that says
+-    # the texts may now say so.
+-    assert routine.starts_itself() == {"radar-watcher": True, "codex-watcher": False}, (
++        # ...and a watcher turns True only when ALL of its routines are live
++        four = every_routine_recorded(directory)
++        everything = a_radar_dir_with(directory, *FRIDAYS, *SATURDAYS, *SUNDAYS, *MONDAYS)
++        assert all(routine.live_routines(four, everything).values())
++        assert routine.starts_itself(four, everything) == {"claude-watcher": True,
++                                                           "codex-watcher": True}
++        missing_one = a_radar_dir_with(directory, *FRIDAYS, *SATURDAYS, *SUNDAYS, MONDAYS[0])
++        assert routine.starts_itself(four, missing_one) == {"claude-watcher": True,
++                                                            "codex-watcher": False}
++    # ...and the repository's own answer, which is what the texts are held against today: the claude
++    # half's Friday run is recorded (DEC-0089) and shows its Fridays, the other three of DEC-0090 (4)
++    # are not created yet. The day the lead records them and their second reports land, this line is
++    # the one that says the texts may now say so.
++    assert routine.starts_itself() == {"claude-watcher": False, "codex-watcher": False}, (
+         "radar/routine.json or the reports moved -- re-read the texts in %s against the new answer"
+         % (TEXTS,))
++    assert routine.live_routines()["claude-watcher-by-claude"] is True, (
++        "the Friday run DEC-0089 measured is no longer backed by the record and the reports")
+ 
+ 
+ def test_the_claim_rule_follows_the_record_per_watcher(tmp_path, monkeypatch):
+     """The invariant has a state PER WATCHER (DEC-0089) and both are walked here, not just today's.
+ 
+-    STATE ONE, the one the repository is in: the radar half is recorded and shows its cadence, the
+-    codex half is not -- so a sentence about the radar half may say its Desktop task starts it, a
+-    sentence about the codex half (or about both) has to say who starts a run. STATE TWO: the lead
+-    has recorded the codex task and it has run twice -- a sentence about both may now name the
+-    mechanism alone. In EVERY state a sentence that calls the rejected cloud routine the mechanism
+-    is an offence, because it names nothing the declaration knows.
++    STATE ONE, the one the repository is in: only the claude half's Friday run is recorded and shows
++    its cadence -- so every sentence about either watcher has to say who starts the rest. STATE TWO:
++    all four routines of DEC-0090 (4) are recorded and have run twice -- a sentence about both may
++    now name the mechanism alone. In EVERY state a sentence that calls the rejected cloud routine the
++    mechanism is an offence, because it names nothing the declaration knows.
+ 
+     Both states are measured on sentences THIS TEST WRITES, judged by `schedule_claim_offence`, the
+     same reader the shipped texts go through.
+     """
+     routine = routine_module("radar_routine_two_states")
+-    monkeypatch.setattr(routine, "RADAR", a_radar_dir_with(str(tmp_path), *FRIDAYS, *SATURDAYS))
++    monkeypatch.setattr(routine, "RADAR", a_radar_dir_with(str(tmp_path), *FRIDAYS, *SATURDAYS,
++                                                           *SUNDAYS, *MONDAYS))
+     monkeypatch.setattr(routine, "ROUTINE_RECORD", a_record_naming(str(tmp_path)))
+     state_one = routine.description()
+-    assert state_one["starts_itself"] == {"radar-watcher": True, "codex-watcher": False}
+-    assert "Desktop" in state_one["started_by"]["radar-watcher"]
++    assert state_one["starts_itself"] == {"claude-watcher": False, "codex-watcher": False}
++    assert "Desktop" in state_one["started_by"]["claude-watcher"]
+     assert "--run codex-watcher" in state_one["started_by"]["codex-watcher"]
+-    radar_entry = routine.desktop_tasks()[0]
+-    monkeypatch.setattr(routine, "ROUTINE_RECORD", a_record_naming(str(tmp_path), name="two.json", entries=[
+-        radar_entry, dict(radar_entry, watcher="codex-watcher",
+-                          path="~/.claude/scheduled-tasks/codex-watcher/SKILL.md",
+-                          schedule={"day": "saturday", "time_local": "~20:00"})]))
++    assert "Codex app" in state_one["started_by"]["codex-watcher"], (
++        "the run no command here can start is offered as `--run` anyway")
++    monkeypatch.setattr(routine, "ROUTINE_RECORD", every_routine_recorded(str(tmp_path)))
+     state_two = routine.description()
+-    assert state_two["starts_itself"] == {"radar-watcher": True, "codex-watcher": True}
+-
+-    radar_ok = ("The radar-watcher is started every Friday evening by a Claude Desktop scheduled "
+-                "task on the maintainer's host (recorded in radar/routine.json).")
++    assert state_two["starts_itself"] == {"claude-watcher": True, "codex-watcher": True}
++
++    # The sentence that was TRUE before DEC-0090 (3) and is only half true after it: the Friday
++    # Desktop task is recorded, the Sunday Automation is not, so the watcher is not started for
++    # everything it owes. It is the state-one offence this round added, and the same sentence is
++    # backed in state two.
++    claude_bare = ("The claude-watcher is scheduled every Friday evening by a Claude Desktop "
++                   "scheduled task on the maintainer's host (recorded in radar/routine.json).")
++    claude_ok = claude_bare[:-1] + ", and the lead starts its Codex run by hand."
+     codex_silent = "The codex-watcher is started every Saturday by a Claude Desktop scheduled task."
+     codex_ok = ("The codex-watcher has no recorded Desktop task yet; the lead starts it with "
+                 "`--run codex-watcher` when `--due` names it.")
+     both_desktop = "Both watchers are started weekly by Claude Desktop scheduled tasks."
++    automation = "The codex-watcher runs every Monday as a Codex app Automation."
+     both_bare = "The watchers run on a weekly schedule."
+     module_silent = "tools/radar_routine.py declares a weekly schedule."
+     cloud_again = ("A claude.ai code routine starts both watchers weekly in a cloud sandbox and "
+                    "returns each report as a pull request.")
+     # the verifier's sentence (TSK-0133 round 1, B3): the not-built mechanism dressed in the
+     # built one's name, about the watcher whose task IS recorded
+-    cloud_dressed = ("The claude.ai cloud routine starts the radar-watcher every Friday from the "
++    cloud_dressed = ("The claude.ai cloud routine starts the claude-watcher every Friday from the "
+                      "Desktop.")
+-    for sentence in (radar_ok, codex_silent, codex_ok, both_desktop, both_bare, module_silent,
+-                     cloud_again, cloud_dressed):
++    for sentence in (claude_bare, claude_ok, codex_silent, codex_ok, both_desktop, automation,
++                     both_bare, module_silent, cloud_again, cloud_dressed):
+         assert automation_claims(sentence), "not even read as a claim: %r" % sentence
+ 
+-    assert schedule_claim_offence(radar_ok, state_one) is None
+-    assert "who does" in (schedule_claim_offence(codex_silent, state_one) or "")
++    assert schedule_claim_offence(claude_ok, state_one) is None
++    assert "who starts the rest" in (schedule_claim_offence(claude_bare, state_one) or ""), (
++        "the watcher whose Friday task IS recorded may claim a bare weekly schedule while its "
++        "second weekly run exists nowhere -- the half-truth DEC-0090 (3) created")
++    assert "who starts the rest" in (schedule_claim_offence(codex_silent, state_one) or "")
+     assert schedule_claim_offence(codex_ok, state_one) is None
+     assert "codex-watcher" in (schedule_claim_offence(both_desktop, state_one) or "")
+-    assert "names neither" in (schedule_claim_offence(both_bare, state_one) or "")
+-    assert "who does" in (schedule_claim_offence(module_silent, state_one) or "")
++    assert "codex-watcher" in (schedule_claim_offence(automation, state_one) or ""), (
++        "a Codex Automation promised for a routine the record does not hold passed the reader")
++    assert "names none of" in (schedule_claim_offence(both_bare, state_one) or "")
++    assert "who starts the rest" in (schedule_claim_offence(module_silent, state_one) or "")
+     assert "not built" in (schedule_claim_offence(cloud_again, state_one) or "")
+     assert "not built" in (schedule_claim_offence(cloud_dressed, state_one) or ""), (
+         "the cloud routine passed because the sentence also named the Desktop -- the declaration "
+         "lists it as not built, and that has to be read before anything else")
+-    # state two: the codex half is recorded and shows its Saturdays -- both may be named alone
++    # state two: every routine is recorded and shows its evening -- both may be named alone
++    assert schedule_claim_offence(claude_bare, state_two) is None
+     assert schedule_claim_offence(both_desktop, state_two) is None
+     assert schedule_claim_offence(codex_silent, state_two) is None
++    assert schedule_claim_offence(automation, state_two) is None
+     assert schedule_claim_offence(module_silent, state_two) is None
+     # ...and the cloud routine is an offence in EVERY state: it is the rejected alternative
+     for sentence in (cloud_again, cloud_dressed):
+@@ -391,12 +541,12 @@ def test_the_claim_rule_follows_the_record_per_watcher(tmp_path, monkeypatch):
+ 
+ def test_the_claim_reader_reads_what_it_claims():
+     """Both directions of `automation_claims`, on literal text: the shapes the shipped texts
+-    carried on 2026-09-05 are claims, so are the Desktop and cloud sentences DEC-0089 made natural,
+-    a cadence alone is not, the disclaimer shapes exempt only a sentence that names the ABSENCE of
+-    a mechanism -- a claim with the word 'not' somewhere else stays a claim, and a LIMIT on the
+-    mechanism (a condition, an unknown state, 'nothing here can ask it') is a claim about it, not an
+-    exemption -- and a claim wrapped over two lines with its disclaimer on the second is one
+-    sentence."""
++    carried on 2026-09-05 are claims, so are the Desktop, Automation and cloud sentences DEC-0089
++    and DEC-0090 made natural, a cadence alone is not, the disclaimer shapes exempt only a sentence
++    that names the ABSENCE of a mechanism -- a claim with the word 'not' somewhere else stays a
++    claim, and a LIMIT on the mechanism (a condition, an unknown state, 'nothing here can ask it')
++    is a claim about it, not an exemption -- and a claim wrapped over two lines with its disclaimer
++    on the second is one sentence."""
+     for claiming in ("A scheduled **watcher duo** runs once a week and writes dated reports here.",
+                      "Triggered by the weekly schedule (or manually).",
+                      "# Runs on the weekly schedule, outside the change circle",
+@@ -405,8 +555,11 @@ def test_the_claim_reader_reads_what_it_claims():
+                      "the schedule is not optional",
+                      "the routine does not start the QA gate itself, and is scheduled weekly",
+                      "we cannot ask the user, and the watchers run on a weekly schedule",
+-                     "The radar-watcher runs every Friday at 20:00 through the Desktop app.",
++                     "The claude-watcher runs every Friday at 20:00 through the Desktop app.",
+                      "A claude.ai code routine starts both watchers weekly in a cloud sandbox.",
++                     # the codex half's own mechanism, whose natural sentence carries no older word
++                     "the codex-watcher is an Automation of the Codex app",
++                     "a local app routine writes it every week",
+                      # limits are claims about the mechanism, not exemptions (DEC-0089 (4))
+                      "the Desktop task fires only while the app is open",
+                      "a desktop scheduled task exists, and nothing here can ask it or count on it",
+@@ -434,7 +587,7 @@ def test_the_starter_reader_reads_a_named_starter_and_nothing_else():
+     """The other half of the invariant, and it is an enumeration, so both ends are measured.
+ 
+     `STARTER_RX` decides whether a claiming sentence says WHO starts a run -- the question that
+-    matters for a watcher no recorded task starts. A sentence that names nobody must not pass, and
++    matters for a run no recorded routine starts. A sentence that names nobody must not pass, and
+     a sentence that names a starter in any of the shapes the shipped texts use must. The mutation
+     this denies is the one that makes the whole clause vacuous: a pattern that matches everything
+     (then the first list passes) or nothing (then the shipped texts cannot be written).
+@@ -453,6 +606,146 @@ def test_the_starter_reader_reads_a_named_starter_and_nothing_else():
+         assert not STARTER_RX.search(names_nobody), names_nobody
+ 
+ 
++def test_the_mechanism_reader_names_the_apps_and_not_the_watchers():
++    """The clause that decides whether a claiming sentence NAMES a mechanism, from both ends.
++
++    Derived from the declaration (`mechanism_names`), because a list here would have gone stale the
++    day the codex half's Automation joined -- which is exactly what happened to the previous reader:
++    it asked for the module stem or the word `desktop`, and "the Codex app Automation runs it every
++    Monday" therefore counted as naming no mechanism at all, i.e. it was refused for the wrong
++    reason and would have been accepted the moment somebody added `automation` beside `desktop`
++    without noticing that `codex` names a WATCHER too.
++    """
++    described = mechanism_description()
++    words = mechanism_names(described)
++    assert {"radar_routine", "desktop", "automation"} <= words, sorted(words)
++    assert not (set(described["runners"]) & words), (
++        "a runner id counts as naming the mechanism, so a sentence about the codex-watcher would "
++        "pass that clause for free: %s" % sorted(words))
++    assert not (set(described["watchers"]) & words), sorted(words)
++
++
++# A role NAME, as a word rather than as part of a path: `claude-watcher` in a sentence names the
++# agent, `~/.claude/scheduled-tasks/radar-watcher/SKILL.md` names the folder a Desktop task was
++# created in, which the app owns and nobody renames. The lookaround is what tells the two apart.
++ROLE_NAME_RX = re.compile(r"(?<![\w./\\-])([a-z][a-z0-9]*-watcher)(?![\w./\\-])")
++
++
++def duo_artifacts():
++    """Every file that speaks FOR the duo: the guarded texts, each watcher's generated Codex
++    overlay, the declaration module and the record it reads. Derived from the running module, so a
++    third watcher's overlay joins the subject without anybody editing a list."""
++    routine = routine_module("radar_routine_artifacts")
++    return list(TEXTS) + [routine.OVERLAY % watcher for watcher in sorted(routine.WATCHERS)] + [
++        "tools/radar_routine.py", "radar/routine.json"]
++
++
++def test_no_artifact_of_the_duo_names_a_watcher_the_repo_does_not_define():
++    """DEC-0090 (1): after the rename, `radar-watcher` is a name nothing answers to.
++
++    THE RULE IS NOT "the string radar-watcher is gone" -- that would go stale the day the duo is
++    renamed again, and it would refuse the Desktop task's FOLDER, which keeps its old name because
++    the app owns it. The rule is that every `<x>-watcher` a duo artifact names AS A WORD has a role
++    definition in `.claude/agents/`. RED on the tree before this round: five such names across the
++    two definitions, both overlays and the README, none of which resolved after the rename.
++
++    `ROLE_NAME_RX` is a reader with two ends, so both are stated: a name inside a path is not a
++    role name, and a name standing on its own is.
++    """
++    routine = routine_module("radar_routine_names")
++    assert ROLE_NAME_RX.findall("start `--run claude-watcher` now") == ["claude-watcher"]
++    assert ROLE_NAME_RX.findall("~/.claude/scheduled-tasks/radar-watcher/SKILL.md") == []
++    assert ROLE_NAME_RX.findall(".claude/agents/claude-watcher.md") == []
++    offenders = {}
++    for relative in duo_artifacts():
++        for name in sorted(set(ROLE_NAME_RX.findall(read(relative)))):
++            if name not in routine.WATCHERS:
++                offenders.setdefault(relative, []).append(name)
++    assert not offenders, (
++        "these files name a watcher this repo has no definition for, so a reader and a run are "
++        "sent at nothing: %s" % json.dumps(offenders, indent=2))
++    for watcher in routine.WATCHERS:
++        assert os.path.isfile(os.path.join(ROOT, (routine.DEFINITION % watcher).replace("/",
++                                                                                        os.sep)))
++
++
++def test_every_codex_overlay_is_the_one_its_claude_definition_generates():
++    """DEC-0090 (2): the Codex overlay is GENERATED, and the shipped file has to be that output.
++
++    WHY IT IS A TEST AND NOT A CONVENTION: these two files were hand-copied in 2026-07 with a blind
++    Claude->Codex word substitution and shipped for two months telling a Codex run to read
++    `platform.Codex.com/...` and to write `radar/<today>-AGENTS.md`. Nothing could go red, because
++    nothing derived them from anything.
++
++    The measurement is the whole file, byte for byte against `overlay_text`, plus the three things
++    the generation exists for, asserted separately so a failure says WHICH one moved: the model is
++    the ladder's row for the rung the definition pins (never a second spelling of `gpt-5.6-sol`),
++    the effort stands under the key the ladder names for that provider, and the runner line is the
++    ONE line that differs from the definition.
++    """
++    routine = routine_module("radar_routine_overlays")
++    tiers_reader = load_kit_module("gen_provider_artifacts_for_overlays",
++                                   os.path.join(ROOT, "team-kits", "gen_provider_artifacts.py"))
++    tiers, aliases = tiers_reader.load_tiers()
++    for watcher in sorted(routine.WATCHERS):
++        generated = routine.overlay_text(watcher)
++        # PARSED, not searched: what a Codex run reads is the TOML document, so the pins are asked
++        # of a parser. `tomllib` is stdlib from 3.11; where it is absent the byte comparison below
++        # still holds the whole file against the generator, which is the stronger half anyway.
++        try:
++            import tomllib
++        except ImportError:                                         # pragma: no cover -- py<3.11
++            tomllib = None
++        if tomllib is not None:
++            document = tomllib.loads(generated)
++            assert document["name"] == watcher, document
++            assert document["developer_instructions"].strip(), document
++        assert read(routine.OVERLAY % watcher) == generated, (
++            "%s is not what `python tools/radar_routine.py --write-overlays` produces from %s"
++            % (routine.OVERLAY % watcher, routine.DEFINITION % watcher))
++        definition = read(routine.DEFINITION % watcher)
++        meta, body = tiers_reader.parse_frontmatter(definition)
++        expected = tiers_reader.provider_model(meta["model"], "codex", tiers, aliases)
++        assert expected != meta["model"], "the rung was not translated at all"
++        assert 'model = "%s"' % expected in generated
++        assert '%s = "%s"' % (tiers["codex"][tiers_reader.EFFORT_FIELD_KEY],
++                              meta[tiers["claude"][tiers_reader.EFFORT_FIELD_KEY]]) in generated
++        assert routine.runner_line(watcher, "codex") in generated
++        assert routine.runner_line(watcher, "claude") in definition
++        assert routine.runner_line(watcher, "claude") not in generated, (
++            "the overlay still tells the run it is a claude run")
++        assert len(routine.RUNNER_LINE_RX.findall(body)) == 1, (
++            "%s states its runner more than once, so the generator rewrites one of two answers"
++            % (routine.DEFINITION % watcher))
++
++
++def test_a_pin_the_ladder_cannot_place_is_refused_before_an_overlay_is_written(tmp_path):
++    """DEC-0076 lineage: a rung `model_tiers.yaml` has no row for costs the run, not a warning.
++
++    Measured for real spawns in `docs/reviews/2026-09-02-model-pin-and-bom-measurement.md` -- the
++    spawn dies with the model name it sent. So the generator refuses rather than writing an overlay
++    pinning a model no provider has, and it refuses with the KIT's own sentence, which names the
++    decision. Both directions: the retired `light` rung and a typo are refused, a missing effort is
++    refused, and the rung the repo really pins goes through.
++    """
++    routine = routine_module("radar_routine_unplaceable")
++    watcher = sorted(routine.WATCHERS)[0]
++    source = read(routine.DEFINITION % watcher)
++    target = tmp_path / (routine.DEFINITION % watcher)
++    target.parent.mkdir(parents=True)
++    for bad in ("light", "haiku", "opus-4-1-does-not-exist"):
++        target.write_text(re.sub(r"(?m)^model: .*$", "model: %s" % bad, source), encoding="utf-8")
++        with pytest.raises(SystemExit) as refused:
++            routine.overlay_text(watcher, root=str(tmp_path))
++        assert "DEC-0076" in str(refused.value) and bad in str(refused.value), bad
++    target.write_text(re.sub(r"(?m)^effort: .*$", "", source), encoding="utf-8")
++    with pytest.raises(SystemExit) as refused:
++        routine.overlay_text(watcher, root=str(tmp_path))
++    assert "effort" in str(refused.value)
++    target.write_text(source, encoding="utf-8")
++    assert routine.overlay_text(watcher, root=str(tmp_path)) == routine.overlay_text(watcher)
++
++
+ def test_the_cloud_option_says_it_is_not_built_and_its_prompt_stays_consistent():
+     """DEC-0089 (2): the cloud routine is the REJECTED alternative -- the declaration keeps it as
+     a documented option that says so, and nothing in `--describe` calls it the mechanism.
+@@ -466,8 +759,9 @@ def test_the_cloud_option_says_it_is_not_built_and_its_prompt_stays_consistent()
+     described = routine.description()
+     option = described["cloud_option"]
+     assert option["built"] is False and option["rejected_by"] == "DEC-0089", option
+-    assert "Desktop" in described["mechanism"] and "cloud" not in described["mechanism"].lower(), (
++    assert "cloud" not in described["mechanism"].lower(), (
+         "the declaration calls the cloud routine the mechanism: %s" % described["mechanism"])
++    assert "Desktop" in described["mechanism"] and "Automation" in described["mechanism"]
+     for watcher, prompt in option["prompts"].items():
+         lines = [line.strip() for line in prompt.splitlines()]
+         blob = " ".join(lines)
+@@ -486,21 +780,25 @@ def test_the_cloud_option_says_it_is_not_built_and_its_prompt_stays_consistent()
+             "a line carries a run of blanks -- two string literals fused without their newline")
+ 
+ 
+-def test_the_routine_counts_a_run_per_watcher_and_per_period():
++def test_the_routine_counts_a_run_per_watcher_and_runner_and_period():
+     """The routine's own reader, on a directory it is handed rather than on today's `radar/`.
+ 
+-    `due()` answers WHICH watcher owes a run, so it has to tell the two apart by the suffix their
+-    dated reports carry and it has to count per ISO week. The mutation this denies is the cheap one:
+-    counting any dated report as any watcher's run -- then one watcher's report silently clears the
+-    other's duty, which is exactly the blindness the whole module exists against.
+-
+-    The undated pair at the start of `radar/` (2026-07-03, 2026-07-06, before the split into two
+-    watchers) is the second half: they are runs of the directory and of no named watcher, so they
+-    must clear nobody.
++    `due()` answers WHICH of the four routines owes a run, so it has to tell them apart by BOTH
++    names the report carries and it has to count per ISO week. Two mutations are denied here: the
++    cheap one, counting any dated report as any watcher's run -- then one watcher's report silently
++    clears the other's duty; and the one DEC-0090 (3) added, counting per watcher only -- then a
++    Claude run of the claude-watcher clears the duty of its Codex run, and the second model family
++    never gets asked.
++
++    THE OLD TWO-PART NAMES have to stay countable (every report written before the runner suffix): a `<date>-claude.md` counts as a run of the claude-watcher BY CLAUDE, which is the
++    convention DEC-0090 (3) asks for. The undated pair at the start of `radar/` (2026-07-03,
++    2026-07-06, before the split into two watchers) is the third case: they are runs of the
++    directory and of no named watcher, so they must clear nobody.
+     """
+-    routine = load_kit_module("radar_routine_under_test", os.path.join(ROOT, "tools",
+-                                                                      "radar_routine.py"))
++    routine = routine_module("radar_routine_due")
+     monday = datetime.date(2026, 9, 7)                      # a Monday: 2026-W37
++    every = {routine.routine_id(watcher, runner)
++             for watcher in routine.WATCHERS for runner in routine.RUNNERS}
+ 
+     def owed(names, today=monday):
+         original = routine.RADAR
+@@ -518,18 +816,52 @@ def test_the_routine_counts_a_run_per_watcher_and_per_period():
+                 io.open(os.path.join(directory, name), "w", encoding="utf-8").close()
+ 
+         place()
+-        assert set(owed(directory)) == set(WATCHER_ROLES), "an empty radar/ owes both runs"
+-        place("2026-09-07-claude.md")
+-        assert set(owed(directory)) == {"codex-watcher"}, "a claude report cleared the codex duty"
++        assert set(owed(directory)) == every, "an empty radar/ owes all four runs"
++        place("2026-09-07-claude-by-claude.md")
++        assert set(owed(directory)) == every - {"claude-watcher-by-claude"}, (
++            "one run cleared more than its own routine")
++        place("2026-09-07-claude-by-claude.md", "2026-09-07-claude-by-codex.md",
++              "2026-09-07-codex-by-claude.md", "2026-09-07-codex-by-codex.md")
++        assert owed(directory) == {}, "all four ran this week and something is still owed"
++        place("2026-08-31-claude-by-claude.md", "2026-08-31-codex-by-codex.md")   # the week before
++        assert set(owed(directory)) == every, "last week's runs cleared this week"
++        # the legacy two-part names: the watcher's own provider is the runner they count for
+         place("2026-09-07-claude.md", "2026-09-07-codex.md")
+-        assert owed(directory) == {}, "both ran this week and something is still owed"
+-        place("2026-08-31-claude.md", "2026-08-31-codex.md")           # the week before
+-        assert set(owed(directory)) == set(WATCHER_ROLES), "last week's runs cleared this week"
++        assert set(owed(directory)) == {"claude-watcher-by-codex", "codex-watcher-by-claude"}, (
++            "a two-part name no longer counts as a run by the watcher's own provider, so every "
++            "report written before DEC-0090 (3) stopped being countable")
+         place("2026-07-03.md", "2026-07-06.md")                        # the undated-suffix pair
+-        assert set(owed(directory)) == set(WATCHER_ROLES), (
++        assert set(owed(directory)) == every, (
+             "a report with no watcher suffix cleared a named watcher's duty")
+ 
+ 
++def test_the_report_name_is_spelled_in_exactly_one_place():
++    """`report_name` is the only speller, and the reader is its inverse (DEC-0090 (3)).
++
++    A name that `runs()` cannot read back into the pair `report_name` wrote it for is a routine that
++    can never be counted -- which is how a watcher would silently owe a run forever. So the two are
++    measured against each other for every routine of the plan, on a directory this test writes.
++
++    ONE FILE AT A TIME, and that is the whole difference between this test and the one it replaced:
++    the first cut placed all four names and compared the SET of pairs it read back, which is
++    symmetric under swapping the two halves of the pattern -- the mutation that writes
++    `<date>-<runner>-by-<suffix>.md` left it green (measured 2026-09-11, row R11 of the round's
++    red-first rig). A pair is only meaningful against the routine it was written for.
++    """
++    routine = routine_module("radar_routine_names_roundtrip")
++    written = datetime.date(2026, 9, 11)
++    with tempfile.TemporaryDirectory() as directory:
++        for entry in routine.routine_plan().values():
++            relative = routine.report_name(entry["watcher"], entry["runner"], written.isoformat())
++            assert relative.startswith("radar/"), relative
++            path = os.path.join(directory, os.path.basename(relative))
++            io.open(path, "w", encoding="utf-8").close()
++            assert routine.runs(directory) == [
++                (written, routine.WATCHERS[entry["watcher"]]["suffix"], entry["runner"])], (
++                "%s reads back as something other than the routine it was written for" % relative)
++            os.remove(path)
++
++
+ def test_a_second_run_in_the_same_period_is_refused_unless_it_is_asked_for():
+     """`--run` asks `--due` first, and says why when it refuses (TSK-0130 round-2 finding R2-5).
+ 
+@@ -538,6 +870,10 @@ def test_a_second_run_in_the_same_period_is_refused_unless_it_is_asked_for():
+     having rewritten the same dated file. The routine already knew: `--due` said nobody owed a run.
+     So the refusal comes BEFORE the watcher is started, and `--force` is the way past it.
+ 
++    ASKED OF THIS RUN'S ROUTINE since DEC-0090 (3): the report that already exists is the one a
++    `SESSION_RUNNER` run would rewrite, so a report of the SAME watcher by the OTHER provider must
++    not refuse the run -- the second half below, which the per-watcher question got wrong.
++
+     Run as a PROCESS against a radar directory this test controls, so nothing here depends on which
+     reports the repository happens to hold today. `--force` is measured by its EFFECT on the
+     decision, not by starting a real watcher: the run is allowed through to the point where it
+@@ -545,7 +881,8 @@ def test_a_second_run_in_the_same_period_is_refused_unless_it_is_asked_for():
+     """
+     routine = routine_module("radar_routine_force")
+     with tempfile.TemporaryDirectory() as directory:
+-        io.open(os.path.join(directory, "2026-09-07-codex.md"), "w", encoding="utf-8").close()
++        io.open(os.path.join(directory, "2026-09-07-codex-by-claude.md"), "w",
++                encoding="utf-8").close()
+         started = []
+         monkey = pytest.MonkeyPatch()
+         try:
+@@ -561,12 +898,47 @@ def test_a_second_run_in_the_same_period_is_refused_unless_it_is_asked_for():
+             assert started == ["codex-watcher"], "--force did not let the run through"
+             assert forced == 0
+             # ...and the watcher that has NOT run this period is never refused
+-            routine.main(["--run", "radar-watcher"])
+-            assert started == ["codex-watcher", "radar-watcher"]
++            routine.main(["--run", "claude-watcher"])
++            assert started == ["codex-watcher", "claude-watcher"]
++            # ...and the OTHER provider's report of the same watcher is a different duty
++            io.open(os.path.join(directory, "2026-09-07-claude-by-codex.md"), "w",
++                    encoding="utf-8").close()
++            started.clear()
++            routine.main(["--run", "claude-watcher"])
++            assert started == ["claude-watcher"], (
++                "a Codex run of the claude-watcher refused its Claude run for the same week")
+         finally:
+             monkey.undo()
+ 
+ 
++def test_no_model_is_forced_on_a_hand_started_run():
++    """`--run` must not override the pin DEC-0090 (2) put in the definition.
++
++    The flag used to default to `sonnet` -- the rung the user replaced -- so every hand-started run
++    would have quietly run one rung below what the definition says, and the pin would have been true
++    only of the scheduled runs. Measured on the ARGUMENT LIST the module builds, with the spawn
++    replaced: no `--model` unless one is asked for, and the asked-for one passed through.
++    """
++    routine = routine_module("radar_routine_model_flag")
++    seen = {}
++    monkey = pytest.MonkeyPatch()
++    try:
++        monkey.setattr(routine.subprocess, "run",
++                       lambda argv, **kw: seen.setdefault("argv", argv) and None or _FakeRun())
++        routine.run_watcher("claude-watcher")
++        assert "--model" not in seen["argv"], seen["argv"]
++        assert "--agent" in seen["argv"] and "claude-watcher" in seen["argv"]
++        assert routine.SESSION_RUNNER in seen["argv"][2], (
++            "the prompt does not tell the run which runner it is, so it cannot name its report")
++        seen.clear()
++        routine.run_watcher("claude-watcher", model="sonnet")
++        assert seen["argv"][seen["argv"].index("--model") + 1] == "sonnet"
++    finally:
++        monkey.undo()
++    with pytest.raises(SystemExit):
++        routine.run_watcher("not-a-watcher")
++
++
+ class _FixedDate(datetime.date):
+     """`date.today()` pinned into the ISO week of the report the test above places."""
+ 
+@@ -609,6 +981,8 @@ def test_the_texts_this_reads_are_the_ones_that_describe_the_watchers():
+         "the subject moved: watchers %s, read %s" % (sorted(watchers), sorted(TEXTS)))
+     for relative in TEXTS:
+         assert os.path.isfile(os.path.join(ROOT, relative.replace("/", os.sep))), relative
++    routine = routine_module("radar_routine_texts")
++    assert {os.path.basename(path).rsplit(".", 1)[0] for path in watchers} == set(routine.WATCHERS)
+ 
+ 
+ if __name__ == "__main__":

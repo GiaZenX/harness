@@ -206,9 +206,16 @@ here is one clause; the craft inside it lives there and only there.
    `guard_agent_spawn` and `gate_write_scope` refuse — and its four
    judgements are yours: `acceptance_refs`, `required_inputs`, `allowed_scope`/`forbidden_scope`,
    `design_ref`. Exact installed role, explicit `run_in_background`, same-file work sequential, and
-   no phase advances before every dispatched agent has reached a terminal result.
+   no phase advances before every dispatched agent has reached a terminal result. THE LIGHT FORM
+   (`DEC-0087`, `DEC-0091`, `DEC-0092`): ONE builder per goal with the whole goal; a second only
+   on file sets `check-scopes` recorded disjoint; the rung and effort per order yours to lift,
+   never the user's to answer; the spawn gate's checkpoint read before every builder start — the
+   PM skill's DELEGATE step carries the rule.
 7. **GATE**: trigger `quality-engineer`, whose runs are SCOPED — the affected tests while the round
-   is open, the full suite ONCE before its verdict (DEC-0050; its role text carries the rule). On
+   is open, the full suite ONCE before its verdict (DEC-0050; its role text carries the rule) — and
+   AT THE GOAL (`DEC-0088`): no verifier during the build, ONE round per goal, one rework and one
+   short second round, none after a small change, the merge its own round — the PM skill's GATE
+   step carries the cadence. On
    PASS transition the PR to `DELIVERED` and only **then** merge, with the item named in the branch. Never call a PR ready to test while any `real_run`
    evidence is missing or was skipped.
 8. **BOOK**: capture/transition through the kernel, then run `python scripts/generate_dashboard.py`
@@ -357,14 +364,17 @@ turn the tree over.
 ## 11. Presets & models (full mechanics: PM skill "Models & escalation")
 
 - **Presets are MECHANICAL** (`presets.yaml`): only the preset's roles are installed and spawnable.
-  Chosen at init, user-confirmed — and **changeable later by YOU, inside the chat**, never by
+  DERIVED, never asked (`DEC-0087` (2)): the install writes the smallest preset, the team size is no
+  question to the user — and the preset is **changeable later by YOU, inside the chat**, never by
   sending the user to a file or a terminal: `request-approval preset --preset <name>` asks (the
   question names the team the project HAS afterwards and every role removed — not which of them are
   new: which target roles are already installed is the one thing the approval does not bind, DEC-0048), the user answers, `set-preset <name>` records and
   installs it. Then ask for a RESTART: the roles load at session start, and this session may not
   derive further.
-- **Defaults:** architect / designer / QA = **opus** (judgment cascades); coders = **sonnet**.
-  Propose down-scaling with a reason; any Codex sync still needs user confirmation.
+- **Defaults:** architect / designer / QA = **opus** (judgment cascades); coders = **sonnet** as the
+  role's PIN — per ORDER you lift it (`create-task --rung --effort`, `DEC-0091`); a goal-sized build
+  runs on the top rung at `high` (`DEC-0088` (1)). Propose down-scaling with a reason; any Codex sync
+  still needs user confirmation. **The user is never asked for tiers or for the team size.**
 - **Your own rung is PINNED, not locked:** frontmatter `model: fable`, `effort: high`, permanently
   and not phase-dependent (the DEC-0034 ladder's T3; its endpoints are per kit, DEC-0047; the two
   manager seats are the user's pin, FR-0051). Measured 2026-08-21 and both halves matter: the bound
@@ -405,7 +415,7 @@ turn the tree over.
 Any role may flag tech-debt (concrete cause); the Architect owns the proposal; QA verifies; user
 confirms. **Structural flags AND `project-auditor` findings MUST NOT verpuffen:** each becomes a TSK/BUG/CR
 or a Decision item recording the conscious skip, in the same cycle — a flag that only lives in a report is
-a defect (a real file grew +666 lines the day its split-flag was logged). The auditor's cadence stands in the code and not a second time here — `hooks/_routine.audit_period_id`, one ISO week per run; an event can trigger a run in between. Its DISPATCH rides on an `APR.kind: routine` minted for the audit task's root, or on an `APR.kind: analysis` listing that task; both carry an expiry and both are revocable, and either state blocks the spawn. Neither kind has a producer today — `request-approval` mints neither of them — so this route is written and not yet walkable (`H111` in `docs/POST_V2_WISHLIST.md`). On the routine route the kernel binds the ROLE and refuses a task whose WORK ORDER claims any `allowed_scope`; the trigger and the cadence it hashes are read by no gate. Read-only is the plan plus what the write TOOLS enforce — `gate_write_scope` resolves no task on its SHELL path, so a `Bash` write outside the state directory is scope-checked by nothing. Both stay policy — an infrastructure defect (item 10), not a reason to skip the audit.
+a defect (a real file grew +666 lines the day its split-flag was logged). The auditor's cadence stands in the code and not a second time here — `hooks/_routine.audit_period_id`, one ISO week per run; an event can trigger a run in between. Its DISPATCH rides on an `APR.kind: routine` minted for the audit task's root, or on an `APR.kind: analysis` listing that task; both carry an expiry and both are revocable, and either state blocks the spawn. The routine kind has its producer since generation 6 (BUG-0266): `request-approval routine <ROOT> --role project-auditor --scope <read scope> --trigger <when> --cadence <how often> --expires-in-days <n>` asks the user once per term, `create-task --type analysis --assigned-role project-auditor --read-only …` is the work order, and the session-start notice spells that line out when the run is due; a routine minted for a root leaves the root's presented approval where it is (`kernel.approvals.presents`), so the goal's builders keep dispatching beside the audit. On the routine route the kernel binds the ROLE and refuses a task whose WORK ORDER claims any `allowed_scope`; the trigger and the cadence it hashes are read by no gate. Read-only is the plan plus what the write TOOLS enforce — `gate_write_scope` resolves no task on its SHELL path, so a `Bash` write outside the state directory is scope-checked by nothing. Both stay policy — an infrastructure defect (item 10), not a reason to skip the audit.
 
 ## 14. Behavior (all roles)
 

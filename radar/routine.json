@@ -1,19 +1,22 @@
 {
-  "desktop_tasks": [
+  "routines": [
     {
+      "id": "claude-watcher-by-claude",
+      "watcher": "claude-watcher",
+      "runner": "claude",
       "kind": "desktop_task",
-      "watcher": "radar-watcher",
       "path": "~/.claude/scheduled-tasks/radar-watcher/SKILL.md",
-      "schedule": {
+      "schedule_as_told": {
         "day": "friday",
         "time_local": "~20:00",
-        "as_told_by": "the user, 2026-09-06 (DEC-0089); the task was created by this repository's session agent on 2026-06-30 and delegates to .claude/agents/radar-watcher.md",
-        "source": "DEC-0089; radar/ file mtimes 2026-07-17 20:10, 07-24 20:12, 07-31 20:16, 08-07 20:47, 08-21 20:16, 08-28 20:12 (Fridays) and 08-16 20:25 (a Sunday catch-up run)"
+        "as_told_by": "the user, 2026-09-06 (DEC-0089, DEC-0090 (4)); the task was created by this repository's session agent on 2026-06-30"
       },
-      "first_measured_report": "2026-07-17",
-      "last_measured_report": "2026-08-28",
+      "source": "DEC-0089; radar/ file mtimes 2026-07-17 20:10, 07-24 20:12, 07-31 20:16, 08-07 20:47, 08-21 20:16, 08-28 20:12 (Fridays) and 08-16 20:25 (a Sunday catch-up run). The task's FOLDER keeps the name it was created under on 2026-06-30 -- the Desktop app owns it and nobody renames it; what the lead edits at the next local session is the pointer INSIDE that SKILL.md, which after DEC-0090 (1) has to name the claude-watcher definition.",
+      "first_report": "2026-07-17",
+      "last_report": "2026-09-04",
       "recorded": "2026-09-06"
     }
   ],
-  "recorded_by": "the generation-5 merge (TSK-0133) from DEC-0089's measurement; the codex half is added by the lead once the user has created its task in the Desktop app (Saturday ~20:00, DEC-0089 (1))"
+  "recorded_by": "the generation-5 merge (TSK-0133) from DEC-0089's measurement, re-shaped by TSK-0134 for DEC-0090 (3): a routine is now a WATCHER and a RUNNER. The three routines DEC-0090 (4) adds -- codex-watcher by claude (Saturday), claude-watcher by codex (Sunday), codex-watcher by codex (Monday) -- are not created yet and therefore have no entry here; `python tools/radar_routine.py --describe` lists all four with the Instructions text that creates each one.",
+  "note": "one entry per routine that EXISTS and has run. An entry for a routine nobody created would make `starts_itself` lie, which is the direction this record fails in."
 }

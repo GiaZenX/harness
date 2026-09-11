@@ -1,0 +1,55 @@
+id: BUG-0276
+title: A module added under tools/ shadows the team-kits module of the same name for
+  every `python tools/<script>.py` entry point, and nothing measures the collision
+related_pr: PR-0011
+severity: medium
+observed: "MEASURED 2026-09-11 in a copy of the tree without .git (C:/Offline Repos/v2-testbed/_round-scratch/TSK-0134/tree),\
+  \ arbiter `python tools/validate.py`:\n  * baseline: `validate.py: all structural\
+  \ checks passed.`\n  * with a five-line stub written to tools/gen_provider_artifacts.py:\
+  \ `ImportError: cannot import name 'load_tiers' from 'gen_provider_artifacts' (.../tree/tools/gen_provider_artifacts.py)`\
+  \ at tools/validate.py:31 -- no structural check ran at all.\nThe mechanism is Python's\
+  \ own path order and not a defect of validate.py: a script started as `python tools/validate.py`\
+  \ has `tools/` at sys.path[0] before its first line, and validate.py's own `sys.path.insert(0,\
+  \ tools)` (line 26) puts it back ahead of the `sys.path.insert(0, team-kits)` one\
+  \ line above. So EVERY `from <name> import ...` in a tools/ entry point binds to\
+  \ tools/<name>.py when one exists. `tools/validate.py` imports four names from `gen_provider_artifacts`;\
+  \ the same shape reaches `kernel`, `report`, `state` and every other team-kits module\
+  \ a tools/ script imports.\nThe same probe against `tools/test_hooks.py -k neutral_model_values`\
+  \ PASSED (1 passed), because that test inserts team-kits at index 0 inside the test\
+  \ body -- so the suite does not see the collision either."
+expected: 'Either no tools/ entry point can be shadowed (each imports its kit modules
+  by path, the way `radar_routine._kit_generator` does since TSK-0134), or a check
+  reads the two directories against each other: a file name that exists in both `tools/`
+  and `team-kits/` (top level or as a package directory) is red, with the message
+  naming which entry point would bind to which file.'
+repro: 'In a copy of this tree outside the repo: write any module to tools/gen_provider_artifacts.py
+  and run `python tools/validate.py`. Expected: the structural checks run. Measured:
+  ImportError at line 31, rc 1.'
+acceptance_criteria:
+- id: AC-1
+  text: a name carried by both tools/ and team-kits/ is RED, measured by writing such
+    a file in a copy outside the repo and watching the check fail
+- id: AC-2
+  text: the check reads the two directories as they are, not a list of known module
+    names, so a module added to either side is covered the day it appears
+- id: AC-3
+  text: the tools/ entry points that import a kit module still import the kit's copy
+    -- measured by `python tools/validate.py` staying green with the check in place
+limits: 'What takes the place of the protection today: the collision is LOUD where
+  it has been measured -- validate.py dies in its import with the file name in the
+  traceback, so a round that causes it sees it on its next validate run. What is open
+  is the quiet direction: a shadowing module that happens to define the names the
+  entry point imports would be used instead of the kit''s without any error at all,
+  and nothing would say so. TSK-0134 avoided the one case it met by putting the repo-local
+  Codex-overlay generator into tools/radar_routine.py rather than creating tools/gen_provider_artifacts.py,
+  and by loading the kit generator BY PATH (`radar_routine._kit_generator`); until
+  the class is closed, every round that adds a file under tools/ checks the name against
+  team-kits/ by hand.'
+source: TSK-0134 red-first rig, row 'shadowing' (project_memory/staging/TSK-0134/protocol.md);
+  tools/validate.py lines 25-32; tools/radar_routine.py `_kit_generator`; TSK-0134
+  expected_outputs RUNGS
+hole_number: H192
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-11T02:22:14'

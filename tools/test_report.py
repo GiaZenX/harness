@@ -617,28 +617,81 @@ def test_the_session_brief_shows_the_rung_and_effort_a_lease_wrote_on_the_task(s
     `status`, `assigned_role` and nothing else. The stream that built the lease (TSK-0130) was
     forbidden `kernel/report.py` by its own item, so the line and this test are the merge's.
 
-    The field names are the dispatcher's own (`dispatch.RUNG_KEY` / `EFFORT_KEY`), read rather than
-    spelled here, so a renamed key moves this test with it instead of leaving it green.
+    The field names are the dispatcher's own (`dispatch.LEASE_RUNG_FIELD` / `LEASE_EFFORT_FIELD`
+    for what the lease derived, `RUNG_KEY` / `EFFORT_KEY` for what the PM asked, DEC-0091), read
+    rather than spelled here, so a renamed key moves this test with it instead of leaving it green.
     """
-    from kernel.dispatch import EFFORT_KEY, RUNG_KEY
+    from kernel.dispatch import EFFORT_KEY, LEASE_EFFORT_FIELD, LEASE_RUNG_FIELD, RUNG_KEY
     root = state.capture("PR", dict(PR_FIELDS))
     bug = make_bug(state, root["id"])
     dispatched = make_task(state, root["id"], bug["id"])
+    asked = make_task(state, root["id"], bug["id"], **{RUNG_KEY: "opus", EFFORT_KEY: "xhigh"})
     idle = make_task(state, root["id"], bug["id"])
     # the shape `create_lease` leaves behind, written the way the lease writes it -- on the item
     path = state.active_path(dispatched["id"])
     stored = state._read_yaml(path)
-    stored[RUNG_KEY], stored[EFFORT_KEY] = "opus", "xhigh"
+    stored[LEASE_RUNG_FIELD], stored[LEASE_EFFORT_FIELD] = "opus", "xhigh"
     state._write_yaml_atomic(path, stored)
 
     brief = yaml.safe_load(open(report.generate_session_brief(state, "dev-team", "v", "audited"),
                                 encoding="utf-8"))
     rows = {row["id"]: row for row in brief["active_tasks"]}
-    assert rows[dispatched["id"]][RUNG_KEY] == "opus", rows[dispatched["id"]]
-    assert rows[dispatched["id"]][EFFORT_KEY] == "xhigh", rows[dispatched["id"]]
-    assert RUNG_KEY not in rows[idle["id"]] and EFFORT_KEY not in rows[idle["id"]], (
-        "a task nobody dispatched shows a rung or an effort it was never given: %s"
-        % rows[idle["id"]])
+    assert rows[dispatched["id"]][LEASE_RUNG_FIELD] == "opus", rows[dispatched["id"]]
+    assert rows[dispatched["id"]][LEASE_EFFORT_FIELD] == "xhigh", rows[dispatched["id"]]
+    assert (rows[asked["id"]][RUNG_KEY], rows[asked["id"]][EFFORT_KEY]) == ("opus", "xhigh"), (
+        "the PM's ask does not reach the row: %s" % rows[asked["id"]])
+    assert LEASE_RUNG_FIELD not in rows[asked["id"]], "an ask nobody leased shows a lease answer"
+    for key in (RUNG_KEY, EFFORT_KEY, LEASE_RUNG_FIELD, LEASE_EFFORT_FIELD):
+        assert key not in rows[idle["id"]], (
+            "a task nobody dispatched shows a rung or an effort it was never given: %s"
+            % rows[idle["id"]])
+
+
+def test_the_session_brief_carries_the_lease_distribution_line(state):
+    """DEC-0092 (4): the brief shows the last-N leases as the habit they reveal -- builders per
+    goal, rungs, runs to done per rung -- and says "no lease yet" instead of showing zeros.
+
+    The rows are written in the shape `create_lease` leaves on a task (the three `LEASE_*` fields
+    plus `leased_at` and `failed_runs`), one of them ARCHIVED, because the reading has to outlive
+    the lease and the active tray. RED WITHOUT `lease_distribution` in the brief: the schema is
+    strict and the key is required, so the brief refuses to validate -- and RED with the archive
+    half dropped: the archived order's rung is missing from `rungs`.
+    """
+    from kernel.dispatch import FAILED_RUNS, LEASE_CLASS_FIELD, LEASE_EFFORT_FIELD, LEASE_RUNG_FIELD
+
+    empty = yaml.safe_load(open(report.generate_session_brief(state, "dev-team", "v", "audited"),
+                                encoding="utf-8"))
+    assert empty["lease_distribution"]["orders"] == 0
+    assert "no lease" in empty["lease_distribution"]["line"], empty["lease_distribution"]
+
+    root = state.capture("PR", dict(PR_FIELDS))
+    second = state.capture("PR", dict(PR_FIELDS, title="second goal"))
+    bug = make_bug(state, root["id"])
+    rows = [
+        (make_task(state, root["id"], bug["id"]), "sonnet", "high", "build", "2026-09-01T10:00:00", 1, "DONE"),
+        (make_task(state, root["id"], bug["id"]), "fable", "high", "build", "2026-09-01T11:00:00", 0, "DONE"),
+        (make_task(state, root["id"], bug["id"]), "opus", "high", "qa", "2026-09-01T12:00:00", 0, "IN_PROGRESS"),
+        (make_task(state, second["id"], second["id"]), "sonnet", "high", "build", "2026-09-02T10:00:00", 0, "VALIDATED"),
+    ]
+    for task, rung, effort, role_class, at, failed, status in rows:
+        path = state.active_path(task["id"])
+        stored = state._read_yaml(path)
+        stored.update({LEASE_RUNG_FIELD: rung, LEASE_EFFORT_FIELD: effort, LEASE_CLASS_FIELD: role_class,
+                       "leased_at": at, FAILED_RUNS: failed, "status": status})
+        state._write_yaml_atomic(path, stored)
+    state.archive(rows[-1][0]["id"])
+
+    brief = yaml.safe_load(open(report.generate_session_brief(state, "dev-team", "v", "audited"),
+                                encoding="utf-8"))
+    shown = brief["lease_distribution"]
+    assert shown["orders"] == 4 and shown["goals_with_builders"] == 2, shown
+    assert shown["builders_per_goal"] == {"2": 1, "1": 1}, shown
+    assert shown["rungs"] == {"sonnet": 2, "fable": 1, "opus": 1}, shown
+    # sonnet: the DONE order needed 2 runs, the archived VALIDATED one 1 -> mean 1.5; the QA order
+    # is still running and counts for no rung's runs
+    assert shown["runs_to_hand_back_per_rung"] == {"sonnet": 1.5, "fable": 1.0}, shown
+    assert "4 order(s)" in shown["line"] and "2 builder(s) x 1 goal(s)" in shown["line"], shown["line"]
+    assert "runs to hand-back per rung fable 1.0, sonnet 1.5" in shown["line"], shown["line"]
 
 
 # -- doctor --------------------------------------------------------------------
@@ -714,13 +767,13 @@ def make_bug(state, root_id):
         "severity": "low", "acceptance_criteria": ["fixed"]})
 
 
-def make_task(state, root_id, origin_id):
+def make_task(state, root_id, origin_id, **fields):
     root = state.read_item(root_id)
-    return state.capture("TSK", {
+    return state.capture("TSK", dict({
         "product_requirement": root_id, "root_revision": root.get("revision"),
         "derives_from": [origin_id], "type": "bugfix", "assigned_role": "backend-developer",
         "acceptance_refs": ["AC-1"], "required_inputs": [], "allowed_scope": ["src/**"],
-        "forbidden_scope": [], "expected_outputs": ["patch"], "dependencies": []})
+        "forbidden_scope": [], "expected_outputs": ["patch"], "dependencies": []}, **fields))
 
 
 def warnings_of(findings):
@@ -2587,14 +2640,28 @@ def test_a_root_presenting_a_non_dispatching_approval_is_reported(state):
 
     A WARNING: the state is legal and the remedy is a user action. The counter-direction is
     asserted in the same test, so "warn always" cannot satisfy it.
+
+    SINCE PR-0011 AC-8 THE MINT NO LONGER PRODUCES THE STATE (`approvals.presents` keeps a hanging
+    kind out of `approval_ref`), so the routine mint below is asserted to leave the field alone,
+    and the state the validator still has to report -- a root presenting a non-dispatching
+    approval, which older stores hold and a hand written past the kernel can still make -- is
+    written the way that hand writes it.
     """
     pr = _approved_root(state)
+    scope_apr = state.read_item(pr["id"])["approval_ref"]
     assert not [f for f in report.validate_state(state) if "presents" in f["message"]]
     mint_via_hook(state, approvals.create_pending_request(
         state, "routine", pr["id"],
         manifest={"role": "project-auditor", "scope": ["project_memory/**"],
                   "trigger": "weekly", "cadence": "weekly"},
         approval_expires=time.time() + 3600))
+    assert state.read_item(pr["id"])["approval_ref"] == scope_apr, "the routine mint moved approval_ref"
+    assert not [f for f in report.validate_state(state) if "presents" in f["message"]]
+    routine = sorted(name for name in os.listdir(os.path.join(state.root, "approvals"))
+                     if name.startswith("APR-") and name.endswith(".yaml"))[-1][:-5]
+    displaced = state.read_item(pr["id"])
+    displaced["approval_ref"] = routine
+    state._write_yaml_atomic(state.active_path(pr["id"]), displaced)
     reported = [f for f in report.validate_state(state) if "presents" in f["message"]]
     assert len(reported) == 1, report.validate_state(state)
     assert reported[0]["severity"] == "warning"

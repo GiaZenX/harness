@@ -66,6 +66,7 @@ roles:
   research-engineer: build
 
 # Named per-role exceptions: `top` (a higher or lower endpoint for one role), `effort` (a fixed
-# effort that replaces the pair), `rung` (a fixed starting rung that replaces class and pin). None in
-# this kit.
+# effort that replaces the pair -- floor AND ceiling, an order's `effort` ask cannot move it,
+# DEC-0091 (2) with DEC-0047's reason), `rung` (the floor the start is taken from instead of class
+# and pin; an order's `rung` ask may lift it, never lower it). None in this kit.
 exceptions: {}

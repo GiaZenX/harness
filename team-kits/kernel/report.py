@@ -79,7 +79,15 @@ from .backlog_types import (
     parse_id,
     single_value_offences,
 )
-from .dispatch import EFFORT_KEY, RUNG_KEY
+from .dispatch import (
+    BUILD_CLASS,
+    EFFORT_KEY,
+    FAILED_RUNS,
+    LEASE_CLASS_FIELD,
+    LEASE_EFFORT_FIELD,
+    LEASE_RUNG_FIELD,
+    RUNG_KEY,
+)
 from .hashing import HASH_SCHEMA_VERSION, hook_bundle_hash
 from .lock import LOCK_SCHEMA_VERSION, PORTABLE_PATH_MAX_CHARS, ext_path
 from .schemas import validate
@@ -215,6 +223,94 @@ def _brief_decision_rows(dec_items: dict) -> list:
             for it in ordered[:_BRIEF_MAX_DECISIONS]]
 
 
+# HOW MANY LEASES THE DISTRIBUTION LOOKS BACK OVER (DEC-0092 (3)(d) and (4)): the "last N" of both
+# the spawn gate's checkpoint and the brief's line, one number so the two mirrors show the same
+# habit. Ten is one generation's worth of orders in this repository's own history (gen 4: four
+# streams + merge, gen 5: three + merge) -- long enough for "always one" or "always three" to show,
+# short enough that a changed habit shows within a generation.
+DISTRIBUTION_WINDOW = 10
+
+
+def _leased_orders(state: ProjectState) -> list:
+    """Every work order a lease wrote its answer on -- active and archived -- newest lease first.
+
+    The answer is `dispatch.LEASE_RUNG_FIELD` and its two siblings, copied onto the task at the
+    lease precisely so this reading survives the lease's removal and the task's archiving. Sorted
+    by `leased_at`, which the lease stamps in the kernel's ISO form, so a lexical sort is a time
+    sort.
+    """
+    rows = []
+    for item_type, _stem, item, _path, exc in _iter_active(state):
+        if item_type == "TSK" and not exc and isinstance(item, dict) and item.get(LEASE_RUNG_FIELD):
+            rows.append(item)
+    for item_type, item in _iter_archived_items(state):
+        if item_type == "TSK" and item.get(LEASE_RUNG_FIELD):
+            rows.append(item)
+    rows.sort(key=lambda item: (str(item.get("leased_at") or ""), str(item.get("id") or "")),
+              reverse=True)
+    return rows
+
+
+def _handed_back(item: dict) -> bool:
+    """Was this order HANDED BACK -- a chain status after IN_PROGRESS (SUBMITTED and on), asked of
+    the automaton. Not "passed": SUBMITTED is a result envelope, and DONE/VALIDATED are the
+    verdicts that may follow it; this reader counts the runs until the hand-back."""
+    chain = AUTOMATA["TSK"].chain
+    status = str(item.get("status") or "")
+    return status in chain and chain.index(status) > chain.index("IN_PROGRESS")
+
+
+def lease_distribution(state: ProjectState, window: int = DISTRIBUTION_WINDOW) -> dict:
+    """The last `window` ORDERS of this project, by their latest lease, as the habit they show
+    (DEC-0092 (4)).
+
+    ORDERS AND NOT LEASES, said because the two differ exactly where the habit shows: an order
+    re-dispatched after a FAILED run is one order with several leases, and `leased_at` on the item
+    is the latest of them -- so this counts orders, and the runs each needed are a column of their
+    own. THREE COUNTS AND ONE LINE: how many BUILD-class orders each goal in the window received
+    (`builders_per_goal`: {"1": goals with one builder, "2": ...}), which rungs the latest leases
+    landed on (`rungs`), and how many RUNS an order on each rung needed until it was HANDED BACK
+    (`runs_to_hand_back_per_rung`: mean of `failed_runs` + 1 over the orders that reached
+    SUBMITTED or later -- handed back is not passed, and the verdict is nobody's here). Derived
+    from the task items alone, so it costs no new instrument (DEC-0092's context) and reads the
+    same in a project with no lease yet, where the line says so instead of showing zeros as a
+    habit. WHAT "RUNS" COUNTS: dispatches of the order -- one plus the FAILED runs
+    `dispatch.count_failed_run_locked` counted -- and not the verifier's rounds, which no state
+    field records.
+    `tools/test_report.py::test_the_session_brief_carries_the_lease_distribution_line`
+    """
+    recent = _leased_orders(state)[:window]
+    builders = {}
+    rungs = {}
+    runs = {}
+    for item in recent:
+        rung = str(item.get(LEASE_RUNG_FIELD))
+        rungs[rung] = rungs.get(rung, 0) + 1
+        if item.get(LEASE_CLASS_FIELD) == BUILD_CLASS:
+            root = str(item.get("product_requirement") or "?")
+            builders[root] = builders.get(root, 0) + 1
+        if _handed_back(item):
+            runs.setdefault(rung, []).append(int(item.get(FAILED_RUNS) or 0) + 1)
+    per_goal = {}
+    for count in builders.values():
+        per_goal[str(count)] = per_goal.get(str(count), 0) + 1
+    runs_per_rung = {rung: round(sum(counts) / len(counts), 1) for rung, counts in runs.items()}
+    if not recent:
+        line = "no lease recorded in this project yet -- no habit to show"
+    else:
+        line = ("last %d order(s) by their latest lease: %d goal(s) with builders; builders per goal "
+                "%s; rungs %s; runs to hand-back per rung %s"
+                % (len(recent), len(builders),
+                   ", ".join("%s builder(s) x %d goal(s)" % (n, goals)
+                             for n, goals in sorted(per_goal.items())) or "none",
+                   ", ".join("%s x %d" % (rung, n) for rung, n in sorted(rungs.items())),
+                   ", ".join("%s %s" % (rung, mean) for rung, mean in sorted(runs_per_rung.items()))
+                   or "none handed back yet"))
+    return {"window": int(window), "orders": len(recent), "goals_with_builders": len(builders),
+            "builders_per_goal": per_goal, "rungs": rungs,
+            "runs_to_hand_back_per_rung": runs_per_rung, "line": line}
+
+
 def generate_session_brief(
     state: ProjectState, kit: str, kit_version: str, enforcement_mode: str
 ) -> str:
@@ -239,12 +335,14 @@ def generate_session_brief(
                 if item.get("blocked_by"):
                     row["blocked_by"] = item["blocked_by"]
                 # The rung and the effort the dispatcher derived are written on the task by the
-                # lease (`dispatch.create_lease`), and the brief is where a lead meets them
-                # (DEC-0077 (5), PR-0010 AC-6). A task never dispatched carries neither, and its
-                # row says nothing rather than a default. Measured missing 2026-09-06 and filed as
-                # BUG-0249 because the stream that built the lease was forbidden this file;
+                # lease (`dispatch.create_lease`, the three `LEASE_*_FIELD`s), and the brief is
+                # where a lead meets them (DEC-0077 (5), PR-0010 AC-6); the PM's own ASK per order
+                # (DEC-0091, `RUNG_KEY` / `EFFORT_KEY` on the task) rides beside them so the two
+                # can be told apart in one row. A task never dispatched carries no lease answer,
+                # and its row says nothing rather than a default. Measured missing 2026-09-06 and
+                # filed as BUG-0249 because the stream that built the lease was forbidden this file;
                 # `tools/test_report.py::test_the_session_brief_shows_the_rung_and_effort_a_lease_wrote_on_the_task`.
-                for key in (RUNG_KEY, EFFORT_KEY):
+                for key in (RUNG_KEY, EFFORT_KEY, LEASE_RUNG_FIELD, LEASE_EFFORT_FIELD):
                     if item.get(key):
                         row[key] = item[key]
                 tasks.append(row)
@@ -294,6 +392,10 @@ def generate_session_brief(
             "open_approvals": pending,
             "staging_pointers": staging,
             "standing_decisions": _brief_decision_rows(decs),
+            # THE DISTRIBUTION LINE (DEC-0092 (4)): the same last-N reading the spawn gate's
+            # checkpoint shows the PM, here where the USER meets the brief, so a habit --
+            # always one builder, always the top rung -- is a line and not a search.
+            "lease_distribution": lease_distribution(state),
             "budget_status": {
                 "validator_errors": sum(1 for f in findings if f["severity"] == "error"),
                 "validator_warnings": sum(1 for f in findings if f["severity"] == "warning"),
@@ -1082,16 +1184,18 @@ def _approval_integrity_finding(item_id: str, exc) -> dict:
 def _check_dispatch_approval_presented(state: ProjectState, active_items: dict) -> list:
     """WARN when a root presents a non-dispatching approval while a dispatching one is in force.
 
-    `mint` writes `approval_ref` for every item-bound approval, and the dispatch gate's ROOT route
-    reads that one field -- "the approval the root presents". So minting a `routine` or `analysis`
-    approval for a root that already carries a valid scope or delivery approval MOVES the
-    reference, and every implementation task under that root stops dispatching. The older approval
-    is still valid; it is simply no longer the one the root presents.
+    Until generation 6 `mint` wrote `approval_ref` for every item-bound approval, and the dispatch
+    gate's ROOT route reads that one field -- "the approval the root presents". So minting a
+    `routine` or `analysis` approval for a root that already carried a valid scope or delivery
+    approval MOVED the reference, and every implementation task under that root stopped
+    dispatching. `approvals.presents` closed that door (PR-0011 AC-8): a hanging kind no longer
+    lands in the field. This check stays for the stores the older mint wrote, and for a field
+    written past the kernel.
 
     Measured 2026-07-31, and the reason this exists: nothing reported the state at all. The
-    project only learns of it at the next spawn, as a refusal -- and because a `routine` is
-    time-boxed and recurring by construction, it recurs at EVERY renewal, on a root that has long
-    been APPROVED, where "mint them in the right order" is no advice at all.
+    project only learned of it at the next spawn, as a refusal -- and because a `routine` is
+    time-boxed and recurring by construction, it recurred at EVERY renewal, on a root that had long
+    been APPROVED, where "mint them in the right order" was no advice at all.
 
     A WARNING, not an error: the state is legal, the remedy is a user action (re-run the scope
     approval), and a gate that blocked the merge here would block it for a permission the project

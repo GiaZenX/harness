@@ -1,0 +1,409 @@
+{
+  "clock_end": "2026-09-11 04:46:47",
+  "clock_start": "2026-09-11 04:46:16",
+  "kits": {
+    "dev-team": {
+      "auditor_route": {
+        "allowed_scope": [],
+        "create_rc": 0,
+        "dispatch": {
+          "ladder_line": "KPOINT TREATED AS ABSENT for TSK-0004: no checkpoint was ever recorded for it. Re-order the work from scratch -- adoption is earned, not assumed (DEC-0044).\nladder: rung opus, effort high (opus: pin sonnet, class qa starts on opus, 0 failed run(s), top fable; effort high: the goal's class is normal)",
+          "rc": 0
+        },
+        "err": "",
+        "question": "Freigabe erbeten: Dauer-Erlaubnis f\u00fcr eine wiederkehrende Pr\u00fcfung f\u00fcr \u201eKasse mit Bon\u201c (PR-0001) [Takt: weekly, g\u00fcltig bis: 2026-10-11T02:46:25Z, Rolle: project-auditor, Lesebereich: project_memory/**, Ausl\u00f6ser: weekly] (Revision 1). [APR-REQ:5f90cbd355e04c26b8223b30b5e63d10]",
+        "request_rc": 0,
+        "root_approval_ref_after_mint": "APR-0001"
+      },
+      "capture_root": 0,
+      "check_scopes": {
+        "out": "matcher: C:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\pilots\\dev\\.claude\\hooks\\gate_write_scope.py | 3 open orders | 168 files in the tree\norder TSK-0001 under PR-0001: asks rung sonnet, effort high (DEC-0091; the lease derives the final pair)\norder TSK-0002 under PR-0001: asks rung opus, effort high (DEC-0091; the lease derives the final pair)\norder TSK-0003 under PR-0001: asks rung fable, effort xhigh (DEC-0091; the lease derives the final pair)\nrecorded: tasks/scope-checks/2026-09-11T044624.125017-32eeebdc.check.yaml (the dispatcher reads this before it grants a second builder under one goal, DEC-0092 (2))\ndisjoint: no pair of open orders owns a common path outside the declared seam.\n",
+        "rc": 0
+      },
+      "checkpoint": {
+        "lines": [
+          "CHECKPOINT before builder TSK-0001 starts (DEC-0092 (3)):",
+          "(a) this goal splits into 3 disjoint sets among 3 open order(s) (computed now; a second builder still needs a check-scopes record): TSK-0001; TSK-0002; TSK-0003",
+          "(b) this order: 1 allowed-scope entry, 1 expected output(s), goal class normal",
+          "(c) about to lease: rung sonnet, effort high -- the ladder's floor for backend-developer is sonnet (pin sonnet, class build), top fable; the order asked rung sonnet / effort high",
+          "(d) last 3 order(s) by their latest lease: 1 goal(s) with builders; builders per goal 3 builder(s) x 1 goal(s); rungs fable x 1, opus x 1, sonnet x 1; runs to hand-back per rung none handed back yet",
+          "Does the rung fit the slice, and is one builder still the right count? (DEC-0092 (3): a mirror with numbers -- nothing here blocks.)"
+        ],
+        "rc": 0,
+        "stderr": ""
+      },
+      "clock": "2026-09-11 04:46:16",
+      "clock_end": "2026-09-11 04:46:26",
+      "kit": "dev-team",
+      "lead_code_write": {
+        "rc": 2,
+        "stderr": "relay it verbatim -- and the USER mints it by answering. No command mints. This message used to advertise `project_memory/*.yaml` as an open door, which sent the lead straight into another gate's refusal.\n\nWhat this mechanism refuses, on which event, and the condition under which it does not refuse at all: C:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\pilots\\dev\\.claude\\hooks\\ENFORCEMENT.md\n"
+      },
+      "orders": [
+        {
+          "ask": {
+            "effort": "high",
+            "rung": "sonnet"
+          },
+          "create": 0,
+          "create_err": "",
+          "dispatch": {
+            "ladder_line": "CHECKPOINT TREATED AS ABSENT for TSK-0001: no checkpoint was ever recorded for it. Re-order the work from scratch -- adoption is earned, not assumed (DEC-0044).\nladder: rung sonnet, effort high (sonnet: pin sonnet, class build starts on pin, the order's ask sonnet is not above it, 0 failed run(s), top fable; effort high: the goal's class is normal)",
+            "rc": 0
+          },
+          "header": "HARNESS_DISPATCH {\"effort\": \"high\", \"hand_back\": \"self\", \"lease\": \"29487efc4b774dc4aeb6610416ed1c4c\", \"root_revision\": 1, \"rung\": \"sonnet\", \"task_id\": \"TSK-0001\"}",
+          "leased": {
+            "lease_effort": "high",
+            "lease_rung": "sonnet"
+          },
+          "measured_disjoint": null,
+          "role": "backend-developer",
+          "size": "small",
+          "task": "TSK-0001"
+        },
+        {
+          "ask": {
+            "effort": "high",
+            "rung": "opus"
+          },
+          "create": 0,
+          "create_err": "",
+          "dispatch": {
+            "ladder_line": "CHECKPOINT TREATED AS ABSENT for TSK-0002: no checkpoint was ever recorded for it. Re-order the work from scratch -- adoption is earned, not assumed (DEC-0044).\nladder: rung opus, effort high (opus: pin sonnet, class build starts on pin, the order asks opus, 0 failed run(s), top fable; effort high: the goal's class is normal)",
+            "rc": 0
+          },
+          "header": "HARNESS_DISPATCH {\"effort\": \"high\", \"hand_back\": \"self\", \"lease\": \"9e360be73c6644ac8ff20acdb3b4cf41\", \"root_revision\": 1, \"rung\": \"opus\", \"task_id\": \"TSK-0002\"}",
+          "leased": {
+            "lease_effort": "high",
+            "lease_rung": "opus"
+          },
+          "measured_disjoint": {
+            "TSK-0001": "tasks/scope-checks/2026-09-11T044624.125017-32eeebdc.check.yaml"
+          },
+          "role": "backend-developer",
+          "size": "medium",
+          "task": "TSK-0002"
+        },
+        {
+          "ask": {
+            "effort": "xhigh",
+            "rung": "fable"
+          },
+          "create": 0,
+          "create_err": "",
+          "dispatch": {
+            "ladder_line": "CHECKPOINT TREATED AS ABSENT for TSK-0003: no checkpoint was ever recorded for it. Re-order the work from scratch -- adoption is earned, not assumed (DEC-0044).\nladder: rung fable, effort xhigh (fable: pin sonnet, class build starts on pin, the order asks fable, 0 failed run(s), top fable; effort xhigh: the order asks xhigh)",
+            "rc": 0
+          },
+          "header": "HARNESS_DISPATCH {\"effort\": \"xhigh\", \"hand_back\": \"self\", \"lease\": \"1d7a3cf12bbf4da0b36086fd5a799b27\", \"root_revision\": 1, \"rung\": \"fable\", \"task_id\": \"TSK-0003\"}",
+          "leased": {
+            "lease_effort": "xhigh",
+            "lease_rung": "fable"
+          },
+          "measured_disjoint": {
+            "TSK-0001": "tasks/scope-checks/2026-09-11T044624.125017-32eeebdc.check.yaml",
+            "TSK-0002": "tasks/scope-checks/2026-09-11T044624.125017-32eeebdc.check.yaml"
+          },
+          "role": "backend-developer",
+          "size": "large",
+          "task": "TSK-0003"
+        }
+      ],
+      "scaffold_init_project_memory": 0,
+      "scaffold_scaffold_team": 0,
+      "second_builder_without_record": {
+        "rc": 1,
+        "stderr": "er under PR-0001 beside TSK-0001, and no check-scopes record measured its file set disjoint from TSK-0001 -- refused (DEC-0092 (2), DEC-0087 (2): a second builder only on two measured-disjoint file sets). Remedy: run `python scripts/harness.py check-scopes` (it writes the record this reads, for the orders as they stand now), read its verdict, and dispatch again; or wait for TSK-0001 to finish, or give the slice to that order. A record stops covering an order whose scope changed since the check.\n"
+      },
+      "session_start_clears_marker": {
+        "marker_gone": true,
+        "rc": 0
+      },
+      "smallest_preset": {
+        "installed_roles": [
+          "backend-developer",
+          "project-auditor",
+          "project-manager",
+          "quality-engineer",
+          "software-architect"
+        ],
+        "name": "solo",
+        "roles": [
+          "software-architect",
+          "backend-developer",
+          "quality-engineer",
+          "project-auditor"
+        ]
+      }
+    },
+    "office-team": {
+      "auditor_route": {
+        "allowed_scope": [],
+        "create_rc": 0,
+        "dispatch": {
+          "ladder_line": "OINT TREATED AS ABSENT for TSK-0004: no checkpoint was ever recorded for it. Re-order the work from scratch -- adoption is earned, not assumed (DEC-0044).\nladder: rung opus, effort medium (opus: pin sonnet, class qa starts on opus, 0 failed run(s), top opus; effort medium: the goal carries no class)",
+          "rc": 0
+        },
+        "err": "",
+        "question": "Freigabe erbeten: Dauer-Erlaubnis f\u00fcr eine wiederkehrende Pr\u00fcfung f\u00fcr \u201eMonatsabschluss\u201c (PROC-0001) [Takt: weekly, g\u00fcltig bis: 2026-10-11T02:46:35Z, Rolle: project-auditor, Lesebereich: project_memory/**, Ausl\u00f6ser: weekly] (Revision 1). [APR-REQ:61df29e2392e444f90ec2c42a252e539]",
+        "request_rc": 0,
+        "root_approval_ref_after_mint": "APR-0001"
+      },
+      "capture_root": 0,
+      "check_scopes": {
+        "out": "matcher: C:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\pilots\\office\\.claude\\hooks\\gate_write_scope.py | 3 open orders | 169 files in the tree\norder TSK-0001 under PROC-0001: asks rung sonnet, effort high (DEC-0091; the lease derives the final pair)\norder TSK-0002 under PROC-0001: asks rung opus, effort high (DEC-0091; the lease derives the final pair)\norder TSK-0003 under PROC-0001: asks rung fable, effort xhigh (DEC-0091; the lease derives the final pair)\nrecorded: tasks/scope-checks/2026-09-11T044634.400546-4c8ddb40.check.yaml (the dispatcher reads this before it grants a second builder under one goal, DEC-0092 (2))\ndisjoint: no pair of open orders owns a common path outside the declared seam.\n",
+        "rc": 0
+      },
+      "checkpoint": {
+        "lines": [
+          "CHECKPOINT before builder TSK-0001 starts (DEC-0092 (3)):",
+          "(a) this goal splits into 3 disjoint sets among 3 open order(s) (computed now; a second builder still needs a check-scopes record): TSK-0001; TSK-0002; TSK-0003",
+          "(b) this order: 1 allowed-scope entry, 1 expected output(s), goal class none",
+          "(c) about to lease: rung sonnet, effort high -- the ladder's floor for bookkeeper is sonnet (pin sonnet, class build), top opus; the order asked rung sonnet / effort high",
+          "(d) last 3 order(s) by their latest lease: 1 goal(s) with builders; builders per goal 3 builder(s) x 1 goal(s); rungs opus x 2, sonnet x 1; runs to hand-back per rung none handed back yet",
+          "Does the rung fit the slice, and is one builder still the right count? (DEC-0092 (3): a mirror with numbers -- nothing here blocks.)"
+        ],
+        "rc": 0,
+        "stderr": ""
+      },
+      "clock": "2026-09-11 04:46:26",
+      "clock_end": "2026-09-11 04:46:37",
+      "kit": "office-team",
+      "lead_code_write": {
+        "rc": 2,
+        "stderr": "ay it verbatim -- and the USER mints it by answering. No command mints. This message used to advertise `project_memory/*.yaml` as an open door, which sent the lead straight into another gate's refusal.\n\nWhat this mechanism refuses, on which event, and the condition under which it does not refuse at all: C:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\pilots\\office\\.claude\\hooks\\ENFORCEMENT.md\n"
+      },
+      "orders": [
+        {
+          "ask": {
+            "effort": "high",
+            "rung": "sonnet"
+          },
+          "create": 0,
+          "create_err": "",
+          "dispatch": {
+            "ladder_line": "CHECKPOINT TREATED AS ABSENT for TSK-0001: no checkpoint was ever recorded for it. Re-order the work from scratch -- adoption is earned, not assumed (DEC-0044).\nladder: rung sonnet, effort high (sonnet: pin sonnet, class build starts on pin, the order's ask sonnet is not above it, 0 failed run(s), top opus; effort high: the order asks high)",
+            "rc": 0
+          },
+          "header": "HARNESS_DISPATCH {\"effort\": \"high\", \"hand_back\": \"self\", \"lease\": \"18a32151a1724a02ac5d66acf1294ed0\", \"root_revision\": 1, \"rung\": \"sonnet\", \"task_id\": \"TSK-0001\"}",
+          "leased": {
+            "lease_effort": "high",
+            "lease_rung": "sonnet"
+          },
+          "measured_disjoint": null,
+          "role": "bookkeeper",
+          "size": "small",
+          "task": "TSK-0001"
+        },
+        {
+          "ask": {
+            "effort": "high",
+            "rung": "opus"
+          },
+          "create": 0,
+          "create_err": "",
+          "dispatch": {
+            "ladder_line": "CHECKPOINT TREATED AS ABSENT for TSK-0002: no checkpoint was ever recorded for it. Re-order the work from scratch -- adoption is earned, not assumed (DEC-0044).\nladder: rung opus, effort high (opus: pin sonnet, class build starts on pin, the order asks opus, 0 failed run(s), top opus; effort high: the order asks high)",
+            "rc": 0
+          },
+          "header": "HARNESS_DISPATCH {\"effort\": \"high\", \"hand_back\": \"self\", \"lease\": \"51dbad67952b48c1b9b4f42e3d606f56\", \"root_revision\": 1, \"rung\": \"opus\", \"task_id\": \"TSK-0002\"}",
+          "leased": {
+            "lease_effort": "high",
+            "lease_rung": "opus"
+          },
+          "measured_disjoint": {
+            "TSK-0001": "tasks/scope-checks/2026-09-11T044634.400546-4c8ddb40.check.yaml"
+          },
+          "role": "bookkeeper",
+          "size": "medium",
+          "task": "TSK-0002"
+        },
+        {
+          "ask": {
+            "effort": "xhigh",
+            "rung": "fable"
+          },
+          "create": 0,
+          "create_err": "",
+          "dispatch": {
+            "ladder_line": "CHECKPOINT TREATED AS ABSENT for TSK-0003: no checkpoint was ever recorded for it. Re-order the work from scratch -- adoption is earned, not assumed (DEC-0044).\nladder: rung opus, effort high (opus: pin sonnet, class build starts on pin, the order asks fable, 0 failed run(s), top opus; effort high: the order asks xhigh, capped at the kit's highest effort high)",
+            "rc": 0
+          },
+          "header": "HARNESS_DISPATCH {\"effort\": \"high\", \"hand_back\": \"self\", \"lease\": \"15b1d57f1dcb4fb1a92911cc31455c6a\", \"root_revision\": 1, \"rung\": \"opus\", \"task_id\": \"TSK-0003\"}",
+          "leased": {
+            "lease_effort": "high",
+            "lease_rung": "opus"
+          },
+          "measured_disjoint": {
+            "TSK-0001": "tasks/scope-checks/2026-09-11T044634.400546-4c8ddb40.check.yaml",
+            "TSK-0002": "tasks/scope-checks/2026-09-11T044634.400546-4c8ddb40.check.yaml"
+          },
+          "role": "bookkeeper",
+          "size": "large",
+          "task": "TSK-0003"
+        }
+      ],
+      "scaffold_init_project_memory": 0,
+      "scaffold_scaffold_team": 0,
+      "second_builder_without_record": {
+        "rc": 1,
+        "stderr": " under PROC-0001 beside TSK-0001, and no check-scopes record measured its file set disjoint from TSK-0001 -- refused (DEC-0092 (2), DEC-0087 (2): a second builder only on two measured-disjoint file sets). Remedy: run `python scripts/harness.py check-scopes` (it writes the record this reads, for the orders as they stand now), read its verdict, and dispatch again; or wait for TSK-0001 to finish, or give the slice to that order. A record stops covering an order whose scope changed since the check.\n"
+      },
+      "session_start_clears_marker": {
+        "marker_gone": true,
+        "rc": 0
+      },
+      "smallest_preset": {
+        "installed_roles": [
+          "bookkeeper",
+          "filing-reviewer",
+          "office-manager",
+          "project-auditor",
+          "records-clerk"
+        ],
+        "name": "core",
+        "roles": [
+          "records-clerk",
+          "filing-reviewer",
+          "bookkeeper",
+          "project-auditor"
+        ]
+      }
+    },
+    "research-team": {
+      "auditor_route": {
+        "allowed_scope": [],
+        "create_rc": 0,
+        "dispatch": {
+          "ladder_line": "KPOINT TREATED AS ABSENT for TSK-0004: no checkpoint was ever recorded for it. Re-order the work from scratch -- adoption is earned, not assumed (DEC-0044).\nladder: rung opus, effort high (opus: pin sonnet, class qa starts on opus, 0 failed run(s), top fable; effort high: the goal's class is normal)",
+          "rc": 0
+        },
+        "err": "",
+        "question": "Freigabe erbeten: Dauer-Erlaubnis f\u00fcr eine wiederkehrende Pr\u00fcfung f\u00fcr \u201eFrage\u201c (RQ-0001) [Takt: weekly, g\u00fcltig bis: 2026-10-11T02:46:46Z, Rolle: project-auditor, Lesebereich: project_memory/**, Ausl\u00f6ser: weekly] (Revision 1). [APR-REQ:f4ab79d47c5d42d9bd40bfa1468e6497]",
+        "request_rc": 0,
+        "root_approval_ref_after_mint": "APR-0001"
+      },
+      "capture_root": 0,
+      "check_scopes": {
+        "out": "matcher: C:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\pilots\\research\\.claude\\hooks\\gate_write_scope.py | 3 open orders | 178 files in the tree\norder TSK-0001 under RQ-0001: asks rung sonnet, effort high (DEC-0091; the lease derives the final pair)\norder TSK-0002 under RQ-0001: asks rung opus, effort high (DEC-0091; the lease derives the final pair)\norder TSK-0003 under RQ-0001: asks rung fable, effort xhigh (DEC-0091; the lease derives the final pair)\nrecorded: tasks/scope-checks/2026-09-11T044644.591876-a381e76e.check.yaml (the dispatcher reads this before it grants a second builder under one goal, DEC-0092 (2))\ndisjoint: no pair of open orders owns a common path outside the declared seam.\n",
+        "rc": 0
+      },
+      "checkpoint": {
+        "lines": [
+          "CHECKPOINT before builder TSK-0001 starts (DEC-0092 (3)):",
+          "(a) this goal splits into 3 disjoint sets among 3 open order(s) (computed now; a second builder still needs a check-scopes record): TSK-0001; TSK-0002; TSK-0003",
+          "(b) this order: 1 allowed-scope entry, 1 expected output(s), goal class normal",
+          "(c) about to lease: rung sonnet, effort high -- the ladder's floor for researcher is sonnet (pin sonnet, class build), top fable; the order asked rung sonnet / effort high",
+          "(d) last 3 order(s) by their latest lease: 1 goal(s) with builders; builders per goal 3 builder(s) x 1 goal(s); rungs fable x 1, opus x 1, sonnet x 1; runs to hand-back per rung none handed back yet",
+          "Does the rung fit the slice, and is one builder still the right count? (DEC-0092 (3): a mirror with numbers -- nothing here blocks.)"
+        ],
+        "rc": 0,
+        "stderr": ""
+      },
+      "clock": "2026-09-11 04:46:37",
+      "clock_end": "2026-09-11 04:46:47",
+      "kit": "research-team",
+      "lead_code_write": {
+        "rc": 2,
+        "stderr": " it verbatim -- and the USER mints it by answering. No command mints. This message used to advertise `project_memory/*.yaml` as an open door, which sent the lead straight into another gate's refusal.\n\nWhat this mechanism refuses, on which event, and the condition under which it does not refuse at all: C:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\pilots\\research\\.claude\\hooks\\ENFORCEMENT.md\n"
+      },
+      "orders": [
+        {
+          "ask": {
+            "effort": "high",
+            "rung": "sonnet"
+          },
+          "create": 0,
+          "create_err": "",
+          "dispatch": {
+            "ladder_line": "CHECKPOINT TREATED AS ABSENT for TSK-0001: no checkpoint was ever recorded for it. Re-order the work from scratch -- adoption is earned, not assumed (DEC-0044).\nladder: rung sonnet, effort high (sonnet: pin sonnet, class build starts on pin, the order's ask sonnet is not above it, 0 failed run(s), top fable; effort high: the goal's class is normal)",
+            "rc": 0
+          },
+          "header": "HARNESS_DISPATCH {\"effort\": \"high\", \"hand_back\": \"self\", \"lease\": \"5814c1a4de2f4093babc61e3cb6d15cd\", \"root_revision\": 1, \"rung\": \"sonnet\", \"task_id\": \"TSK-0001\"}",
+          "leased": {
+            "lease_effort": "high",
+            "lease_rung": "sonnet"
+          },
+          "measured_disjoint": null,
+          "role": "researcher",
+          "size": "small",
+          "task": "TSK-0001"
+        },
+        {
+          "ask": {
+            "effort": "high",
+            "rung": "opus"
+          },
+          "create": 0,
+          "create_err": "",
+          "dispatch": {
+            "ladder_line": "CHECKPOINT TREATED AS ABSENT for TSK-0002: no checkpoint was ever recorded for it. Re-order the work from scratch -- adoption is earned, not assumed (DEC-0044).\nladder: rung opus, effort high (opus: pin sonnet, class build starts on pin, the order asks opus, 0 failed run(s), top fable; effort high: the goal's class is normal)",
+            "rc": 0
+          },
+          "header": "HARNESS_DISPATCH {\"effort\": \"high\", \"hand_back\": \"self\", \"lease\": \"911a127e6af849e98d33338edb81202c\", \"root_revision\": 1, \"rung\": \"opus\", \"task_id\": \"TSK-0002\"}",
+          "leased": {
+            "lease_effort": "high",
+            "lease_rung": "opus"
+          },
+          "measured_disjoint": {
+            "TSK-0001": "tasks/scope-checks/2026-09-11T044644.591876-a381e76e.check.yaml"
+          },
+          "role": "researcher",
+          "size": "medium",
+          "task": "TSK-0002"
+        },
+        {
+          "ask": {
+            "effort": "xhigh",
+            "rung": "fable"
+          },
+          "create": 0,
+          "create_err": "",
+          "dispatch": {
+            "ladder_line": "CHECKPOINT TREATED AS ABSENT for TSK-0003: no checkpoint was ever recorded for it. Re-order the work from scratch -- adoption is earned, not assumed (DEC-0044).\nladder: rung fable, effort xhigh (fable: pin sonnet, class build starts on pin, the order asks fable, 0 failed run(s), top fable; effort xhigh: the order asks xhigh)",
+            "rc": 0
+          },
+          "header": "HARNESS_DISPATCH {\"effort\": \"xhigh\", \"hand_back\": \"self\", \"lease\": \"0e3ce67e7bf24724a3a982e3c478ea2a\", \"root_revision\": 1, \"rung\": \"fable\", \"task_id\": \"TSK-0003\"}",
+          "leased": {
+            "lease_effort": "xhigh",
+            "lease_rung": "fable"
+          },
+          "measured_disjoint": {
+            "TSK-0001": "tasks/scope-checks/2026-09-11T044644.591876-a381e76e.check.yaml",
+            "TSK-0002": "tasks/scope-checks/2026-09-11T044644.591876-a381e76e.check.yaml"
+          },
+          "role": "researcher",
+          "size": "large",
+          "task": "TSK-0003"
+        }
+      ],
+      "scaffold_init_project_memory": 0,
+      "scaffold_scaffold_team": 0,
+      "second_builder_without_record": {
+        "rc": 1,
+        "stderr": "er under RQ-0001 beside TSK-0001, and no check-scopes record measured its file set disjoint from TSK-0001 -- refused (DEC-0092 (2), DEC-0087 (2): a second builder only on two measured-disjoint file sets). Remedy: run `python scripts/harness.py check-scopes` (it writes the record this reads, for the orders as they stand now), read its verdict, and dispatch again; or wait for TSK-0001 to finish, or give the slice to that order. A record stops covering an order whose scope changed since the check.\n"
+      },
+      "session_start_clears_marker": {
+        "marker_gone": true,
+        "rc": 0
+      },
+      "smallest_preset": {
+        "installed_roles": [
+          "methodologist",
+          "project-auditor",
+          "project-manager",
+          "researcher",
+          "reviewer"
+        ],
+        "name": "solo",
+        "roles": [
+          "methodologist",
+          "researcher",
+          "reviewer",
+          "project-auditor"
+        ]
+      }
+    }
+  },
+  "seconds": 31.0
+}

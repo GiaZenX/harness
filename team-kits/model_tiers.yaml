@@ -34,6 +34,12 @@
 # a date that passed is removed, and what it was about becomes a fact above or an item:
 #   2026-11-21 gpt-5.6-sol promotional pricing is guaranteed until at least this date
 
+# THE ORDER OF THE RUNGS, low -> high (DEC-0076 (1): worker < lead < top). The rows under `tiers:`
+# are mappings and carry no order; `kernel.dispatch._reference_rungs` reads THIS line for the
+# vocabulary a kit-less project places an order's `rung` against, and refuses a line that does not
+# name exactly the reference row's rungs -- so the two cannot drift apart.
+rungs: [sonnet, opus, fable]
+
 aliases:            # alias -> canonical (claude) rung name used in model_map and role pins
   lead: opus
   worker: sonnet

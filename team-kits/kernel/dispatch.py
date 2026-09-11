@@ -40,6 +40,8 @@ from .backlog_types import (
     AUTOMATA,
     PARENT_FIELDS,
     TRIAGE_RESULT_LINK,
+    TSK_EFFORT_FIELD,
+    TSK_RUNG_FIELD,
     UI_TASK_TYPES,
     field_elements,
     is_inbox_type,
@@ -108,11 +110,34 @@ REFERENCES_KEY = "references"
 # says what that kit ships. The derivation is `ladder_for_order`.
 LADDER_FILE = "ladder.yaml"
 TIERS_FILE = "model_tiers.yaml"
-# What the derivation writes: the two values on the lease, in the header and on the task item, and
-# the whole derivation beside them on the lease so a reader can see WHY (DEC-0077 (5)).
-RUNG_KEY = "rung"
-EFFORT_KEY = "effort"
+# What the derivation writes: the two values on the lease and in the header, and the whole
+# derivation beside them on the lease so a reader can see WHY (DEC-0077 (5)). THE SAME TWO NAMES ON
+# A TASK ARE THE PM'S ASK (DEC-0091 (1), `backlog_types.TSK_RUNG_FIELD`): an input of
+# `ladder_for_order`, never its answer -- which is why the answer reaches the task under the three
+# `LEASE_*_FIELD` names below and not under these.
+RUNG_KEY = TSK_RUNG_FIELD
+EFFORT_KEY = TSK_EFFORT_FIELD
 LADDER_KEY = "ladder"
+# What the lease derived, copied onto the TASK so it outlives the lease (a lease is removed when
+# the order ends, a task is archived): the session brief reads them per order (PR-0010 AC-6) and
+# `report.lease_distribution` reads them across orders (DEC-0092 (4)). The role class rides along
+# because "builders per goal" is a count of BUILD-class orders, and the class is otherwise only on
+# the lease.
+LEASE_RUNG_FIELD = "lease_rung"
+LEASE_EFFORT_FIELD = "lease_effort"
+LEASE_CLASS_FIELD = "lease_class"
+# The effort vocabulary, ordered low -> high (DEC-0091 (3)). One ordering, because DEC-0091 (2)
+# takes the HIGHER of two efforts and a declaration's effort or an order's ask outside this tuple
+# could not be compared -- so both are refused against it (`_valid_ladder`, `create_task`).
+EFFORT_LEVELS = ("low", "medium", "high", "xhigh")
+# The class name under which a kit's ladder lists its builders. DEC-0092 (2) refuses a second
+# concurrent lease of THIS class under one goal without a check-scopes record, so a declaration
+# has to name it (`_valid_ladder`) or the rule would silently never fire for that kit.
+BUILD_CLASS = "build"
+# What a SECOND builder's lease carries: {the other running builder: the check-scopes record that
+# measured the pair disjoint}. Absent on every ordinary lease, so "one builder" and "a second one
+# admitted on evidence" are two different envelopes (PR-0011 AC-1).
+MEASURED_DISJOINT_KEY = "measured_disjoint"
 # The two words a class or an exception in the declaration may use instead of a rung name: the
 # kit's top rung, or the role's own pin.
 CLASS_TOP = "top"
@@ -158,6 +183,7 @@ def create_task(state: ProjectState, fields: dict) -> dict:
             "TSK needs product_requirement (the PR/RQ root id). Remedy: set it."
         )
     _assert_the_origins_are_not_inbox_items(state, fields)
+    _assert_the_order_tiers_are_placeable(state, fields)
     with state.lock:
         root = state.read_item(root_id)
         _assert_origins_belong_to_root_locked(state, root, fields)
@@ -166,6 +192,107 @@ def create_task(state: ProjectState, fields: dict) -> dict:
     # TOCTOU note: capture below takes a SECOND lock hold -- a root-revision
     # change in between is caught fail-closed by create_lease's revision check
     return state.capture("TSK", task_fields)
+
+
+def order_tiers(task: dict) -> tuple:
+    """(rung, effort) the PM asked for on this order -- each a string or None (DEC-0091 (1))."""
+    rung = task.get(RUNG_KEY)
+    effort = task.get(EFFORT_KEY)
+    return (str(rung) if rung not in (None, "") else None,
+            str(effort) if effort not in (None, "") else None)
+
+
+def rung_vocabulary(state: ProjectState) -> tuple:
+    """(rungs low -> high, where they come from) -- what an order's rung ask is placed against.
+
+    THE KIT'S LADDER where there is one (DEC-0091 (3): "outside the kit's ladder vocabulary"), and
+    for a project no kit scaffolded -- the shape this repository itself runs in -- the reference
+    vocabulary of the tiers table beside the kernel package, which is the one every ladder's names
+    are taken from (DEC-0076). A project with neither has nothing to place a rung against and the
+    ask is refused rather than stored for a reader that will never come.
+    `tools/test_light_kit.py::test_a_kit_less_project_places_an_order_rung_against_the_reference_vocabulary`
+    """
+    found = ladder_declaration(state)
+    if found is not None:
+        kit, ladder = found
+        return tuple(ladder["rungs"]), "%s of kit %r" % (LADDER_FILE, kit)
+    table = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), TIERS_FILE)
+    if not os.path.isfile(table):
+        raise DispatchError(
+            "no scaffold record names a kit for this project and no %s lies beside the kernel "
+            "package (%s), so there is no rung vocabulary to place an order's `%s` against -- "
+            "refused rather than stored unread (DEC-0091 (3)). Remedy: drop the field, or run the "
+            "kernel from a tree that carries the tiers table."
+            % (TIERS_FILE, os.path.dirname(table).replace(os.sep, "/"), RUNG_KEY))
+    return _reference_rungs(table), table.replace(os.sep, "/")
+
+
+def _reference_rungs(table: str) -> tuple:
+    """The reference platform's rung names out of the tiers table, LOW TO HIGH.
+
+    THE REFERENCE ROW IS FOUND BY ITS PROPERTY, not by a provider name: it is the one row whose
+    rung names pass through as the model ids (`fable: fable`, the table's own words: "rung names
+    ARE the model ids"), because that is what makes its names the vocabulary every other row
+    translates. The one key of a row that is not a rung names the provider's effort field, and it
+    is told apart the same way -- its value is a field name, not the key itself.
+    `tools/test_light_kit.py::test_the_reference_row_is_found_by_its_property_and_not_by_a_name`
+    drives a synthetic table where the pass-through row sits under another provider's name.
+
+    THE ORDER IS THE TABLE'S OWN `rungs:` LINE and not the row's key order: a mapping's order says
+    nothing (the shipped row happens to read high -> low, mid-goal check B4), and a caller that
+    indexes this tuple the way `ladder_for_order` indexes a kit's rungs would climb downwards. Both
+    ends are held against each other: the line has to name exactly the pass-through row's rungs.
+    """
+    data = _read_yaml_mapping(table, TIERS_FILE)
+    tiers = data.get("tiers") or {}
+    rows = {}
+    for provider, row in (tiers.items() if isinstance(tiers, dict) else ()):
+        if not isinstance(row, dict):
+            continue
+        rungs = tuple(str(name) for name, value in row.items() if str(name) == str(value))
+        if rungs and len(rungs) == len(row) - 1:
+            rows[str(provider)] = rungs
+    if len(rows) != 1:
+        raise DispatchError(
+            "%s names %d pass-through rows under `tiers:` (%s) and the reference vocabulary is the "
+            "ONE row whose rung names are the model ids -- no rung vocabulary can be read from it. "
+            "Remedy: repair the table." % (table, len(rows), ", ".join(sorted(rows)) or "none"))
+    ordered = data.get("rungs")
+    reference = next(iter(rows.values()))
+    if (not isinstance(ordered, list) or len(set(map(str, ordered))) != len(ordered)
+            or set(map(str, ordered)) != set(reference)):
+        raise DispatchError(
+            "%s carries no `rungs:` line naming exactly the reference row's rungs low -> high "
+            "(row: %s, line: %r) -- the vocabulary has names but no order, and an order's rung is "
+            "compared by position. Remedy: repair the table."
+            % (table, ", ".join(reference), ordered))
+    return tuple(str(name) for name in ordered)
+
+
+def _assert_the_order_tiers_are_placeable(state: ProjectState, fields: dict) -> None:
+    """An order's `rung` is one of the vocabulary and its `effort` one of `EFFORT_LEVELS`, or the
+    order is refused at CREATION (DEC-0091 (3)).
+
+    At creation and not only at the lease, because the field is the PM's judgment written for a
+    dispatcher that reads it later: a value the ladder cannot place would sit on a READY order
+    until the first `dispatch`, and by then the fields are frozen. The lease asks the same two
+    questions again (`ladder_for_order`), so an `update` while DRAFT cannot slip past either.
+    `tools/test_light_kit.py::test_an_order_rung_outside_the_ladder_and_an_effort_outside_the_vocabulary_are_refused`
+    """
+    rung, effort = order_tiers(fields)
+    if effort is not None and effort not in EFFORT_LEVELS:
+        raise DispatchError(
+            "`%s: %s` is not an effort this kernel can order -- the vocabulary is %s, low to high "
+            "(DEC-0091 (3)). Remedy: name one of them, or drop the field and the goal's effort "
+            "applies." % (EFFORT_KEY, effort, "|".join(EFFORT_LEVELS)))
+    if rung is not None:
+        rungs, source = rung_vocabulary(state)
+        if rung not in rungs:
+            raise DispatchError(
+                "`%s: %s` is not a rung of %s (%s) -- an order's rung is the PM's ask on the "
+                "kit's own ladder, never a model name of its own (DEC-0091 (3), DEC-0076). "
+                "Remedy: name one of the rungs, or drop the field and the role's class decides."
+                % (RUNG_KEY, rung, source, ", ".join(rungs)))
 
 
 def _triage_remedy(state: ProjectState, origin: str, item_type: str) -> str:
@@ -333,10 +460,7 @@ def _assert_no_running_lease_owns_the_same_file_locked(state: ProjectState, task
     the overlap (`H143`).
     `tools/test_parallel_streams.py::test_the_second_lease_is_refused_when_the_scopes_overlap`
     """
-    now = time.time()
-    running = sorted({str(lease["task_id"]) for lease in _iter_leases(state)
-                      if float(lease.get("created_epoch") or 0) + float(lease.get("ttl") or 0) > now
-                      and str(lease["task_id"]) != task_id})
+    running = sorted({str(lease["task_id"]) for lease in running_leases(state, except_task=task_id)})
     if not running:
         return
     from . import scopes
@@ -361,6 +485,98 @@ def _assert_no_running_lease_owns_the_same_file_locked(state: ProjectState, task
             % (task_id, other, ", ".join(shared[:scopes.PATHS_SHOWN]),
                max(0, len(shared) - scopes.PATHS_SHOWN), gate, other, scopes.SEAM_FIELD)
         )
+
+
+def running_leases(state: ProjectState, except_task: str = None) -> list:
+    """Every lease whose TTL has not run out, oldest first -- the claims somebody still holds.
+
+    One reading for the two rules that ask it (`_assert_no_running_lease_owns_the_same_file_locked`
+    and `_assert_a_second_builder_was_measured_locked`), so "running" cannot mean two things; an
+    expired lease grants nothing and `sweep_expired_leases` is what removes it.
+    """
+    now = time.time()
+    return [lease for lease in _iter_leases(state)
+            if float(lease.get("created_epoch") or 0) + float(lease.get("ttl") or 0) > now
+            and str(lease["task_id"]) != except_task]
+
+
+def concurrent_builders(state: ProjectState, task: dict, root: dict, ladder: dict) -> list:
+    """The ids of the BUILD-class orders under this order's goal that hold a running lease --
+    the orders a second builder would run BESIDE (DEC-0092 (2)); empty for anything that is not a
+    build order itself.
+
+    The class is read off the OTHER lease's own ladder answer, the record that granted it, rather
+    than derived again here; a kit-less project has no class on either side and the rule does not
+    reach it, which `tools/test_light_kit.py::test_a_kit_less_project_is_outside_the_second_builder_rule`
+    says rather than this sentence.
+    """
+    if ladder.get("role_class") != BUILD_CLASS:
+        return []
+    beside = []
+    for lease in running_leases(state, except_task=str(task.get("id"))):
+        answer = lease.get(LADDER_KEY)
+        if not isinstance(answer, dict) or answer.get("role_class") != BUILD_CLASS:
+            continue
+        try:
+            other = state.read_item(str(lease["task_id"]))
+        except StateError:
+            continue
+        if str(other.get("product_requirement") or "") == str(root.get("id")):
+            beside.append(str(other["id"]))
+    return sorted(beside)
+
+
+def _assert_a_second_builder_was_measured_locked(state: ProjectState, task: dict, root: dict,
+                                                 ladder: dict) -> dict:
+    """A second concurrent BUILD lease under one goal needs a check-scopes record that measured the
+    two orders' file sets disjoint -- DEC-0087 (2) as a gate, not a sentence (DEC-0092 (2)).
+    Returns {other order id: the covering record, state-relative} -- what `create_lease` writes on
+    the lease as the evidence it was granted on (`MEASURED_DISJOINT_KEY`); empty when this is not
+    a second builder.
+
+    WHAT THIS ADDS TO THE OVERLAP CHECK ABOVE, and why both stand: the overlap check refuses two
+    orders that DO share a file, computed live at the lease. This one refuses two builders whose
+    disjointness nobody MEASURED before the cut -- somebody has to have run `check-scopes` over the
+    pair, and the record that run leaves (`kernel.scopes.check`) is what is asked for. WHO ran it
+    is not read and cannot be: `check-scopes` is not one of the ordering commands
+    `gate_write_scope` reserves for the lead, so any role may leave the record, and what the gate
+    holds is that a measurement exists, not that the PM made it. A record covers an order only
+    while the order's scope is what the record measured (`scopes.covering_record` compares
+    digests) and only while it is the NEWEST measurement of the pair, so a DRAFT order re-scoped
+    after the check, or a later run that found the pair overlapping, leaves it unmeasured again.
+    Nothing here reads a justification, because no gate reads free text (DEC-0092 (1)); the record
+    is a measurement or it is nothing.
+
+    ONLY UNDER ONE GOAL and ONLY FOR THE BUILD CLASS, both DEC-0092's words: two builders under two
+    goals are the parallel form DEC-0087 (2) names, and a QA or design order beside a builder is
+    not a second builder.
+    `tools/test_light_kit.py::test_a_second_build_lease_under_one_goal_needs_a_check_scopes_record`
+    `tools/test_light_kit.py::test_a_record_stops_covering_an_order_whose_scope_moved_since`
+    `tools/test_light_kit.py::test_a_second_lease_of_another_class_or_under_another_goal_needs_no_record`
+    """
+    beside = concurrent_builders(state, task, root, ladder)
+    if not beside:
+        return {}
+    from . import scopes
+
+    covered, unmeasured = {}, []
+    for other in beside:
+        record = scopes.covering_record(state, str(task["id"]), other)
+        if record is None:
+            unmeasured.append(other)
+        else:
+            covered[other] = os.path.relpath(record["path"], state.root).replace(os.sep, "/")
+    if not unmeasured:
+        return covered
+    raise DispatchError(
+        "%s would be a SECOND builder under %s beside %s, and no check-scopes record measured "
+        "its file set disjoint from %s -- refused (DEC-0092 (2), DEC-0087 (2): a second builder "
+        "only on two measured-disjoint file sets). Remedy: run `python scripts/harness.py "
+        "check-scopes` (it writes the record this reads, for the orders as they stand now), read "
+        "its verdict, and dispatch again; or wait for %s to finish, or give the slice to that "
+        "order. A record stops covering an order whose scope changed since the check."
+        % (task["id"], root.get("id"), ", ".join(beside), ", ".join(unmeasured),
+           ", ".join(unmeasured)))
 
 
 def create_lease(state: ProjectState, task_id: str, ttl: float = DEFAULT_LEASE_TTL,
@@ -457,11 +673,19 @@ def create_lease(state: ProjectState, task_id: str, ttl: float = DEFAULT_LEASE_T
         ladder = ladder_for_order(state, task, root, count_failed_run_locked(task))
         lease[LADDER_KEY] = ladder
         if RUNG_KEY in ladder:
-            lease[RUNG_KEY] = task[RUNG_KEY] = ladder[RUNG_KEY]
-            lease[EFFORT_KEY] = task[EFFORT_KEY] = ladder[EFFORT_KEY]
+            lease[RUNG_KEY] = task[LEASE_RUNG_FIELD] = ladder[RUNG_KEY]
+            lease[EFFORT_KEY] = task[LEASE_EFFORT_FIELD] = ladder[EFFORT_KEY]
+            task[LEASE_CLASS_FIELD] = ladder["role_class"]
         else:
-            task.pop(RUNG_KEY, None)
-            task.pop(EFFORT_KEY, None)
+            for field in (LEASE_RUNG_FIELD, LEASE_EFFORT_FIELD, LEASE_CLASS_FIELD):
+                task.pop(field, None)
+        # ...AND A SECOND BUILDER UNDER THIS GOAL HAS TO HAVE BEEN MEASURED (DEC-0092 (2)), asked
+        # last and before the write, so a refusal here leaves neither a lease nor a count behind;
+        # the record it was admitted on stands on the lease (PR-0011 AC-1: "evidence ... on the
+        # lease"), absent for the ordinary single builder.
+        covered = _assert_a_second_builder_was_measured_locked(state, task, root, ladder)
+        if covered:
+            lease[MEASURED_DISJOINT_KEY] = covered
         state._write_yaml_atomic(lease_path, lease)
         task["status"] = LEASE_MINTED_STATUS
         task["leased_at"] = _now_iso()
@@ -2448,6 +2672,11 @@ def _valid_ladder(kit: str, raw: dict) -> dict:
             or not all(isinstance(effort.get(key), str) and effort.get(key)
                        for key in ("default", LARGE_CLASS))):
         refuse("needs `effort:` with a `default` and a `%s` value" % LARGE_CLASS)
+    for key in ("default", LARGE_CLASS):
+        if effort[key] not in EFFORT_LEVELS:
+            refuse("gives `effort.%s` the value %r, which is not one of %s -- an order's effort ask "
+                   "is compared against it (DEC-0091 (2)) and a value outside the ordering cannot "
+                   "be" % (key, effort[key], "|".join(EFFORT_LEVELS)))
     escalation = raw.get("escalation")
     per_rung = escalation.get("failed_runs_per_rung") if isinstance(escalation, dict) else None
     if isinstance(per_rung, bool) or not isinstance(per_rung, int) or per_rung < 1:
@@ -2460,6 +2689,10 @@ def _valid_ladder(kit: str, raw: dict) -> dict:
         if start not in (CLASS_TOP, CLASS_PIN) and start not in rungs:
             refuse("gives class %r the start %r, which is neither `%s`, `%s` nor one of its rungs"
                    % (name, start, CLASS_TOP, CLASS_PIN))
+    if BUILD_CLASS not in classes:
+        refuse("declares no `%s` class -- DEC-0092 (2) refuses a second concurrent lease of that "
+               "class under one goal without a check-scopes record, and a kit that names its "
+               "builders otherwise would never be asked" % BUILD_CLASS)
     roles = raw.get("roles")
     if not isinstance(roles, dict) or not roles:
         refuse("needs `roles:` -- every spawnable role of the kit and its class")
@@ -2480,8 +2713,9 @@ def _valid_ladder(kit: str, raw: dict) -> dict:
             if key in rule and rule[key] not in rungs:
                 refuse("excepts role %r with a `%s` (%r) that is not one of its rungs"
                        % (role, key, rule[key]))
-        if EFFORT_KEY in rule and not (isinstance(rule[EFFORT_KEY], str) and rule[EFFORT_KEY]):
-            refuse("excepts role %r with an `%s` that is not a name" % (role, EFFORT_KEY))
+        if EFFORT_KEY in rule and rule[EFFORT_KEY] not in EFFORT_LEVELS:
+            refuse("excepts role %r with an `%s` (%r) that is not one of %s"
+                   % (role, EFFORT_KEY, rule[EFFORT_KEY], "|".join(EFFORT_LEVELS)))
     return {
         "rungs": [str(rung) for rung in rungs],
         CLASS_TOP: str(top),
@@ -2578,6 +2812,12 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
       * the EFFORT hangs on the goal: the pair's `large` value when the root's `class` is
         `LARGE_CLASS`, its `default` otherwise, unless the role's exception fixes one (the office
         filing floor, DEC-0047).
+      * THE ORDER'S ASK IS THE THIRD INPUT (DEC-0091 (2)): the rung is the higher of the ladder's
+        floor and the order's `rung`, the effort the higher of the goal's and the order's
+        `effort`; the floor never drops, the climb starts where the order starts, `top` and the
+        kit's highest declared effort still cap --
+        `tools/test_light_kit.py::test_an_order_rung_lifts_the_start_and_the_climb_begins_there`,
+        `::test_an_order_effort_lifts_the_goals_effort_and_the_kits_highest_effort_caps_it`.
     A kit-less project (no scaffold record) gets `{"absent": why}` and the role runs on its own
     pin; every other failure to read is a refusal, never a guess (DEC-0078 (4)).
     `tools/test_ladder.py` holds one red-first test per rule named above.
@@ -2618,13 +2858,34 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
     exception = ladder["exceptions"].get(role, {})
     top = str(exception.get(CLASS_TOP, ladder[CLASS_TOP]))
     if RUNG_KEY in exception:
-        start = str(exception[RUNG_KEY])
-        start_why = "the exception fixes the start"
+        floor = str(exception[RUNG_KEY])
+        floor_why = "the exception sets the floor"
     else:
         rule = ladder["classes"][role_class]
-        floor = top if rule == CLASS_TOP else base if rule == CLASS_PIN else rule
-        start = rungs[max(rungs.index(base), rungs.index(floor))]
-        start_why = "class %s starts on %s" % (role_class, rule)
+        class_floor = top if rule == CLASS_TOP else base if rule == CLASS_PIN else rule
+        floor = rungs[max(rungs.index(base), rungs.index(class_floor))]
+        floor_why = "class %s starts on %s" % (role_class, rule)
+    # THE ORDER'S ASK LIFTS THE START AND NEVER LOWERS IT (DEC-0091 (2)): the climb of rule 2 then
+    # begins where the order starts, and `top` caps it as it caps every climb -- an ask above the
+    # role's top is not refused (it is inside the vocabulary) but it is not granted either, and
+    # the `why` says which of the two it was.
+    order_rung, order_effort = order_tiers(task)
+    if order_rung is not None and order_rung not in rungs:
+        raise DispatchError(
+            "%s asks for `%s: %s`, which is not a rung of kit %r's ladder (%s) -- dispatch blocked "
+            "(DEC-0091 (3)). Remedy: correct the order while it is DRAFT, or drop the field."
+            % (task.get("id"), RUNG_KEY, order_rung, kit, ", ".join(rungs)))
+    if order_effort is not None and order_effort not in EFFORT_LEVELS:
+        raise DispatchError(
+            "%s asks for `%s: %s`, which is not one of %s -- dispatch blocked (DEC-0091 (3)). "
+            "Remedy: correct the order while it is DRAFT, or drop the field."
+            % (task.get("id"), EFFORT_KEY, order_effort, "|".join(EFFORT_LEVELS)))
+    start, start_why = floor, floor_why
+    if order_rung is not None and rungs.index(order_rung) > rungs.index(floor):
+        start = order_rung
+        start_why += ", the order asks %s" % order_rung
+    elif order_rung is not None:
+        start_why += ", the order's ask %s is not above it" % order_rung
     climbed = rungs.index(start) + int(failed_runs) // ladder["failed_runs_per_rung"]
     chosen = rungs[min(climbed, rungs.index(top))]
     goal_class = str(root.get("class") or "")
@@ -2635,6 +2896,27 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
     else:
         effort, effort_why = ladder[EFFORT_KEY]["default"], (
             "the goal's class is %s" % goal_class if goal_class else "the goal carries no class")
+    # THE ORDER'S EFFORT ASK LIFTS THE GOAL'S THE SAME WAY, and the kit's own pair is its ceiling:
+    # the higher value a declaration names is the highest effort that kit runs at all (office:
+    # `high`, DEC-0078 (2) -- "xhigh is not an office effort"), so an ask above it lands on the
+    # ceiling with the `why` saying so, exactly as a rung ask above `top` does. A ROLE'S EFFORT
+    # EXCEPTION IS FLOOR AND CEILING AT ONCE: the office filing pair runs `low` because its work is
+    # reading under double control (DEC-0047), and an order that asked `high` for it would buy
+    # nothing the pair is there for -- measured lifted at the mid-goal check (B2) and closed here;
+    # `tools/test_ladder.py::test_the_filing_pair_starts_on_its_pin_at_low_effort_and_still_climbs`
+    # carries the ask case. The rung exception, by contrast, is a floor the ask may lift
+    # (`floor_why` above), because a rung fixed by exception is a start, not a reason to stay low.
+    ceiling = max(ladder[EFFORT_KEY].values(), key=EFFORT_LEVELS.index)
+    if EFFORT_KEY in exception:
+        ceiling = str(exception[EFFORT_KEY])
+    if order_effort is not None and EFFORT_LEVELS.index(order_effort) > EFFORT_LEVELS.index(effort):
+        if EFFORT_LEVELS.index(order_effort) > EFFORT_LEVELS.index(ceiling):
+            effort, effort_why = ceiling, (
+                "the order asks %s, but the exception fixes %s (DEC-0047)" % (order_effort, ceiling)
+                if EFFORT_KEY in exception else
+                "the order asks %s, capped at the kit's highest effort %s" % (order_effort, ceiling))
+        else:
+            effort, effort_why = order_effort, "the order asks %s" % order_effort
     return {
         RUNG_KEY: chosen,
         EFFORT_KEY: effort,
@@ -2642,7 +2924,9 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
         "role_class": role_class,
         "pin": pin,
         "base": base,
+        "floor": floor,
         "start": start,
+        "order": {RUNG_KEY: order_rung, EFFORT_KEY: order_effort},
         "failed_runs": int(failed_runs),
         CLASS_TOP: top,
         "goal_class": goal_class or None,
@@ -2659,6 +2943,66 @@ def ladder_line(lease: dict) -> str:
     if "absent" in ladder:
         return "ladder: no rung -- %s" % ladder["absent"]
     return "ladder: rung %s, effort %s (%s)" % (ladder[RUNG_KEY], ladder[EFFORT_KEY], ladder["why"])
+
+
+# The question the checkpoint ends with. The PM answers it to itself and not in a field
+# (DEC-0092 (1)): a required "why" is boilerplate nobody can check and trains the habit it is meant
+# to break, so the four lines above it are FACTS and this is the only sentence that asks anything.
+CHECKPOINT_QUESTION = ("Does the rung fit the slice, and is one builder still the right count? "
+                       "(DEC-0092 (3): a mirror with numbers -- nothing here blocks.)")
+
+
+def reflection_checkpoint(state: ProjectState, task: dict, root: dict, lease: dict) -> list:
+    """The four fact lines the spawn gate hands the PM before a BUILDER starts (DEC-0092 (3)).
+
+    (a) the goal's measured file sets, (b) the order's size signals, (c) the rung and effort about
+    to be leased with the ladder's floor beside them, (d) the distribution of the last N leases --
+    and the one question. Everything here is READ off the state; nothing is judged and nothing is
+    refused, which is why the gate that prints it does so after `validate_dispatch` has already
+    said yes (`gate_dispatch.handle_pre_tool_use`). The kit-less case has no ladder answer and
+    therefore no builder to mirror; the caller decides that off the lease's class, not here.
+    `tools/test_light_kit.py::test_the_shipped_spawn_gate_prints_the_four_line_checkpoint_and_never_blocks_on_it`
+    """
+    from . import report, scopes
+
+    ladder = lease.get(LADDER_KEY) or {}
+    sets = scopes.goal_partition(state, str(root.get("id")))
+    orders_open = sum(len(group) for group in sets)
+    # BOUNDED LIKE THE CHECK'S OWN PRINTOUT (`scopes.PATHS_SHOWN`): the line goes into the model's
+    # context on every builder spawn, so above that many sets only a count is printed, and above
+    # that many open orders the groups are not spelled at all (measured 324 chars at 25 orders,
+    # mid-goal check B6). The partition is computed NOW, not read from a record -- which is why
+    # the line says so: a PM reading "N disjoint sets" must not take the second lease for granted.
+    shown = scopes.PATHS_SHOWN
+    if len(sets) > 1:
+        if orders_open > shown:
+            groups = "not listed above %d open orders" % shown
+        else:
+            groups = "; ".join(" + ".join(group) for group in sets[:shown])
+            if len(sets) > shown:
+                groups += "; ... and %d more sets" % (len(sets) - shown)
+        sets_line = ("this goal splits into %d disjoint sets among %d open order(s) (computed now; "
+                     "a second builder still needs a check-scopes record): %s"
+                     % (len(sets), orders_open, groups))
+    else:
+        sets_line = ("this goal is one set: %d open order(s) share files or there is only one -- "
+                     "a second builder here has no disjoint slice to take" % orders_open)
+    order = ladder.get("order") or {}
+    lines = [
+        "(a) %s" % sets_line,
+        "(b) this order: %d allowed-scope entr%s, %d expected output(s), goal class %s"
+        % (len(field_elements(task.get("allowed_scope"))),
+           "y" if len(field_elements(task.get("allowed_scope"))) == 1 else "ies",
+           len(field_elements(task.get("expected_outputs"))), ladder.get("goal_class") or "none"),
+        "(c) about to lease: rung %s, effort %s -- the ladder's floor for %s is %s (pin %s, class "
+        "%s), top %s; the order asked rung %s / effort %s"
+        % (lease.get(RUNG_KEY), lease.get(EFFORT_KEY), task.get("assigned_role"),
+           ladder.get("floor"), ladder.get("pin"), ladder.get("role_class"), ladder.get(CLASS_TOP),
+           order.get(RUNG_KEY) or "nothing", order.get(EFFORT_KEY) or "nothing"),
+        "(d) %s" % report.lease_distribution(state)["line"],
+        CHECKPOINT_QUESTION,
+    ]
+    return lines
 
 
 def _assert_the_ladder_answer_holds_locked(state: ProjectState, task: dict, root: dict,
@@ -2875,14 +3219,13 @@ def _covering_routine_apr(state: ProjectState, task: dict, root: dict):
     three are inside the hashed manifest, so they cannot be moved without breaking the approval;
     they are simply not enforced, and the auditor's role text says so in the same words.
 
-    AND WHAT MINTING ONE COSTS, which is the interaction this route invites rather than creates:
-    `mint` writes `approval_ref` for every item-bound approval, and the DELIVERY route above reads
-    that ONE field. So a routine minted for a root that already carries a scope or delivery
-    approval takes the reference with it, and implementation tasks under that root stop
-    dispatching until the scope approval is obtained again -- the older approval is still valid,
-    it is simply no longer the one the root presents. The refusal names both the cause and that
-    action. Not repaired by making the delivery route search the store: which APR it rides on is a
-    decision written next to it, and this route may not quietly rewrite the one beside it.
+    AND WHAT MINTING ONE NO LONGER COSTS (PR-0011 AC-8): until generation 6 `mint` wrote
+    `approval_ref` for every item-bound approval, so a routine minted for a root that carried a
+    scope or delivery approval took the reference with it and every builder under that root
+    stopped dispatching until the scope question was asked again. `approvals.presents` now keeps
+    a hanging kind out of that field -- this route reads the approvals directory, never
+    `approval_ref`, so nothing here needed the field. A store where the older mint left that
+    state behind is what `report._check_dispatch_approval_presented` still warns about.
     """
     refusals = []
     approvals_dir = os.path.join(state.root, "approvals")

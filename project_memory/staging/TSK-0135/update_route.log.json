@@ -1,0 +1,25 @@
+{
+  "clock_start": "2026-09-11 04:46:48",
+  "base": "5048c18",
+  "old_init_project_memory": 0,
+  "old_scaffold_team": 0,
+  "installed_before": "version: 2026.09.06-1",
+  "staged_now": "version: 2026.09.11-2",
+  "session_start": {
+    "rc": 0,
+    "kit_update_sentence": ""
+  },
+  "request": {
+    "rc": 0,
+    "err": ""
+  },
+  "question": "Freigabe erbeten: kit_update f\u00fcr [expires: 2026-09-11T03:46:53Z, from_content: 4a8447dc9c8f\u2026, from_version: 2026.09.06-1, kit: dev-team, to_content: cf05ce7e9cb9\u2026, to_version: 2026.09.11-2] (Revision -, subject_manifest sha256 379182b4092d\u2026). Details: approvals/pending/e6258c39c7454f8a8c1194baec232cf1.yaml [APR-REQ:e6258c39c7454f8a8c1194baec232cf1]",
+  "update_kit": {
+    "rc": 0,
+    "out": "dev-team kit: 2026.09.06-1 -> 2026.09.11-2\ninstalled: stamp 2026.09.11-2, and the enforcement bundle on disk is the STAGED kit's\nNOT re-read: the role skills, the generated provider artifacts, the repo templates and the constitution were not re-read, so a missing or a half-copied one would not show here\nRESTART REQUIRED: the restart marker .claude/HANDOVER_PENDING is in place. Tell the user in their own words and stop here -- specialist spawns are refused here; with the harness's user-global handover guard installed, further work-engine commands and product writes as well.\n",
+    "err": ""
+  },
+  "installed_after": "version: 2026.09.11-2",
+  "handover_marker_set": true,
+  "clock_end": "2026-09-11 04:46:57"
+}

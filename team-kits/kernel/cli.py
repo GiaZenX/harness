@@ -610,11 +610,22 @@ def build_parser() -> argparse.ArgumentParser:
     # first: once `src/` exists, `--allowed-scope src/**` is expanded before this parser is
     # reached. With several matches argparse rejects the extra words; with exactly ONE the scope
     # is quietly narrowed to that single file and the task runs under a grant nobody wrote.
-    task.add_argument("--allowed-scope", required=True, action="append", dest="allowed_scope",
+    task.add_argument("--allowed-scope", action="append", dest="allowed_scope",
                       metavar="PATH", help="what the specialist may write (repeatable); this IS "
                                            "gate layer 3's input. QUOTE any glob -- "
                                            "`--allowed-scope 'src/**'` -- or the shell expands it "
-                                           "against the working tree before the kernel sees it")
+                                           "against the working tree before the kernel sees it. "
+                                           "Either this or --read-only, never neither")
+    # A READ-ONLY ORDER SAYS SO (PR-0011 AC-8, BUG-0266): the auditor's route binds a work order
+    # that claims NO writable scope (`dispatch._claims_writable_scope`), and until this flag the
+    # line could not express one -- `--allowed-scope` was required, so the only walkable auditor
+    # was an ordinary order with a writable scope. An order names its scope or says it is
+    # read-only; an order that says neither is refused, because an empty scope by omission is the
+    # BUG-0023 shape one field over.
+    task.add_argument("--read-only", action="store_true", dest="read_only",
+                      help="this order writes nothing outside its own staging/<task-id>/ -- the "
+                           "shape a routine (audit) approval dispatches; refused together with "
+                           "--allowed-scope")
     task.add_argument("--forbidden-scope", action="append", dest="forbidden_scope", metavar="PATH",
                       help="what the specialist may NOT write (repeatable); quote globs, for the "
                            "reason --allowed-scope gives")
@@ -630,6 +641,20 @@ def build_parser() -> argparse.ArgumentParser:
                            "round (repeatable). The pre-dispatch scope check (`kernel.scopes`) "
                            "subtracts it before judging a pair, and only where BOTH orders "
                            "declare it.")
+    # THE PM'S TIER ASK PER ORDER (DEC-0091 (1)/(2)): the rung is a name of the kit's ladder and
+    # the kernel refuses any other (`dispatch.rung_vocabulary`); the effort's vocabulary is the
+    # kernel's own ordering, so argparse can refuse it at the line. Both LIFT the ladder's answer
+    # and never lower it -- the floor and the top stay the kit's.
+    task.add_argument("--%s" % dispatch.RUNG_KEY, dest=dispatch.RUNG_KEY, metavar="RUNG",
+                      help="the rung this slice needs, as the PM judges it -- one of the kit's "
+                           "ladder rungs (dev/research: sonnet < opus < fable). The lease takes "
+                           "the HIGHER of this and the ladder's floor for the role; it never "
+                           "lowers a role below its class (DEC-0091).")
+    task.add_argument("--%s" % dispatch.EFFORT_KEY, dest=dispatch.EFFORT_KEY,
+                      choices=list(dispatch.EFFORT_LEVELS),
+                      help="the effort this slice needs; the lease takes the HIGHER of this and "
+                           "the goal's effort, capped at the kit's highest declared effort. "
+                           "xhigh only for a named step, never as a standing setting (DEC-0088 (4)).")
     # The specialist's hand-back. Field names and the status vocabulary come from the SCHEMA the
     # kernel validates against, not from a copy here -- `submit_result` would reject a divergence
     # anyway, but it would reject it after the role had typed the command.
@@ -720,6 +745,14 @@ def build_parser() -> argparse.ArgumentParser:
                 help="%s subject: %s%s" % (line_kind, name,
                                            " -- NOT typed here: %s, and a value is refused"
                                            % entry[1] if entry else ""))
+    # THE TERM OF A TIME-BOXED APPROVAL, in days, for the kinds that carry a clock at all
+    # (`approvals.EXPIRING_KINDS`; refused for the others). REQUIRED for a routine (PR-0011
+    # AC-8): a standing permission for a recurring run is what the user is signing, and how long
+    # it stands is the part of it only the user can decide -- the question renders the date.
+    request.add_argument("--expires-in-days", type=float, default=None, metavar="DAYS",
+                         help="how many days the approval stays valid; required for `routine`, "
+                              "optional for the other time-boxed kinds (default one hour), refused "
+                              "for a kind that carries no clock")
     # The lease + header, in one command, because they are one moment: spec II.4 orders
     # "READY -> kurzlebige Dispatch-Lease mit Nonce und TTL -> Header", and the gate that reads the
     # header runs at PreToolUse of the spawn -- AFTER the model has composed the prompt. A lease
@@ -1610,13 +1643,18 @@ def main(argv=None) -> int:
                     % item["id"])
             return 0
         if args.command == "create-task":
+            if bool(args.allowed_scope) == bool(args.read_only):
+                raise UsageError(
+                    "an order names what it may write (--allowed-scope, repeatable) or says it "
+                    "writes nothing (--read-only) -- %s. Remedy: pass exactly one of the two."
+                    % ("both were given" if args.read_only else "neither was given"))
             task = dispatch.create_task(state, {
                 "product_requirement": args.product_requirement,
                 "derives_from": args.derives_from,
                 "type": args.task_type,
                 "assigned_role": args.assigned_role,
                 "acceptance_refs": list(args.acceptance_refs),
-                "allowed_scope": list(args.allowed_scope),
+                "allowed_scope": list(args.allowed_scope or []),
                 "forbidden_scope": list(args.forbidden_scope or []),
                 "required_inputs": list(args.required_inputs or []),
                 "expected_outputs": list(args.expected_outputs or []),
@@ -1624,6 +1662,8 @@ def main(argv=None) -> int:
                 **({"design_ref": args.design_ref} if args.design_ref else {}),
                 **({scopes.SEAM_FIELD: list(getattr(args, scopes.SEAM_FIELD))}
                    if getattr(args, scopes.SEAM_FIELD) else {}),
+                **{key: getattr(args, key) for key in (dispatch.RUNG_KEY, dispatch.EFFORT_KEY)
+                   if getattr(args, key)},
             })
             print("%s %s (%s)" % (task["id"], task["status"], task["assigned_role"]))
             return 0
@@ -1641,6 +1681,11 @@ def main(argv=None) -> int:
             return 0
         if args.command == "request-approval":
             builder = approvals.LINE_MANIFEST_BUILDERS.get(args.kind)
+            if args.expires_in_days is not None and args.kind not in approvals.EXPIRING_KINDS:
+                raise UsageError(
+                    "a %s approval carries no clock (it is invalidated by its content, not by "
+                    "time), so --expires-in-days is refused for it. Remedy: drop the flag."
+                    % args.kind)
             if builder is None:
                 if not args.item_id:
                     raise UsageError(
@@ -1648,6 +1693,28 @@ def main(argv=None) -> int:
                         "request-approval %s <ITEM_ID>`."
                         % (args.kind, INVOCATION, args.kind))
                 pending = approvals.create_pending_request(state, args.kind, args.item_id)
+            elif args.kind == approvals.ROUTINE_KIND:
+                # THE ONE LINE KIND THAT HANGS FROM AN ITEM (`approvals.ROUTINE_KIND`): the flags
+                # build what the run is bound to, the root is what the dispatcher reads the
+                # approval off, and the term is the USER's to see and decide -- a standing
+                # permission for a recurring run cannot borrow the one-hour clock of a push
+                # token, so it is typed, in days, and rendered as a date in the question.
+                # PR-0011 AC-8 (BUG-0266 / H184): before this branch the entry point could not
+                # produce the kind the auditor's route is written for.
+                if not args.item_id:
+                    raise UsageError(
+                        "a routine approval hangs from the ROOT whose recurring run it permits, "
+                        "and none was named. Remedy: `%s request-approval routine <ROOT_ID> "
+                        "--role <role> --scope <read scope> --trigger <when> --cadence <how "
+                        "often> --expires-in-days <n>`." % INVOCATION)
+                if args.expires_in_days is None:
+                    raise UsageError(
+                        "a routine approval is a standing permission and needs its term: pass "
+                        "--expires-in-days <n>; the question shows the date the user signs.")
+                pending = approvals.create_pending_request(
+                    state, args.kind, args.item_id,
+                    manifest=_line_manifest(state, args.kind, builder, args),
+                    approval_expires=time.time() + float(args.expires_in_days) * 86400.0)
             else:
                 if args.item_id:
                     raise UsageError(
@@ -1660,6 +1727,8 @@ def main(argv=None) -> int:
                 # `create_pending_request` refuses an expiry on a kind that does not take one.
                 expires = (time.time() + approvals.LINE_APPROVAL_VALIDITY
                            if args.kind in approvals.EXPIRING_KINDS else None)
+                if args.expires_in_days is not None:
+                    expires = time.time() + float(args.expires_in_days) * 86400.0
                 pending = approvals.create_pending_request(
                     state, args.kind,
                     manifest=_line_manifest(state, args.kind, builder, args),

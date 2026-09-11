@@ -228,9 +228,13 @@ def test_the_office_briefing_names_the_routine_exactly_once(tmp_path):
     routine = routine_module("office-team")
     project(tmp_path)
     briefing = said("office-team", tmp_path)
-    assert briefing.count(routine.AUDIT_ROLE) == 1, (
-        "the office briefing names the audit run %d times:\n%s"
-        % (briefing.count(routine.AUDIT_ROLE), briefing))
+    # the RUN is named once -- counted by the due sentence, not by the role's name: since PR-0011
+    # AC-8 the one notice spells the auditor's route out, and that line names the role again in
+    # `--role` and `--assigned-role`
+    owed = "%s has not run in" % routine.AUDIT_ROLE
+    assert briefing.count(owed) == 1, (
+        "the office briefing names the audit run %d times:\n%s" % (briefing.count(owed), briefing))
+    assert routine.AUDIT_ROLE in briefing
 
 
 def test_every_kit_briefing_reaches_the_shared_module():

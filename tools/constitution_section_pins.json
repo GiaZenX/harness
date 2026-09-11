@@ -65,13 +65,13 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "842ca8369213a4e7",
+        "digest": "fefbee74c0fc1f00",
         "hooks": [
           "session_status"
         ]
       },
       "13. Refactoring & findings": {
-        "digest": "8ea92452aca165b4",
+        "digest": "9006ef2f47e424c6",
         "hooks": [
           "gate_write_scope"
         ]
@@ -137,7 +137,7 @@
         "hooks": []
       },
       "5a. Your work loop — the SEQUENCE, and the duties that have no gate behind them": {
-        "digest": "dec8e48e95e9f88d",
+        "digest": "d135d18b92b32b88",
         "hooks": [
           "gate_design_sighted",
           "gate_write_scope",
@@ -248,7 +248,7 @@
         ]
       },
       "Models & escalation (constitution §11 — full mechanics)": {
-        "digest": "493dbef57e559099",
+        "digest": "276e6cae7fa54cac",
         "hooks": [
           "session_status"
         ]
@@ -276,7 +276,7 @@
         "hooks": []
       },
       "Work loop (every cycle — every \"capture\"/\"transition\" below runs through the kernel's entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)": {
-        "digest": "bd27d7fcef51a1b5",
+        "digest": "c4ac1b1e0fc58026",
         "hooks": [
           "gate_design_sighted",
           "gate_dispatch",
@@ -387,7 +387,7 @@
         ]
       },
       "4a. Your work loop — the SEQUENCE, and the duties that have no gate behind them": {
-        "digest": "95a66e4a9cc35ece",
+        "digest": "2f616aa666b6b199",
         "hooks": [
           "gate_write_scope",
           "guard_agent_spawn",
@@ -395,7 +395,7 @@
         ]
       },
       "5. Roles (presets: `core` = records-clerk + filing-reviewer + bookkeeper; `commerce` adds": {
-        "digest": "c2de325af330a5f2",
+        "digest": "38f069328701760f",
         "hooks": [
           "gate_filing",
           "gate_second_reading",
@@ -410,7 +410,7 @@
         ]
       },
       "7. Models & presets": {
-        "digest": "9c8ce750f9b14cc6",
+        "digest": "6033442d613c3894",
         "hooks": [
           "gate_filing",
           "session_status"
@@ -517,7 +517,7 @@
         "hooks": []
       },
       "Work loop (every cycle)": {
-        "digest": "c3851f58cc8e2b43",
+        "digest": "e31e02ad3712734d",
         "hooks": [
           "gate_proc_approved",
           "gate_write_scope",
@@ -589,13 +589,13 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "1faec96a907f9c2c",
+        "digest": "1572aadadb86e6ac",
         "hooks": [
           "session_status"
         ]
       },
       "13. Method changes & findings": {
-        "digest": "04a5ef411d0b9ca3",
+        "digest": "7b93c3cfdd2dfd19",
         "hooks": [
           "gate_write_scope"
         ]
@@ -662,7 +662,7 @@
         "hooks": []
       },
       "5a. Your work loop — the SEQUENCE, and the duties that have no gate behind them": {
-        "digest": "00d1c549334cd879",
+        "digest": "0978a3f4df7038d1",
         "hooks": [
           "gate_write_scope",
           "guard_agent_spawn",
@@ -770,7 +770,7 @@
         ]
       },
       "Models & escalation (constitution §11 — full mechanics)": {
-        "digest": "fc23fafb876a69e7",
+        "digest": "67b7c8520dd51427",
         "hooks": [
           "session_status"
         ]
@@ -796,7 +796,7 @@
         "hooks": []
       },
       "Work loop (every cycle — every \"capture\"/\"transition\" below runs through the kernel's entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)": {
-        "digest": "abf71d10a433519d",
+        "digest": "2ea3a87dd89a40f1",
         "hooks": [
           "gate_write_scope",
           "guard_yaml_valid"

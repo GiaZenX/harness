@@ -87,7 +87,10 @@ seam both orders declare subtracted first
 specialist inside its OWN order and has no opinion about the neighbour's. What the refusal compares
 against are RUNNING leases only, so two orders that never run at the same time collide at the merge
 and nothing here sees them. Your reading before the dispatch is what answers THAT, and
-`python scripts/harness.py check-scopes` is the command that does it.
+`python scripts/harness.py check-scopes` is the command that does it — and since generation 6 it
+also leaves the RECORD a second BUILD lease under one goal needs (`DEC-0092` (2)): the kernel
+refuses that lease until a record names the pair disjoint as the orders stand now, and writes the
+record it admitted the builder on onto the lease (`measured_disjoint`).
 
 Read the two orders side by side and answer three questions:
 

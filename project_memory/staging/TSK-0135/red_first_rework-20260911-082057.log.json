@@ -1,0 +1,118 @@
+{
+  "clock_start": "2026-09-11 08:21:18",
+  "tree": "C:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\rework",
+  "rows": [
+    {
+      "id": "R1-AC2-claude",
+      "file": "user/claude/CLAUDE.md",
+      "defect": "AC-2: the claude entry file asks the team size again, in the wording that carries `DERIVED`",
+      "suite": "test_hooks.py",
+      "test": "test_no_entry_file_and_no_lead_text_asks_the_user_for_the_team_size",
+      "rc": 1,
+      "failure_line": "AssertionError: these texts still ask the user for the team size: {'user\\\\claude\\\\CLAUDE.md': [\"**Ask which TEAM SIZE they want** and write down the preset DERIVED from the answer (`DEC-0087` (2)) and the tiers from the kit's ladder and the order (`DEC-008\"]} | assert not {'user\\\\claude\\\\CLAUDE.md': [\"**Ask which TEAM SIZE they want** and write down the preset DERIVED from the answer (`DEC-0087` (",
+      "summary": "1 failed, 1020 deselected in 22.16s",
+      "clock": "08:21:56"
+    },
+    {
+      "id": "R2-AC2-codex",
+      "file": "user/codex/AGENTS.md",
+      "defect": "AC-2: the codex twin asks it in the same wording",
+      "suite": "test_hooks.py",
+      "test": "test_no_entry_file_and_no_lead_text_asks_the_user_for_the_team_size",
+      "rc": 1,
+      "failure_line": "AssertionError: these texts still ask the user for the team size: {'user\\\\codex\\\\AGENTS.md': ['Ask which TEAM SIZE the user wants and write down the preset DERIVED from the answer; the kit installs in its light form with the SMALLEST preset - the one with']} | assert not {'user\\\\codex\\\\AGENTS.md': ['Ask which TEAM SIZE the user wants and write down the preset DERIVED from the answer; the kit insta",
+      "summary": "1 failed, 1020 deselected in 10.77s",
+      "clock": "08:22:23"
+    },
+    {
+      "id": "R3-AC2-reader",
+      "file": "tools/test_hooks.py",
+      "defect": "AC-2: `derived|Ableitung` back in the negation -- the fix's own tripwire",
+      "suite": "test_hooks.py",
+      "test": "test_the_team_size_reader_can_tell_a_question_from_the_escape",
+      "rc": 1,
+      "failure_line": "AssertionError: [] | assert [] == ['- **Ask whi... the answer.'] | Right contains one more item: '- **Ask which TEAM SIZE they want** und write down the preset DERIVED from the answer.'",
+      "summary": "1 failed, 1020 deselected in 13.37s",
+      "clock": "08:22:55"
+    },
+    {
+      "id": "R4-AC4-not-optional",
+      "file": "team-kits/dev-team/skills/project-manager/SKILL.md",
+      "defect": "AC-4: an order with a `not` in it (measured GREEN under the wide negation reader)",
+      "suite": "test_light_kit.py",
+      "test": "test_no_kit_text_still_orders_a_verifier_after_every_rework",
+      "rc": 1,
+      "failure_line": "AssertionError: {'team-kits\\\\dev-team\\\\skills\\\\project-manager\\\\SKILL.md': ['After every rework the verifier runs the whole package again, and this is NOT optional.']} | assert not {'team-kits\\\\dev-team\\\\skills\\\\project-manager\\\\SKILL.md': ['After every rework the verifier runs the whole package again, and this is NOT optional.']}",
+      "summary": "1 failed, 25 deselected in 8.76s",
+      "clock": "08:23:19"
+    },
+    {
+      "id": "R5-AC4-pruefer",
+      "file": "team-kits/dev-team/skills/project-manager/SKILL.md",
+      "defect": "AC-4: the same order in the ASCII transliteration the codex twin is written in",
+      "suite": "test_light_kit.py",
+      "test": "test_no_kit_text_still_orders_a_verifier_after_every_rework",
+      "rc": 1,
+      "failure_line": "AssertionError: {'team-kits\\\\dev-team\\\\skills\\\\project-manager\\\\SKILL.md': ['Der Pruefer laeuft nach jeder Nacharbeit erneut.']} | assert not {'team-kits\\\\dev-team\\\\skills\\\\project-manager\\\\SKILL.md': ['Der Pruefer laeuft nach jeder Nacharbeit erneut.']}",
+      "summary": "1 failed, 25 deselected in 7.35s",
+      "clock": "08:23:41"
+    },
+    {
+      "id": "R6-AC4-negation-reader",
+      "file": "tools/test_light_kit.py",
+      "defect": "AC-4: the wide negation back -- the fix's own tripwire",
+      "suite": "test_light_kit.py",
+      "test": "test_the_cadence_reader_can_tell_an_order_from_its_negation",
+      "rc": 1,
+      "failure_line": "AssertionError: assert [] == ['After every...OT optional.'] | Right contains one more item: 'After every rework the verifier runs the whole package again, and this is NOT optional.' | Use -v to get more diff",
+      "summary": "1 failed, 25 deselected in 8.72s",
+      "clock": "08:24:03"
+    },
+    {
+      "id": "R7-AC4-verifier-reader",
+      "file": "tools/test_light_kit.py",
+      "defect": "AC-4: `Pruefer` out of the verifier vocabulary -- the fix's own tripwire",
+      "suite": "test_light_kit.py",
+      "test": "test_the_cadence_reader_can_tell_an_order_from_its_negation",
+      "rc": 1,
+      "failure_line": "AssertionError: assert [] == ['Der Pruefer...beit erneut.'] | Right contains one more item: 'Der Pruefer laeuft nach jeder Nacharbeit erneut.' | Use -v to get more diff",
+      "summary": "1 failed, 25 deselected in 8.01s",
+      "clock": "08:24:24"
+    },
+    {
+      "id": "R8-AC5-claude-old",
+      "file": "user/claude/CLAUDE.md",
+      "defect": "AC-5: the claude twin falls back to the question the light form replaced",
+      "suite": "test_hooks.py",
+      "test": "test_both_entry_files_ask_the_same_first_contact_question_and_never_the_old_one",
+      "rc": 1,
+      "failure_line": "AssertionError: user\\claude\\CLAUDE.md still asks the question the light form replaced | assert not <re.Match object; span=(3339, 3388), match='Strukturiert �ber einen Project Manager arbeiten?> | +  where <re.Match object; span=(3339, 3388), match='Strukturiert \\xfcber einen Project Manager arbeiten?> = <built-in method search of re.Pattern object at 0x0000012270094650>('# Working Method \\u2014 Us",
+      "summary": "1 failed, 1020 deselected in 10.48s",
+      "clock": "08:24:44"
+    },
+    {
+      "id": "R9-AC5-codex-old",
+      "file": "user/codex/AGENTS.md",
+      "defect": "AC-5: the codex twin falls back to it, in transliteration",
+      "suite": "test_hooks.py",
+      "test": "test_both_entry_files_ask_the_same_first_contact_question_and_never_the_old_one",
+      "rc": 1,
+      "failure_line": "AssertionError: user\\codex\\AGENTS.md still asks the question the light form replaced | assert not <re.Match object; span=(6740, 6790), match='Strukturiert ueber einen Project Manager arbeiten> | +  where <re.Match object; span=(6740, 6790), match='Strukturiert ueber einen Project Manager arbeiten> = <built-in method search of re.Pattern object at 0x0000021AECE0B240>('# Working Method - User Entry ",
+      "summary": "1 failed, 1020 deselected in 13.00s",
+      "clock": "08:25:09"
+    },
+    {
+      "id": "R10-AC5-drift",
+      "file": "user/claude/CLAUDE.md",
+      "defect": "AC-5: the twins drift apart -- one word of the question rewritten in one file only",
+      "suite": "test_hooks.py",
+      "test": "test_both_entry_files_ask_the_same_first_contact_question_and_never_the_old_one",
+      "rc": 1,
+      "failure_line": "AssertionError: the two entry files ask different questions: {'user\\\\claude\\\\CLAUDE.md': 'Mit Langzeit-Gedaechtnis fuer das Projekt (Projektakte, Entscheidungen, Beweise) - oder lieber frei?', 'user\\\\codex\\\\AGENTS.md': 'Mit Langzeit-Gedaechtnis fuer das Projekt (Projektakte, Entscheidungen, Beweise) - oder erstmal frei?'} | assert 2 == 1 | +  where 2 = len({'Mit Langzeit-Gedaechtnis fuer das Proje",
+      "summary": "1 failed, 1020 deselected in 10.26s",
+      "clock": "08:25:30"
+    }
+  ],
+  "clock_end": "2026-09-11 08:25:30",
+  "restored": true
+}

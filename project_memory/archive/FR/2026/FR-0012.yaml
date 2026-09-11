@@ -50,9 +50,11 @@ request_text: 'GEMESSENER ANLASS, 2026-08-09, zweimal an einem Tag, beide Male v
   -- dieselbe offene Frage, die FR-0005 am Ende stellt, und vermutlich dieselbe Antwort.
   Und ehrlich: der Nutzer hat es zweimal gefangen und das kostete nichts; eine gebaute
   Vorrichtung muss besser sein als das, sonst ist sie Zierde.'
-status: TRIAGED
+status: MERGED
 revision: 1
 approval_ref: null
 created: '2026-08-09T09:35:01'
-triage_result: 'USER VERDICT 2026-09-02 (FR survey, asked one by one via AskUserQuestion):
-  JA, BAUEN -- as a verifier duty, no new scaffold.'
+triage_result: 'DELIVERED in generation 5 (G5-1, DEC-0083): the DEC `work` field +
+  capture door + decision-carrier validator (option A); merged TSK-0133'
+resulting_item: PR-0008
+closed_at: '2026-09-11T01:50:51'

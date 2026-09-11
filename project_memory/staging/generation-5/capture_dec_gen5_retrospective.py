@@ -10,7 +10,7 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 KERNEL = [sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory", "capture", "DEC"]
 
-ROUND_2 = "ROUND_2_RESULT_TO_FILL"
+ROUND_2 = "round 2 PASS on B1-B4 at 01:45, two new non-blocking holes H190/H191; committed 5048c18"
 
 BODY = {
     "title": "Retrospektive der Generation 5 (Nachfolger von DEC-0080): was der Schnitt, die Uebergaben und der Merge "

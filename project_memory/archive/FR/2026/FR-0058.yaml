@@ -35,7 +35,7 @@ request_text: 'User challenged the lead''s own overview on 2026-08-25 (''sicher 
   approval. Neighbours: H39 (the reachability gap), FR-0003 (every wish gets a state),
   FR-0036 (prose-to-item reconciliation), BUG-0067/BUG-0052 (the other bookkeeping
   defects). Source: user 2026-08-25, lead measurement the same day.'
-status: TRIAGED
+status: MERGED
 revision: 1
 approval_ref: null
 created: '2026-08-25T08:11:06'
@@ -44,9 +44,8 @@ source: 'This wish IS the goal PR-0008: the survey, the three verdict routes and
   derivable ''done'' are its acceptance criteria. Re-pointed 2026-09-05 (TSK-0131)
   from the generic PR-0003 bucket to the goal that carries it, which is what AC-2
   asks of an absorbed wish.'
-triage_result: 'Absorbed by the goal PR-0008 ''G5-1 Bestandsbereinigung'', which carries
-  this wish as its whole subject: AC-1 the survey of every active BUG, AC-2 the wishes,
-  AC-3 the derivable ''done'' so the stock cannot lie upward again. Triaged 2026-09-05
-  in TSK-0131; it walks to MERGED with resulting_item PR-0008 when that goal is delivered,
-  not before -- calling it merged while the goal is open would be the same lie in
-  the other direction.'
+triage_result: 'DELIVERED in generation 5 (G5-1, TSK-0131): every active BUG/FR surveyed
+  against the running code (survey-table.md), stock rollup + ''stock lies upward''
+  validator line in report.py, five gen-4 bugs VERIFIED/archived; merged TSK-0133'
+resulting_item: PR-0008
+closed_at: '2026-09-11T01:50:45'

@@ -1,0 +1,30 @@
+{
+  "clock_start": "2026-09-11 08:40:36",
+  "tree": "C:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\rework",
+  "rows": [
+    {
+      "id": "R11-AC2-never-ask-fixture",
+      "file": "tools/test_hooks.py",
+      "defect": "AC-2: the surviving `never ask` gone -- the fixture's `NEVER ask the team size` sentence",
+      "suite": "test_hooks.py",
+      "test": "test_the_team_size_reader_can_tell_a_question_from_the_escape",
+      "rc": 1,
+      "failure_line": "AssertionError: the escape was read as a team-size question: '**NEVER ask the team size or a model tier** � the Project Manager derives the team from the goal (`DEC-0087` (2)); the escape is `set-preset` when a role is missing.' | assert not ['**NEVER ask the team size or a model tier** � the Project Manager derives the team from the goal (`DEC-0087` (2)); the escape is `set-preset` when a role is",
+      "summary": "1 failed, 1020 deselected in 2.79s",
+      "clock": "08:40:40"
+    },
+    {
+      "id": "R12-AC2-never-ask-shipped",
+      "file": "tools/test_hooks.py",
+      "defect": "AC-2: the same, read against the SHIPPED texts",
+      "suite": "test_hooks.py",
+      "test": "test_no_entry_file_and_no_lead_text_asks_the_user_for_the_team_size",
+      "rc": 1,
+      "failure_line": "AssertionError: these texts still ask the user for the team size: {'user\\\\claude\\\\CLAUDE.md': [\"**NEVER ask the team size or a model tier** � the Project Manager derives the team from the goal (`DEC-0087` (2)) and the tiers from the kit's ladder and the or\"], 'team-kits\\\\dev-team\\\\constitution\\\\AGENTS.md': ['DERIVED, never asked (`DEC-0087` (2)): the install writes the smallest preset, the team si",
+      "summary": "1 failed, 1020 deselected in 2.79s",
+      "clock": "08:40:44"
+    }
+  ],
+  "clock_end": "2026-09-11 08:40:44",
+  "restored": true
+}

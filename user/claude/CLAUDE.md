@@ -44,18 +44,28 @@ unloading.)
 
 ## First-contact gate — ASK, never assume
 
-Precede the question with short prose: recommend the PM for a clean project; note they can switch back
-anytime. Then ask **one** question (`AskUserQuestion`):
+Precede the question with short prose: what the long-term memory buys (a project file that survives
+every session — the decisions, the approvals, the evidence — and a Project Manager who keeps it),
+and that they can switch to free work any time. Then ask **one** question (`AskUserQuestion`), and
+this is its text (`DEC-0087` (4)):
 
-- "**Strukturiert über einen Project Manager arbeiten?**"
-  - **Ja — strukturiert (PM)** → run **Auto-Init** (below).
-  - **Nein — frei/unstrukturiert** → enter **Free mode** (below).
+- "**Mit Langzeit-Gedächtnis für das Projekt (Projektakte, Entscheidungen, Beweise) — oder erstmal frei?**"
+  - **Mit Langzeit-Gedächtnis** → run **Auto-Init** (below): the kit is installed at once, in the
+    light form — ONE builder per goal, the team derived from the goal by the Project Manager, never
+    asked of the user (`DEC-0087` (1)/(2)).
+  - **Erstmal frei** → enter **Free mode** (below).
+
+What is NOT asked here, and not later either: how many specialists, which team size, which model
+tier. Those are the Project Manager's derivations (`DEC-0088`, `DEC-0091`); the user is asked for the
+plan, the scope, the delivery and the acceptance — the human gates — and for a missing role only when
+the work needs one (`DEC-0048`'s escape). A structural test reads this file and the kits' lead skills
+for a team-size question (`tools/test_hooks.py::test_no_entry_file_and_no_lead_text_asks_the_user_for_the_team_size`).
 
 Until the user answers, do **not** write or edit code.
 
-## Auto-Init (user chose structured)
+## Auto-Init (user chose the long-term memory)
 
-You **first interview the user and draft a plan, then install** the kit, then hand over. In order:
+You **interview the user briefly and draft the plan, then install** the kit, then hand over. In order:
 
 1. **Classify intent → team kit** using `~/.claude/team-kits/registry.yaml` (intents → `key`). One match
    → use it; ambiguous → ask one short routing question; only generic "build software" → default
@@ -66,34 +76,23 @@ You **first interview the user and draft a plan, then install** the kit, then ha
 2. **Discovery + plan REVIEW LOOP — BEFORE installing** (you still have all tools, incl. `AskUserQuestion`).
    This is read-only planning, so **engage Plan Mode now**: if you are not already in it, ask the user to turn
    it on (Shift+Tab → "Plan") so they can review and fine-tune the plan before anything is written. Then:
-   - **Interview** at the **product** level (prose first, then `AskUserQuestion`): what they want to build,
-     for whom, the must-have capabilities, constraints (local-only, privacy, budget…). **NEVER** ask
-     technical questions (architecture, framework, hardware) — those belong to the team later.
-   - **Ask which TEAM SIZE they want, and ask it as its own question.** This is a product decision, not a
-     technical one — how many specialists work on their project, and therefore what it costs in time and
-     tokens — so it belongs in this interview and nowhere else. Do NOT invent the answer: the preset you
-     write in step 3 is the one they picked. Offer that kit's presets by name from `registry.yaml`
-     (`presets:` of the matched team; the kit's own `presets.yaml` is the authority and says which roles
-     each one installs — read it out in the option descriptions, in plain words: "ein Designer für das
-     Aussehen", not a role list). Recommend one, with a reason, as everywhere else in this file. Say in the
-     same breath that it is **not a one-way door**: whenever the work needs another role the Project
-     Manager asks them again in the chat and applies that answer with `set-preset` — and the question they
-     will see names the team as it stands AFTERWARDS plus what falls away, never which roles are new
-     (`DEC-0048`).
-     **The QUESTION ITSELF has to carry that**, not the prose in front of it: put this clause verbatim
-     into the question text — »Diese Wahl ist nicht endgültig: fehlt später eine Rolle, fragt der Project
-     Manager dich erneut und passt das Team an.« Pilot 4 measured a team question whose FULL text — header,
-     question and every option — never mentioned it, while this paragraph had demanded it "in the same
-     breath" since 2026-08-15; a user reading only the question chooses as if the door were one-way
-     (`P4-6`). Until 2026-08-15 this question did not exist, the entry session wrote a preset nobody
-     had chosen, and a user who then needed the missing role was sent to a text editor and a terminal
-     (BUG-0044/BUG-0041, pilot 3).
-   - **Draft the MASTERPLAN — a proper document, not a stub.** Well-structured and generously written:
+   - **Interview** at the **product** level (prose first, then `AskUserQuestion`), and keep it SHORT
+     (`DEC-0087` (4)): what they want to build, for whom, the must-have capabilities, constraints
+     (local-only, privacy, budget…) — one or two question calls, each carrying several items, not a
+     questionnaire. **NEVER** ask technical questions (architecture, framework, hardware) — those belong
+     to the team later. **NEVER ask the team size or a model tier** — the Project Manager derives the
+     team from the goal (`DEC-0087` (2)) and the tiers from the kit's ladder and the order
+     (`DEC-0088`, `DEC-0091`). Until 2026-09-11 this interview asked which preset the user wanted, as its
+     own question with a reversibility clause; the light form removed the question and kept only its
+     escape — the Project Manager asks again, in the chat, when the work needs a role the installed
+     team lacks, and applies the answer with `set-preset` (`DEC-0048`: that question names the team as
+     it stands AFTERWARDS plus what falls away, never which roles are new).
+   - **Draft the MASTERPLAN — a proper document, sized to what the user said.** Well-structured:
      Leitidee/vision (a real paragraph), goals & non-goals, must-haves, nice-to-haves, high-level acceptance
      criteria, risks & open questions, **1–3 of your OWN recommendations/ideas** the user did not ask for
-     (clearly marked as suggestions), a rough delivery outline, and the **recommended team** (always a clear
-     recommendation, never a neutral menu). Quality bar: what a thorough claude.ai planning chat would
-     produce — NOT a three-line summary. **Present it back to the user.**
+     (clearly marked as suggestions), and a rough delivery outline. No team section: the team is not a
+     plan item any more. Quality bar: what a thorough claude.ai planning chat would produce for THIS
+     much input — no padding, no three-line summary either. **Present it back to the user.**
    - **Iterate** until the user confirms the plan fits, and take that confirmation as **its own asked and
      recorded answer** — one `AskUserQuestion` after the plan is on the table, with their answer in the
      transcript. The plan-mode dialog is a PRESENTATION surface: leaving it is a mode switch, one click
@@ -149,10 +148,12 @@ You **first interview the user and draft a plan, then install** the kit, then ha
      so after the install nothing writes it either. Give it at least one rule per document class the
      user actually named; the template's own header states the fields a rule carries, and it is the
      authority on them, not this file.
-   - **Write the preset the user answered the team-size question with into
-     `project_memory/project_config.yaml` `preset:`** — that answer, not your recommendation and not the
-     template's placeholder, which is why the question in step 2 is not optional. The scaffold reads this
-     line and installs exactly those roles; without it every project silently starts on the placeholder.
+   - **Write the light form's default into `project_memory/project_config.yaml` `preset:`** — the
+     kit's SMALLEST preset, the one with the fewest roles in its own `presets.yaml` (`solo` where
+     the kit has one, otherwise its smallest — `core` for the office kit; measured 2026-09-11 by
+     `tools/light_kit_pilot.py`), never the template's placeholder (`DEC-0087` (2)/(4)). The scaffold reads this line and
+     installs exactly those roles; every further role is the Project Manager's derivation later
+     (`request-approval preset` → the user answers → `set-preset`), asked only when the work needs it.
      Then fill the rest of the config for the same reason as the masterplan: nothing else writes it after
      the install (`set-preset` owns this one field and nothing more), and in
      `dev-team` and `research-team` `gate_memory_complete` blocks every merge while it is unfilled.
@@ -209,7 +210,7 @@ instead of an edit it makes. (Nothing is auto-submitted; the session-start hook 
 points it at the kernel's `generated/session_brief.yaml`, which replaces every hand-written status summary.)
 The `project-manager` definition is the session agent; never spawn it as a subagent.
 
-## Free mode (user chose "Nein")
+## Free mode (user chose "erstmal frei")
 
 Work normally and directly. Keep **no** bookkeeping: do **not** create or maintain `project_memory/` — no
 items, no masterplan, nothing generated from them. Only **occasionally** (not every turn) remind the user

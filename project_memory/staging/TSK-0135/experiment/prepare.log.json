@@ -1,0 +1,46 @@
+{
+  "clock_start": "2026-09-11 08:10:42",
+  "steps": [
+    {
+      "git_init": {
+        "rc": 0
+      }
+    },
+    {
+      "init_project_memory": {
+        "rc": 0,
+        "out": "[ok] project_memory/ ready (21 created, 0 already present) from kit 'dev-team'.\n",
+        "err": ""
+      }
+    },
+    {
+      "capture_PR": {
+        "rc": 0,
+        "out": "PR-0001 DRAFT\n",
+        "err": ""
+      }
+    },
+    {
+      "generate_index": {
+        "rc": 0,
+        "out": "C:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\experiment\\arm-b\\project\\project_memory\\generated\\index.yaml\nC:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\experiment\\arm-b\\project\\project_memory\\generated\\board.html\nC:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\experiment\\arm-b\\project\\project_memory\\generated\\plan.drawio.svg\nC:\\Offline Repos\\v2-testbed\\_round-scratch\\TSK-0135\\experiment\\arm-b\\project\\project_memory\\generated\\mindmap.drawio.svg\n",
+        "err": ""
+      }
+    },
+    {
+      "scaffold_team": {
+        "rc": 0,
+        "out": "  [ok] hook: gate_shell_hygiene.py\n  [ok] hook: gate_subagent_output.py\n  [ok] hook: gate_test_coverage.py\n  [ok] hook: gate_test_scope.py\n  [ok] hook: gate_write_scope.py\n  [ok] hook: guard_agent_spawn.py\n  [ok] hook: guard_guidelines.py\n  [ok] hook: guard_harness_selfmod.py\n  [ok] hook: guard_memory_budget.py\n  [ok] hook: guard_no_adhoc.py\n  [ok] hook: guard_pm_scope.py\n  [ok] hook: guard_question_context.py\n  [ok] hook: guard_scratchpad_ref.py\n  [ok] hook: guard_yaml_valid.py\n  [ok] hook: kit_trust_state.py\n  [ok] hook: notify_agent_events.py\n  [ok] hook: session_status.py\n  [ok] hook: _audit.py\n  [ok] hook: _compat.py\n  [ok] hook: _gate.py\n  [ok] hook: _kernel.py\n  [ok] hook: _root.py\n  [ok] hook: _routine.py\n  [ok] hook: _stdlib_guard.py\n  [ok] .claude/kernel (V2 state kernel)\n  [ok] skill: backend-developer\n  [ok] skill: frontend-design\n  [ok] skill: humanizer\n  [ok] skill: parallel-streams\n  [ok] skill: project-auditor\n  [ok] skill: project-manager\n  [ok] skill: quality-engineer\n  [ok] skill: software-architect\n  [ok] skill: webapp-testing\n  [ok] .claude/team_kit_roles.txt (5 managed role(s))\n  [ok] .claude/settings.json (session agent + enforcement hooks)\n  [ok] .claude/kit_version (version: 2026.09.11-4)\n[write_kit_state] .claude/kit_state.json -> restart_required (6064ccc34520)\n  [ok] codex artifacts: .codex/config.toml + hooks.json + 4 specialist agent(s) + 9 native skill(s) (trust the project, then run /hooks to trust changed hooks; current Codex builds block the generated Pre/Post guards, while deterministic pipeline gates remain defense in depth)\n  [ok] repo: .gitignore\n  [ok] repo: .pre-commit-config.yaml\n  [ok] repo: requirements-dev.txt\n  [ok] repo: ruff.toml\n  [ok] repo: .claude\\claude-security-guidance.md\n  [ok] repo: .github\\workflows\\ci.yml\n  [ok] repo: scripts\\generate_dashboard.py\n  [ok] repo (kit-owned, always updated): scripts\\harness.py\n  [ok] repo (kit-owned, always updated): scripts\\kit_browser_checks.py\n  [ok] repo (kit-owned, always updated): scripts\\kit_checks.py\n  [ok] repo (kit-owned, always updated): scripts\\kit_design_render.py\n  [ok] repo (kit-owned, always updated): scripts\\kit_design_system_check.py\n  [ok] repo: scripts\\progress.dashboard.template.html\n  [ok] repo: scripts\\quality.py\n  [ok] repo: scripts\\retro.py\nTeam 'dev-team' installed locally. RESTART the session (close/reopen, or start a new session in this folder) -- the new agents and the 'agent: project-manager' setting only load at session start. After the restart, type anything (e.g. 'weiter') -- nothing is auto-sent, YOU stay in control of the first message; the 'project-manager' lead then greets you with a one-line status and picks up any draft plan in project_memory/.\nNOTE: if a session is ALREADY running in this folder (even suspended at a usage limit), its hooks are live on the new files from this moment -- a real restamp landed mid-session and entangled kit files with build changes. Finish or restart that session before continuing work there.\n",
+        "err": ""
+      }
+    }
+  ],
+  "installed_agents": [
+    "backend-developer.md",
+    "project-auditor.md",
+    "project-manager.md",
+    "quality-engineer.md",
+    "software-architect.md"
+  ],
+  "clock_end": "2026-09-11 08:10:59"
+}

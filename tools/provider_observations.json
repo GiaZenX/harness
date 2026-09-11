@@ -82,7 +82,21 @@
       "reaches_model_shape": "the session listed this marker verbatim and named it a PostToolUse hook note; it produced no `informational` record, so it is the model's channel and not the user's",
       "exit_2_stderr": "NOT measured here. The hooks reference says it shows stderr to Claude on this event; the kits do not use it, because PostToolUse cannot block and this repo's gates refuse to exit 2 where a refusal would be theatre."
     },
-    "_consequence": "Two audiences need two keys, and neither of them is stderr. `gate_approval._announce` writes both; tools/test_hooks_v2.py::test_the_approval_hook_speaks_on_the_channels_this_record_measured holds the hook to the two names above, so a re-measurement that moved them cannot leave the hook talking to nobody."
+    "pre_tool_use": {
+      "measurement": {
+        "date": "2026-09-11",
+        "provider": "claude.exe",
+        "provider_version": "2.1.258",
+        "mode": "headless (-p, --output-format json, --allowedTools 'Bash(echo *)')",
+        "method": "a scratch project outside this repo (v2-testbed/_round-scratch/TSK-0135/probe-pre-context) with ONE PreToolUse(Bash) hook that exits 0 and writes a marker into `hookSpecificOutput.additionalContext` and a second marker into top-level `systemMessage`; the session was asked to run `echo hello` and then repeat verbatim every marker it received from a hook on that call; the hook logged its own run to a file",
+        "occasion": "TSK-0135 mid-goal check P3 -- the spawn gate's checkpoint (DEC-0092 (3)) cited the PostToolUse entry above for a PreToolUse channel"
+      },
+      "reaches_model": "hookSpecificOutput.additionalContext",
+      "reaches_model_shape": "the session's result was exactly `hello` on line 1 and `PRE-CONTEXT-MARKER-9b7d` on line 2 -- the marker repeated verbatim, in a run of 2 API iterations with 0 permission denials; the hook log shows one PreToolUse/Bash run at 03:55:27",
+      "systemMessage": "the `SYSMSG-MARKER-4c2e` marker was NOT among what the model repeated -- consistent with the PostToolUse finding that this key is the user's channel; whether it reached the user's stream was not read in this run (json output, not stream-json)",
+      "not_measured": "exit-0 stderr and plain stdout on this event; the `permissionDecision` keys (the kits refuse with exit 2 and never allow through JSON)"
+    },
+    "_consequence": "Two audiences need two keys, and neither of them is stderr. `gate_approval._announce` writes both; tools/test_hooks_v2.py::test_the_approval_hook_speaks_on_the_channels_this_record_measured holds the hook to the two names above, so a re-measurement that moved them cannot leave the hook talking to nobody. On PreToolUse the same context key carries `gate_dispatch._mirror_the_builder_start`'s checkpoint to the model on an ALLOWED call (exit 0), measured in `pre_tool_use`."
   },
   "agent_identity": {
     "measurement": {
@@ -148,5 +162,25 @@
       "whether Codex expands an @path import inside AGENTS.md"
     ],
     "_not_measured_comment": "Both would change a decision if measured. THE FIRST is the half the SKILL descriptions now name as unmeasured rather than assert: what was measured is the SESSION-agent path (`any_role_bound_as_session_agent`), and the sentence that used to stand there claimed the SUBAGENT-SPAWN path. That the two behave alike is plausible - same frontmatter mechanism, same result as for the lead - and it is not measured: two attempts to ask a real child failed because the child refused the work order on its own terms before answering, so the counter-control word never came back either way and the run distinguished nothing. THE SECOND decides whether an @-import is a provider-neutral delivery path; until it is measured the lead's loop lives in the constitution itself, which needs no import."
+  },
+  "headless_pm_stop_point": {
+    "measurement": {
+      "date": "2026-09-11",
+      "provider": "claude.CMD",
+      "provider_version": "2.1.267",
+      "mode": "headless (-p \"weiter\", --output-format stream-json, --verbose, --max-turns 30, --model haiku, AskUserQuestion among --allowedTools); run 2 additionally with --dangerously-skip-permissions",
+      "runs": 2,
+      "method": "the FR-0089 arm-B project prepared the way the entry file prescribes it (dev-team, smallest preset, filled masterplan, one DRAFT PR-0001 captured through the kernel, generate-index, scaffold_team), then ONE `claude -p` call per run. The stop point is read off the raw stream: every tool_use block, whether an AskUserQuestion block ever appears, the result record (num_turns, stop_reason, permission_denials) and the closing assistant text.",
+      "location": "C:/Offline Repos/v2-testbed/_round-scratch/TSK-0135/experiment/arm-b -- rig/arm_b.py (prepare|probe), raw streams probe-20260911-081108.jsonl and probe-20260911-081402.jsonl beside their summaries",
+      "occasion": "TSK-0135 goal round, finding B1: the reason the kit arm of the FR-0089 experiment was not run unattended stood ASSERTED (\"a -p session cannot answer AskUserQuestion, so the PM stops at the first gate\") in a round that had a real -p session in its hands."
+    },
+    "run_1": "08:11:08-08:12:21, 11 turns, 64.9 s of API time, 10 tool calls, ZERO AskUserQuestion blocks, zero permission_denials, stop_reason end_turn: the PM read the masterplan, PR-0001 and the config, generated the session brief, ran validate -- and then ENDED ITS TURN with a question in PROSE (\"Sollen wir die Anforderung verfeinern, oder direkt zur Scope-Freigabe uebergehen?\"). No approval request, no lease, no builder spawn.",
+    "run_2": "08:14:02-08:14:33, 5 turns, 20.9 s, 4 tool calls, again ZERO AskUserQuestion and stop_reason end_turn; its closing text names the stop itself: \"PR-0001 ist bereit fuer die Scope-Freigabe. Ich kann die Frage stellen, damit du sie freigeben kannst\".",
+    "hooks_were_live": "In BOTH runs four SessionStart hooks started and answered exit 0 (system/hook_started plus hook_response records in the stream), so the kit's hooks ran. What the provider refused to load is narrower than 'the settings file': its stderr says it ignores the five `permissions.allow` entries because the workspace has not been trusted, and --dangerously-skip-permissions did not change that line.",
+    "verdict": "A `-p` session does not stop AT the approval gate -- it never reaches one. The PM hands the decision back to the user in prose and the turn ends, which in -p mode ends the session (max-turns was 30 and neither run came near it). So an unattended arm-B run measures a project that stands still before its first approval, and the asserted mechanism named a gate the run never got to.",
+    "not_measured": [
+      "whether a stronger model dispatches the builder BEFORE handing back (both runs are haiku; DEC-0095 (6) forbids an experiment arm without the user's word)",
+      "whether an interactive session mints the three approvals in the same project -- that is exactly the run the user still owes the experiment"
+    ]
   }
 }
