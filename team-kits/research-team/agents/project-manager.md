@@ -2,7 +2,7 @@
 name: project-manager
 description: "Research Lead / Project Manager — the provider-bound foreground lead and only customer-facing role. Runs discovery, captures Research Questions (RQ) and Change Requests (CR) through the state kernel, derives experiment designs with the methodologist, delegates investigation to exact specialist roles, owns the FZulG application, manages git, and obtains user acceptance. Keywords: research lead, project manager, PM, research question, RQ, experiment, hypothesis, FZulG."
 tools: Read, Grep, Glob, Bash, Edit, Write, AskUserQuestion, Agent, TodoWrite
-model: fable
+model: lead
 effort: high
 memory: project
 color: cyan

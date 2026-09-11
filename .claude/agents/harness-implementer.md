@@ -67,6 +67,15 @@ stop — that is the user's call, not yours.
 7. **A changed kit file makes `tools/validate.py` fail with "VERSION not bumped"** and drags ~10
    unrelated tests down with it. Run `python tools/bump_kit_version.py` before you judge anything.
 
+**READ THE END OF A LOG, NEVER THE LOG, AND REPORT SHORT** (`DEC-0095` (6)). A run log, a protocol,
+a transcript, a generated report is opened at the LINE that answers the question — the last lines of
+a run, the section a pointer names, the record a finding cites — never from the top and never whole;
+if you did read one whole, say so in your report, so the cost is visible to the person who pays it.
+What the lead gets back is the findings and the measurements behind them, not a retelling of the
+work. The three kits carry the same duty as ONE shared paragraph in their constitutions, and
+`tools/test_role_contracts.py::test_every_constitution_carries_the_reading_discipline_duty` holds
+that end and this file together.
+
 ## How to measure
 
 - Real hook processes, not imports: the shipped hook, JSON on stdin, a scaffolded project

@@ -6088,9 +6088,20 @@ _ASKS_THE_USER_RX = re.compile(
 # the half of house rule 1 that rots quietly. Both shipped wordings stay covered, and by a test each:
 # `test_the_team_size_reader_can_tell_a_question_from_the_escape` carries the "NEVER ask the team
 # size" sentence, and the shipped "DERIVED, never asked" sits in the texts the test below reads.
+# TWO MORE WENT THE SAME WAY at the TSK-0135 goal round (verify round 2, item 1): `nie gefragt`
+# and `no team-size question`. RE-MEASURED at the removal, over the entry files and every text
+# `_lead_texts` yields: `nie gefragt` matches nothing at all, and `no team-size question` matches
+# exactly one sentence -- office-manager/SKILL.md's "No team-size question to the user." -- which
+# carries neither the SUBJECT nor an ASK, so the negation was never the thing that let it through.
+# An alternative that decides nothing and a rotted one are indistinguishable from here, and the
+# paragraph above already calls a dead entry a defect, so they go rather than stand as an
+# exception to their own rule. WHAT THAT LEAVES ASYMMETRIC, said rather than papered over: the
+# SUBJECT and the ASK above still carry German alternatives and this negation carries none, so a
+# German sentence that ordered the question and then denied it in the same breath would be read
+# as an order. No shipped text does that today; the day one does, the negation enters here
+# together with the sentence it decides.
 _DERIVED_NOT_ASKED_RX = re.compile(
-    r"\bnever ask|\bnot asked|\bnie gefragt|"
-    r"removed the question|no team-size question", re.IGNORECASE)
+    r"\bnever ask|\bnot asked|removed the question", re.IGNORECASE)
 
 
 def _team_size_questions(text):

@@ -310,6 +310,17 @@ where this rule is actually lost. The rule is `DEC-0008`, its contract is `SR-00
 brought it into the kits is `FR-0007`, and that all three constitutions carry this one text is
 `tools/test_review_procedure.py::test_every_constitution_carries_the_comment_discipline_duty`.
 
+**READ THE END OF A LOG, NEVER THE LOG (`DEC-0095` (6)), AND REPORT SHORT.** A run log, a protocol,
+a transcript, a generated report is opened at the LINE that answers the question — the last lines of
+a run, the section a pointer names, the record a finding cites — never from the top and never whole;
+if you did read one whole, say so in your report, so the cost is visible to the person who pays it.
+What you hand back is the findings and the measurements behind them, not a retelling of the work.
+This is a cost rule and not a style preference: the measurement that produced it is the user's own,
+in the context of `DEC-0095`, and what it found was that the long context carried from step to step
+is the single largest consumer of a project — bigger than any one model choice. That every kit
+carries this one text is
+`tools/test_role_contracts.py::test_every_constitution_carries_the_reading_discipline_duty`.
+
 ## 5. Roles (presets: `core` = records-clerk + filing-reviewer + bookkeeper; `commerce` adds
 product-editor + shop-curator; `full` adds compliance-researcher + marketing-planner +
 office-developer. `presets.yaml` is the authority; the clerk and the reviewer travel together
@@ -433,13 +444,15 @@ three rungs `sonnet < opus < fable` (DEC-0076), top rung **opus** for every role
 and **high** when the goal's `class` is `large` (`xhigh` is not an office effort); the filing pair
 **records-clerk** / **filing-reviewer** STARTS on its `sonnet` pin and its effort is fixed at
 **low** by the named exception — two roles read every document and `gate_filing` still decides the
-move — but a FAILED run climbs its rung to **opus** like any other order, because rule 2 knows no
-exception. Whether that pair should climb at all is an open question for the user
+move — but failed runs climb its rung to **opus** like any other order once the escalation
+threshold is reached, because rule 2 knows no exception. Its EFFORT stands still throughout:
+the fixed **low** is floor and ceiling at once, so the effort steps a failed run buys before
+a rung step buy this pair nothing. Whether that pair should climb at all is an open question for the user
 (`kernel.dispatch.ladder_for_order` derives it; the answer would be one `top:` line in
 `ladder.yaml`). At every `dispatch` the kernel
 derives the RUNG from the role's pin, its class in the declaration and the order's failed runs
-(you plan on the top rung; the auditor never below opus; the rest on its pin; after every FAILED
-run one rung up, capped at the role's top) and the EFFORT from the goal, writes both on the lease,
+(you plan on the top rung; the auditor never below opus; the rest on its pin; the escalation
+below is what moves a rung, capped at the role's top) and the EFFORT from the goal, writes both on the lease,
 the header and the task item, and derives again at the spawn (`kernel.dispatch.ladder_for_order`;
 `python scripts/harness.py ladder <TSK-ID>` shows the answer without minting). **What you do with
 it:** when the header's `rung` is not the role's own pin, pass it as the Agent call's `model:` —
@@ -448,6 +461,13 @@ is derived and shown, never forced — the platform has no per-spawn effort para
 runs on the installed `effort:`, and that is what this kit's `project_config.yaml` `effort_map`
 stamps (today `high` for the specialists, `low` for the filing pair). A `PROC` carries no `class`,
 so `large` is reachable here only under a goal type that does.
+On a FAILED run the EFFORT climbs before the RUNG (`DEC-0096`): the declaration's two thresholds
+spend the first failed runs of each cycle on one effort step each on the SAME rung, and only the
+threshold itself buys a rung step, from where the effort starts over at the kit's default -- and that
+restart is paid for BY the rung step, so at a role's top rung, where no step is granted any more, the
+effort stays at the ceiling instead of falling back. This
+kit's lower pair leaves exactly one step of headroom, and an order already at its ceiling -- a
+`large` goal, or the filing pair on its fixed floor -- gets none; the rung is what moves for them.
 Maps live in `project_config.yaml`;
 the scaffold stamps Claude frontmatter and Codex TOML. Codex agent TOMLs are read-only harness output:
 after the user confirms a sync, run the full scaffold with explicit filesystem permission escalation

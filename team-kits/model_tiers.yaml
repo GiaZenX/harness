@@ -5,6 +5,15 @@
 # name is read (scaffold stamping, session_status drift check, provider generators). Provider
 # generators translate a rung to that provider's concrete model id via this table.
 #
+# WHICH RUNG IS A STANDING TIER AND WHICH IS BOUGHT PER OCCASION IS NOT THIS TABLE'S BUSINESS
+# (DEC-0095, beside DEC-0076): this file translates three rungs per provider and says nothing about
+# who runs on which. DEC-0095 answered the "who" on cost -- builder, orchestrator and verifier on
+# opus, the TOP rung only for the named architecture step of a large goal and as the escalation
+# target after a failed run -- and it did so by moving the `classes:` of the kits' `ladder.yaml`
+# and the role pins, not by changing a row here. A reader who came looking for the answer in this
+# table is in the wrong file: the kit's declaration is the one that decides, and DEC-0096 says in
+# which ORDER a failed run climbs the two axes.
+#
 # THREE RUNGS PER PROVIDER, NO MORE (DEC-0076): fable / opus / sonnet in the reference vocabulary,
 # and the same three positions for every other provider. There is no `light` alias and no haiku or
 # luna row; a pin this table cannot place is refused by `gen_provider_artifacts.provider_neutral_model`

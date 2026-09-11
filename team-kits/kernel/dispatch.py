@@ -148,6 +148,11 @@ LARGE_CLASS = "large"
 # DEC-0034 rule 2, counted on the task: how many runs of this order ended in FAILED -- see
 # `count_failed_run_locked` for what counts and where it is counted.
 FAILED_RUNS = "failed_runs"
+# DEC-0096 (2), the SECOND escalation threshold beside `failed_runs_per_rung`: how many of the
+# failed runs inside one rung's cycle are spent raising the EFFORT on that rung before the rung
+# itself climbs. A config value and not a constant for the reason DEC-0077 (2) made the first one
+# a config value -- a pilot moves it without a kernel change.
+EFFORT_STEPS_KEY = "effort_steps_before_rung"
 
 
 class DispatchError(StateError):
@@ -2677,11 +2682,17 @@ def _valid_ladder(kit: str, raw: dict) -> dict:
             refuse("gives `effort.%s` the value %r, which is not one of %s -- an order's effort ask "
                    "is compared against it (DEC-0091 (2)) and a value outside the ordering cannot "
                    "be" % (key, effort[key], "|".join(EFFORT_LEVELS)))
-    escalation = raw.get("escalation")
-    per_rung = escalation.get("failed_runs_per_rung") if isinstance(escalation, dict) else None
+    escalation = raw.get("escalation") if isinstance(raw.get("escalation"), dict) else {}
+    per_rung = escalation.get("failed_runs_per_rung")
     if isinstance(per_rung, bool) or not isinstance(per_rung, int) or per_rung < 1:
         refuse("needs `escalation.failed_runs_per_rung:` as a whole number of at least 1 "
                "(DEC-0034 rule 2)")
+    effort_steps = escalation.get(EFFORT_STEPS_KEY)
+    if isinstance(effort_steps, bool) or not isinstance(effort_steps, int) or effort_steps < 0:
+        refuse("needs `escalation.%s:` as a whole number of at least 0 -- of the failed runs "
+               "inside one rung's cycle, how many raise the EFFORT before the rung itself climbs "
+               "(DEC-0096 (2)). A kit that declares 0 escalates on the rung axis alone, the way "
+               "every kit did before DEC-0096" % EFFORT_STEPS_KEY)
     classes = raw.get("classes")
     if not isinstance(classes, dict) or not classes:
         refuse("needs `classes:` -- the rung each role class starts on (DEC-0034 rules 1/4/5)")
@@ -2721,6 +2732,7 @@ def _valid_ladder(kit: str, raw: dict) -> dict:
         CLASS_TOP: str(top),
         EFFORT_KEY: {"default": str(effort["default"]), LARGE_CLASS: str(effort[LARGE_CLASS])},
         "failed_runs_per_rung": int(per_rung),
+        EFFORT_STEPS_KEY: int(effort_steps),
         "classes": {str(name): str(start) for name, start in classes.items()},
         "roles": {str(role): str(name) for role, name in roles.items()},
         "exceptions": {str(role): dict(rule) for role, rule in exceptions.items()},
@@ -2797,8 +2809,9 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
     TWO AXES, derived and never chosen by hand:
       * the RUNG hangs on the role's pin and the kit's endpoints (DEC-0077 (1), DEC-0047): the
         role's class decides the rung it STARTS on -- `top` for planning and architecture (DEC-0034
-        rule 1), a named floor for design and QA (rules 4/5), the pin for the build -- and a class
-        floor never LOWERS a pin; after that every `failed_runs_per_rung` failed runs of this order
+        rule 1), a named floor for design and QA (rules 4/5), the class's own rung for the build
+        (DEC-0095 (1)) -- and a class floor never LOWERS a pin; after that every
+        `failed_runs_per_rung` failed runs of this order
         climb one rung (rule 2), capped at the role's top. THE TOP DOES CAP DOWNWARDS, and that is
         the one place a pin can be lowered: a kit whose `top` (or whose per-role `top` exception)
         lies BELOW a role's pin dispatches that role on the top, not on its pin. No shipped kit
@@ -2818,6 +2831,9 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
         kit's highest declared effort still cap --
         `tools/test_light_kit.py::test_an_order_rung_lifts_the_start_and_the_climb_begins_there`,
         `::test_an_order_effort_lifts_the_goals_effort_and_the_kits_highest_effort_caps_it`.
+      * THE TWO AXES ESCALATE IN ORDER, effort before rung (DEC-0096): the failed runs inside one
+        rung's cycle raise the effort first, and only the threshold itself raises the rung -- the
+        block at the end of this function carries the derivation and the reason.
     A kit-less project (no scaffold record) gets `{"absent": why}` and the role runs on its own
     pin; every other failure to read is a refusal, never a guess (DEC-0078 (4)).
     `tools/test_ladder.py` holds one red-first test per rule named above.
@@ -2886,8 +2902,12 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
         start_why += ", the order asks %s" % order_rung
     elif order_rung is not None:
         start_why += ", the order's ask %s is not above it" % order_rung
-    climbed = rungs.index(start) + int(failed_runs) // ladder["failed_runs_per_rung"]
-    chosen = rungs[min(climbed, rungs.index(top))]
+    per_rung = ladder["failed_runs_per_rung"]
+    chosen = rungs[min(rungs.index(start) + int(failed_runs) // per_rung, rungs.index(top))]
+    # THE RUNG STEPS THAT WERE GRANTED, not the ones the threshold derived -- `top` caps the climb,
+    # and everything below that reads this count (the effort cycle, the shown sentence) has to read
+    # the granted one or it credits the order with a climb it did not get.
+    granted_rungs = rungs.index(chosen) - rungs.index(start)
     goal_class = str(root.get("class") or "")
     if EFFORT_KEY in exception:
         effort, effort_why = str(exception[EFFORT_KEY]), "the exception fixes it"
@@ -2917,6 +2937,45 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
                 "the order asks %s, capped at the kit's highest effort %s" % (order_effort, ceiling))
         else:
             effort, effort_why = order_effort, "the order asks %s" % order_effort
+    # DEC-0096: THE TWO AXES ESCALATE IN ORDER -- effort first, rung after, and the declaration's
+    # two thresholds say how. `failed_runs_per_rung` failed runs buy one RUNG step (above); of the
+    # failed runs inside the current rung's cycle, the first `effort_steps_before_rung` buy one
+    # EFFORT step each. The count is the failed runs MINUS the ones already paid out as GRANTED
+    # rung steps, so it resets with every granted step -- that reset is the "effort back at the
+    # kit's default" of DEC-0096 (1) and it needs no state of its own. AT THE TOP RUNG NOTHING IS
+    # GRANTED ANY MORE, so the count keeps growing and the effort STAYS at the ceiling instead of
+    # falling back: an order that has run out of ladder never gets a weaker pair than the run
+    # before it. Keyed on the derived cycle (`failed_runs % per_rung`) it did exactly that --
+    # measured by the verifier of round 1: dev FAIL 5 fable/xhigh, FAIL 6 fable/high.
+    # A declaration of 0 steps derives exactly what the kernel derived before DEC-0096, and where
+    # no cap bites the two spellings agree (`granted_rungs * per_rung == failed_runs // per_rung *
+    # per_rung`), which is why the change is invisible below the top rung.
+    # `tools/test_ladder.py::test_a_failed_run_raises_the_effort_before_it_raises_the_rung`
+    # THE CEILING IS THE KIT'S OWN PAIR, not a third number: the higher value a kit declares is the
+    # highest effort it runs at all (DEC-0078 (2)), and a role whose exception FIXES an effort has
+    # that value as its ceiling -- so the escalation buys nothing where the kit declared no
+    # headroom. All three kits ship a pair with exactly ONE step of headroom today, which is why
+    # DEC-0096 (1) narrates FAIL 2 as "the raised effort" rather than as a second step.
+    on_this_rung = int(failed_runs) - granted_rungs * per_rung
+    here = EFFORT_LEVELS.index(effort)
+    raised = min(here + min(on_this_rung, ladder[EFFORT_STEPS_KEY]), EFFORT_LEVELS.index(ceiling))
+    effort_steps = max(raised - here, 0)          # the escalation RAISES the effort or leaves it
+    if effort_steps:
+        effort, effort_why = EFFORT_LEVELS[raised], (
+            "%s, raised %d step(s) by %d failed run(s) on this rung"
+            % (effort_why, effort_steps, on_this_rung))
+    # The derivation as ONE sentence for the two readers that show it (DEC-0096 (4)): the lease's
+    # `why` and the spawn gate's checkpoint line (c). It states the two steps and the two
+    # thresholds they came from, so a PM reading "FAIL 2: rung +0" can see WHY the rung stood still.
+    # BOTH NUMBERS ARE THE STEPS GRANTED, not the steps derived: `top` caps the rung climb and the
+    # kit's pair caps the effort, so a derived "+2" that the cap swallowed would be a claim about a
+    # model the order is not running on. Where the two differ, the cap is beside it in the `why`
+    # and on the checkpoint's (c) line ("top %s"), which is what a reader needs to tell a ladder
+    # that stood still from one that was held.
+    escalation_line = ("FAIL %d: rung +%d, effort +%d -- this kit spends the first %d failed "
+                       "run(s) of every %d on the effort axis (DEC-0096)"
+                       % (int(failed_runs), granted_rungs, effort_steps,
+                          ladder[EFFORT_STEPS_KEY], per_rung))
     return {
         RUNG_KEY: chosen,
         EFFORT_KEY: effort,
@@ -2928,10 +2987,11 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
         "start": start,
         "order": {RUNG_KEY: order_rung, EFFORT_KEY: order_effort},
         "failed_runs": int(failed_runs),
+        "escalation": escalation_line,
         CLASS_TOP: top,
         "goal_class": goal_class or None,
-        "why": "%s: pin %s, %s, %d failed run(s), top %s; effort %s: %s"
-               % (chosen, pin, start_why, int(failed_runs), top, effort, effort_why),
+        "why": "%s: pin %s, %s, %s, top %s; effort %s: %s"
+               % (chosen, pin, start_why, escalation_line, top, effort, effort_why),
     }
 
 
@@ -2956,7 +3016,8 @@ def reflection_checkpoint(state: ProjectState, task: dict, root: dict, lease: di
     """The four fact lines the spawn gate hands the PM before a BUILDER starts (DEC-0092 (3)).
 
     (a) the goal's measured file sets, (b) the order's size signals, (c) the rung and effort about
-    to be leased with the ladder's floor beside them, (d) the distribution of the last N leases --
+    to be leased with the ladder's floor and the FAIL-count derivation beside them (DEC-0096 (4)),
+    (d) the distribution of the last N leases --
     and the one question. Everything here is READ off the state; nothing is judged and nothing is
     refused, which is why the gate that prints it does so after `validate_dispatch` has already
     said yes (`gate_dispatch.handle_pre_tool_use`). The kit-less case has no ladder answer and
@@ -2995,10 +3056,11 @@ def reflection_checkpoint(state: ProjectState, task: dict, root: dict, lease: di
            "y" if len(field_elements(task.get("allowed_scope"))) == 1 else "ies",
            len(field_elements(task.get("expected_outputs"))), ladder.get("goal_class") or "none"),
         "(c) about to lease: rung %s, effort %s -- the ladder's floor for %s is %s (pin %s, class "
-        "%s), top %s; the order asked rung %s / effort %s"
+        "%s), top %s; the order asked rung %s / effort %s; %s"
         % (lease.get(RUNG_KEY), lease.get(EFFORT_KEY), task.get("assigned_role"),
            ladder.get("floor"), ladder.get("pin"), ladder.get("role_class"), ladder.get(CLASS_TOP),
-           order.get(RUNG_KEY) or "nothing", order.get(EFFORT_KEY) or "nothing"),
+           order.get(RUNG_KEY) or "nothing", order.get(EFFORT_KEY) or "nothing",
+           ladder.get("escalation") or "no escalation answer on this lease"),
         "(d) %s" % report.lease_distribution(state)["line"],
         CHECKPOINT_QUESTION,
     ]

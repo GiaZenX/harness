@@ -1,8 +1,8 @@
 {
   "_comment": "Jede übernommene Änderung der Lead-Paket-Grösse, eine Zeile pro Kit, geschrieben von `tools/record_lead_package_sizes.py --write`. Der Rekord selbst steht in `tools/lead_package_sizes.json` und ist die Grenze, die `tools/validate.py` hart erzwingt. Es gibt keinen Aufschlag darauf: ein Spielraum wäre eine zweite gegriffene Zahl neben der gerade entfernten. Wer eine Grenze anhebt, schreibt hier hin, wofür.",
   "sizes": {
-    "dev-team": 57445,
-    "office-team": 63625,
-    "research-team": 59465
+    "dev-team": 59530,
+    "office-team": 65405,
+    "research-team": 61353
   }
 }

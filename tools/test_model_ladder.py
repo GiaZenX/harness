@@ -215,6 +215,60 @@ def test_the_constitutions_ladder_paragraph_says_what_the_declaration_says():
         assert "ladder_for_order" in text or "python scripts/harness.py ladder" in text, name
 
 
+# The class name written into a constitution's ladder paragraph, in the spelling the three kits
+# use for a class there: upper case, so `BUILT` in the paragraph's own lead-in is not a hit and
+# `builder` in "a dev-team builder" is not one either. WHAT THIS DELIBERATELY DOES NOT READ: a kit
+# that describes its build class in other words entirely -- office does, and the branch below says
+# what that costs.
+_BUILD_IN_PROSE_RX = re.compile(r"\bBUILD\b")
+
+
+def test_the_ladder_paragraph_names_the_rung_the_build_class_starts_on():
+    """DEC-0095 (1) in the text that instructs the lead: where a declaration gives the `build`
+    class a RUNG, the constitution's ladder paragraph names that same rung beside the build.
+
+    RED ON A PARAGRAPH THAT NAMES FABLE AS THE BUILD START -- the claim DEC-0095 removed, and the
+    one a paragraph drifts back into first, because "a goal-sized build goes to the top rung" was
+    the shipped sentence until this round (DEC-0088 (1)). Red in the other direction too: a
+    declaration moved back to `pin` while the paragraph still says opus.
+
+    WHY BOTH FILES: the declaration is what the kernel reads and the paragraph is what the lead
+    reads, and the finding class this repository keeps paying for is the two saying different
+    things. The rung is taken from the DECLARATION, never typed here.
+
+    WHAT IT DOES NOT JUDGE, said rather than implied: a kit whose build class starts on `pin`
+    (office today) owes no rung in its paragraph, and office's paragraph does not use the word
+    BUILD at all -- so for that kit this test asserts only that no sentence there claims a rung
+    for the build. The positive half needs at least two kits, and that floor is asserted, so the
+    day dev and research stop naming it this test says so instead of measuring nothing.
+    """
+    judged = 0
+    for kit in kit_dirs():
+        name = os.path.basename(kit)
+        with io.open(os.path.join(kit, dispatch.LADDER_FILE), encoding="utf-8") as handle:
+            ladder = dispatch._valid_ladder(kit, yaml.safe_load(handle))
+        rule = ladder["classes"][dispatch.BUILD_CLASS]
+        paragraph = " ".join(ladder_paragraph(read(os.path.join(kit, "constitution", "AGENTS.md"))).split())
+        sentences = [part for part in re.split(r"(?<=[.;])\s+", paragraph)
+                     if _BUILD_IN_PROSE_RX.search(part)]
+        named = {rung for part in sentences for rung in ladder["rungs"]
+                 if re.search(r"\*\*%s\*\*" % re.escape(rung), part)}
+        if rule in (dispatch.CLASS_PIN, dispatch.CLASS_TOP):
+            assert not named, (
+                "%s: its declaration starts the build on `%s`, and its ladder paragraph names the "
+                "rung(s) %s beside the build -- a rung nobody declared: %s"
+                % (name, rule, sorted(named), sentences))
+            continue
+        assert named == {rule}, (
+            "%s: the declaration starts the build class on %r and its ladder paragraph names %s "
+            "beside the build; the lead and the kernel would run on different answers: %s"
+            % (name, rule, sorted(named) or "no rung at all", sentences))
+        judged += 1
+    assert judged >= 2, (
+        "%d kit(s) declare a rung for their build class, so the half of this test that reads the "
+        "paragraph measured almost nothing" % judged)
+
+
 def role_pin_of(kit, role):
     """The model a kit's OWN source pins for a role, resolved to a rung through the tiers table."""
     tiers, aliases = tiers_reader.load_tiers()

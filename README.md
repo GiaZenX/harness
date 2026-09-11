@@ -502,8 +502,10 @@ opens by double-click.
   since DEC-0077: the dispatcher derives it (**The ladder is the kernel's**, below).
 - **Models:** three rungs per provider (`team-kits/model_tiers.yaml`, DEC-0076) -- `fable` /
   `opus` / `sonnet` on Claude, `gpt-6-astra` / `gpt-5.6-sol` / `gpt-5.6-terra` on Codex; kit
-  sources pin the aliases `lead`/`worker` or the top rung `fable`. PM/judgment roles default to
-  lead and implementers to worker, controlled via `project_config.yaml` — the scaffold stamps the
+  sources pin the aliases `lead`/`worker` or the top rung `fable`. Judgment roles and the kit
+  LEADS pin opus, implementers pin worker and the ladder's `build` class starts them on opus anyway
+  (DEC-0095: the top rung is bought for the named architecture step and for the escalation after a
+  failed run, never as a standing tier); the specialist map is `project_config.yaml` — the scaffold stamps the
   shared Claude agent frontmatter and generates the Codex TOMLs from it; `session_status` nags on
   drift. Under Codex, re-sync only through a user-confirmed full scaffold run (which invokes the
   generator), request explicit filesystem permission escalation for read-only harness paths when
@@ -513,7 +515,8 @@ opens by double-click.
   `team-kits/<kit>/ladder.yaml` -- rungs, top rung, effort pair, role classes, named exceptions --
   and `kernel.dispatch.ladder_for_order` derives at every `dispatch` the RUNG (the role's pin, its
   class, the order's failed runs -- DEC-0034 rules 1-5, endpoints per kit DEC-0047) and the EFFORT
-  (the goal's `class`), writes both on the lease, the header and the task item, derives again at
+  (the goal's `class`) -- and on a failed run the EFFORT climbs before the RUNG, by the two
+  thresholds each declaration carries (DEC-0096) -- writes both on the lease, the header and the task item, derives again at
   the spawn and refuses a spawn that names no `model` for a climbed order or the wrong one
   (`python scripts/harness.py ladder <TSK-ID>` shows the answer). A kit without a declaration is
   refused at dispatch; the kernel carries no default.

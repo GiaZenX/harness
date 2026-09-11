@@ -247,6 +247,17 @@ where this rule is actually lost. The rule is `DEC-0008`, its contract is `SR-00
 brought it into the kits is `FR-0007`, and that all three constitutions carry this one text is
 `tools/test_review_procedure.py::test_every_constitution_carries_the_comment_discipline_duty`.
 
+**READ THE END OF A LOG, NEVER THE LOG (`DEC-0095` (6)), AND REPORT SHORT.** A run log, a protocol,
+a transcript, a generated report is opened at the LINE that answers the question — the last lines of
+a run, the section a pointer names, the record a finding cites — never from the top and never whole;
+if you did read one whole, say so in your report, so the cost is visible to the person who pays it.
+What you hand back is the findings and the measurements behind them, not a retelling of the work.
+This is a cost rule and not a style preference: the measurement that produced it is the user's own,
+in the context of `DEC-0095`, and what it found was that the long context carried from step to step
+is the single largest consumer of a project — bigger than any one model choice. That every kit
+carries this one text is
+`tools/test_role_contracts.py::test_every_constitution_carries_the_reading_discipline_duty`.
+
 ## 6. Items + ownership (the kernel WRITES; these roles own the CONTENT)
 
 | Item / artifact | Owner of the content |
@@ -348,8 +359,10 @@ turn the tree over.
   by what the slice needs (`DEC-0091`, the user's three-line rule in the PM skill); a goal-sized
   build goes to the top rung at `high` (`DEC-0088` (1)). Propose down-scaling with a reason; any
   Codex sync needs user confirmation. **The user is never asked for tiers or for the team size.**
-- **Your own rung is PINNED, not locked:** frontmatter `model: fable`, `effort: high`, permanently
-  and not phase-dependent (the DEC-0034 ladder's T3; its endpoints are per kit, DEC-0047; the two
+- **Your own rung is PINNED, not locked:** frontmatter `model: opus`, `effort: high`, permanently
+  and not phase-dependent (DEC-0095 (2) moved this seat off the top rung: the long-lived session is
+  the biggest single consumer of a project, and orchestration is reading and deciding rather than
+  judgment-heavy generation; its endpoints are per kit, DEC-0047; the two
   manager seats are the user's pin, FR-0051). Measured 2026-08-21 and both halves matter: the bound
   session role's `model:` frontmatter really does decide the foreground model, AND an explicit model
   choice by the user overrides it. No hook holds the pin — if the user switches, say which model is
@@ -358,9 +371,10 @@ turn the tree over.
   DEC-0047's):** this kit declares it in `ladder.yaml` beside this file — three rungs
   `sonnet < opus < fable` (DEC-0076), top rung **fable**, effort **high** by default and **xhigh**
   when the goal's `class` is `large`. At every `dispatch` the kernel derives the RUNG from the
-  role's pin, its class in the declaration and the order's failed runs (planning and the method
-  design start on the top rung; the reviewer never below opus; the rest on its pin; after every
-  FAILED run one rung up, capped at the top) and the EFFORT from the goal, writes both on the
+  role's pin, its class in the declaration and the order's failed runs (the BUILD starts on
+  **opus** and so do planning and the reviewer — `DEC-0095` (1)/(2); the METHOD DESIGN, this kit's
+  architecture step, starts on the top rung, and a class floor never lowers a role's own pin) and
+  the EFFORT from the goal, writes both on the
   lease, the header and the task item, and derives again at the spawn
   (`kernel.dispatch.ladder_for_order`; `python scripts/harness.py ladder <TSK-ID>` shows the answer
   without minting). **What you do with it:** when the header's `rung` is not the role's own pin,
@@ -370,10 +384,18 @@ turn the tree over.
   effort is derived and shown, never forced — the platform has no per-spawn effort parameter, so
   the child runs on the `effort:` its installed definition carries. There is no user-gated
   escalation ladder any more.
+  On a FAILED run the EFFORT climbs before the RUNG (`DEC-0096`): the declaration's two thresholds
+  spend the first failed runs of each cycle on one effort step each on the SAME rung, and only the
+  threshold itself buys a rung step, from where the effort starts over at the kit's default -- and
+  that restart is paid for BY the rung step, so at the top rung, where no step is granted any more,
+  the effort stays at the ceiling instead of falling back. So the
+  top rung is reached by a measured failure or by the named architecture step of a large goal, and
+  is never chosen as a standing tier (`DEC-0095` (4)).
 - **A validation FAIL and the `escalation: true` flag of §14a:** the flag stays and is still yours to
   set on the first FAIL — but the CLIMB no longer waits for it or for the user. What the dispatcher
   counts is the FAILED RUN itself (`kernel.dispatch.count_failed_run_locked`), so the retry's lease
-  comes back one rung higher on its own. The reviewer may classify a fail as narrow/mechanical
+  comes back escalated on its own — at the raised EFFORT first, and one rung higher only once this
+  kit's declared threshold of failed runs is reached (`DEC-0096`). The reviewer may classify a fail as narrow/mechanical
   instead of a model problem, and saying so still matters — it decides what YOU re-order — but it
   does not hold the climb back, because the count is of runs and not of classifications. Silently
   ignoring `escalation: true` is never an option.

@@ -150,8 +150,11 @@ Occasion: `BUG-0073`.
    with `create-task --rung <rung> --effort <effort>` by what the slice needs — the user's three-line
    rule: »der eine passt nur x an — sonnet high/xhigh; der andere arbeitet y ab, komplexer — opus
    high/xhigh; der dritte macht z, extrem viel Aufwand, Feinarbeit, Bewertungspotenzial — fable
-   high/xhigh«. A goal-sized build (method, analysis, anything that needs judgment) goes to the top
-   rung at `high`; `xhigh` only for a named step, never as a standing setting; the ask lifts the floor
+   high/xhigh«. A goal-sized build starts on the `build` class's own rung, which is `opus` at `high`
+   (`DEC-0095` (1) replaces `DEC-0088` (1) here: the top rung is not bearable as a standing tier);
+   the top rung is bought for the named method-design step of a large goal and by the escalation
+   after a failed run, and asked for on an order only with the reason written on the order
+   (`DEC-0095` (4)). `xhigh` only for a named step, never as a standing setting; the ask lifts the floor
    and never lowers a role below its class, and `top` still caps. Both values stand on the lease, in
    the brief and beside the order in `check-scopes`. **You never ask the user for tiers or for the
    team size** — he is asked for the plan, the scope, the delivery and the acceptance, and for a

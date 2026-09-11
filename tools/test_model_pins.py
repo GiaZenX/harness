@@ -83,8 +83,15 @@ def role_definitions(root, relative_paths):
 
 
 def pinned_model(root, relative_path):
-    """The `model:` a role definition pins, or None when it pins none (the session lead pins none:
-    a lead bound through `settings.json` takes the model of the session it leads)."""
+    """The `model:` a role definition pins, or None when it pins none.
+
+    A definition without the key is legitimate, not a defect: a role bound through `settings.json`
+    RUNS on whatever model the session runs on unless it pins one, so the absence is an answer.
+    Every role this repo and the kits ship carries a pin today (`harness-lead` got one with
+    DEC-0095 (2)); the None branch stays because nothing forces that, and
+    `test_the_pin_reader_covers_every_agents_directory_the_repo_tracks` counts the pins so a
+    reader that silently stopped finding them is not mistaken for a tree that stopped carrying them.
+    """
     with io.open(os.path.join(root, relative_path.replace("/", os.sep)),
                  encoding="utf-8-sig") as handle:
         text = handle.read()

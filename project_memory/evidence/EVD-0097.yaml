@@ -1,0 +1,19 @@
+id: EVD-0097
+kind: review
+related:
+- TSK-0135
+- PR-0011
+result: pass
+summary: 'verifier PASS for diff:05c1a59571c204b2018d01e8af20b0c99e321f69df33cdbbc95e471c65463bb1
+  -- TSK-0135 / PR-0011 the light kit: goal round (Opus, 06:50-07:45) FAIL on AC-2/4/5/6/10,
+  one rework (Opus, 07:56-08:42), short round 2 (Opus, 08:45-08:51) PASS on all twelve
+  ACs (AC-6 re-cut under DEC-0095 (6): prepared, reason measured, run and verdict
+  = user lines); stamps 2026.09.11-4 x3 unchanged after the rework; delivery run EVD-0095,
+  rework EVD-0096; the tree includes TSK-0134''s watcher delivery (measured by the
+  lead, DEC-0088 (d)) and the lead''s staging edit of the 362/368 line'
+artifact_refs:
+- staging/TSK-0135/verify-goal-2.md
+- staging/TSK-0135/verify-goal.md
+revision: 1
+approval_ref: null
+created: '2026-09-11T08:52:48'

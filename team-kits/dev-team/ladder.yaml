@@ -26,17 +26,28 @@ effort:
   large: xhigh                        # when the goal's `class` is large
 
 escalation:
-  # DEC-0034 rule 2: after every FAIL one rung up. What COUNTS as a fail is derived by the kernel
-  # (`dispatch.count_failed_run_locked`), not declared here. The value is the user's rule of
-  # 2026-08-10 (one rung per fail); the pilot of TSK-0130 measured the climb with it -- see
-  # project_memory/staging/TSK-0130/stream-protocol.md, AC-6 -- and DEC-0034 names a different
-  # number as a thing pilots may still move. Nothing else reads it.
-  failed_runs_per_rung: 1
+  # DEC-0096: EFFORT BEFORE RUNG. What COUNTS as a fail is derived by the kernel
+  # (`dispatch.count_failed_run_locked`), not declared here; what the two numbers below BUY is
+  # derived by `dispatch.ladder_for_order`. Of the failed runs inside one rung's cycle the first
+  # two raise the effort on the same rung, and the third raises the rung (DEC-0034 rule 2), from
+  # where the effort starts over at this kit's default. The measurement behind the move away from
+  # the user's 2026-08-10 rule of one rung per fail is in DEC-0096: every stream of generations
+  # 3-5 and both goal packages of generations 5-6 failed their FIRST verification round, so a rung
+  # per fail put an Opus builder on the top rung at the start of nearly every goal -- the standing
+  # top-rung cost DEC-0095 had just removed.
+  # THIS KIT'S PAIR HAS ONE STEP OF HEADROOM (high -> xhigh), so the second effort step lands on
+  # the ceiling and changes nothing; the rung is what moves at the third fail.
+  # THE RESET IS PAID FOR BY THE RUNG STEP, and that matters at the END of the ladder: at the top
+  # rung no further step is granted, so the effort STAYS at the ceiling instead of falling back to
+  # the default -- an order that has run out of ladder never comes back on a weaker pair than the
+  # run before it (verifier round 1, F1; the kernel counts the GRANTED steps, not the derived ones).
+  effort_steps_before_rung: 2           # DEC-0096 (2)
+  failed_runs_per_rung: 3               # DEC-0096 (2), replacing the 1 of DEC-0034 rule 2
 
 # DEC-0034 rules 1 / 4 / 5 as the rung a CLASS starts on: `top` is this kit's top rung, `pin` the
-# role's own pin, anything else a rung name. Planning and architecture start on the top rung (rule 1;
-# the fall of the BUILD to its pin once the scope approval is minted and the architecture frozen is
-# not declared here because the kernel refuses a build order before that moment, and the claim is a
+# role's own pin, anything else a rung name. The architecture starts on the top rung (rule 1; that
+# the BUILD is dispatched only once the scope approval is minted and the architecture frozen is not
+# declared here because the kernel refuses a build order before that moment, and the claim is a
 # test rather than this sentence:
 # `test_a_build_order_reaches_the_ladder_only_after_the_phase_its_class_assumes`
 # (tools/test_ladder.py) leases the same order twice, once with the step owed and once with it
@@ -44,12 +55,19 @@ escalation:
 # floor (rule 4), QA never below opus (rule 5). Rule 3 (a CR touching the architecture lifts back to
 # the top for that CR) is the architecture class on the top rung: the rung is derived per ORDER at
 # every lease and stored nowhere else, so the fall back after the CR is what happens by itself.
+#
+# DEC-0095 (1)/(2) MOVED TWO OF THESE off `top` and off the pin, on cost measured by the user: the
+# top rung is not bearable as a STANDING tier, so the build starts on opus rather than on the
+# coder's `worker` pin, and planning starts on opus rather than on the top rung. The architecture
+# class keeps `top` -- DEC-0095 (4a) names it as one of the two occasions the top rung is bought:
+# one call, a document as output, the freeze the build falls from (DEC-0034 rule 1). The other
+# occasion is the escalation above, and nothing else reaches the top rung.
 classes:
-  planning: top
-  architecture: top
+  planning: opus                        # DEC-0095 (2): the orchestrator is a standing cost
+  architecture: top                     # DEC-0095 (4a): the one bought call per large goal
   design: opus
   qa: opus
-  build: pin
+  build: opus                           # DEC-0095 (1): the builder default, not the worker pin
 
 # Every spawnable role of this kit and its class. Both ends are measured by
 # `tools/test_ladder.py::test_every_kit_role_has_a_class_and_every_classed_role_ships`: a role

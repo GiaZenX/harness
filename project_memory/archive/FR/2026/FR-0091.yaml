@@ -1,0 +1,54 @@
+id: FR-0091
+title: 'Recherche: welches Modell (Sonnet / Opus / Fable) fuer welchen Aufgabenumfang
+  -- was Anthropic selbst und was Nutzer berichten -- als Grundlage fuer die Stufenregeln
+  (DEC-0095/0096) statt Gefuehl'
+request_text: 'User 2026-09-11: ''Fable kuenftig als Umsetzer nur einmal kurz am Anfang
+  beim Aufsetzen des komplexen Plans der Hauptarchitektur und des Designs, und dann
+  lediglich als letzte Eskalationsstufe? Der Hook bremst den PM und fragt: Fable/Sonnet/Opus
+  wirklich noetig/ausreichend. Waere eine kurze Sonnet-Recherche sinnvoll, was User
+  und Anthropic berichten, fuer welchen Umfang und welche Tasks welches Modell am
+  besten geeignet ist? Opus ist eigentlich sehr gut; Fable hat das kleine Etwas, ist
+  autonomer, versteht Zusammenhaenge besser, prueft sich selbst, ist kritischer --
+  aber Opus macht fast die gleiche Arbeit deutlich guenstiger. Fable lohnt sich wohl
+  nur als Eskalationsstufe fuer sehr komplexe Analysen ueber viele Dateien / das ganze
+  Repo / den ganzen Plan. Sonnet nur fuer ganz kleine Sachen -- gut, aber manchmal
+  etwas daemlich. Das ist mein Gefuehl, ich kann mich taeuschen: drei oder vier Sonnet-Subagents
+  als Recherche.'''
+problem: DEC-0095 (builder default opus) and DEC-0096 (effort before rung) were decided
+  on the cost signal of one session (30 % of the weekly budget in 8 h) and on the
+  user's impression; the FR-0089 research measured multi-agent vs single agent, not
+  model-per-task-scope. The kits' ladders now encode architecture on the top rung,
+  build on opus, escalation by failure -- a rule set that should rest on what the
+  vendor documents (model selection guidance, effort docs, pricing, context/long-horizon
+  claims) and on what practitioners measure (task size, file count, autonomy, self-checking),
+  not on one repo's feeling.
+goal: '(1) Three short Sonnet research reports under staging/FR-0091/: A = Anthropic''s
+  own guidance (model overview, ''choosing a model'', effort docs, pricing, agent/long-horizon
+  notes, dated URLs); B = user and practitioner reports 2026 on Opus vs Fable vs Sonnet
+  for coding by scope (small edits, multi-file features, repo-wide analysis, architecture/design,
+  self-verification, autonomy), with sources; C = published benchmarks and cost-per-task-class
+  comparisons where they exist (SWE-bench-style, agentic coding, long-context), with
+  the honest limit that benchmarks are not our tasks. (2) The lead''s synthesis: a
+  table task-class -> rung + effort, checked against DEC-0095/0096 -- what they confirm,
+  what they would change, what only our own (g) tables can settle. (3) A DEC if the
+  synthesis changes a rule; otherwise the confirmation recorded on DEC-0095.'
+source: user message 2026-09-11 ~09:00; DEC-0095; DEC-0096; DEC-0091; DEC-0092 (the
+  checkpoint question); FR-0089 + staging/FR-0089/*.md; the (g) tables of generations
+  5 and 6
+related_pr: PR-0011
+status: MERGED
+revision: 1
+approval_ref: null
+created: '2026-09-11T09:32:47'
+resulting_item: DEC-0095
+triage_result: 'DELIVERED 2026-09-11: three Sonnet reports (staging/FR-0091/research-A|B|C.md)
+  + the lead''s synthesis (summary.md). Outcome: DEC-0095 and DEC-0096 CONFIRMED by
+  Anthropic''s own guidance (Opus unless evals show it struggling; model change for
+  ''confidently wrong with full context'', effort for carelessness), by practice (Opus
+  default, Fable the measured exception, escalate on a pattern, escalation must be
+  forced by tooling) and by benchmarks (tiers within points on saturated coding; Fable''s
+  real gap on long agentic tasks; more thinking saturates). Two text precisions for
+  the next order touching the checkpoint question and the ladder paragraphs: (1) the
+  checkpoint names Anthropic''s two signals; (2) a Sonnet slice carries a test as
+  acceptance, never a description (''describable in one sentence'').'
+closed_at: '2026-09-11T09:39:33'

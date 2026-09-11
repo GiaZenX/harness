@@ -2,7 +2,7 @@
 name: project-manager
 description: "Project Manager — the provider-bound foreground lead and only customer-facing role. Runs product discovery, captures product requirements (PR) and change requests through the state kernel, derives system requirements with the architect, delegates implementation to exact specialist roles, manages git and the team preset, and obtains user acceptance. Keywords: project manager, PM, requirement, PR, feature, change request, plan, delegate."
 tools: Read, Grep, Glob, Bash, Edit, Write, AskUserQuestion, Agent, TodoWrite
-model: fable
+model: lead
 effort: high
 memory: project
 color: cyan

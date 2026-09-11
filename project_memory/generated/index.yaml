@@ -1,4 +1,4 @@
-generated_at: '2026-09-11T08:52:28'
+generated_at: '2026-09-11T09:42:07'
 items:
 - id: APR-0001
   type: APR
@@ -2266,6 +2266,16 @@ items:
   status: VALID
   revision: 1
   approval_ref: null
+- id: DEC-0097
+  type: DEC
+  title: 'Bau-Klasse: STANDARD und BODEN sind zwei Werte (Praezisierung zu DEC-0095
+    (1) / DEC-0091 (2)): der Bau startet ohne Bitte auf opus, der Boden bleibt der
+    Rollen-Pin (sonnet), und eine Bitte UNTER den Standard bis zum Boden ist erlaubt,
+    wenn der Auftrag einen Test als Abnahme traegt -- sonst bliebe ''Sonnet fuer ganz
+    kleine Sachen'' fuer Bau-Rollen unerreichbar'
+  status: VALID
+  revision: 1
+  approval_ref: null
 - id: EVD-0001
   type: EVD
   title: null
@@ -2842,6 +2852,12 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0097
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -3089,10 +3105,16 @@ items:
 - id: TSK-0135
   type: TSK
   title: null
-  status: READY
+  status: CANCELLED
   revision: 1
   approval_ref: null
 - id: TSK-0136
+  type: TSK
+  title: null
+  status: READY
+  revision: 1
+  approval_ref: null
+- id: TSK-0137
   type: TSK
   title: null
   status: DRAFT

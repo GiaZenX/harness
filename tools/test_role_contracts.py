@@ -1976,3 +1976,115 @@ def test_a_paragraph_the_constitutions_share_is_one_text():
     assert not missing, "\n  ".join(
         ["shared constitution text is absent from a kit and no exception says why:"] + missing)
     assert not drifted, "\n  ".join(["shared constitution text differs between kits:"] + drifted)
+
+
+# ================== 8. the two duties DEC-0095 put into the texts (PR-0011 AC-3)
+
+_READING_DUTY_LEAD_IN = "**READ THE END OF A LOG, NEVER THE LOG"
+
+
+def _reading_duty_blocks(path):
+    """Every blank-line-separated block of this file that OPENS with the reading duty's lead-in."""
+    with io.open(path, encoding="utf-8") as handle:
+        text = handle.read()
+    return [block.strip("\n") for block in re.split(r"\n[ \t]*\n", text)
+            if block.lstrip().startswith(_READING_DUTY_LEAD_IN)]
+
+
+def test_every_constitution_carries_the_reading_discipline_duty():
+    """DEC-0095 (6): the cost rule -- read the end of a log and not the log, report short -- is a
+    duty of every kit, in ONE text, in the constitution, and of this repo's implementer role.
+
+    WHY THE CONSTITUTION and not the specialist role files: it is the document every role of a kit
+    is sent to and the one that arrives in a scaffolded project as `AGENTS.md`. A role definition
+    is per role, and the duty is not -- it is what makes a long context affordable for all of them.
+    This is the same carrier the comment rule uses
+    (`tools/test_review_procedure.py::test_every_constitution_carries_the_comment_discipline_duty`).
+
+    HELD TWICE, like that rule: here for PRESENCE -- one block per kit, never two, because the
+    second version is what outlives the first -- and by
+    `test_a_paragraph_the_constitutions_share_is_one_text` above for byte-equality, which takes any
+    bold lead-in two constitutions share and demands the third and equal bodies.
+
+    WHAT THIS CANNOT DO: read whether an agent obeyed it. Nothing can -- there is no record of what
+    a model read. What the duty asks instead is that a whole file read be NAMED in the report, and
+    that is the lead's to check.
+    """
+    carriers = [os.path.join(kit, "constitution", "AGENTS.md") for kit in _kit_dirs()]
+    carriers.append(os.path.join(ROOT, ".claude", "agents", "harness-implementer.md"))
+    assert len(carriers) >= 4, carriers
+    for path in carriers:
+        where = os.path.relpath(path, ROOT)
+        found = _reading_duty_blocks(path)
+        assert len(found) == 1, (
+            "%s carries %d statement(s) of the DEC-0095 (6) reading duty, expected exactly one"
+            % (where, len(found)))
+        assert "DEC-0095" in found[0], "%s: the duty points at no decision" % where
+        assert "never from the top and never whole" in found[0], (
+            "%s: the duty no longer says what it forbids" % where)
+
+
+def _lead_role_of(kit):
+    """The role a kit binds as its SESSION agent, asked of the kit rather than typed."""
+    sys.path.insert(0, TEAM_KITS)
+    from kernel import presets
+
+    lead = presets.lead_role(kit) if hasattr(presets, "lead_role") else None
+    if lead:
+        return lead
+    for candidate in ("project-manager", "office-manager"):
+        if os.path.isfile(os.path.join(kit, "agents", candidate + ".md")):
+            return candidate
+    return None
+
+
+def test_every_kit_lead_pins_the_rung_its_own_planning_class_starts_on():
+    """DEC-0095 (2): the kits' leads pin OPUS, and they pin it because their own `planning` class
+    says so -- the two are held against each other rather than both typed here.
+
+    WHY THE PIN AND NOT THE LADDER for this one role: the lead is the bound SESSION agent and is
+    never dispatched, so `ladder_for_order` never lifts it. Its frontmatter `model:` is what the
+    foreground really runs on (measured 2026-08-21,
+    docs/reviews/2026-08-21-tsk0078-measurements.md), which makes the pin the price the user pays
+    per session -- the single biggest item DEC-0095 was answering.
+
+    RED ON A `fable` PM PIN, which is what all three kits shipped before this round: the pin
+    resolves to the top rung and the planning class starts on opus. Red the other way too -- a
+    `planning` class moved back to `top` while the pin stays opus is the same disagreement seen
+    from the other side.
+
+    THE ALIAS IS RESOLVED, not compared as a word, and that is not a convenience: `tools/validate.py`
+    REFUSES a rung name in a kit source that is an alias TARGET, so `lead` is the only spelling a
+    kit may use for this rung -- while the scaffold rewrites it to `opus` in the installed
+    frontmatter (`tools/test_hooks.py`, the scaffold's alias-rewrite rows). Comparing the word
+    would therefore compare the two ends of that rewrite.
+    """
+    sys.path.insert(0, TEAM_KITS)
+    import yaml as _yaml
+    from kernel import dispatch as _dispatch
+    import gen_provider_artifacts as _gpa
+
+    _tiers, aliases = _gpa.load_tiers()
+    judged = 0
+    for kit in _kit_dirs():
+        name = os.path.basename(kit)
+        lead = _lead_role_of(kit)
+        assert lead, "%s binds no session role this reader can find" % name
+        with io.open(os.path.join(kit, _dispatch.LADDER_FILE), encoding="utf-8") as handle:
+            ladder = _dispatch._valid_ladder(kit, _yaml.safe_load(handle))
+        role_class = ladder["roles"][lead]
+        rule = ladder["classes"][role_class]
+        starts_on = ladder["top"] if rule == _dispatch.CLASS_TOP else rule
+        assert starts_on in ladder["rungs"], (
+            "%s: its lead's class %r starts on %r, which is not a rung -- a lead that started on "
+            "its own pin would make this check compare a value with itself" % (name, role_class, rule))
+        pinned = _gpa.tier_of(str(_dispatch.role_pin(os.path.join(kit, "agents"), lead)), aliases)
+        assert pinned == starts_on, (
+            "%s: %s pins %r while its %r class starts on %r -- the session runs on the PIN, so the "
+            "declaration and the seat the user pays for disagree (DEC-0095 (2))"
+            % (name, lead, pinned, role_class, starts_on))
+        assert pinned == "opus", (
+            "%s: DEC-0095 (2) puts every kit's orchestrator on opus and this one runs on %r"
+            % (name, pinned))
+        judged += 1
+    assert judged == len(_kit_dirs()) >= 3, judged

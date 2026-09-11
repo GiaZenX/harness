@@ -7,7 +7,20 @@ description: >
   verifier the SAME item. Bound through .claude/settings.json (`agent: harness-lead`); never spawn
   it as a subagent.
 harness_item: required
+model: opus
 ---
+
+**This pin takes effect at the NEXT session start, not in the session that wrote it.** The reason is
+the `agent:` BINDING, not the file: a session's model is chosen when the session starts, and this
+role is bound to the foreground through `.claude/settings.json` — so a pin written mid-session
+cannot move the model that session is already running on. The role FILES themselves are read fresh
+at every call (`./CLAUDE.md`, "Was beim Sitzungsstart bindet, ist die Registrierung"), which is why
+everything else in this file bites immediately and only this one line waits.
+`DEC-0095` (2) is the decision and carries the reason
+(cost): the long-lived orchestrating session is the single biggest consumer of a generation, and
+orchestration is reading and deciding, not judgment-heavy generation. A user's explicit `/model`
+choice still overrides a pin — if that happens, say which model is running rather than claiming
+this rung.
 
 You are the **harness-lead** — the session role of the repo that BUILDS the team kits. Answer in
 **German**; code, comments, identifiers and commit-shaped text in **English**.

@@ -50,7 +50,10 @@ LADDER = {
     "rungs": ["sonnet", "opus", "fable"],
     "top": "fable",
     "effort": {"default": "high", "large": "xhigh"},
-    "escalation": {"failed_runs_per_rung": 1},
+    # One rung per failed run and NO effort escalation -- the pre-DEC-0096 shape, kept here on
+    # purpose so the rule-2 tests below still measure the rung axis alone. The DEC-0096 shape is
+    # declared per test (`ESCALATES_EFFORT_FIRST`) and by the shipped kits.
+    "escalation": {"failed_runs_per_rung": 1, dispatch.EFFORT_STEPS_KEY: 0},
     "classes": {"planning": "top", "architecture": "top", "design": "opus", "qa": "opus",
                 "build": "pin"},
     "roles": {"project-manager": "planning", "software-architect": "architecture",
@@ -197,6 +200,141 @@ def test_the_shipped_declarations_say_what_the_decisions_decided():
         assert ladder["rungs"] == ["sonnet", "opus", "fable"], name
 
 
+def shipped_ladder(kit):
+    """One kit's declaration AS DECLARED -- the shipped file, never a copy, and never the
+    normalised form: `_valid_ladder` flattens `escalation:` into its result, so a store stocked
+    with that form would be a declaration no kit ships. Validated on the way through, so a file
+    the kernel would refuse cannot reach a fixture."""
+    with io.open(os.path.join(TEAM_KITS, kit, dispatch.LADDER_FILE), encoding="utf-8") as handle:
+        raw = yaml.safe_load(handle)
+    dispatch._valid_ladder(kit, json.loads(json.dumps(raw)))
+    return raw
+
+
+def test_the_build_starts_on_opus_and_only_the_architecture_starts_on_the_top_rung(store):
+    """DEC-0095 (1)/(2)/(4a) as the kits declare it AND as the kernel answers it.
+
+    The decision names the two kits it moved, so this test does too (like
+    `test_the_shipped_declarations_say_what_the_decisions_decided` above): the builder default is a
+    USER decision on cost, and a declaration that quietly drifts back is a finding for the user.
+    OFFICE IS THE THIRD CASE AND IS ASSERTED UNCHANGED: DEC-0095's consequences name it as
+    untouched because its top is opus already (DEC-0078 (1)), so `build: pin` there is a decision
+    and not the drift this test is looking for.
+
+    THE SECOND HALF IS THE KERNEL'S ANSWER, not the file: a project scaffolded against the real
+    dev declaration, with a builder pinned to the worker rung, is dispatched on opus -- which is
+    what `build: opus` is FOR, since a class floor lifts a pin and never lowers it.
+
+    RED ON THE OLD `build: pin`: the declaration half fails on dev and research, and the lease
+    half comes back `sonnet` -- the builder tier DEC-0095 replaced.
+    """
+    for kit in ("dev-team", "research-team"):
+        ladder = shipped_ladder(kit)
+        assert ladder["classes"]["build"] == "opus", kit
+        assert ladder["classes"]["planning"] == "opus", kit
+        assert ladder["classes"]["architecture"] == dispatch.CLASS_TOP, kit
+        assert ladder["top"] == "fable", kit
+        assert [name for name, rule in ladder["classes"].items() if rule == dispatch.CLASS_TOP] \
+            == ["architecture"], (
+            "%s: a class other than the architecture starts on the top rung, which DEC-0095 (4) "
+            "keeps for that one step and for the escalation: %s" % (kit, ladder["classes"]))
+    office = shipped_ladder("office-team")
+    assert office["classes"]["build"] == dispatch.CLASS_PIN and office["top"] == "opus", (
+        "office-team's floors are DEC-0078's and DEC-0095 left them alone: %s" % office["classes"])
+    store.kit("dev-like", ladder=shipped_ladder("dev-team"))
+    state, pr = store.project("p", "dev-like", {"backend-developer": "sonnet"})
+    lease = dispatch.create_lease(state, store.order(state, pr)["id"])
+    assert lease[dispatch.RUNG_KEY] == "opus", lease[dispatch.LADDER_KEY]
+    assert lease[dispatch.LADDER_KEY]["pin"] == "sonnet", lease[dispatch.LADDER_KEY]
+
+
+# A ladder with room on BOTH axes, so the ORDER of the two is visible: three effort steps of
+# headroom (low -> xhigh) instead of the single step every shipped kit has (its pair is the
+# ceiling, DEC-0078 (2)), and two rung steps below its `top` -- three rungs and not six ON PURPOSE,
+# because the cap has to be REACHABLE inside a test: the rows past it are where an effort cycle
+# keyed on the derived climb runs backwards (verifier round 1, F1). A six-rung fixture would have
+# hidden exactly that.
+ESCALATES_EFFORT_FIRST = dict(
+    LADDER, rungs=["r1", "r2", "r3"], top="r3",
+    effort={"default": "low", "large": "xhigh"},
+    escalation={"failed_runs_per_rung": 3, dispatch.EFFORT_STEPS_KEY: 2},
+    classes=dict(LADDER["classes"], design="r2", qa="r2", build=dispatch.CLASS_PIN))
+
+
+def walk_the_failed_runs(state, task, leases):
+    """(rung, effort) per lease, FAIL 0 upwards -- and the monotonicity DEC-0096 owes on the way.
+
+    A lease whose RUNG did not climb may not come back at a lower EFFORT than the one before it: a
+    retry that buys nothing is a retry, a retry that buys a WEAKER model is the defect of verifier
+    round 1 (F1). A drop where the rung DID climb is the reset DEC-0096 (1) asks for and is exempt.
+    """
+    walked = []
+    for position in range(leases):
+        if position:
+            drive_task_to(state, task["id"], "FAILED")
+            state.transition(task["id"], "READY", approved_retry=True)
+        lease = dispatch.create_lease(state, task["id"])
+        rung, effort = lease[dispatch.RUNG_KEY], lease[dispatch.EFFORT_KEY]
+        assert lease[dispatch.LADDER_KEY]["escalation"].startswith("FAIL %d:" % position), (
+            lease[dispatch.LADDER_KEY]["escalation"])
+        if walked and rung == walked[-1][0]:
+            assert dispatch.EFFORT_LEVELS.index(effort) >= dispatch.EFFORT_LEVELS.index(walked[-1][1]), (
+                "FAIL %d came back on the same rung %s at a WEAKER effort than FAIL %d (%s -> %s): "
+                "%s" % (position, rung, position - 1, walked[-1][1], effort,
+                        lease[dispatch.LADDER_KEY]["escalation"]))
+        walked.append((rung, effort))
+    return walked
+
+
+def test_a_failed_run_raises_the_effort_before_it_raises_the_rung(store):
+    """DEC-0096 (1): FAIL 1 and FAIL 2 buy an effort step on the SAME rung, FAIL 3 buys the rung
+    and the effort starts over at the kit's default -- derived from the declaration's two
+    thresholds, never from a constant.
+
+    ONE ROW PER FAIL COUNT, past the cap in both fixtures, on a synthetic ladder with headroom on
+    both axes and on the SHIPPED dev declaration. RED ON TODAY'S ONE-RUNG-PER-FAIL
+    (`failed_runs_per_rung: 1`, no effort threshold): every row's first failed run comes back one
+    rung higher and at the unchanged effort -- which for an Opus builder is the top rung at the
+    first verification round, the standing cost DEC-0095 had just removed.
+
+    THE ROWS PAST THE CAP ARE THE OTHER HALF, and they are the verifier's F1 of round 1: once the
+    rung sits on `top`, no further rung step is GRANTED, so the effort cycle may not reset either
+    -- keyed on the derived climb it did, and the seventh run came back strictly weaker than the
+    sixth (measured: dev FAIL 5 fable/xhigh, FAIL 6 fable/high). Below the cap the two spellings
+    are identical, which is why the rows up to FAIL 5 read the same either way. RED WITH
+    `on_this_rung = failed_runs % per_rung`: the last rows fall back to the kit's default effort.
+
+    THE MONOTONICITY IS ASSERTED AS A PROPERTY beside the literal rows, because the rows are a
+    sequence somebody will extend: a lease that did NOT climb a rung may not come back at a lower
+    effort than the lease before it. A drop where the rung DID climb is the intended reset.
+
+    WHAT THE SYNTHETIC LADDER DECIDES THAT THE SHIPPED ONES CANNOT: with two effort steps declared
+    and only one step of headroom in every shipped pair, "one step per failed run up to the
+    threshold" and "one step in total" give the same answer on all three kits. The cycle reading is
+    the one the two threshold NAMES express (`effort_steps_before_rung` steps inside a cycle of
+    `failed_runs_per_rung` runs), and the row at FAIL 2 below is the only place it is measured;
+    DEC-0096 (1) narrates that case off the shipped kits, where the ceiling decides it.
+    """
+    store.kit("headroom", ladder=ESCALATES_EFFORT_FIRST)
+    state, pr = store.project("p", "headroom", {"backend-developer": "r1"})
+    task = store.order(state, pr)
+    rows = [("r1", "low"), ("r1", "medium"), ("r1", "high"),          # FAIL 0-2: the effort axis
+            ("r2", "low"), ("r2", "medium"), ("r2", "high"),          # FAIL 3-5: one rung, reset
+            ("r3", "low"), ("r3", "medium"), ("r3", "high"),          # FAIL 6-8: the top, reset once
+            ("r3", "high")]                                          # FAIL 9: past the cap, held
+    measured = walk_the_failed_runs(state, task, len(rows))
+    assert measured == rows, measured
+    # ...and the same four counts against the SHIPPED dev declaration, whose pair (high/xhigh)
+    # leaves one step of headroom: the second effort step lands on the ceiling.
+    store.kit("dev-like", ladder=shipped_ladder("dev-team"))
+    other, goal = store.project("d", "dev-like", {"backend-developer": "sonnet"})
+    order = store.order(other, goal)
+    shipped = walk_the_failed_runs(other, order, 7)
+    assert shipped == [("opus", "high"), ("opus", "xhigh"), ("opus", "xhigh"),
+                       ("fable", "high"), ("fable", "xhigh"), ("fable", "xhigh"),
+                       ("fable", "xhigh")], shipped
+
+
 # -- the three ways a project meets the declaration ----------------------------------------------
 
 def test_a_project_without_a_scaffold_record_gets_no_rung_and_no_refusal(tmp_path):
@@ -261,6 +399,8 @@ def test_a_record_that_is_present_but_unreadable_is_refused_not_ignored(store):
     (lambda d: d["effort"].pop("large"), "`effort:`"),
     (lambda d: d["escalation"].update(failed_runs_per_rung=0), "failed_runs_per_rung"),
     (lambda d: d["escalation"].update(failed_runs_per_rung=True), "failed_runs_per_rung"),
+    (lambda d: d["escalation"].pop(dispatch.EFFORT_STEPS_KEY), dispatch.EFFORT_STEPS_KEY),
+    (lambda d: d["escalation"].update(**{dispatch.EFFORT_STEPS_KEY: -1}), dispatch.EFFORT_STEPS_KEY),
     (lambda d: d["classes"].update(qa="haiku"), "class 'qa'"),
     (lambda d: d["roles"].update(**{"backend-developer": "nowhere"}), "role 'backend-developer'"),
     (lambda d: d.update(exceptions={"nobody": {"top": "opus"}}), "excepts role 'nobody'"),
@@ -363,6 +503,7 @@ def test_an_order_that_failed_climbs_one_rung_per_failed_run_capped_at_the_top(s
     with the cap removed (the third retry indexes past the rungs).
     """
     store.kit("kit")
+    ladder_rungs = LADDER["rungs"]
     state, pr = store.project("p", "kit", {"backend-developer": "sonnet"})
     task = store.order(state, pr)
     lease, item = lease_of(state, task)
@@ -374,6 +515,13 @@ def test_an_order_that_failed_climbs_one_rung_per_failed_run_capped_at_the_top(s
         assert lease[dispatch.RUNG_KEY] == expected, lease[dispatch.LADDER_KEY]
         assert item[dispatch.FAILED_RUNS] == count and item[dispatch.LEASE_RUNG_FIELD] == expected
         assert lease[dispatch.LADDER_KEY]["failed_runs"] == count
+        # ...and the sentence the lease and the checkpoint show counts the steps GRANTED, never the
+        # steps the thresholds derived: at the cap the third failed run buys nothing, and a line
+        # that said "rung +3" there would name a model the order is not running on (DEC-0096 (4)).
+        # RED with the derived count in `escalation_line`: the last row reads `rung +3`.
+        granted = ladder_rungs.index(expected) - ladder_rungs.index("sonnet")
+        assert "FAIL %d: rung +%d," % (count, granted) in lease[dispatch.LADDER_KEY]["escalation"], (
+            lease[dispatch.LADDER_KEY]["escalation"])
 
 
 def test_a_lease_that_produced_no_child_counts_no_failed_run(store):
@@ -460,8 +608,13 @@ def test_design_and_qa_start_above_the_build_floor_and_a_floor_never_lowers_a_pi
 def test_the_filing_pair_starts_on_its_pin_at_low_effort_and_still_climbs(store):
     """DEC-0047's office filing floor, as the SHIPPED declaration really behaves (B1 of the round 1
     verification): `sonnet` is the pair's PIN and only `low` is the named exception, so the pair
-    starts on sonnet at low effort -- and a FAILED run climbs the RUNG to opus while the effort
+    starts on sonnet at low effort -- and failed runs climb the RUNG to opus while the effort
     stays low, because rule 2 knows no exception and the declaration names none.
+
+    HOW MANY FAILED RUNS IS THE DECLARATION'S, not this test's: DEC-0096 made the threshold a
+    config value and the office kit now declares 3, so the count is read off the shipped file. The
+    effort is the half that stands still HERE and nowhere else -- the pair's fixed `low` is floor
+    and ceiling at once, so the effort steps DEC-0096 spends before the rung buy nothing for it.
 
     The office `ladder.yaml` and the office constitution both say this in words; until 2026-09-06
     they said the pair "keeps sonnet/low as the named exception", which the climb makes false. The
@@ -481,14 +634,17 @@ def test_the_filing_pair_starts_on_its_pin_at_low_effort_and_still_climbs(store)
         assert (lease[dispatch.RUNG_KEY], lease[dispatch.EFFORT_KEY]) == ("sonnet", "low"), (
             role, lease[dispatch.LADDER_KEY])
         assert lease[dispatch.LADDER_KEY]["base"] == "sonnet"
-        drive_task_to(state, task["id"], "FAILED")
-        state.transition(task["id"], "READY", approved_retry=True)
-        climbed, _item = lease_of(state, task)
+        for _run in range(office["escalation"]["failed_runs_per_rung"]):
+            drive_task_to(state, task["id"], "FAILED")
+            state.transition(task["id"], "READY", approved_retry=True)
+            climbed, _item = lease_of(state, task)
+            assert climbed[dispatch.EFFORT_KEY] == "low", (
+                "%s: the exception fixes the effort as floor AND ceiling, so no escalation step "
+                "may move it: %s" % (role, climbed[dispatch.LADDER_KEY]))
         assert climbed[dispatch.RUNG_KEY] == "opus", (
             "%s: the shipped declaration gives the pair no `top`, so rule 2 climbs it -- if that "
             "changed, the two texts that describe it have to change with it: %s"
             % (role, climbed[dispatch.LADDER_KEY]))
-        assert climbed[dispatch.EFFORT_KEY] == "low", climbed[dispatch.LADDER_KEY]
         # ...AND AN ORDER'S ASK DOES NOT LIFT THE FLOOR EITHER (DEC-0091 (2) with DEC-0047's
         # reason): the exception is floor and ceiling. Measured lifted to `high` at TSK-0135's
         # mid-goal check (B2) before this line; the answer names the ask and the exception both.

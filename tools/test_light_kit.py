@@ -401,8 +401,13 @@ def test_the_shipped_spawn_gate_prints_the_four_line_checkpoint_and_never_blocks
     assert builder["id"] in text and "DEC-0092 (3)" in text, text
     assert "(a) this goal is one set: 1 open order(s)" in text, text
     assert "(b) this order: 1 allowed-scope entry, 1 expected output(s), goal class normal" in text, text
+    # ...and the FAIL-count derivation DEC-0096 (4) asks the checkpoint to SHOW, so a PM reading
+    # "rung opus" on a retry can see whether the rung stood still because the effort moved instead.
+    # RED WITHOUT the escalation sentence on the (c) line: the assertion below stops at the asks.
     assert ("(c) about to lease: rung opus, effort high -- the ladder's floor for backend-developer "
-            "is sonnet (pin sonnet, class build), top fable; the order asked rung opus / effort nothing") in text, text
+            "is sonnet (pin sonnet, class build), top fable; the order asked rung opus / effort "
+            "nothing; FAIL 0: rung +0, effort +0 -- this kit spends the first 0 failed run(s) of "
+            "every 1 on the effort axis (DEC-0096)") in text, text
     assert "(d) last 1 order(s) by their latest lease" in text and "opus x 1" in text, text
     assert text.rstrip().endswith(dispatch.CHECKPOINT_QUESTION), text
     with io.open(os.path.join(state.root, ".audit", "hook_events.jsonl"), encoding="utf-8") as handle:
@@ -566,8 +571,12 @@ def test_the_pilot_rig_leases_three_orders_of_different_size_per_kit(tmp_path):
     project per kit scaffolded by the kit's OWN installer from a store copy under a HOME of its
     own. Per kit: the smallest preset is what got installed (AC-5, the entry files' default); the
     lead's code write is refused by the registered Edit|Write chain (AC-1); three orders of
-    obviously different size lease on the rungs their asks name -- inside the kit's ladder, so the
-    office bookkeeper's `fable`/`xhigh` ask lands on its `opus`/`high` ceiling (DEC-0078); the second
+    obviously different size lease inside the kit's ladder, so the
+    office bookkeeper's `fable`/`xhigh` ask lands on its `opus`/`high` ceiling (DEC-0078) -- and in
+    dev and research the SMALL order's `sonnet` ask no longer reaches sonnet at all, because
+    DEC-0095 (1) starts the `build` class on opus and an ask never lowers a floor (DEC-0091 (2)).
+    That last row is the measured price of the builder default and is named in TSK-0136's protocol;
+    the second
     builder is refused without a check-scopes record and admitted on one, named on its lease; the
     shipped spawn gate prints the four-line checkpoint with rc 0; the auditor runs on the routine
     route from the entry point with no writable scope (AC-8), and the goal's presented approval is
@@ -598,9 +607,13 @@ def test_the_pilot_rig_leases_three_orders_of_different_size_per_kit(tmp_path):
         rungs = [sizes[size]["leased"][dispatch.LEASE_RUNG_FIELD] for size in ("small", "medium", "large")]
         efforts = [sizes[size]["leased"][dispatch.LEASE_EFFORT_FIELD] for size in ("small", "medium", "large")]
         if kit == "office-team":
+            # office keeps DEC-0078's floors (`build: pin`), so its small order still reaches sonnet
             assert rungs == ["sonnet", "opus", "opus"] and efforts == ["high", "high", "high"], (rungs, efforts)
         else:
-            assert rungs == ["sonnet", "opus", "fable"] and efforts == ["high", "high", "xhigh"], (rungs, efforts)
+            assert rungs == ["opus", "opus", "fable"] and efforts == ["high", "high", "xhigh"], (rungs, efforts)
+            # ...and the first row is the FLOOR beating the ASK, not an ask of opus: the rig asks
+            # sonnet for the small order, which DEC-0095 (1) no longer grants a build-class role.
+            assert sizes["small"]["ask"][dispatch.RUNG_KEY] == "sonnet", sizes["small"]["ask"]
         assert sizes["small"]["measured_disjoint"] is None, "the first builder carries evidence it never needed"
         assert sizes["medium"]["measured_disjoint"] and sizes["large"]["measured_disjoint"], kit
         checkpoint = record["checkpoint"]
