@@ -1,0 +1,38 @@
+id: BUG-0010
+title: Ohne Lease ist eine Aufgabe nicht ehrlich abschliessbar -- und LEASED ist genau
+  das, was sweep-leases zuruecksetzt
+related_pr: PR-0002
+severity: medium
+repro: 'In any state directory: capture a PR, create a task, transition it READY,
+  then `transition <TSK> LEASED` without a dispatch. RE-MEASURED 2026-09-06 (TSK-0131)
+  against b7f282e, real CLI, real store: `capture PR` rc 0 (PR-0001 DRAFT), `create-task`
+  rc 0 (TSK-0001 DRAFT, backend-developer), `transition READY` rc 0, `transition LEASED`
+  rc 1 -- ''TSK-0001 cannot be moved to LEASED by a direct transition: a lease-bearing
+  status is established by a real dispatch lease, not by a status write (DEC-0038/BUG-0010)''.
+  The direct-write half is CLOSED; what the item still names beyond it is unmeasured,
+  so it stays TRIAGED rather than being called fixed on half a chain.'
+expected: Entweder ein Status, den nur eine Lease herstellt, ist ohne Lease nicht
+  erreichbar -- oder es gibt einen ehrlichen Weg, eine ohne Dispatch bearbeitete Aufgabe
+  abzuschliessen.
+observed: Beides ist nicht der Fall. `transition` prueft nur den Automaten, nicht
+  ob der Zustand gedeckt ist; ein Item steht danach auf LEASED, waehrend der Lease-Speicher
+  leer ist. Und `sweep-leases` ist genau dafuer gebaut, abgelaufene Leases nach READY
+  zurueckzugeben -- ein LEASED-Item ohne Lease ist der Fall, den es aufraeumt. Damit
+  ist unsere Buchfuehrung entweder unwahr (LEASED ohne Lease) oder unvollstaendig
+  (Aufgabe bleibt ewig DRAFT). Gemessen am 2026-08-04 an TSK-0002, dessen Arbeit fertig
+  und geprueft war, waehrend das Item auf DRAFT stand. Folge von DEC-0003 (keine Leases
+  ohne Hooks) -- die Entscheidung war richtig, ihre Konsequenz war nicht vorhergesehen.
+acceptance_criteria:
+- Entweder verweigert `transition` einen Status, den eine Lease herstellt, wenn keine
+  Lease existiert -- dann ist der Zustand ehrlich und die Luecke sichtbar.
+- Oder es gibt einen dokumentierten Weg, eine ohne Dispatch bearbeitete Aufgabe zu
+  einem Endzustand zu fuehren.
+- Ein Test misst, dass `sweep-leases` ein LEASED-Item ohne Lease nicht stillschweigend
+  nach READY zurueckwirft, ohne es zu melden.
+- Was gewaehlt wird, steht als DEC mit Begruendung im Zustand.
+status: VERIFIED
+revision: 1
+approval_ref: APR-0043
+created: '2026-08-04T23:02:56'
+approved_hash: 38265f9d292e88c19b8c8d9e0e232220d0bcd5a0f151c6c7e584bc1259b431e4
+closed_at: '2026-09-12T06:17:33'

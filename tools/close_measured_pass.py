@@ -30,8 +30,6 @@ deliberately bounded with `--minutes`) continues instead of re-measuring.
 from __future__ import annotations
 
 import argparse
-import ast
-import glob
 import io
 import os
 import re
@@ -45,9 +43,16 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # either way. One constant rather than a second `os.path.join(ROOT, ...)` inside the recorder, which
 # is how the recorder would quietly follow a relocated ROOT and write nowhere.
 TEAM_KITS = os.path.join(ROOT, "team-kits")
+# NO BYTECODE INTO THE KIT TREE. Importing `kernel` from a script writes `team-kits/kernel/
+# __pycache__`, which lands INSIDE the hashed hook bundle -- and a bundle whose hash moved is a
+# project whose `kit_trust_state` drops to `hooks_trust_required` and whose spawns are refused
+# until somebody runs the scaffold. That is why `validate.py` states the rule for itself and why
+# the suites redirect the cache; a tool that imports the kernel owes it too
+# (`tools/test_hooks_v2.py::test_a_repo_tool_that_imports_the_kit_tree_leaves_no_bytecode_in_it`).
+sys.dont_write_bytecode = True
 sys.path.insert(0, TEAM_KITS)
 
-from kernel import approvals  # noqa: E402 -- after the kernel path is on sys.path
+from kernel import approvals, naming_tests  # noqa: E402 -- after the kernel path is on sys.path
 from kernel.backlog_types import ACTIVE_DIRS  # noqa: E402
 
 MEASURED_PASS = "MEASURED-PASS"
@@ -79,6 +84,16 @@ def survey_rows(path):
     (`project_memory/staging/TSK-0131/survey-table.md`); what is parsed here is its row shape, not
     its prose.
     """
+    # A TABLE THAT IS NOT THERE IS A SENTENCE, NEVER A TRACEBACK. This tool's defaults ARE this
+    # repository's records, so a caller that gives it no arguments at all -- the import probe of
+    # `tools/test_hooks_v2.py::test_a_repo_tool_that_imports_the_kit_tree_leaves_no_bytecode_in_it`
+    # is one, and so is a copy of this tree without the staging directory -- reached an unguarded
+    # `io.open` and died on its way in. A tool that dies on import cannot be measured for anything
+    # else, which is what that test went red for.
+    if not os.path.isfile(path):
+        raise SystemExit(
+            "no survey table at %s. Remedy: pass --table <path to the survey table>; this tool "
+            "reads the table as the record it is and invents no rows." % path)
     rows = []
     with io.open(path, encoding="utf-8", newline="") as handle:
         for line in handle:
@@ -102,43 +117,22 @@ def active_ids(state_root, item_type="BUG"):
 
 
 def nodes_naming(item_id, root=None, sources=TEST_SOURCES):
-    """Every pytest node whose own source NAMES `item_id` -- sorted, possibly empty.
+    """Every pytest node whose test NAMES `item_id` -- sorted, possibly empty.
 
     THIS IS BUG-0090'S RULE READ LITERALLY: a defect reaches VERIFIED on a passing test Evidence
-    that covers it, and what makes a test cover a defect is that the test is ABOUT it. The only
-    honest machine-readable form of "about" in this repository is that the defect's id stands in the
-    test -- in its docstring ("RED WITHOUT the fix: BUG-0123 ..."), in a comment beside an
-    assertion, or in a parametrize case id -- which is the convention every suite here already
-    follows.
+    that covers it, and what makes a test cover a defect is that the test is ABOUT it.
 
-    PARSED, NOT GREPPED LINE BY LINE: the file is read with `ast`, and a hit is attributed to the
-    test function whose own span contains it, decorators included (that is where a parametrize case
-    id lives). A bare `grep` would attribute a module-level constant or a helper's comment to
-    whichever test happens to follow it.
+    THE DERIVATION IS THE KERNEL'S (`kernel.naming_tests`), not this tool's, and that is round 1's
+    F2: `approvals.batch_walk_blockers` has to ask the same question about an evidence's run before
+    a click closes anything, and two readers of "a test names this item" would answer differently
+    the day one of them was tightened -- which is exactly what happened when this tool accepted an
+    id ANYWHERE in a test's span while H195 had already measured that an incidental mention is not
+    a naming. One module, two callers: this one SEARCHES, the kernel CHECKS.
 
     WHAT IT DELIBERATELY DOES NOT DO is guess. A defect no test names comes back as an empty list,
     and the caller HOLDS IT BACK: such a defect needs a closing test, not a click.
     """
-    root = ROOT if root is None else root
-    found = []
-    for pattern in sources:
-        for path in sorted(glob.glob(os.path.join(root, pattern.replace("/", os.sep)))):
-            with io.open(path, encoding="utf-8", newline="") as handle:
-                text = handle.read()
-            try:
-                tree = ast.parse(text)
-            except SyntaxError:
-                continue          # a file pytest could not collect names no test either
-            lines = text.splitlines()
-            relative = os.path.relpath(path, root).replace(os.sep, "/")
-            for node in tree.body:
-                if not (isinstance(node, ast.FunctionDef) and node.name.startswith("test_")):
-                    continue
-                start = min([node.lineno] + [one.lineno for one in node.decorator_list])
-                span = "\n".join(lines[start - 1:node.end_lineno])
-                if item_id in span:
-                    found.append("%s::%s" % (relative, node.name))
-    return sorted(found)
+    return naming_tests.nodes_naming(item_id, ROOT if root is None else root, sources)
 
 
 def plan(table, state_root, root=None):

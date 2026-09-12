@@ -506,6 +506,8 @@ enforcement layer itself is off-limits: never edit provider settings/config, hoo
 skills/agents; Codex TOML changes occur only through a user-confirmed full scaffold run, never the
 provider generator alone. A gate that blocks something legitimate, or a shipped script that crashes, is an INFRASTRUCTURE DEFECT: report it to the user with the exact message and stop there — never work around it, never reconstruct by hand what the broken tool was supposed to produce, and never reconfigure your own guardrails. Every "report it (§8)" elsewhere in this file points here.
 
+**THE USER'S HAND IS NEVER THE ROUTE AROUND A GATE.** A step a mechanism refused YOU is a step you REPORT; handing the user a command line so they run it for you is the same act with a longer arm, and it teaches the one gesture these mechanisms exist to prevent. Measured live, twice, both times by a lead that had behaved correctly up to that sentence: a first work-branch push the user was asked to run from his own terminal (`BUG-0081`), and a file the user was asked to copy into a staging directory so a repair could read it (`BUG-0080`). What IS the user's, and stays theirs: running the scaffold, and every step this file names as theirs -- and a line you hand them for one of those carries its one-sentence explanation WITH the line, never the line alone. Everything else is the gap route below.
+
 **AND BOOK IT**, in the same turn as the sentence to the user:
 `python scripts/harness.py report-gap --tried "<what you were doing>" --refused "<the message you
 got, verbatim>" --item <ITEM-ID>` appends it to this project's own kit-gap log, which the kit's

@@ -6374,7 +6374,14 @@ LEAVES_OPEN_LINES = [
 
 @pytest.mark.parametrize("line", sorted(RECORDS_HISTORY_LINES))
 def test_gate3_refuses_a_line_that_records_history_even_with_a_verdict(certified_project, line):
-    """SR-0009 clause 3, against the running hook: an author other than `commit` is refused.
+    """BUG-0034 / SR-0009 clause 3, against the running hook: gate 3 asked `Invocation.runs('commit')`,
+    so `git merge --no-ff other` and `git revert --no-edit HEAD` recorded a commit into branch
+    history at rc 0 with no verdict asked -- here every author other than `commit` is refused.
+
+    Each line of `RECORDS_HISTORY_LINES` was measured rc 0 through this same gate process, with a
+    valid verdict in the tree, on 2026-08-13; `certified_project` is the fixture that puts the
+    verdict there, without which every line would be rc 2 for the OLD reason and this block would
+    be green against the defect it exists for. `LEAVES_OPEN_LINES` is AC-2's other end.
 
     AND THE REFUSAL HAS TO CARRY THE ROUTE OUT, which is why the remedy is compared with the gate's
     own `_remedy` rather than with a sentence typed here: a refusal that cannot be complied with is

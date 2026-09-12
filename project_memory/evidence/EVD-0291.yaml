@@ -1,0 +1,14 @@
+id: EVD-0291
+kind: test
+related:
+- BUG-0027
+result: pass
+summary: 'tests naming BUG-0027: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_migrate.py::test_the_ready_line_carries_the_flags_the_plan_was_built_with
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:54:44'

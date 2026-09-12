@@ -1,0 +1,14 @@
+id: EVD-0292
+kind: test
+related:
+- BUG-0031
+result: pass
+summary: 'tests naming BUG-0031: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_handover_marker.py::test_an_entry_file_names_the_marker_only_as_the_whole_shim
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:54:48'

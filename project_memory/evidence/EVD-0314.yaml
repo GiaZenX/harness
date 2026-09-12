@@ -1,0 +1,15 @@
+id: EVD-0314
+kind: test
+related:
+- BUG-0092
+result: pass
+summary: 'tests naming BUG-0092: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_model_ladder.py::test_no_watch_date_in_the_tiers_table_lies_in_the_past
+  tools/test_model_ladder.py::test_the_maintenance_header_names_the_finding_to_item_route
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:57:48'

@@ -61,7 +61,11 @@ _PRUNE = "prune"
 # destructive, which is what makes it unambiguous: no destructive docker verb uses `-p` for
 # anything else (`stop`/`kill`/`restart` take `-s`/`-t`, `rm` takes `-f`/`-l`/`-v`, `rmi` takes
 # `-f`), while `docker run -p 8080:80` — the one `-p` that means a port — is not destructive.
+# This pair is what `_docker_targets` steps over so a project name is not mistaken for a container;
+# WHICH PROJECT a line designates is not decided here but in `_foreign_designations`, from compose's
+# own precedence, because a list of flags is what BUG-0053 measured four ways past.
 _PROJECT_FLAGS = ("--project-name", "-p")
+_PROJECT_NAME_ENV = "COMPOSE_PROJECT_NAME"
 _COMPOSE_LABEL = "com.docker.compose.project"
 
 # -- R11 ----------------------------------------------------------------------
@@ -91,12 +95,19 @@ def _git(root, *args):
 
 
 def _destructive_docker_calls(command):
-    """[(verb, tokens after it, all of the call's tokens)] for every docker call that stops or
-    destroys something.
+    """[(verb, tokens after it, tokens BEFORE it, the segment)] for every docker call that stops
+    or destroys something.
 
-    The third element is not the second: compose's project flag stands BEFORE the operation
+    The third element is not the second: compose's project options stand BEFORE the operation
     (`docker compose -p other down`), while a container name stands after it, so a rule that read
-    only the tail could never see the project — which is how `-p other` was measured passing.
+    only the tail could never see the project — which is how `-p other` was measured passing. They
+    are separated rather than handed over as one list because compose reuses letters across the two
+    positions: `-f` before the subcommand is `--file`, `-f` after `docker compose rm` is `--force`,
+    and a reader that took both would turn every `docker rm -f <name>` into a compose file.
+
+    The SEGMENT comes with them because one of compose's four project sources is not an argument at
+    all — `COMPOSE_PROJECT_NAME=other docker compose down` sets it in the environment of this call,
+    and that assignment stands in the segment in front of the program word.
 
     The verb is looked for among the call's WORDS — its subcommand plus every following token that
     is not a flag — because docker's operations are two words deep (`system prune`, `container rm`,
@@ -135,14 +146,15 @@ def _destructive_docker_calls(command):
     for invocation in _compat.docker_invocations(command, lower=False):
         arguments = list(invocation.arguments)
         if not invocation.resolved:
-            calls.append((None, arguments, arguments))
+            calls.append((None, arguments, arguments, invocation.segment))
             continue
         words = [(str(invocation.subcommand), -1)] + [
             (token.strip("\"'").lower(), index) for index, token in enumerate(arguments)
             if not token.startswith("-")]
         for word, index in words:
             if word in _DOCKER_DESTRUCTIVE:
-                calls.append((word, arguments[index + 1:], arguments))
+                calls.append((word, arguments[index + 1:],
+                              arguments[:index] if index >= 0 else [], invocation.segment))
                 break
     return calls
 
@@ -167,37 +179,112 @@ def _flag_name(token):
     return token.split("=", 1)[0].strip("\"'").lower()
 
 
-def _named_projects(tokens):
-    """Compose projects the command NAMES outright — `-p other`, `--project-name=other`.
+def _option_values(tokens, long_name, short_name=None):
+    """Every value handed to this option, in each form a POSIX command line can carry one:
+    `--long value`, `--long=value`, `-o value`, `-ovalue`.
 
-    This is the half of R10 that needs no daemon at all, and it is the half that was missing: a
-    foreign project named on the command line is foreign whether or not docker is running here, and
-    `docker compose -p other down` is exactly how one project's shell reaches another one's stack.
+    THIS IS THE HALF THAT IS NOT ABOUT COMPOSE. Whether a short option's value is attached to it or
+    stands beside it is a property of option syntax, and the rule above was measured passing a
+    foreign project for no better reason than the attached spelling: `_flag_name` split on `=` only,
+    so `-pother` never equalled `-p` and `docker compose -pother down` was rc 0 while
+    `docker compose -p other down` was rc 2 (BUG-0053). One reader, so the four sources below each
+    get all four spellings without any of them writing a list.
 
-    WHAT IT DOES NOT SEE, said here rather than left to be found: the flag has to sit in the CALL'S
-    ARGUMENTS, i.e. after the subcommand. For `docker compose -p other down` it does. For the
-    deprecated v1 binary `docker-compose -p other down` it does not — there compose is the program
-    and `-p` is one of ITS global options, consumed by the subcommand reader before the arguments
-    begin. That spelling therefore reaches this gate as a plain `down` with no targets, exactly as
-    it did before, and closing it means a reader that keeps a program's own options.
+    A long option is compared whole, so `--project-name` cannot be read as an attached `-p` value.
     """
-    projects, expect = [], False
+    values, expect = [], False
     for token in tokens:
+        bare = str(token).strip("\"'")
         if expect:
             expect = False
-            value = token.strip("\"'")
-            if value:
-                projects.append(value)
+            if bare:
+                values.append(bare)
             continue
-        if _flag_name(token) not in _PROJECT_FLAGS:
-            continue
-        if "=" in token:
-            value = token.split("=", 1)[1].strip("\"'")
-            if value:
-                projects.append(value)
-        else:
+        if bare == long_name or (short_name and bare == short_name):
             expect = True
-    return projects
+        elif bare.startswith(long_name + "="):
+            value = bare[len(long_name) + 1:]
+            if value:
+                values.append(value)
+        elif (short_name and not bare.startswith("--")
+                and len(bare) > len(short_name) and bare.startswith(short_name)):
+            value = bare[len(short_name):].lstrip("=")
+            if value:
+                values.append(value)
+    return values
+
+
+def _environment_project(segment):
+    """The project name an assignment in THIS call's own segment gives compose, or None.
+
+    `COMPOSE_PROJECT_NAME=other docker compose down` names a foreign project without a single
+    option, which is why this question is asked of the segment and not of the argument list. The
+    segment is the boundary on purpose: an assignment in a NEIGHBOURING segment
+    (`export COMPOSE_PROJECT_NAME=other && docker compose down`) belongs to another call as far as
+    this reader can tell, and is the named residue of this rule rather than a silent catch.
+    """
+    for word in _compat.shell_words(segment or "", str.split):
+        for reading in _compat.shell_readings(word):
+            name, separator, value = reading.partition("=")
+            if separator and name.strip("\"'").upper() == _PROJECT_NAME_ENV:
+                value = value.strip("\"'")
+                if value:
+                    return value
+    return None
+
+
+def _inside(root, path):
+    """Does this path word point INSIDE the repo? Unreadable answers `False` — fail-closed."""
+    try:
+        resolved = os.path.abspath(os.path.join(root, os.path.expanduser(str(path))))
+    except (OSError, ValueError):
+        return False
+    base = os.path.normcase(os.path.abspath(root))
+    resolved = os.path.normcase(resolved)
+    return resolved == base or resolved.startswith(base + os.sep)
+
+
+def _foreign_designations(root, ours, head, segment):
+    """How this call designates a compose project that is not this repo's — [] when it does not.
+
+    WHERE COMPOSE TAKES THE PROJECT NAME FROM, in its own documented precedence: the
+    `-p`/`--project-name` option, then `COMPOSE_PROJECT_NAME` in the environment, then a `name:`
+    inside the compose file, then the BASENAME OF THE PROJECT DIRECTORY — which is
+    `--project-directory` when given, otherwise the directory of the first `-f`/`--file`, otherwise
+    the working directory. Only the last of those is this repo's own without anybody saying so;
+    each of the others is a way for one line to reach another project's stack, and R10 is about the
+    property they share, not about the flag that happened to be measured first.
+
+    THE TWO SOURCES ARE ASKED TWO DIFFERENT QUESTIONS, and that is deliberate rather than untidy. A
+    NAME is compared against this repo's names. A LOCATION is compared against this repo's TREE:
+    `docker compose -f docker/compose.yml down` really does make compose call the project `docker`,
+    so comparing that derived name would refuse an ordinary in-repo layout — while the stack it
+    touches is still ours. Foreign is "the file or directory lies outside this repo", which is the
+    thing R10 protects.
+
+    NOT READ, and named rather than left to be found: the compose file's own top-level `name:`
+    (this gate does not open files a command names — it would have to read a foreign path to find
+    out that it is foreign), a relative path resolved against a working directory DEEPER than the
+    repo root (`..` is resolved against the root, which refuses more rather than less), and the
+    deprecated `docker-compose` v1 binary, whose global options are consumed before the arguments
+    begin — that spelling arrives here as a bare verb with no head at all.
+    """
+    found = []
+    for name in _option_values(head, "--project-name", "-p"):
+        if name.lower() not in ours:
+            found.append((name, "named by `-p`/`--project-name`"))
+    environment = _environment_project(segment)
+    if environment and environment.lower() not in ours:
+        found.append((environment, "set through %s in this command" % _PROJECT_NAME_ENV))
+    for value in _option_values(head, "--project-directory"):
+        if not _inside(root, value):
+            found.append((value, "the project directory `--project-directory` points at"))
+    for value in _option_values(head, "--file", "-f"):
+        directory = os.path.dirname(value)
+        if directory and not _inside(root, directory):
+            found.append((value, "the compose file `-f`/`--file` points at, whose directory is "
+                                 "the project"))
+    return found
 
 
 def _compose_project_of(root, name):
@@ -264,7 +351,7 @@ def _check_docker(root, command):
     if not calls:
         return          # reading (`ps`, `logs`, `inspect`, `build`, `up`) is never this gate's business
     ours = None
-    for verb, tokens, whole in calls:
+    for verb, tokens, head, segment in calls:
         if verb == _PRUNE:
             _kernel.block(
                 HOOK,
@@ -276,19 +363,19 @@ def _check_docker(root, command):
                        "the user's call to make and to run.")
         if ours is None:
             ours = _our_compose_projects(root)
-        # NAMED projects first, and without asking the daemon: `-p other` says which project this
-        # reaches, so the answer does not depend on docker running here.
-        for project in _named_projects(whole):
-            if project.lower() not in ours:
-                _kernel.block(
-                    HOOK,
-                    "this command names compose project %r, which is not this repo's (%s). "
-                    "Foreign Docker projects are off-limits: compose projects share one daemon, so "
-                    "`-p <other>` reaches another project's stack outright — a real OOM hunt "
-                    "stopped a NEIGHBOUR project's production database exactly here "
-                    "(devops SKILL §3)." % (project, "/".join(sorted(ours))),
-                    remedy="drop the project flag and run compose inside this repo, or ask the "
-                           "user explicitly before touching anything else on the daemon.")
+        # DESIGNATED projects first, and without asking the daemon: a line that says which project
+        # it reaches says so whether or not docker is running here.
+        for designation, how in _foreign_designations(root, ours, head, segment):
+            _kernel.block(
+                HOOK,
+                "this command designates compose project %r (%s), which is not this repo's (%s). "
+                "Foreign Docker projects are off-limits: compose projects share one daemon, so a "
+                "line that points compose at another project reaches that project's stack outright "
+                "— a real OOM hunt stopped a NEIGHBOUR project's production database exactly here "
+                "(devops SKILL §3)." % (designation, how, "/".join(sorted(ours))),
+                remedy="run compose inside this repo, against this repo's own compose file and "
+                       "without a foreign project name, or ask the user explicitly before touching "
+                       "anything else on the daemon.")
         for target in _docker_targets(tokens):
             project = _compose_project_of(root, target)
             if project is None:

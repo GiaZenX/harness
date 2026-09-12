@@ -1,0 +1,15 @@
+id: EVD-0300
+kind: test
+related:
+- BUG-0054
+result: pass
+summary: 'tests naming BUG-0054: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_staging_cli.py::test_an_architecture_that_hangs_off_no_root_writes_no_refs
+  tools/test_staging_cli.py::test_freezing_the_architecture_again_devalues_the_delivery_approval
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:55:55'

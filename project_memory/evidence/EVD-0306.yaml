@@ -1,0 +1,15 @@
+id: EVD-0306
+kind: test
+related:
+- BUG-0075
+result: pass
+summary: 'tests naming BUG-0075: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_role_contracts.py::test_every_role_that_owns_a_kit_document_carries_the_route_that_writes_it
+  tools/test_role_contracts.py::test_the_document_route_is_one_text_wherever_it_stands
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:56:30'

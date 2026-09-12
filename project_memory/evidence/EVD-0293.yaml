@@ -1,0 +1,14 @@
+id: EVD-0293
+kind: test
+related:
+- BUG-0034
+result: pass
+summary: 'tests naming BUG-0034: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest .claude/hooks/test_gates.py::test_gate3_refuses_a_line_that_records_history_even_with_a_verdict
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:55:15'

@@ -243,6 +243,22 @@ def test_handover_guard_is_a_noop_without_the_marker(tmp_path):
 
 
 def test_handover_guard_blocks_product_code_write_under_marker(tmp_path):
+    """BUG-0016: the entry session delivered the restart plea word for word and then kept working
+    the moment the user said anything else -- three of four SDK pilot runs, 28 / 148 / 3 Write and
+    Edit calls AFTER the plea, in one of them 14 files and ~1000 lines of application code.
+
+    It is not a politeness rule: in that window the freshly installed kit's hooks, constitution and
+    `agent:` binding are not yet active, so everything written there is written outside
+    `gate_dispatch`, `gate_write_scope`, the kernel's duty for state and every proof. The answer is
+    a hook that was already registered before the session began (`user/claude/hooks/
+    handover_guard.py`, DEC-0032), keyed on the scaffold's `HANDOVER_PENDING` marker -- so the rule
+    stops depending on how the user's next sentence happens to be worded, which is what the one
+    compliant run's own log showed it depended on.
+
+    THIS IS THE PRODUCT-CODE HALF. `test_handover_guard_allows_plan_artifacts_under_marker` is the
+    other side that keeps it from being a lockout (the plan may still be refined), and
+    `test_handover_guard_blocks_spawns_and_engine_shell_but_not_reading` covers derivation.
+    """
     base = _handover_repo(tmp_path)
     payload = dict(base, tool_name="Write",
                    tool_input={"file_path": str(tmp_path / "src" / "app.py")})
@@ -1137,6 +1153,223 @@ def test_gate_git_opens_once_the_evidence_a_role_can_produce_exists(prd_repo):
     assert run_hook("gate_git.py", _merge(prd_repo), prd_repo) == 2
     capture_full_qa(prd_repo)
     assert run_hook("gate_git.py", _merge(prd_repo), prd_repo) == 0
+
+
+def _capture_everything_but(repo, missing, related=("PR-0001",)):
+    """Every QA kind except `missing` — derived from the kernel's vocabulary, like `capture_full_qa`."""
+    return [capture_evidence(repo, kind=kind, result="pass", related=related)
+            for kind in qa_kinds() if kind != missing]
+
+
+def _push(repo, branch="feat/PR-0001-redesign"):
+    return _bash(repo, "git push -u origin %s" % branch)
+
+
+def test_the_first_work_branch_push_is_not_refused_for_a_verdict_the_push_has_to_produce(prd_repo):
+    """BUG-0081: `gate_git` demanded the acceptance verdict before the FIRST push of the work
+    branch, and for a Shopify theme the acceptance surface is the preview theme THAT push creates
+    — so the only way out the PM found was asking the user to run the push by hand.
+
+    Canyon_3.4.0, live 2026-08-31: review and test verdicts existed, acceptance could not, the gate
+    refused, and the user's terminal became the sanctioned route around a gate. What was wrong was
+    the OCCASION and not the demand: a push of a branch that NAMES its item publishes unfinished
+    work, and delivery is the merge — which `test_the_merge_still_refuses_the_verdict_a_push_may_owe`
+    measures is untouched. Nothing here knows what a Shopify theme is; a packaging list would have
+    been the next defect (house rule 1).
+
+    The note is asserted beside the rc, because an rc 0 alone is also what a gate that stopped
+    applying produces — and the whole point is that the verdict stays OWED and is said to be owed.
+    """
+    _capture_everything_but(prd_repo, "acceptance")
+    result = run_hook_process("gate_git.py", _push(prd_repo), prd_repo)
+    assert result.returncode == 0, result.stderr
+    assert "acceptance" in result.stderr and "OWED" in result.stderr, result.stderr
+
+
+def test_the_merge_still_refuses_the_verdict_a_push_may_owe(prd_repo):
+    """The other end of BUG-0081, and AC-2: delivery is where the acceptance verdict is due.
+
+    Same repository, same missing kind, one word of the command different. Without this the row
+    above would be indistinguishable from a gate that stopped asking for acceptance at all.
+    """
+    _capture_everything_but(prd_repo, "acceptance")
+    result = run_hook_process("gate_git.py", _merge(prd_repo), prd_repo)
+    assert result.returncode == 2, result.stderr
+    assert "acceptance" in result.stderr, result.stderr
+
+
+@pytest.mark.parametrize("command,why", [
+    ("git push -u origin feat/PR-0001-x && git merge feat/PR-0001-x",
+     "a delivery with a push in front of it is still a delivery"),
+    ("git merge feat/PR-0001-x && git push origin feat/PR-0001-x",
+     "and in the other order too -- the push half alone would qualify"),
+    ("git $CMD origin feat/PR-0001-x",
+     "a verb the text does not fix could be the merge, and unsure answers yes"),
+])
+def test_a_line_that_also_merges_keeps_the_delivery_demand(prd_repo, command, why):
+    """The half a reading that only LOOKED for a push would lose: every invocation of the line has
+    to be a push, or the lighter rule would be handed to a line that delivers (BUG-0081)."""
+    _capture_everything_but(prd_repo, "acceptance")
+    result = run_hook_process("gate_git.py", _bash(prd_repo, command), prd_repo)
+    assert result.returncode == 2, (why, result.stderr)
+
+
+@pytest.mark.parametrize("missing", ["review", "test"])
+def test_a_work_branch_push_still_owes_every_verdict_that_can_be_produced_first(prd_repo, missing):
+    """Only the kind whose SUBJECT does not exist before publication stands down.
+
+    Review and test judge the source, which exists before any push; a push missing one of them is
+    refused exactly as before. This is the counter-end of `OUTSTANDING_UNTIL_PUBLISHED` — without
+    it the row above would pass just as well for a gate that waved every incomplete push through.
+    """
+    _capture_everything_but(prd_repo, missing)
+    result = run_hook_process("gate_git.py", _push(prd_repo), prd_repo)
+    assert result.returncode == 2, result.stderr
+    assert missing in result.stderr, result.stderr
+
+
+def test_a_work_branch_push_with_no_verdict_at_all_is_still_refused(prd_repo):
+    """Nothing judges this work, so there is nothing to publish on: unchanged by BUG-0081."""
+    result = run_hook_process("gate_git.py", _push(prd_repo), prd_repo)
+    assert result.returncode == 2, result.stderr
+    assert "no QA Evidence" in result.stderr
+
+
+def test_a_failing_verdict_closes_a_work_branch_push_too(prd_repo):
+    """A measured defect is not an outstanding check: the softening is about a kind that CANNOT be
+    answered yet, never about one that was answered badly."""
+    _capture_everything_but(prd_repo, "acceptance")
+    capture_evidence(prd_repo, kind="test", result="fail")
+    result = run_hook_process("gate_git.py", _push(prd_repo), prd_repo)
+    assert result.returncode == 2, result.stderr
+
+
+def _on_a_work_branch(repo, branch="feat/PR-0001-x"):
+    """`repo` with a real git history, standing ON `branch` -- the pilot's shape.
+
+    The branch is not decoration: F1's first two lines name no item on the DESTINATION side, and
+    `target_items` then answers out of the branch HEAD is on. Without a branch to read there is no
+    item to speak about, the gate takes its no-item path, and the rows below measure that path
+    instead of the one they are about.
+    """
+    for args in (["init", "-q"], ["config", "user.email", "t@t.t"], ["config", "user.name", "t"]):
+        subprocess.run(["git"] + args, cwd=str(repo), capture_output=True, timeout=60)
+    write(os.path.join(str(repo), "a.txt"), "one\n")
+    for args in (["add", "-A"], ["commit", "-qm", "one"], ["checkout", "-qb", branch]):
+        subprocess.run(["git"] + args, cwd=str(repo), capture_output=True, timeout=60)
+    return repo
+
+
+@pytest.mark.parametrize("command,why", [
+    ("git push origin HEAD:main",
+     "the source side names nothing, so the branch fallback answered for the destination"),
+    ("git push origin feat/PR-0001-x:main",
+     "the source side names the item and the destination is the trunk"),
+    ("git push --all origin",
+     "every branch at once, and one of them is the trunk"),
+    ("git push origin main", "the plainest delivery there is"),
+    ("git push -o ci.skip origin main",
+     "an option that eats the next word must not make the remote read as a refspec"),
+])
+def test_a_push_whose_destination_is_not_a_work_branch_keeps_the_delivery_demand(
+        prd_repo, command, why):
+    """BUG-0081 / verification round 1 F1: the softening read `target_items`, which answers "which
+    item is this line ABOUT" -- the whole segment, and otherwise the branch HEAD is on -- so three
+    lines that deliver to the TRUNK were handed the lighter rule.
+
+    MEASURED on a scaffolded pilot with review and test verdicts and no acceptance:
+    `git push origin HEAD:main`, `git push origin feat/PR-0001-x:main` and `git push --all origin`
+    were rc 2 before the fix that introduced the softening and rc 0 after it. A push to the trunk
+    is a delivery however the branch you are standing on is called.
+
+    THE ROWS ARE THE TWO CLASSES, not a list of spellings: a refspec whose DESTINATION names no
+    item, and a line that spreads past its refspecs. The last row is the parser's own end -- an
+    option that eats the next word must not shift what counts as the remote.
+
+    A `+refspec` is NOT among them and cannot be: `git push origin +feat/PR-0001-x:main` is rc 2
+    from the force-push ban, which stands in front of every rule in this file, so a row for it
+    would assert a refusal this softening never reaches (measured while writing these rows).
+    `_destinations_of` strips the marker anyway, as a belt -- not as a promise about a line that
+    gets here.
+    """
+    _capture_everything_but(prd_repo, "acceptance")
+    _on_a_work_branch(prd_repo)
+    result = run_hook_process("gate_git.py", _bash(prd_repo, command), prd_repo)
+    assert result.returncode == 2, (why, result.stdout, result.stderr)
+    assert "acceptance" in result.stderr, (why, result.stderr)
+
+
+# The push options that carry refs the line does not name. Spelled here so the parametrisation
+# needs no kit import at COLLECTION time, and held to the gate's own set by the test below -- both
+# ends, as the set's own comment in `gate_git.py` promises.
+_SPREADING_PUSH_OPTIONS = ("--all", "--mirror", "--tags", "--follow-tags", "--delete", "-d")
+
+
+@pytest.mark.parametrize("option", _SPREADING_PUSH_OPTIONS)
+def test_every_push_option_that_spreads_past_its_refspecs_is_refused_the_softening(
+        prd_repo, option):
+    """The tripwire `_SPREADS_PAST_ITS_REFSPECS` owes, driven through the RUNNING gate.
+
+    git's option table is git's, so this set cannot be derived here -- what CAN be measured is that
+    every entry still does the thing it is in the set for: with it on the line, a push whose
+    destination would otherwise name an item is refused anyway, because the option carries refs the
+    line does not name. An entry that stopped mattering fails here instead of sitting in the set.
+    """
+    _capture_everything_but(prd_repo, "acceptance")
+    _on_a_work_branch(prd_repo)
+    command = "git push %s origin feat/PR-0001-x" % option
+    result = run_hook_process("gate_git.py", _bash(prd_repo, command), prd_repo)
+    assert result.returncode == 2, (option, result.stdout, result.stderr)
+
+
+def test_the_spreading_push_options_measured_here_are_the_set_the_gate_decides_on():
+    """The other end: the rows above are the gate's set and not a copy of it that drifted."""
+    gate = load_kit_module("gate_git_spreading_options",
+                           os.path.join(TEAM_KITS, "dev-team", "hooks", "gate_git.py"))
+    assert set(gate._SPREADS_PAST_ITS_REFSPECS) == set(_SPREADING_PUSH_OPTIONS), (
+        "the options driven above and the set the gate reads have come apart: driven-only %s, "
+        "declared-only %s"
+        % (sorted(set(_SPREADING_PUSH_OPTIONS) - set(gate._SPREADS_PAST_ITS_REFSPECS)),
+           sorted(set(gate._SPREADS_PAST_ITS_REFSPECS) - set(_SPREADING_PUSH_OPTIONS))))
+
+
+@pytest.mark.parametrize("command", [
+    "git push origin feat/PR-0001-x",
+    "git push -u origin feat/PR-0001-x",
+    "git push origin HEAD:feat/PR-0001-x",
+    "git push -o ci.skip origin feat/PR-0001-x",
+    # no refspec at all: the destination is the current branch's like-named upstream, which is the
+    # one case `_destinations_of` cannot read off the line and asks the repository for
+    "git push",
+])
+def test_a_push_whose_destination_names_the_item_still_gets_the_softening(prd_repo, command):
+    """The counter-end of the rows above, and without it F1's fix could be "refuse every push".
+
+    Every destination here names the item, in the spellings a refspec has one: bare, `HEAD:<ref>`,
+    behind an option that eats a word, and -- the last row -- not spelled at all, which is git's own
+    default of pushing the current branch to its like-named upstream.
+    """
+    _capture_everything_but(prd_repo, "acceptance")
+    _on_a_work_branch(prd_repo)
+    result = run_hook_process("gate_git.py", _bash(prd_repo, command), prd_repo)
+    assert result.returncode == 0, (command, result.stderr)
+    assert "OWED" in result.stderr, (command, result.stderr)
+
+
+def test_the_kind_outstanding_at_a_work_branch_push_is_a_real_qa_kind():
+    """The tripwire both ends of `OUTSTANDING_UNTIL_PUBLISHED` owe (BUG-0081, house rule 1).
+
+    A DEAD ENTRY says so: a name the kernel no longer counts as a QA kind would soften nothing and
+    stand there forever. And it must be a PROPER subset: an entry for every kind would switch the
+    delivery demand off at a push entirely, which is not what this is.
+    """
+    gate = load_kit_module("gate_git_outstanding",
+                           os.path.join(TEAM_KITS, "dev-team", "hooks", "gate_git.py"))
+    outstanding, kinds = set(gate.OUTSTANDING_UNTIL_PUBLISHED), set(qa_kinds())
+    assert outstanding, "the set is empty -- the softening above reaches nothing"
+    assert outstanding < kinds, (
+        "the kinds a work-branch push may leave outstanding are not a proper subset of the QA "
+        "kinds: outstanding %s, kinds %s" % (sorted(outstanding), sorted(kinds)))
 
 
 def test_gate_git_evidence_for_another_item_does_not_open_this_merge(prd_repo):
@@ -2921,8 +3154,14 @@ def _chained_gates(command):
 
 
 def test_a_registration_names_a_window_exactly_when_its_gate_can_outlive_the_default():
-    """A `timeout` is a KILL WINDOW, and a killed gate is a silent allow — so it is neither always
-    wrong nor always right, and this measures the property that decides it.
+    """BUG-0062: five of twenty-eight registered office-kit entries carried a `timeout`, and the
+    finding was filed as a possible kill-passthrough class without a judgement attached.
+
+    A `timeout` is a KILL WINDOW, and a killed gate is a silent allow — so it is neither always
+    wrong nor always right, and this measures the property that decides it. THE COUNT IS NOT THE
+    ANSWER, which is what BUG-0062 could not know: re-measured 2026-09-11, dev 1/31, office 0/30,
+    research 1/28 entries name one, and every absence is right under the rule below. What decides
+    is whether a gate of the chain can still be running when the default window closes.
 
     THE MEASUREMENT, read out of `tools/provider_observations.json` -> `hook_deadlines` rather than
     restated (2026-08-23, claude.exe 2.1.239, real headless sessions against a scratch project):
@@ -7535,6 +7774,79 @@ def _entry_gate_blocks():
     for where, text in _entry_gate_texts():
         for block in _markdown_blocks(text):
             yield where, block
+
+
+def _smallest_preset(kit):
+    """The preset with the fewest roles in this kit's own `presets.yaml` -- the kit's authority.
+
+    A ROLE COUNT and not a name: `all` is a word, not a list, so the preset that says it is the
+    largest by construction and is sorted last however many roles the kit grows.
+    """
+    with open(os.path.join(TEAM_KITS, kit, "presets.yaml"), encoding="utf-8") as handle:
+        sizes = {}
+        for line in handle:
+            name, sep, roles = line.partition(":")
+            if not sep or line.startswith((" ", "\t", "#")) or not name.strip():
+                continue
+            words = roles.split()
+            sizes[name.strip()] = 10 ** 6 if words == ["all"] else len(words)
+    assert sizes, kit
+    return min(sizes, key=lambda name: (sizes[name], name))
+
+
+def test_the_preset_an_entry_gate_writes_is_the_smallest_one_and_never_a_chosen_looking_value():
+    """BUG-0044: the entry session wrote `preset: duo` without asking, while the entry gate claimed
+    the value was "confirmed in the interview" -- a team the user had not chosen, and (BUG-0041) no
+    way to change it afterwards.
+
+    THE EXPECTATION MOVED, and this test pins where it moved to rather than the wording BUG-0044
+    was filed against. DEC-0088/DEC-0091 took the preset question OUT of the interview for the
+    light form: the entry gate now writes the kit's SMALLEST preset as a starting point and the
+    later change has its own asked route (`request-approval preset` -> `set-preset`, DEC-0048). So
+    what must hold is no longer "a question was asked" but "nothing here pretends to know the
+    answer": the written value is derived from the kit's own `presets.yaml` and the route to change
+    it is named in the same breath.
+
+    DERIVED FROM THE KITS, so a kit that renames or resizes its presets cannot leave a stale name
+    standing in a file two directories away -- which is exactly how `duo` got written.
+    """
+    smallest = {_smallest_preset(kit) for kit in ("dev-team", "research-team", "office-team")}
+    vocabulary = {preset for _kit, preset in _every_preset_name()}
+    # THE BLOCK, not the file: the instruction that hands the initializer a value is the unit a
+    # reader takes in, and a preset named four hundred lines away is not part of it.
+    writing = [(where, block) for where, block in _entry_gate_blocks()
+               if "project_config.yaml" in block and "preset" in block]
+    assert {where for where, _block in writing} == {rel.replace(os.sep, "/")
+                                                    for rel in ENTRY_GATE_FILES}, (
+        "an entry gate carries no block that writes the preset at all: %s"
+        % sorted({where for where, _block in writing}))
+    for where, block in writing:
+        # inside a CODE SPAN only: `team`, `core` and `full` are also ordinary English words, and a
+        # check that counted those would fail on the sentence "a good starting team" while missing
+        # nothing -- this repo spells every identifier in backticks, which is the discriminator.
+        spans = " | ".join(re.findall(r"`([^`]*)`", block))
+        named = {preset for preset in vocabulary
+                 if re.search(r"(?<![\w-])%s(?![\w-])" % re.escape(preset), spans)}
+        assert not named - smallest, (
+            "%s hands the initializer a preset that is not its kit's smallest: %s -- that is how "
+            "`preset: duo` came to stand in a project nobody had asked (BUG-0044):\n      %s"
+            % (where, sorted(named - smallest), " ".join(block.split())[:200]))
+        assert named, (
+            "%s writes a preset and names none of the kits' smallest ones (%s), so nothing ties "
+            "the value to the kits' own declaration" % (where, sorted(smallest)))
+    assert all("set-preset" in text for _where, text in _entry_gate_texts()), (
+        "an entry gate writes a preset and never names `set-preset`, the one command that can "
+        "change it afterwards (BUG-0041)")
+
+
+def _every_preset_name():
+    """(kit, preset) for every preset any kit declares -- the vocabulary the check above rules on."""
+    for kit in ("dev-team", "research-team", "office-team"):
+        with open(os.path.join(TEAM_KITS, kit, "presets.yaml"), encoding="utf-8") as handle:
+            for line in handle:
+                name, sep, roles = line.partition(":")
+                if sep and not line.startswith((" ", "\t", "#")) and name.strip() and roles.split():
+                    yield kit, name.strip()
 
 
 def test_the_field_a_kernel_command_owns_is_named_with_that_command_in_both_entry_gates():
@@ -13793,6 +14105,120 @@ def _registered_hook_scripts(settings, home):
                         yield resolved
 
 
+SEEDING_SCRIPTS = (os.path.join(TEAM_KITS, "init_project_memory.sh"),
+                   os.path.join(TEAM_KITS, "init_project_memory.ps1"))
+
+
+def _path_as_this_bash_sees_it(path, kind="-d"):
+    """The spelling of a DIRECTORY the `bash` on PATH can open, or None -- see the file twin."""
+    return _script_as_this_bash_sees_it(path, kind)
+
+
+def _script_as_this_bash_sees_it(path, kind="-f"):
+    """The spelling of `path` the `bash` on PATH can open, or None -- asked of that bash itself.
+
+    THE RESOLVED EXECUTABLE, not the word `bash`: `shutil.which` and the OS's own search for a
+    bare `bash` disagree on this host -- the first finds Git Bash, the second WSL's `bash.exe` in
+    System32 -- and the two do not spell a Windows path the same way, so a probe run through one
+    and a script run through the other measure different machines.
+    """
+    forward = path.replace(os.sep, "/")
+    drive = ("/%s%s" % (forward[0].lower(), forward[2:])) if forward[1:2] == ":" else None
+    mounted = ("/mnt/%s%s" % (forward[0].lower(), forward[2:])) if forward[1:2] == ":" else None
+    for candidate in (forward, drive, mounted):
+        if candidate is None:
+            continue
+        # the candidate is spelled INTO the script and not passed as `$1`: on Windows the
+        # argument list is re-quoted on the way to the process, and the double quotes around a
+        # positional arrived at bash escaped -- every probe then answered "no" and this skipped on
+        # the one host that has the case. A path with a single quote in it would break this, and
+        # there is none: the candidates are built from this checkout's own location.
+        probe = subprocess.run(
+            [shutil.which("bash"), "-c", "test %s '%s'" % (kind, candidate)],
+                               capture_output=True, text=True, timeout=60)
+        if probe.returncode == 0:
+            return candidate
+    return None
+
+
+def test_the_seeding_script_refuses_the_tree_that_ships_the_templates(tmp_path):
+    """BUG-0067: a measuring run seeded THIS repository's own `project_memory/` -- eight unfilled
+    office template documents and a `procedures/` directory landed in canonical state on
+    2026-08-23 and sat there untracked until a verifier found them in front of a delivery commit.
+
+    The script seeds the WORKING DIRECTORY, so it cannot be started in the checkout that ships the
+    kits without seeding that checkout. The refusal is a property of the tree and not a path: a
+    repository that carries a kit's own `templates/project_memory` is the SOURCE of the templates
+    and never a consumer of one.
+
+    BOTH DIRECTIONS, in two directories one `cp` apart: the same script, the same arguments, and
+    the only difference is whether a kit template tree stands under the working directory. Without
+    the second half this would also pass for a script that refuses everywhere -- which would be a
+    broken bootstrap, not a fix.
+
+    WHAT THIS DOES NOT DO, and it is AC-2 of the item rather than this test's subject: the eight
+    files already in the repository's state tree are not removed here. `project_memory/` has one
+    writer and a suite is not it.
+    """
+    # NOT skipped on Windows: this script is plain bash and Git Bash runs it, which is the host
+    # BUG-0067 happened on -- a skip here would leave the measured case unmeasured on the only
+    # machine that has ever produced it. Only a host with no bash at all is out.
+    if not shutil.which("bash"):
+        pytest.skip("no bash on this host")
+    # WHICH SPELLING THIS BASH CAN SEE IS ASKED OF IT, not assumed: the `bash` on PATH may be Git
+    # Bash (`/c/...`), WSL (`/mnt/c/...`) or a POSIX one (the path unchanged), and a wrong guess
+    # measures `No such file or directory` while reading as a refusal. Skipping is the LAST resort,
+    # because this host is the one that produced BUG-0067.
+    script = _script_as_this_bash_sees_it(SEEDING_SCRIPTS[0])
+    if script is None:
+        pytest.skip("the bash on PATH cannot see this checkout")
+    home = tmp_path / "home"
+    templates = home / ".claude" / "team-kits" / "dev-team" / "templates" / "project_memory"
+    os.makedirs(str(templates / "product"))
+    (templates / "product" / "masterplan.md").write_text("# plan\n", encoding="utf-8")
+
+    def seed(where):
+        # HOME GOES THROUGH THE SAME TRANSLATION AS THE SCRIPT, and that is round 1's F3: the
+        # script builds its template path out of `$HOME`, so a spelling this bash cannot open makes
+        # it exit "Templates not found" -- which reads as a refusal and is a path error. Measured:
+        # green under Git Bash and red under PowerShell, because the two resolve a bare `bash`
+        # differently and the drive prefixes differ with it.
+        readable_home = _path_as_this_bash_sees_it(str(home))
+        if readable_home is None:
+            pytest.skip("the bash on PATH cannot see this host's temporary directory")
+        return subprocess.run([shutil.which("bash"), script, "dev-team"], cwd=str(where),
+                              capture_output=True, text=True, timeout=120,
+                              env=dict(os.environ, HOME=readable_home))
+
+    project = tmp_path / "a-project"
+    project.mkdir()
+    allowed = seed(project)
+    assert allowed.returncode == 0, allowed.stdout + allowed.stderr
+    assert (project / "project_memory" / "product" / "masterplan.md").exists()
+
+    source = tmp_path / "the-kit-source"
+    os.makedirs(str(source / "team-kits" / "dev-team" / "templates" / "project_memory"))
+    refused = seed(source)
+    assert refused.returncode != 0, refused.stdout + refused.stderr
+    assert "SHIPS kit templates" in refused.stderr, refused.stderr
+    assert not (source / "project_memory").exists(), "it refused and seeded anyway"
+
+
+def test_both_seeding_scripts_carry_the_same_refusal():
+    """The Windows twin is the one that would have been running on the host BUG-0067 happened on,
+    so a fix in the POSIX script alone would close the case nowhere.
+
+    A PAIR CHECK and not a second behaviour test: this repository's CI has no PowerShell host for
+    every runner, and a refusal that exists in one script and not the other is visible in the
+    scripts themselves. What is compared is the REASON, which both must state.
+    """
+    for path in SEEDING_SCRIPTS:
+        with io.open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        assert "SHIPS kit templates" in text, "%s carries no BUG-0067 refusal" % path
+        assert "templates" in text and "project_memory" in text, path
+
+
 def test_install_sh_places_every_hook_it_registers(tmp_path):
     """B1 (BUG-0016 / TSK-0031): `merge_settings.py` registers the handover guard UNCONDITIONALLY.
     If `install.sh` does not also COPY the hook script into `~/.claude/hooks`, the registration
@@ -16062,7 +16488,14 @@ def _advice(tmp_path, text, options):
                          + [(t, o, False) for t, o in _R2B_PRODUCT])
 def test_the_two_escape_classes_warn_and_product_questions_stay_quiet(
         tmp_path, text, options, warned):
-    """The property "no technical questions to the user" is hook-carried, and this is the widening.
+    """BUG-0050: two technical questions reached the persona uncaught — the git identity and the
+    window title bar — and the property "no technical questions to the user" is hook-carried, so a
+    hole in the hook's net is a hole in the property. This is the widening that closes both classes.
+
+    The two escape rows ARE the measured cases (pilot 3, S2), plus the start-menu question of the
+    same family; the verifier's correction of 2026-08-18 stands with them — 0 of 4 were blocked and
+    the "hook caught 2" reading came from two R2 WARNINGS logged under the wrong event kind, which
+    `test_a_warning_is_recorded_as_a_warning_and_not_as_a_block` is the other half of.
 
     Both directions in one parametrisation, because a one-hit threshold is only defensible if the
     product questions of the same interview stay silent under it. It stays a WARNING (rc 0): R2/R13

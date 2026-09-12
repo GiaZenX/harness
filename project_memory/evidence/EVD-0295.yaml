@@ -1,0 +1,14 @@
+id: EVD-0295
+kind: test
+related:
+- BUG-0044
+result: pass
+summary: 'tests naming BUG-0044: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_the_preset_an_entry_gate_writes_is_the_smallest_one_and_never_a_chosen_looking_value
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:55:25'

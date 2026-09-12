@@ -1,0 +1,16 @@
+id: EVD-0309
+kind: test
+related:
+- BUG-0079
+result: pass
+summary: 'tests naming BUG-0079: 3 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_office_package.py::test_every_remedy_the_kernel_prints_for_a_document_write_is_a_line_the_kernel_accepts
+  tools/test_office_package.py::test_the_gap_refusal_names_an_order_this_script_actually_walks
+  tools/test_office_package.py::test_the_two_remedies_that_name_no_typed_flag_need_none
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:56:55'

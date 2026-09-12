@@ -695,3 +695,13 @@
 {"ts": "2026-09-11T18:48:18", "hook": "gate_approval", "event": "note", "reason": "minted APR-0041 for request b659a07a77614fdabda6945be4b9d09b (user_answer_via_approval_hook)"}
 {"ts": "2026-09-11T18:48:25", "hook": "gate_approval", "event": "note", "reason": "approval question for e65e000d8b9d44698d4ec0fba40ede1d matched the kernel's"}
 {"ts": "2026-09-11T18:49:02", "hook": "gate_approval", "event": "note", "reason": "minted APR-0042 for request e65e000d8b9d44698d4ec0fba40ede1d (user_answer_via_approval_hook)"}
+{"ts": "2026-09-11T18:55:14", "hook": "gate_needs", "event": "block", "reason": "the hook payload could not be read or parsed, so this call could not be inspected — refused rather than waved through (spec II.4 fail-closed)."}
+{"ts": "2026-09-11T19:06:31", "hook": "gate_shell_hygiene", "event": "block", "reason": "'OtherDB' belongs to compose project 'neighbour-stack', not to this repo (myproject). Foreign Docker projects are off-limits: containers and volumes share one daemon, so this reaches another project's data — a real OOM hunt stopped a NEIGHBOUR project's production database exactly here (devops SKILL §3)."}
+{"ts": "2026-09-11T23:56:34", "hook": "gate_approval", "event": "note", "reason": "approval question for 9dbbfd639d9f4d71b51913fa0a970f54 matched the kernel's"}
+{"ts": "2026-09-12T06:17:50", "hook": "gate_approval", "event": "note", "reason": "minted APR-0043 for request 9dbbfd639d9f4d71b51913fa0a970f54 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T06:18:28", "hook": "gate_approval", "event": "note", "reason": "approval question for b0cae8b5ba9d4586976acdeade13c9e9 matched the kernel's"}
+{"ts": "2026-09-12T06:18:57", "hook": "gate_approval", "event": "note", "reason": "minted APR-0044 for request b0cae8b5ba9d4586976acdeade13c9e9 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T06:19:20", "hook": "gate_approval", "event": "note", "reason": "approval question for 6e99ca1e09074fa78c5832875163b15f matched the kernel's"}
+{"ts": "2026-09-12T06:19:45", "hook": "gate_approval", "event": "note", "reason": "minted APR-0045 for request 6e99ca1e09074fa78c5832875163b15f (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T06:19:57", "hook": "gate_approval", "event": "note", "reason": "approval question for 39e40aad0bb14310b36d29457f062439 matched the kernel's"}
+{"ts": "2026-09-12T06:20:08", "hook": "gate_approval", "event": "note", "reason": "minted APR-0046 for request 39e40aad0bb14310b36d29457f062439 (user_answer_via_approval_hook)"}

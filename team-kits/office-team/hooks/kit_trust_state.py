@@ -10,21 +10,33 @@ running in the session that ran it. That is why `write_kit_state.py` records
 `state: restart_required` and this hook — which cannot execute unless hooks execute — is what
 flips it to `active`.
 
-The three transitions, all of them evidence-based:
+The transitions, all of them evidence-based:
 
-  restart_required + hash matches  -> active            (hooks demonstrably run; bundle unchanged)
-  any state       + hash differs   -> hooks_trust_required
-  no kit_state.json                -> nothing written   (absence of a record is not a record)
+  any state that is not `active` + hash matches -> active  (hooks demonstrably run; bundle is the
+                                                            recorded one again)
+  any state                      + hash differs -> hooks_trust_required
+  no kit_state.json                             -> nothing written (absence of a record is not one)
 
 The last line matters most. Inventing a state here would let a project that never ran the scaffold
 report the same trust as one that did, and this file is the only thing standing between "the
 bundle was reviewed" and "some hooks exist".
 
-AND NOTE WHICH ARROW IS MISSING: nothing here leads OUT of `hooks_trust_required`. `transition()`
-reads `hook_bundle_hash` and never writes it, so no number of new sessions can clear that state —
-`write_kit_state.py`, which the scaffold runs, is the only writer of the record. That is why the
-message this hook prints has to name the scaffold and not merely a restart; `gate_dispatch`'s
-spawn refusal, which is what the state actually costs, names the same step.
+THE FIRST ARROW LEADS OUT OF `hooks_trust_required` TOO, and this paragraph used to say the
+opposite — "nothing here leads OUT of it" — while the running code returned `active` for a
+`hooks_trust_required` record whose hash matched again (measured by EXECUTING `transition`,
+TSK-0057 and again for TSK-0139: `('active', None)`; BUG-0037). What the state MEANS is why the
+exit is right rather than a leak: it records that the INSTALLED bundle is not the one this project
+vouched for, and the vouched-for one is the RECORD, which only `write_kit_state.py` — i.e. the
+scaffold — ever writes. A bundle whose hash equals the record again IS the reviewed bundle, so
+the difference this state reports has ended. The case that reaches this arrow in practice is a
+change rolled back (a `__pycache__` inside the hashed bundle, deleted again) and not a review that
+was skipped: nothing an agent can do makes an ARBITRARY bundle match a record it cannot rewrite.
+
+`test_the_trust_state_exits_on_a_bundle_that_matches_the_record_again` executes all four
+combinations, so this paragraph cannot drift back into a claim about an arrow that is there.
+What still holds unchanged: while the hashes differ, no number of new sessions clears the state,
+which is why the message this hook prints names the scaffold and not merely a restart;
+`gate_dispatch`'s spawn refusal, which is what the state actually costs, names the same step.
 
 COMFORT HOOK, fail-open (spec II.4). It informs and records; it must never refuse a session. It
 imports `_kernel` for the ONE definition of the bundle hash and immediately calls `disarm()`:

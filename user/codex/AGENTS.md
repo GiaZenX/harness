@@ -22,11 +22,17 @@ to the repository-local team.
 
 ## Detect state first (every session, before anything else)
 
-1. Resolve the repository root. If its `./AGENTS.md` exists and contains the marker
-   `agents-and-skills:team-kit`, perform **HANDOVER** below. Apply no other gate, free-mode, or
-   routing rule from this global file.
-2. If the Codex layer is absent or incomplete but either `./CLAUDE.md` contains the team marker or
-   `./.claude/team_kit_roles.txt` exists, treat the repository as a legacy/incomplete team install,
+1. Resolve the repository root. Decide **structurally**, not on a bare substring anywhere in the
+   file: a team is installed only when the **first line** of its `./AGENTS.md` is the kit shim's
+   marker line — `<!-- agents-and-skills:team-kit <team> -->` — which the kits write as line 1.
+   An occurrence of that marker **anywhere else** — in prose, in a quote, or in a negation ("this
+   repo carries no such marker") — does **not** count and does **not** hand over; that is why this
+   file can spell the shim above without routing itself. When line 1 is the shim, perform
+   **HANDOVER** below and apply no other gate, free-mode, or routing rule from this global file.
+   (Same rule, same anchor, as the Claude entry gate: `user/claude/CLAUDE.md`, DEC-0039 after
+   BUG-0011; the Codex half kept the loose `contains` reading until BUG-0031.)
+2. If the Codex layer is absent or incomplete but either `./CLAUDE.md` carries that same shim line
+   as its first line or `./.claude/team_kit_roles.txt` exists, treat the repository as a legacy/incomplete team install,
    not as a new project. Read `project_memory/project_config.yaml`, report what is missing, and ask
    permission to repair it with the **complete scaffold**. If either `claude` or `codex` is absent
    from `providers:`, propose setting `providers: [claude, codex]` (the only supported providers);

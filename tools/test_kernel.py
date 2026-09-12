@@ -751,7 +751,16 @@ def test_a_running_lease_is_reported_with_the_time_it_has_left(tmp_path):
 # ---------------- DEC-0038 / BUG-0010: lease honesty ----------------
 
 def test_a_bare_transition_cannot_mint_leased(tmp_path):
-    """DEC-0038 AC-1: a lease-bearing status is established by a real lease, never by a transition.
+    """BUG-0010 / DEC-0038 AC-1: `transition` checked only the automaton, so an item could stand on
+    LEASED with the lease store empty -- and `sweep-leases`, whose whole job is returning expired
+    leases to READY, was then asked to reconcile bookkeeping that had never been true.
+
+    A lease-bearing status is established by a real lease, never by a transition. The item's other
+    two ends are measured beside this one:
+    `test_the_dispatch_path_still_reaches_leased_after_the_guard` (the dispatch route still mints
+    LEASED, so this is not a lockout) and `test_sweep_reports_a_leased_task_whose_lease_vanished`
+    (a LEASED task with no live lease is REPORTED, never silently reset -- which is the half the
+    item asked for by name).
 
     RED without `assert_lease_backed_transition_locked`: `transition READY -> LEASED` returned
     rc 0 and left a task reading LEASED with no lease file -- untrue bookkeeping that `sweep-leases`

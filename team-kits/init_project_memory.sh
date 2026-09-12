@@ -25,6 +25,22 @@ fi
 REPO="$(pwd -P)"
 DST="$REPO/project_memory"
 
+# THE KIT SOURCE TREE IS NOT A PROJECT (BUG-0067). This script seeds the working directory, and a
+# measuring run started in the checkout that SHIPS the kits therefore seeded that checkout: eight
+# unfilled office template documents and a `procedures/` directory landed in the harness's own
+# `project_memory/` on 2026-08-23 and sat there untracked until a verifier found them before a
+# delivery commit. A repository that carries a kit's own `templates/project_memory` is the source
+# of the templates, never a consumer of them -- which is a PROPERTY of the tree and needs no path.
+# Refusing is the whole fix: whoever really wants a seeded tree points the script at a throwaway
+# root by running it there.
+# `tools/test_hooks.py::test_the_seeding_script_refuses_the_tree_that_ships_the_templates`
+for kit_home in "$REPO"/*/templates/project_memory "$REPO"/team-kits/*/templates/project_memory; do
+  if [ -d "$kit_home" ]; then
+    echo "Refusing to seed $DST: this tree SHIPS kit templates ($kit_home), so it is the kits' source and not a project that uses one (BUG-0067). Run this from a throwaway project root outside it." >&2
+    exit 1
+  fi
+done
+
 assert_safe_repo_path() {
   local target="$1" rel current component
   case "$target" in

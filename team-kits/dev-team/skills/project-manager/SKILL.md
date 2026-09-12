@@ -101,7 +101,7 @@ Occasion: `BUG-0073`.
    `class: technical_enabler` PRs may proceed in parallel; the state validator blocks the rest.
 4. **APPROVE** — `python scripts/harness.py request-approval scope PR-nnnn` prints the question the KERNEL
    composed; relay it VERBATIM (the gate compares it character for character) and let the user mint the scope-APR → the PR goes
-   `APPROVED`. For a UI scope the approved WIREFRAME is part of that scope manifest (step 5).
+   `APPROVED`. For a UI scope the wireframe is NOT part of this manifest and cannot be, and this sentence used to say the opposite (`BUG-0077`, Canyon 2026-08-30): the manifest carries `approvals._SCOPE_FIELDS`, which holds no wireframe reference, and the designer who would draw one cannot be dispatched before this approval exists (`gate_dispatch`, spec II.2) -- so the two duties were jointly unsatisfiable and a project driven by the book hit the refusal at its first UI goal. THE ORDER IS: scope approval first, wireframe in step 5 as the delivery work it is. What binds it is the freeze itself -- `freeze-wireframe` records the `scope_apr_ref` it was drawn under, so a wireframe carries the approval it belongs to even though the approval does not carry the wireframe. Whether the manifest SHOULD gain such a field is an open decision with a migration attached (`BUG-0055`: every stored hash would change and every live approval would die), and until it is taken nothing here may claim the field exists.
    **WHEN SEVERAL GOALS ARE CONFIRMED AT ONCE, ASK ONCE (`DEC-0068`).** The planning phase is
    deliberately thorough: derive the FULL list of product goals from the masterplan, go through each
    one with the user, bring your own suggestions and think around the corners, and record every

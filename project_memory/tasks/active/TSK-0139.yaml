@@ -35,6 +35,12 @@ required_inputs:
   headless_pm_stop_point in tools/provider_observations.json: the PM never reaches
   the approval gate headless) -- the docs say so and the item gets its evidence, not
   a fix'
+- 'GROWN LIST after TSK-0138 (2026-09-11 18:5x): the real defects still active after
+  the five batch mints -- the item''s list PLUS BUG-0014, BUG-0034, BUG-0044, BUG-0050,
+  BUG-0062 (measured-pass in the survey but no test NAMES them, or -- BUG-0044/0050
+  -- only an incidental mention, H195/BUG-0279): each gets its closing test red-first,
+  then the batch route (the lead asks); the 46 hole items among the held-back set
+  (BUG-01xx/02xx with hole_number) are NOT yours -- they are order 3 (AC-4)'
 - 'the state of the tree after TSK-0138 (base: its commit hash, named by the lead
   at READY); the kits'' hook files are yours EXCEPT settings.json (registration) --
   a fix inside a kit gate is mirrored x3 with the tripwire; the harness gates of this
@@ -89,7 +95,7 @@ dependencies:
 rung: opus
 effort: high
 root_revision: 1
-status: DRAFT
+status: READY
 revision: 1
 approval_ref: null
 created: '2026-09-11T14:56:04'

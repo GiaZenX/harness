@@ -112,6 +112,56 @@ def test_freeze_architecture_writes_active_and_revision(state):
     assert companion["approval_ref"] is None  # empty until frozen via delivery
 
 
+def test_freezing_the_architecture_again_devalues_the_delivery_approval(state):
+    """BUG-0054: `architecture_refs` is HASHED into the delivery manifest and had no producer, so
+    a second `freeze_architecture` left the approval saying STILL IN FORCE and the root revision
+    at 1 -- the field the user signed against could not move, because nothing ever wrote it.
+
+    THE COUNTER-PROBE IS IN THE SAME TEST and it is what makes the first half mean anything: the
+    design freeze, whose field DOES have a writer, kills the approval in the same repository and
+    in the same breath. Without it "in force" and "not in force" could both be explained by a
+    fixture that never had a live approval at all.
+
+    The frozen revision is read out of the freeze's own answer rather than composed here: what the
+    field must point at is the file that was just written, and a path typed a second time is the
+    drift `freeze_design`'s comment about composing from one constant is about.
+    """
+    pr = state.capture("PR", dict(PR_FIELDS))
+    stage_file(state, pr["id"], "ARC-0001.drawio.svg")
+    first = staging.freeze_architecture(
+        state, pr["id"], "ARC-0001", title="System overview", scope="whole-system",
+        derives_from=[pr["id"]])
+    expected = os.path.relpath(first["frozen"], state.root).replace(os.sep, "/")
+    assert first["root"]["architecture_refs"] == [expected], first["root"]
+
+    # signed AFTER the first freeze, which is the only order in which the question is the one the
+    # item asks: what the user puts a name to is the architecture that stands.
+    approve(state, pr["id"], kind="delivery")
+    apr = approvals.read_apr(state, state.read_item(pr["id"])["approval_ref"])
+    approvals.assert_apr_in_force(state, apr, state.read_item(pr["id"]))   # the control
+
+    stage_file(state, pr["id"], "ARC-0001.drawio.svg")
+    staging.freeze_architecture(
+        state, pr["id"], "ARC-0001", title="System overview", scope="whole-system",
+        derives_from=[pr["id"]])
+    with pytest.raises(approvals.ApprovalError):
+        approvals.assert_apr_in_force(state, apr, state.read_item(pr["id"]))
+
+
+def test_an_architecture_that_hangs_off_no_root_writes_no_refs(state):
+    """The other direction of the derivation: `derives_from` naming no product root leaves the
+    field alone rather than guessing at one (BUG-0054).
+
+    `SR-0001` is an id the companion schema accepts and whose TYPE is not a product root, so this
+    measures the root-type question and not "the reference was unreadable".
+    """
+    stage_file(state, "TSK-0001", "ARC-0002.drawio.svg")
+    result = staging.freeze_architecture(
+        state, "TSK-0001", "ARC-0002", title="System overview", scope="whole-system",
+        derives_from=["SR-0001"])
+    assert result["root"] is None, result["root"]
+
+
 # -- design freeze -------------------------------------------------------------
 
 def test_freeze_design_updates_design_refs_and_invalidation_semantics(state):

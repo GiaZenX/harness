@@ -1,0 +1,15 @@
+id: EVD-0289
+kind: test
+related:
+- BUG-0023
+result: pass
+summary: 'tests naming BUG-0023: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_report.py::test_validate_names_a_stored_order_that_expects_nothing
+  tools/test_state.py::test_a_work_order_that_expects_nothing_is_refused_at_both_entrances
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:54:32'

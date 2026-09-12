@@ -1,0 +1,14 @@
+id: EVD-0303
+kind: test
+related:
+- BUG-0062
+result: pass
+summary: 'tests naming BUG-0062: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_a_registration_names_a_window_exactly_when_its_gate_can_outlive_the_default
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:56:12'

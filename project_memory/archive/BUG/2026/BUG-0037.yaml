@@ -1,0 +1,33 @@
+id: BUG-0037
+title: kit_trust_state.py prose claims 'nothing here leads OUT of hooks_trust_required'
+  -- the running code exits it on a re-matching hash
+related_pr: PR-0003
+observed: 'team-kits/dev-team/hooks/kit_trust_state.py:23-27 (byte-identical in all
+  three kits, md5 da957490b5b0162d469a8eb8a284744e) claims the module offers no exit
+  from hooks_trust_required. Measured by EXECUTING transition() (TSK-0057 STEP 1):
+  transition({''state'':''hooks_trust_required'',''hook_bundle_hash'':''AAA''}, ''AAA'')
+  returns ''active'' -- rolling the bundle change back exits the state with no /hooks
+  review and no scaffold. The comment asserts an absence the code does not build (house
+  rule: no comment may claim protection the code does not build).'
+expected: 'The prose matches the measured behavior: either it names the re-match exit
+  (and the design decides whether that exit is WANTED -- a rolled-back change silently
+  re-trusting is itself worth a decision), or the code refuses the exit and the comment
+  becomes true. Mirrored copies stay byte-identical across the three kits.'
+repro: 'Read `kit_trust_state.py`''s prose beside its transition table. RE-MEASURED
+  2026-09-06 (TSK-0131) against b7f282e: `kit_trust_state.transition(hooks_trust_required,
+  same hash)` returns `(''active'', None)` -- so a route OUT of `hooks_trust_required`
+  does exist, exactly as the item observed, and the prose that says nothing leads
+  out of it is still the shipped text. REPRODUCES.'
+severity: low
+acceptance_criteria:
+- 'AC-1: prose and measured behavior agree, with the re-match exit either named or
+  refused by an explicit decision'
+- 'AC-2: the three kit copies stay byte-identical'
+- 'AC-3: a test pins whichever behavior the decision picks, red without the fix'
+source: TSK-0057 implementer report residue 1, 2026-08-13; measured via kit_trust_state.transition()
+status: VERIFIED
+revision: 1
+approval_ref: APR-0044
+created: '2026-08-14T06:28:31'
+approved_hash: 541eb7846dfb21dd61a8ea03b1f41855acde6bbc129c2a3c545488096c1ec3ce
+closed_at: '2026-09-12T06:18:40'

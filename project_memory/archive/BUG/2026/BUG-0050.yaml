@@ -1,0 +1,34 @@
+id: BUG-0050
+title: 'The no-technical-questions property is hook-enforced and porous: guard_question_context
+  caught 2, two technical questions reached the user uncaught'
+related_pr: PR-0003
+observed: 'Pilot 3 (B14): the audit log shows guard_question_context blocking two
+  technical questions (21:13:24 ''python, sqlite''; 21:23:44) -- the agent TRIED,
+  the hook caught. Two others reached the persona in S2 uncaught: git commit identity
+  (name/email) and the window title bar. The entry interview (S1) was clean by itself.
+  The shipped property ''no technical questions to the user'' is thus hook-carried,
+  and the hook''s net has measured holes. [CORRECTED by TSK-0075 verifier measurement
+  2026-08-18: the ''hook caught 2'' reading was WRONG. The two audit lines were R2
+  WARNINGS (exit 0 -- the questions were SHOWN to the user) that _warn logged with
+  event kind ''block'' (the F3 defect of that round, since fixed): the wording ''python,
+  sqlite'' is R2''s warning format string, not a refusal. Measured truth: 0 of 4 technical
+  questions were blocked; all four reached the persona, two of them with a stderr
+  note to the agent. The escape-class fix of TSK-0075 (R2b heuristic, warn-never-block
+  per the 2026-07-24 user decision) plus the corrected event kind stand; the property
+  claim in kit texts was aligned to what the hook builds.]'
+expected: The guard's coverage is widened to the measured escape classes (identity/config
+  questions, environment-probing questions) or the escapes are named as its limit;
+  the property claim in kit texts matches what the hook builds.
+repro: 'Kit project: the PM asks the user for git name/email -> passes the guard today.'
+severity: low
+acceptance_criteria:
+- 'AC-1: the two measured escape classes decided (caught or named) with red-without-fix
+  where caught'
+- 'AC-2: no kit text claims the property beyond what the hook builds'
+source: TSK-0027 pilot 3, finding B14
+status: VERIFIED
+revision: 1
+approval_ref: APR-0044
+created: '2026-08-15T07:00:14'
+approved_hash: 7b22236678f477fcfa83e3ecf3a807a3b166f6be1e0c7ab78ca55319e8c41b68
+closed_at: '2026-09-12T06:18:45'

@@ -1,0 +1,14 @@
+id: EVD-0284
+kind: test
+related:
+- BUG-0010
+result: pass
+summary: 'tests naming BUG-0010: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_kernel.py::test_a_bare_transition_cannot_mint_leased
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:53:49'

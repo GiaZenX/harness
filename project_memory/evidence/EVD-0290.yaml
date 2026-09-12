@@ -1,0 +1,14 @@
+id: EVD-0290
+kind: test
+related:
+- BUG-0026
+result: pass
+summary: 'tests naming BUG-0026: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_migrate.py::test_an_oversized_record_shortened_too_little_earns_a_second_deposit_not_an_overwrite
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:54:38'

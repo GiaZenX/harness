@@ -18,6 +18,16 @@ if (-not (Test-Path $src)) { throw "Templates not found: $src" }
 $repo = (Get-Location).Path
 $dst = Join-Path $repo "project_memory"
 
+# THE KIT SOURCE TREE IS NOT A PROJECT (BUG-0067) -- the same refusal as the POSIX twin, with the
+# case and the reason spelled there.
+$kitHomes = @()
+foreach ($pattern in @("*\templates\project_memory", "team-kits\*\templates\project_memory")) {
+    $kitHomes += @(Get-ChildItem -Path (Join-Path $repo $pattern) -Directory -ErrorAction SilentlyContinue)
+}
+if ($kitHomes.Count -gt 0) {
+    throw "Refusing to seed $dst`: this tree SHIPS kit templates ($($kitHomes[0].FullName)), so it is the kits' source and not a project that uses one (BUG-0067). Run this from a throwaway project root outside it."
+}
+
 function Test-ReparsePoint {
     param([string]$Path)
     # [IO.File]::GetAttributes reads the link ITSELF (no follow), so a DANGLING symlink/junction

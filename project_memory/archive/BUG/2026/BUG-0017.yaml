@@ -1,0 +1,59 @@
+id: BUG-0017
+title: Der Freigabe-/Mint-Mechanismus funktioniert im Headless-/SDK-Betrieb nicht
+  und fuehrt zu Nutzer-Irrefuehrung
+related_pr: PR-0002
+observed: 'Gemessen vom Pruefer 2026-08-10 in drei Pilotlaeufen ueber die SDK (TSK-0025/0027),
+  die bis zur Scope-Freigabe kamen:
+
+
+  (a) Vokabeltrainer-Drehbuch T2-T4: der Einstiegsagent ERFINDET eine ''/hooks-Vertrauens-und-Neustart''-Zeremonie
+  und draengt den Nutzer wiederholt -- gemessene say-Zeile: ''Bitte mach jetzt konkret
+  das hier: /hooks eintippen...''. Das ist ein Sicherheitsschritt, den es so nicht
+  gibt, an eine technikferne Persona gerichtet.
+
+  (b) Vokabeltrainer p2: die Freigabe-Frage wird ABGELEHNT, weil sie nicht wortgleich
+  durchgereicht wurde -- say: ''die Frage muss wortgleich durchgereicht werden''.
+
+  (c) Rechnung p1: Interviewfrage ''Wie wollen wir weitermachen, da die automatische
+  Freigabe-Protokollierung hier technisch nicht funktioniert?''.
+
+
+  Der Mint-Mechanismus (approval_provenance) haengt an der strukturellen Identitaet
+  einer AskUserQuestion-Antwort. Im SDK-/Headless-Betrieb kommt diese Identitaet nicht
+  so an, wie der Apparat sie erwartet -- die Freigabe laesst sich nicht sauber protokollieren,
+  und der Agent weicht auf erfundene manuelle Zeremonien aus. Das entwertet genau
+  den strukturierten Pfad, den das PM-Modell verspricht.
+
+
+  Abgrenzung zu BUG-0016: BUG-0016 ist die fehlende Post-Install-Schranke. DIESER
+  Befund ist der Freigabe-/Mint-Weg selbst -- er trifft auch, wenn der Neustart korrekt
+  erfolgt waere.'
+expected: Die Scope-Freigabe wird im SDK-/Headless-Betrieb sauber erteilt und protokolliert,
+  ODER der Apparat erkennt, dass der Mint-Weg dort nicht verfuegbar ist, und sagt
+  das ehrlich, statt eine nicht existierende Sicherheits-/Neustart-Zeremonie zu erfinden
+  und den Nutzer dazu zu draengen. Kein Lauf fordert den Nutzer zu einem Schritt auf,
+  den es nicht gibt.
+repro: 'RE-MEASURED 2026-09-06 (TSK-0131) against b7f282e: the three tests that name
+  this bug all pass (`tools/test_report.py::test_a_fresh_install_is_told_to_restart_and_is_not_handed_the_slash_command`
+  and its two neighbours), while the item''s own confirming record EVD-0018 is `result:
+  fail`. A passing test beside a failing record is not a closed bug: the record is
+  the verdict and the runs are one measurement beside it. Kept OPEN until a passing
+  Evidence supersedes EVD-0018 (FR-0058, PR-0008 AC-1).'
+severity: high
+acceptance_criteria:
+- id: AC-1
+  text: In einem SDK-/Headless-Lauf wird eine Scope-Freigabe entweder sauber erteilt
+    und protokolliert, oder der Apparat meldet ehrlich, dass sie dort nicht moeglich
+    ist -- gemessen an einem echten Lauf
+- id: AC-2
+  text: Kein Lauf fordert den Nutzer zu einem Schritt auf, den es nicht gibt (kein
+    erfundener /hooks-Sicherheitsschritt); gemessen ueber die say-Zeilen
+- id: AC-3
+  text: Geprueft ist, ob derselbe Mint-Weg auch in der interaktiven CLI (nicht nur
+    SDK) betroffen ist -- oder ob es eine reine SDK-Grenze ist
+status: VERIFIED
+revision: 1
+approval_ref: APR-0043
+created: '2026-08-10T11:04:25'
+approved_hash: 4c5fc0350be591cdc1e9d1830a07b0af1f8209666325b6e8f87f9fa61b5dd2ea
+closed_at: '2026-09-12T06:17:38'

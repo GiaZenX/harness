@@ -1,0 +1,52 @@
+id: BUG-0280
+title: A hook a suite starts without its own CLAUDE_PROJECT_DIR judges whatever tree
+  the ambient variable names -- 55 of 65 call sites, and the suite cannot tell an
+  honest one from a forgetful one
+related_pr: PR-0012
+severity: medium
+observed: 'TSK-0139 measured the class twice in one round. BUG-0052''s fix points
+  the suite''s ambient CLAUDE_PROJECT_DIR at a throwaway tree so no hook the suite
+  starts can append to this repo''s canonical audit log; `_root.find_repo_root` answers
+  that variable BEFORE the payload''s cwd, so a call site that names no environment
+  of its own now judges the throwaway tree. Nine tests went red on it and were repaired
+  at the call site (eight through `_run_trust_hook`, one through `tools/test_migrate.py`''s
+  `spawn_verdict`). An AST scan over `tools/test_*.py` (2026-09-11 22:3x) finds 65
+  subprocess starts whose argv names a hooks directory or a shipped-hook constant,
+  and 55 of them carry no literal CLAUDE_PROJECT_DIR in the call''s own keywords.
+  That count is NOT 55 defects: most are helpers that build `env` in a preceding statement
+  (`run_hook_process` is one) or chains of stub hooks in a tmp tree that resolve no
+  project root at all. Telling those apart needs dataflow, which is what this hole
+  is about.'
+expected: A check derived from the running suites -- 'a subprocess start of a hook
+  file names the project it is being asked about' -- that can tell a call site which
+  passes the variable through a variable from one which passes none at all, so a new
+  fixture cannot quietly measure the ambient tree.
+repro: Parse `tools/test_*.py` with `ast`; for every `subprocess.run`/`Popen` whose
+  first argument names a hooks directory or a shipped-hook constant, look for `CLAUDE_PROJECT_DIR`
+  in the call's keyword source. 65 calls match, 55 have no literal -- and `tools/test_hooks.py::run_hook_process`,
+  which does set it one line above the call, is among the 55.
+limits: 'What takes the place of the check, measured rather than hoped: (1) the ambient
+  value is a THROWAWAY tree (`.pytest_cache/ambient-project/`), so the worst a forgetful
+  call site does is measure an empty project -- it can no longer write into this repository''s
+  canonical state, which is what BUG-0052 was; (2) the failure direction is LOUD,
+  not silent: a hook asked about an empty tree answers ''nothing here'', which is
+  what the nine red tests looked like -- they failed, they did not pass wrongly; (3)
+  the one call site every new test is written from, `run_hook_process`, names the
+  variable, so the default a copy inherits is the correct one. What stays open is
+  a fixture that starts a shipped hook by hand AND depends on the payload''s cwd being
+  authoritative: that one goes red only if its subject happens to need the project,
+  and a subject that does not need it passes either way.'
+acceptance_criteria:
+- id: AC-1
+  text: the check distinguishes a call site that passes the variable indirectly (through
+    a name bound in an enclosing statement or an enclosing helper) from one that passes
+    none, measured against the 65 sites this round counted -- a rule that names all
+    55 is not the check, it is the scan that produced this item
+- id: AC-2
+  text: 'red-first: a new fixture that starts a shipped hook with no environment is
+    named by the check, and `run_hook_process` is not'
+hole_number: H196
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:30:39'

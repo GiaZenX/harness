@@ -2789,6 +2789,83 @@ def _shipped_transitions(cases):
     return answers[copies[0]]
 
 
+def test_the_spawn_veto_is_not_claimed_for_a_provider_this_report_cannot_read(tmp_path):
+    """BUG-0057: on a `claude+codex` install `doctor` reported `capabilities.spawn_veto: verified`
+    with the reason "gate_dispatch fires on PreToolUse for Agent/Task" -- a line about the CLAUDE
+    registrations, offered as an answer about the project, while the Codex path has no veto at all
+    and `spawn_veto` stood in no `enforcement_blockers` entry either.
+
+    BOTH DIRECTIONS IN ONE REPOSITORY, one directory apart: the same wiring answers `verified`
+    while only `.claude` is configured and `unverified` the moment a `.codex` layer stands beside
+    it. Without the first half this would also pass for a matrix that never says `verified`.
+
+    The reason is asserted too, because `unverified` alone is what a project with no registration
+    at all produces -- what has to be readable is WHY, and the provider it names.
+    """
+    root = tmp_path / "project_memory"
+    root.mkdir()
+    state = ProjectState(str(root))
+    repo = str(tmp_path)
+    claude = tmp_path / ".claude"
+    (claude / "hooks").mkdir(parents=True)
+    (claude / "hooks" / "gate_dispatch.py").write_text("# a gate\n", encoding="utf-8")
+    (claude / "settings.json").write_text(json.dumps({"hooks": {"PreToolUse": [
+        {"matcher": "Agent|Task", "hooks": [{"type": "command", "timeout": 60, "command":
+         'python -B "${CLAUDE_PROJECT_DIR}/.claude/hooks/gate_dispatch.py"'}]}]}}),
+        encoding="utf-8")
+
+    matrix, reasons = report.capability_matrix(state, repo)
+    assert matrix["spawn_veto"] == "verified", reasons["spawn_veto"]
+
+    (tmp_path / ".codex").mkdir()
+    matrix, reasons = report.capability_matrix(state, repo)
+    assert matrix["spawn_veto"] == "unverified", reasons["spawn_veto"]
+    assert "codex" in reasons["spawn_veto"], reasons["spawn_veto"]
+
+
+def test_every_provider_marker_says_whether_this_report_reads_its_registrations():
+    """The tripwire the pair in `PROVIDER_MARKERS` owes (BUG-0057, house rule 1).
+
+    At least one provider must be MEASURED, or the capability could never read `verified` and the
+    row above would be measuring a constant; and at least one must be UNMEASURED, or the whole
+    derivation is dead code that no future provider would wake up.
+    """
+    measured = [name for name, _marker, ok in report.PROVIDER_MARKERS if ok]
+    unmeasured = [name for name, _marker, ok in report.PROVIDER_MARKERS if not ok]
+    assert measured and unmeasured, report.PROVIDER_MARKERS
+
+
+def test_the_headless_stop_point_is_measured_and_is_not_the_approval_gate():
+    """BUG-0017: "the approval/mint mechanism does not work headless" -- closed as MEASURED BY
+    DESIGN rather than fixed, because the measurement says the PM never reaches a gate at all.
+
+    TSK-0135 finding B1, two real `claude -p` runs against a prepared kit project: zero
+    `AskUserQuestion` blocks, `stop_reason: end_turn` in both, the PM handing the decision back in
+    PROSE. So there is no broken mint to repair -- an unattended run stands still BEFORE its first
+    approval, which is a property of the turn model and not of the approval chain.
+
+    THE RECORD IS PARSED, not the prose that cites it: `docs/POST_V2_WISHLIST.md` section 10 names
+    this test, and a paragraph nothing reads is a claim that rots. What is asserted is the shape a
+    reader needs -- both runs measured, the stop point stated, and the negative that carries the
+    whole verdict present in each run's own line -- and that half is read for its POLARITY: a line
+    saying the PM asked one would carry the word `AskUserQuestion` just as well, so what is
+    asserted is `ZERO AskUserQuestion` (round 1 F5).
+    """
+    with io.open(os.path.join(REPO_ROOT, "tools", "provider_observations.json"),
+                 encoding="utf-8") as handle:
+        record = json.load(handle)["headless_pm_stop_point"]
+    runs = sorted(key for key in record if key.startswith("run_"))
+    assert len(runs) >= 2, "one run is an anecdote: %s" % runs
+    assert int(record["measurement"]["runs"]) == len(runs), record["measurement"]
+    for run in runs:
+        # POLARITY, not presence (round 1 F5): "AskUserQuestion" in the line is also what a record
+        # saying the PM ASKED one would carry, and the whole verdict rests on there having been
+        # none. The record spells the count in capitals for exactly this reason.
+        assert "ZERO AskUserQuestion" in record[run], (run, record[run])
+        assert "end_turn" in record[run], (run, record[run])
+    assert "never reaches one" in record["verdict"], record["verdict"]
+
+
 def test_a_fresh_install_is_told_to_restart_and_is_not_handed_the_slash_command(tmp_path):
     """BUG-0036 / TSK-0054 finding F2, and the reason this is the entry window's problem.
 
@@ -2807,6 +2884,30 @@ def test_a_fresh_install_is_told_to_restart_and_is_not_handed_the_slash_command(
     assert _shipped_transitions([{"data": {"state": "restart_required",
                                            "hook_bundle_hash": "AAA"}, "actual": "AAA"}]) \
         == ["active"]
+
+
+def test_the_trust_state_exits_on_a_bundle_that_matches_the_record_again():
+    """BUG-0037: the module's own prose said "nothing here leads OUT of `hooks_trust_required`"
+    while the running code returned `active` for exactly that record whenever the hash matched.
+
+    The four combinations are EXECUTED in all three shipped copies (`_shipped_transitions` runs the
+    hook as a process per kit and refuses copies that disagree), so the paragraph beside the
+    transition table answers for a measurement and not for a reading. What makes the exit right
+    rather than a leak is the meaning of the state: it says the INSTALLED bundle is not the
+    RECORDED one, and only `write_kit_state.py` -- the scaffold -- ever writes that record, so a
+    hash that equals it again is the reviewed bundle and the difference has ended.
+
+    MUTATION that turns this red: make `transition` answer `None` for a `hooks_trust_required`
+    record whose hash matches (which is what the old paragraph described).
+    """
+    cases = [{"data": {"state": state, "hook_bundle_hash": "AAA"}, "actual": actual}
+             for state in ("restart_required", "hooks_trust_required", "active")
+             for actual in ("AAA", "BBB")]
+    assert _shipped_transitions(cases) == [
+        "active", "hooks_trust_required",        # restart_required: match exits, a change re-enters
+        "active", None,                          # hooks_trust_required: THE arrow the prose denied
+        None, "hooks_trust_required",            # active: nothing to say, until the bundle moves
+    ]
 
 
 def test_a_changed_bundle_keeps_the_spec_ii8_hooks_wording(tmp_path):

@@ -560,6 +560,19 @@ Form einer Antwort hat, und die Wand, die das in einem Kit aufhält, ist `gate_w
 `gate_approval`. Gemessene Kette und Gegenmessung: **H80**. Headless unerreichbar ist also der
 ehrliche Weg, nicht der Mechanismus.
 
+**Zweite Korrektur 2026-09-11 (TSK-0135, Befund B1) — und damit ist BUG-0017 als GEMESSEN
+ABSICHTLICH geschlossen, nicht als Fehler behoben.** Der Satz, den beide Absätze oben voraussetzen,
+lautete: *der PM bleibt headless am ersten Freigabe-Gate stehen*. Gemessen wurde etwas anderes. Zwei
+echte `claude -p`-Läufe gegen ein fertig aufgesetztes Kit-Projekt (Aufzeichnung, Rohstrom und
+Laufdaten in `tools/provider_observations.json` → `headless_pm_stop_point`) enden **beide mit
+`stop_reason: end_turn` und NULL `AskUserQuestion`-Blöcken**: der PM liest Masterplan, Wurzel-Item
+und Konfiguration, erzeugt den Sitzungsbrief, fährt `validate` — und gibt die Entscheidung dann
+**in Prosa** an den Nutzer zurück, womit der Zug und im `-p`-Modus die Sitzung endet. Er steht also
+nicht AM Gate, er **kommt nie dorthin**. Für BUG-0017 heißt das: der Mint-Mechanismus ist headless
+nicht kaputt, sondern unerreicht — es gibt nichts zu reparieren, und was stattdessen gilt, ist die
+Messung. Wer sie prüft, prüft den Datensatz, nicht diesen Absatz:
+`tools/test_report.py::test_the_headless_stop_point_is_measured_and_is_not_the_approval_gate`.
+
 **Recherchiert (2026-08-03), drei Wege:**
 
 - **PTY-Emulation** (ConPTY/winpty/`script`/`expect`) startet eine interaktive Sitzung, aber ein
@@ -2483,4 +2496,5 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | H193 | BUG-0277 | OPEN | scaffold_team warns and continues when the staging carries no write_kit_state.py, so a project installs green with no hook-bundle trust recorded -- and the missing file is a kit-hash input, so every later stamp check refuses the same staging (new, TSK-0135, DEC-0092 (6) rig) |
 | H194 | BUG-0278 | OPEN | The test-shaped-acceptance reader (`dispatch.acceptance_is_test_shaped`, DEC-0097 (2)) claims both kit languages but its negation and word lists are English-shaped: 'ein Test wird rot, ohne den Fix' is refused (`ohne` counted as a negation) and German compounds ('Regressionstest', 'Unittest') are invisible -- false negatives, the order stays on the opus default (TSK-0137 verify round 2, N-e/N-f) |
 | H195 | BUG-0279 | OPEN | The batch route's evidence rule 'a test that NAMES the bug' (DEC-0100 (3), tools/close_measured_pass.py nodes_naming) reads an incidental mention like a measuring one: BUG-0050's only naming test says 'nothing was caught', BUG-0044's is a historical aside -- both would have been VERIFIED by a click (TSK-0138 verify round 2) |
+| H196 | BUG-0280 | OPEN | A hook a suite starts without its own CLAUDE_PROJECT_DIR judges whatever tree the ambient variable names -- 55 of 65 call sites, and the suite cannot tell an honest one from a forgetful one |
 

@@ -1,0 +1,44 @@
+id: BUG-0014
+title: Die Gate-Suite dieses Repos ist rot, und niemand hat es bemerkt
+related_pr: PR-0002
+observed: 'python -B -m pytest .claude/hooks/test_gates.py -q -> 1 failed, 142 passed
+  (32:13). Gemessen am 2026-08-09 vom Pruefer, isoliert reproduziert auf ruhigem Host
+  und mit kurzem basetemp -- der Ausfall haengt nicht an Last oder Pfadlaenge.
+
+
+  Gefallen ist test_the_measurement_sandbox_leaves_a_child_shell_no_directory_word_that_names_another_tree
+  (.claude/hooks/test_gates.py:3038-3041), und zwar die KONTROLLE: ''with the directory
+  state inherited no line reached ...not-mine-inherited, so this host cannot show
+  the accident this module exists for and everything below says nothing''. Der Host
+  stellt den Unfall nicht mehr her, also sagt der ganze Test nichts -- nicht nur die
+  eine Zusicherung.
+
+
+  Das Rot stammt NICHT aus TSK-0023: die Dateien unter .claude/hooks/ tragen als juengste
+  Aenderung 2026-08-08 14:52, die Runde-9-Dateien 2026-08-09 16:20/17:41. Es ist aus
+  TSK-0022 (Commit b32ec98) mitgekommen und hat mindestens eine ganze Runde ueberlebt,
+  ohne irgendwo zu stehen.'
+expected: Entweder die Vorbedingung des Sandkasten-Tests stellt den Unfall wieder
+  her -- dann misst der Test wieder, wofuer er gebaut ist -- oder die Unfaehigkeit
+  dieses Hosts, ihn herzustellen, steht als benanntes Loch mit Mechanismus in docs/POST_V2_WISHLIST.md.
+  Ein dritter Zustand existiert nach den Hausregeln nicht.
+repro: python -B -m pytest .claude/hooks/test_gates.py -q  (vom Repo-Wurzelverzeichnis;
+  laeuft NICHT in python -m pytest tools/ mit)
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: python -B -m pytest .claude/hooks/test_gates.py -q ist gruen in einem Lauf,
+    ODER der nicht herstellbare Unfall steht als Loecherlisten-Eintrag mit Mechanismus,
+    gemessener Kette und Begrenzung
+- id: AC-2
+  text: 'Die Ursache ist benannt: warum stellt dieser Host den Unfall nicht mehr her,
+    obwohl er es am 2026-08-08 tat -- gemessen, nicht vermutet'
+- id: AC-3
+  text: Es gibt einen Weg, der ein Rot dieser Suite bemerkt, bevor es eine Runde ueberlebt
+    -- die Suite laeuft nicht in pytest tools/ mit, und genau daran ist es vorbeigekommen
+status: VERIFIED
+revision: 1
+approval_ref: APR-0043
+created: '2026-08-09T19:31:24'
+approved_hash: f69bcf208af66cad16a465f9b37f7b78c46596e45f0a2090e10f730766e26219
+closed_at: '2026-09-12T06:17:35'

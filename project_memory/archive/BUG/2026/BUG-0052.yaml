@@ -1,0 +1,34 @@
+id: BUG-0052
+title: 'The tools/ suite writes into canonical state on every run: project_memory/.audit/hook_events.jsonl
+  grows from test fixtures'
+related_pr: PR-0001
+observed: 'Found by the TSK-0065 verifier (2026-08-16): its own suite run in an OUTSIDE
+  copy produced the same two audit-line sorts that had appeared in the repo''s project_memory/.audit/hook_events.jsonl
+  during the round (gate_needs parse error + gate_shell_hygiene with ''OtherDB''/neighbour-stack,
+  fixture at tools/test_hooks_v2.py:13227). So every full suite run appends test-fixture
+  events to the REPO''s canonical audit log, and the lead commits those lines with
+  each package. 4 new lines this round, at least half from suite runs, not from real
+  gate refusals.'
+expected: 'A suite run leaves the repo''s project_memory/ untouched: the hook-under-test
+  writes its audit line into the TEST project''s tree (or a temp audit sink), never
+  into the repo''s canonical state. The audit log then carries only real events.'
+repro: 'Run the tools/ suite and watch `project_memory/.audit/hook_events.jsonl`.
+  RE-MEASURED 2026-09-06 (TSK-0131): the file grew again during this round''s runs
+  (617 lines in the round''s own copy, and the worktree''s `git status` shows it modified
+  with +1 after a single selection). REPRODUCES -- and it is the one path gate 1 cannot
+  repair from a session (H37 Rest 2), which is why the round''s patch excludes it.'
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: 'the audit sink used by hooks under test is derived from the test project
+    root, never the repo''s project_memory (red-without-fix: run the fixture, watch
+    the repo log stay unchanged)'
+- id: AC-2
+  text: the repo's hook_events.jsonl no longer grows during a full tools/ run (measured
+    before/after)
+status: VERIFIED
+revision: 1
+approval_ref: APR-0044
+created: '2026-08-16T00:58:25'
+approved_hash: 894c4949a2276cdbcdbad37873f7e6f4bfed91c6848d24a24780ccaf556aad98
+closed_at: '2026-09-12T06:18:47'

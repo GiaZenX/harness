@@ -28,6 +28,7 @@ installed shim's line 1 is the marker and line 2 is `@AGENTS.md`.
 """
 
 import glob
+import io
 import json
 import os
 import re
@@ -196,6 +197,45 @@ def test_the_entry_file_explains_the_marker_without_triggering():
         text = handle.read()
     assert "agents-and-skills:team-kit" in text, "the entry file no longer explains the marker"
     assert _structural_kit(text) == "", "the entry file's first line is the marker -- it self-routes"
+
+
+# The two global entry files -- one per provider. Both decide handover, so both answer the same
+# question, and the pair is what the test below reads: a rule that moves on one side alone is what
+# BUG-0031 was.
+ENTRY_FILES = (os.path.join(ROOT, "user", "claude", "CLAUDE.md"),
+               os.path.join(ROOT, "user", "codex", "AGENTS.md"))
+
+_MARKER = "agents-and-skills:team-kit"
+# The COMPLETE shim, with the team name left open -- what `scaffold_team` writes on line 1 and the
+# only shape in which an entry file may name the marker at all.
+_SHIM_SPELLING = re.compile(r"<!--\s*" + re.escape(_MARKER) + r"\s+.*?-->")
+
+
+@pytest.mark.parametrize("entry", ENTRY_FILES, ids=lambda path: os.path.basename(os.path.dirname(path)))
+def test_an_entry_file_names_the_marker_only_as_the_whole_shim(entry):
+    """BUG-0031: the Codex entry gate routed handover on whether `./AGENTS.md` CONTAINS the marker
+    -- the occurrence-versus-mention flaw DEC-0039 had already closed for the Claude entry gate.
+
+    THE PROPERTY, rather than a search for the word "first line": in a file that DECIDES handover,
+    every occurrence of the marker stands inside the complete shim `<!-- ... -->`. A rule quoting
+    the bare marker is a rule about a substring, which is the defect itself; a rule quoting the
+    whole shim is a rule about line 1's FORM, and it also cannot route the file it stands in --
+    which the second assertion measures against the same structural predicate `session_status`
+    executes. Asked of BOTH entry files as one parametrized pair, so neither provider's half can
+    drift alone again.
+
+    Measured on fd7e2fa before the fix: the Claude file's two occurrences were both whole shims,
+    the Codex file's single occurrence (`user/codex/AGENTS.md`, the detect-state step 1) was bare.
+    """
+    with io.open(entry, encoding="utf-8") as handle:
+        text = handle.read()
+    assert _MARKER in text, "%s no longer explains the marker at all" % entry
+    bare = [line.strip() for line in text.splitlines()
+            if _MARKER in line and not _SHIM_SPELLING.search(line)]
+    assert not bare, (
+        "%s names the marker outside the shim form -- a `contains` rule routes on a mention "
+        "(BUG-0011/BUG-0031):\n  %s" % (entry, "\n  ".join(bare)))
+    assert _structural_kit(text) == "", "%s's first line is the marker -- it self-routes" % entry
 
 
 def test_kit_constitution_shim_source_carries_the_marker_on_line_one():

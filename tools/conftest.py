@@ -60,11 +60,31 @@ def sibling_import_closure(start, source):
 # a shipped script where it lies. Redirecting the cache is the only form of the rule that needs no
 # list of import sites — `sys.pycache_prefix` covers this process, `PYTHONPYCACHEPREFIX` the ones it
 # spawns. `.pytest_cache/` is already gitignored, so the caching benefit survives.
-PYCACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                           ".pytest_cache", "pycache")
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PYCACHE_DIR = os.path.join(REPO_ROOT, ".pytest_cache", "pycache")
 os.makedirs(PYCACHE_DIR, exist_ok=True)
 sys.pycache_prefix = PYCACHE_DIR
 os.environ["PYTHONPYCACHEPREFIX"] = PYCACHE_DIR
+
+
+# AND NO SUITE RUN WRITES INTO THIS REPO'S OWN STATE EITHER (BUG-0052), by the same move and for
+# the same reason. A kit gate records every refusal through `_audit.record`, whose sink is
+# `<find_repo_root()>/project_memory/.audit/hook_events.jsonl`, and `_root.find_repo_root` answers
+# `$CLAUDE_PROJECT_DIR` FIRST — correct in a session, wrong here: a hook this suite starts without
+# an explicit project dir inherits the session's, which in this repository is this repository. The
+# lines then land in canonical state, and the lead commits them with the package.
+#
+# THE ENVIRONMENT IS REDIRECTED, NOT THE CALL SITES. A fixture that forgets the override is the
+# defect's shape, so a list of fixtures to repair would be one entry short again the next time one
+# is written; every child process inherits from exactly one place and this is it. A test that
+# passes its own project dir still wins, because `dict(os.environ, CLAUDE_PROJECT_DIR=...)` is
+# applied after this. The sink is a real tree rather than a nonexistent path on purpose: `_audit`
+# drops the record when the root holds no `project_memory/`, and a swallowed event would make this
+# redirection unmeasurable — here the event is kept, next to the run that produced it.
+# `test_no_hook_started_by_this_suite_can_write_this_repos_audit_log` measures both halves.
+AMBIENT_PROJECT_DIR = os.path.join(REPO_ROOT, ".pytest_cache", "ambient-project")
+os.makedirs(os.path.join(AMBIENT_PROJECT_DIR, "project_memory", ".audit"), exist_ok=True)
+os.environ["CLAUDE_PROJECT_DIR"] = AMBIENT_PROJECT_DIR
 
 
 # THE V1 STATE MONOLITHS. A monolith is a state store that lived directly at the ROOT of

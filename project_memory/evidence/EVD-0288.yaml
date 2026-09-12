@@ -1,0 +1,14 @@
+id: EVD-0288
+kind: test
+related:
+- BUG-0022
+result: pass
+summary: 'tests naming BUG-0022: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_a_change_to_something_built_walks_the_CR_route_the_constitution_names
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:54:26'

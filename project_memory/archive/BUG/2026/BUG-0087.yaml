@@ -1,0 +1,35 @@
+id: BUG-0087
+title: tools/test_hooks_v2.py:9428 is an assert-or-True -- a test that cannot fail,
+  standing next to the hook time-budget checks
+related_pr: FR-0065
+observed: 'Found by the TSK-0102 (stream C) verifier on 2026-09-02 while checking
+  the new booking-gate time budget: tools/test_hooks_v2.py line 9428 ends in an assertion
+  of the form assert ... or True, which is true for every input. It sits in the same
+  test family that is supposed to hold the hook deadline arithmetic (the neighbour
+  at 9210 holds only gate_ledger_valid.TOTAL_BUDGET below 60, which would stay green
+  at 50+15=65). Pre-existing, not introduced by any stream; no stream owned the file.
+  CLAUDE.md: a test that cannot fail is more expensive than no test because it claims
+  coverage.'
+expected: The assertion measures something that can be false, or the test is deleted;
+  the round greps tools/ for the same shape (or True, or 1, assert True) and treats
+  every hit the same way, as a class not a line.
+repro: Read tools/test_hooks_v2.py:9428; mutate whatever it appears to guard; observe
+  the test stays green.
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: every assert-or-truthy shape in tools/ is found by a derivation over the AST
+    and either made falsifiable or removed, with the count reported
+- id: AC-2
+  text: 'a tripwire keeps the shape out: an assert whose value is statically truthy
+    fails the suite'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0045
+created: '2026-09-02T01:06:29'
+triage_result: 'Line drift: on the merged tree (feat/harness-v2 after TSK-0104) the
+  assert-or-True sits at tools/test_hooks_v2.py:9455; 9428 was its line at c155a5f.
+  The merge verifier confirmed the shape and that no stream touched it. Still unowned;
+  the fix is a class sweep over tools/ (AC-1), not a line edit.'
+approved_hash: 69dbd60eeeb8ec3d85019e2698daf0f04681a590abba29682d751cd80c50ba0e
+closed_at: '2026-09-12T06:19:44'

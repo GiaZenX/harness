@@ -34,7 +34,13 @@ import shutil
 import time
 import xml.etree.ElementTree as ET
 
-from .backlog_types import ACTIVE_DIRS, DECLARED_REQUIRED_FIELDS, field_elements, parse_id
+from .backlog_types import (
+    ACTIVE_DIRS,
+    DECLARED_REQUIRED_FIELDS,
+    ROOT_TYPE_BY_KIT,
+    field_elements,
+    parse_id,
+)
 from .lock import ext_path
 from .schemas import validate
 from .state import (
@@ -301,6 +307,26 @@ def freeze_wireframe(
         return {"frozen": frozen, "companion": companion, "staging": staged}
 
 
+def _root_of(state: ProjectState, derives_from) -> str:
+    """The product root among `derives_from`, or None -- see `freeze_architecture` (BUG-0054).
+
+    A type is a product root when `backlog_types.ROOT_TYPE_BY_KIT` names it, which is the ONE
+    derivation the plan approval, the delivery verdict and the scaffold already share. The entry
+    also has to EXIST in this store: a reference to an archived or foreign id is not a root this
+    freeze may write to, and `_update_item_locked` would raise on it anyway.
+    """
+    roots = frozenset(ROOT_TYPE_BY_KIT.values())
+    for entry in field_elements(derives_from):
+        text = str(entry).strip()
+        try:
+            item_type, _number = parse_id(text)
+        except Exception:  # noqa: BLE001 -- a malformed reference is not a root
+            continue
+        if item_type in roots and os.path.exists(ext_path(state.active_path(text))):
+            return text
+    return None
+
+
 def freeze_architecture(
     state: ProjectState, staging_key: str, arc_id: str, title: str, scope: str,
     derives_from: list, approval_ref: str = None, assets: dict = None,
@@ -313,6 +339,24 @@ def freeze_architecture(
     is the only path that creates an ARC item: `capture` refuses the type, and
     `project_memory/**` is kernel-only for tool writes. Without it the gate had a
     reader and no producer, which blocks every merge with no way out.
+
+    AND IT POINTS THE ROOT'S `architecture_refs` AT THE FROZEN REVISION, which is the
+    same move `freeze_design` makes for `design_refs` and for the same reason
+    (BUG-0054). The delivery manifest HASHES `architecture_refs`
+    (`approvals.item_subject_manifest`, kind `delivery`), so a re-frozen architecture
+    is supposed to invalidate a delivery approval that was signed against the old
+    one -- measured before this with a counter-probe that CAN fail: a second
+    `freeze_architecture` left `assert_apr_in_force` saying STILL IN FORCE and the
+    root revision at 1, while the same second `freeze_design` killed the approval,
+    because that one writes its field and this one wrote only the companion. No hash
+    is redefined here and no live approval dies for the change itself: the field
+    merely gains the writer it never had.
+
+    WHICH ITEM IS THE ROOT is derived, not passed: it is the entry of `derives_from`
+    whose TYPE is a product root (`backlog_types.ROOT_TYPE_BY_KIT`, the same map the
+    plan approval and the scaffold read), so a kit that gains a root type is covered
+    without a second list here. `derives_from` naming no root leaves the field alone
+    -- an ARC that hangs off nothing has no root to point.
     """
     parse_id(arc_id)
     source = os.path.join(staging_dir(state, staging_key), arc_id + ".drawio.svg")
@@ -345,8 +389,20 @@ def freeze_architecture(
         shutil.copyfile(ext_path(source), ext_path(os.path.join(active_dir, arc_id + ".drawio.svg")))
         state._write_yaml_atomic(os.path.join(active_dir, arc_id + ".yaml"), companion)
         staged = consume_staged_artifact(state, source)
+        # Inside the SAME lock hold as everything above, for the reason `freeze_design`'s own
+        # comment gives: the refs are computed from the fresh root read, so a parallel append
+        # cannot be lost. `field_elements` and not `list()`, because this line writes what it
+        # read and `list()` over a scalar is that scalar's letters (BUG-0038).
+        updated_root = None
+        root_id = _root_of(state, derives_from)
+        if root_id is not None:
+            root = state.read_item(root_id)
+            refs = field_elements(root.get("architecture_refs"))
+            refs.append(os.path.relpath(frozen, state.root).replace(os.sep, "/"))
+            updated_root = state._update_item_locked(root_id, {"architecture_refs": refs})
         state._regenerate_index_locked()
-        return {"frozen": frozen, "companion": companion, "staging": staged}
+        return {"frozen": frozen, "companion": companion, "staging": staged,
+                "root": updated_root}
 
 
 def freeze_design(

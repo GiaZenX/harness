@@ -1,0 +1,14 @@
+id: EVD-0294
+kind: test
+related:
+- BUG-0037
+result: pass
+summary: 'tests naming BUG-0037: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_report.py::test_the_trust_state_exits_on_a_bundle_that_matches_the_record_again
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:55:19'

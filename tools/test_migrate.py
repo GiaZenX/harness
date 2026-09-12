@@ -1765,6 +1765,12 @@ def test_the_import_opens_no_gate_that_requires_an_approval(v1_state, capsys):
         env = {k: v for k, v in os.environ.items()
                if k not in ("PYTHONPATH", "PYTHONPYCACHEPREFIX")}
         env["PYTHONDONTWRITEBYTECODE"] = "1"
+        # the project this gate is being asked about, named the way a provider names it: the gate
+        # resolves its root through `_root.find_repo_root`, whose first answer is this variable,
+        # and a child that inherits the suite's own value measures another tree (BUG-0052's
+        # neighbour -- the suite now carries a throwaway root there, and before that it carried
+        # the harness checkout, so this was never a variable to leave to chance)
+        env["CLAUDE_PROJECT_DIR"] = repo
         return subprocess.run([sys.executable, "-B",
                                os.path.join(claude, "hooks", "gate_proc_approved.py")],
                               input=payload.encode("utf-8"), capture_output=True, cwd=repo,

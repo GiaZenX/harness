@@ -1983,6 +1983,141 @@ def test_a_paragraph_the_constitutions_share_is_one_text():
 _READING_DUTY_LEAD_IN = "**READ THE END OF A LOG, NEVER THE LOG"
 
 
+def _scope_manifest_fields():
+    """The fields a scope approval really hashes -- read out of the kernel that hashes them."""
+    sys.path.insert(0, TEAM_KITS)
+    from kernel import approvals
+    return set(approvals._SCOPE_FIELDS)
+
+
+def test_no_kit_text_puts_an_artifact_into_the_scope_manifest_the_kernel_does_not_hash():
+    """BUG-0077: the PM skill required the approved WIREFRAME to be part of the scope manifest
+    while `gate_dispatch` refused the designer spawn that would draw it until the scope approval
+    existed -- two duties a project cannot satisfy at once, hit live at Canyon's first UI goal.
+
+    The wireframe was never in the manifest either (`approvals._SCOPE_FIELDS` holds no reference to
+    one, which is BUG-0055's subject), so the text asked for something that could not be produced
+    AND could not have been carried if it had been.
+
+    THE CHECK IS THE PAIR, and the kernel is the authority: whatever a kit text names as belonging
+    to the scope manifest must be a field the kernel actually hashes. The artifact vocabulary is
+    derived from the kit's own freeze commands rather than typed here, so a fourth frozen artifact
+    is covered the day it ships -- and the day `_SCOPE_FIELDS` legitimately grows one, this test
+    stops objecting to the text that names it.
+    """
+    hashed = _scope_manifest_fields()
+    artifacts = {"wireframe": "wireframe", "architecture": "architecture", "design": "design"}
+    claims, offences = [], []
+    for path in sorted(glob.glob(os.path.join(TEAM_KITS, "*", "skills", "*", "SKILL.md"))
+                       + glob.glob(os.path.join(TEAM_KITS, "*", "constitution", "AGENTS.md"))):
+        with io.open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        for sentence in re.split(r"(?<=[.!?])\s+", text):
+            if "scope manifest" not in sentence.lower():
+                continue
+            claims.append(sentence)
+            lower = sentence.lower()
+            manifest = lower.find("scope manifest")
+            for word, field in artifacts.items():
+                found = re.search(r"(?<![\w-])%s(?![\w-])" % word, lower)
+                if not found or "%s_refs" % field in hashed:
+                    continue
+                # THE NEGATION HAS TO BIND TO THIS ARTEFACT, and round 1's F6 is what a loose one
+                # costs: any `not` in the sentence excused the whole sentence, so "the wireframe is
+                # part of the manifest, which is not unusual" would have passed. The denial must
+                # stand BETWEEN the artefact word and the words it is being attached to -- that
+                # span IS the claim, and prose outside it is about something else.
+                span = lower[min(found.start(), manifest):max(found.end(), manifest + 14)]
+                if re.search(r"(?<![\w-])(not|cannot|never|no)(?![\w-])", span):
+                    continue        # a sentence that DENIES the membership is the fix, not the bug
+                offences.append("%s: %s" % (os.path.relpath(path, ROOT), " ".join(
+                    sentence.split())[:180]))
+    assert claims, "no kit text speaks about the scope manifest at all -- the scan is vacuous"
+    assert not offences, (
+        "a kit text puts an artifact into the scope manifest that the kernel does not hash "
+        "(BUG-0077; the hashed set is %s):\n  %s" % (sorted(hashed), "\n  ".join(offences)))
+
+
+def test_no_constitution_promises_that_a_specialists_voice_stays_out_of_the_users_view():
+    """BUG-0046: the kits ASSURED the user that jargon stays between agents, and the apparatus does
+    not build that -- 132 of 256 relayed assistant blocks in pilot 3 were specialist transcripts the
+    provider stores separately and the rig relayed unfiltered, and the PM's own mixing was ONE
+    one-word case in 112 kit-PM blocks.
+
+    So the defect was never the PM's language; it was an assurance about voices the kit does not
+    control. What must stand in its place, in every kit, is the MECHANISM with its measured limit:
+    a specialist dispatched with `run_in_background: true` writes into the same stream (measured on
+    the SDK stream; what a terminal client collapses of it is not measured), and the lead answers
+    the complaint once and plainly instead of promising to switch it off.
+
+    THE PARAGRAPH IS FOUND BY ITS SUBJECT, not by a line number: it is the block that names the
+    dispatch flag, which is the mechanism the whole claim now rests on. A kit whose block stops
+    naming the flag has stopped saying what it is talking about, and a kit that re-adds a promise
+    has to delete the sentence this asserts.
+    """
+    for kit in _kit_dirs():
+        path = os.path.join(kit, "constitution", "AGENTS.md")
+        with io.open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        blocks = [block for block in re.split(r"\n[ \t]*\n", text)
+                  if "run_in_background: true" in block]
+        where = os.path.relpath(path, ROOT)
+        assert len(blocks) == 1, (
+            "%s: %d blocks speak about the background dispatch's own stream, expected one"
+            % (where, len(blocks)))
+        block = blocks[0]
+        assert "measured on the SDK stream" in block, (
+            "%s: the block names the mechanism and not what was MEASURED about it" % where)
+        assert "is not" in block.split("measured on the SDK stream", 1)[1][:120], (
+            "%s: the measurement stands without the half it does NOT cover" % where)
+        assert "never promise to switch it off" in block, (
+            "%s: nothing stops the lead promising the user an assurance the kit does not build "
+            "(BUG-0046)" % where)
+
+
+_HAND_DUTY_LEAD_IN = "**THE USER'S HAND IS NEVER THE ROUTE AROUND A GATE.**"
+
+
+def _hand_duty_blocks(path):
+    """Every blank-line-separated block of this file that OPENS with the hand duty's lead-in."""
+    with io.open(path, encoding="utf-8") as handle:
+        text = handle.read()
+    return [block.strip("\n") for block in re.split(r"\n[ \t]*\n", text)
+            if block.lstrip().startswith(_HAND_DUTY_LEAD_IN)]
+
+
+def test_every_constitution_forbids_handing_the_user_a_line_around_a_gate():
+    """BUG-0081 and BUG-0080: twice in one week a lead did everything right up to the last sentence
+    and then handed the USER a command line -- a `git push -u origin pr/PR-0001-redesign` the merge
+    gate had refused it, and a `cp` into a staging directory the write gate had refused it.
+
+    Both leads named the refusal correctly and neither edited a gate. What was missing was the rule
+    that the user's terminal is not the remaining route, and it was missing from the document every
+    role of a kit is sent to. ONE text, in the constitution, next to the gap route it sends people
+    to instead -- the same carrier and the same shape as the reading-discipline duty above, so
+    `test_a_paragraph_the_constitutions_share_is_one_text` holds the three copies byte-identical
+    and this holds presence: exactly one block per kit, because a second version outlives the first.
+
+    WHAT THIS CANNOT DO, and it is the same limit every duty in a constitution has: it cannot read
+    whether a lead obeyed it. What closes the two cases in CODE is elsewhere and measured there --
+    BUG-0081's gate now distinguishes a work-branch push from a delivery
+    (`tools/test_hooks.py::test_the_first_work_branch_push_is_not_refused_for_a_verdict_the_push_has_to_produce`),
+    and BUG-0080's missing in-apparatus writer for a re-freeze input is carried as an open item
+    rather than claimed here.
+    """
+    carriers = [os.path.join(kit, "constitution", "AGENTS.md") for kit in _kit_dirs()]
+    assert len(carriers) >= 3, carriers
+    for path in carriers:
+        where = os.path.relpath(path, ROOT)
+        found = _hand_duty_blocks(path)
+        assert len(found) == 1, (
+            "%s carries %d statement(s) of the hand duty, expected exactly one" % (where, len(found)))
+        assert "BUG-0081" in found[0] and "BUG-0080" in found[0], (
+            "%s: the duty names neither measured case, so it reads as taste" % where)
+        assert "carries its one-sentence explanation WITH the line" in found[0], (
+            "%s: the duty no longer says what a legitimate handed line owes" % where)
+
+
 def _reading_duty_blocks(path):
     """Every blank-line-separated block of this file that OPENS with the reading duty's lead-in."""
     with io.open(path, encoding="utf-8") as handle:

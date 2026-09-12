@@ -1,0 +1,14 @@
+id: EVD-0299
+kind: test
+related:
+- BUG-0053
+result: pass
+summary: 'tests naming BUG-0053: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_hooks_v2.py::test_every_way_a_line_can_point_compose_at_a_foreign_project_is_refused
+  tools/test_hooks_v2.py::test_ordinary_docker_work_stays_open -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:55:49'

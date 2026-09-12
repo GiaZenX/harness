@@ -5726,6 +5726,67 @@ def test_the_state_dir_is_matched_case_insensitively(tmp_path, spelling):
     assert "canonical project state" in result.stderr
 
 
+@pytest.mark.parametrize("command,protects", [
+    ("python .cla*de/hooks/gate_approval.py < payload.json", "the enforcement layer"),
+    ("cp .cla*de/hooks/gate_approval.py /tmp/x.py", "the enforcement layer"),
+    ("rm -f .cla*de/hooks/gate_approval.py", "the enforcement layer"),
+    # the leaf does not exist yet, so a `glob` of the WHOLE word answers nothing
+    ("cp evil.py .cla*de/hooks/gate_new.py", "the enforcement layer"),
+    # the same class one level down: the carve-out that lets a read-only pipeline capture into an
+    # unprotected file asked whether the TARGET names state, and a shell-built target named nothing
+    ("echo x > project_mem*ry/bugs/active/BUG-9999.yaml", "the canonical state directory"),
+])
+def test_a_metacharacter_does_not_hide_a_protected_path_from_the_kit_gate(
+        tmp_path, command, protects):
+    """BUG-0082: `python .claude/hooks/gate_approval.py` was rc 2 and `python .cla*de/...` rc 0 --
+    the shell expanded the metacharacter, the gate compared the literal token, and the protected
+    name was never spelled on the line it judged.
+
+    RE-MEASURED 2026-09-11 against fd7e2fa on a scaffolded proxy project, the SHIPPED kit gate as a
+    real hook process: three glob spellings rc 0 against the literal's rc 2, plus the two rows the
+    round found beside them (a leaf that does not exist yet, and the state-capture carve-out).
+
+    THE ANSWER IS THE SHELL'S OWN EXPANSION, not a pattern for patterns: `_glob_readings` resolves
+    each component of the word against the same filesystem the shell would, so the gate compares
+    what the program will really be handed. Its price is measured by
+    `test_ordinary_work_with_a_glob_stays_open`, which is the other end of this pair -- a rule that
+    refused every word carrying a `*` would pass this test and make the kits unusable.
+
+    WHAT THIS DOES NOT CLOSE, named rather than implied: a word whose value comes from the shell's
+    own state (`$VAR`, `${VAR}`, `$(cmd)`, a backtick) answers to no filesystem question. That half
+    is BUG-0082's remaining entry.
+    """
+    dispatched_repo(tmp_path)
+    os.makedirs(str(tmp_path / ".claude" / "hooks"), exist_ok=True)
+    write(str(tmp_path / ".claude" / "hooks" / "gate_approval.py"), "# stand-in\n")
+    result = run_scope(tmp_path, shell_payload(tmp_path, command))
+    assert result.returncode == 2, (command, result.stdout, result.stderr)
+    assert protects in result.stderr, result.stderr
+
+
+@pytest.mark.parametrize("command", [
+    "cp src/*.js dist/",
+    "rm -rf dist/*",
+    "python -m pytest tests/test_*.py",
+    "npm run build",
+    "cat .cla*de/hooks/gate_approval.py",
+])
+def test_ordinary_work_with_a_glob_stays_open(tmp_path, command):
+    """The price of the row above, and the reason it is an EXPANSION and not a ban on `*`.
+
+    Every one of these carries a metacharacter and none of them resolves to a protected path, so
+    none of them may cost a refusal -- the last one carries a metacharacter that resolves INTO the
+    enforcement layer and is still allowed, because reading it always was.
+    """
+    dispatched_repo(tmp_path)
+    os.makedirs(str(tmp_path / ".claude" / "hooks"), exist_ok=True)
+    write(str(tmp_path / ".claude" / "hooks" / "gate_approval.py"), "# stand-in\n")
+    os.makedirs(str(tmp_path / "src"), exist_ok=True)
+    write(str(tmp_path / "src" / "app.js"), "x\n")
+    result = run_scope(tmp_path, shell_payload(tmp_path, command))
+    assert result.returncode == 0, (command, result.stderr)
+
+
 def test_a_junction_into_the_state_dir_is_resolved(tmp_path):
     """`mklink /J` needs no admin rights, and afterwards a second name reaches the same files. The
     TARGET side is realpath'd for exactly this (find_repo_root stays lexical, as documented)."""
@@ -11744,7 +11805,7 @@ def test_the_docker_rule_reads_the_verb_the_way_the_git_rule_does(tmp_path, comm
     calls = hygiene._destructive_docker_calls(command)
     assert calls, command
     assert any(hygiene._docker_targets(tokens) == ["neighbour-db"]
-               for _verb, tokens, _whole in calls), (command, calls)
+               for _verb, tokens, _head, _segment in calls), (command, calls)
 
 
 # -- round 8: the directory destination, and prose that only looks like code --
@@ -12828,10 +12889,19 @@ def test_an_unconfirmed_hook_bundle_is_not_trusted(tmp_path):
 
 
 def _run_trust_hook(repo, kit="dev-team"):
-    """Run the SessionStart trust hook exactly as a provider would, and return its exit code."""
+    """Run the SessionStart trust hook exactly as a provider would, and return its exit code.
+
+    `CLAUDE_PROJECT_DIR` IS NAMED, the way `run_hook_process` names it for every other hook this
+    suite starts: a provider sets it, `_root.find_repo_root` answers it FIRST, and a child that
+    does not get it inherits whatever the suite's own environment carries -- which is the shape
+    BUG-0052 was, one directory further on. Without it this helper measured whatever ambient value
+    happened to be there, and the payload's `cwd` only looked authoritative because the ambient
+    value happened to be absent on a developer's terminal.
+    """
     hook = os.path.join(TEAM_KITS, kit, "hooks", "kit_trust_state.py")
     proc = subprocess.run([sys.executable, hook], input=json.dumps({"cwd": str(repo)}),
-                          capture_output=True, text=True, cwd=str(repo))
+                          capture_output=True, text=True, cwd=str(repo),
+                          env=dict(os.environ, CLAUDE_PROJECT_DIR=str(repo)))
     return proc
 
 
@@ -15890,9 +15960,42 @@ def test_a_foreign_compose_project_named_on_the_command_line_is_refused(tmp_path
     assert "compose project 'other'" in result.stderr
 
 
+@pytest.mark.parametrize("command,how", [
+    ("docker compose -pother down", "the attached short form POSIX allows"),
+    ("COMPOSE_PROJECT_NAME=other docker compose down", "the environment variable compose reads"),
+    ("docker compose -f ../other/docker-compose.yml down", "the compose FILE, whose directory is "
+                                                           "the project"),
+    ("docker compose --project-directory ../other down", "the project DIRECTORY outright"),
+])
+def test_every_way_a_line_can_point_compose_at_a_foreign_project_is_refused(tmp_path, command, how):
+    """BUG-0053: four spellings of the same foreign stack were rc 0 while `-p other` was rc 2 --
+    the rule enumerated a flag instead of deciding which project the line resolves to.
+
+    MEASURED as real hook processes against b7f282e (the item's own re-measurement of 2026-09-06):
+    `docker compose -p other down` rc 2, and `-pother`, the `COMPOSE_PROJECT_NAME=other` prefix,
+    `-f ../other/docker-compose.yml` and `--project-directory ../other` all rc 0. Two different
+    defects wore one face: `_flag_name` split on `=` only, so an attached value was not a flag at
+    all; and three of compose's four documented project SOURCES were not read.
+
+    The four cases are the four sources, not four patterns -- `how` says which one each is, so a
+    row that stops measuring its source stops being writable.
+    """
+    work = hygiene_repo(tmp_path)
+    result = run_hygiene(work, command)
+    assert result.returncode == 2, (how, command, result.stderr)
+    assert "not this repo's" in result.stderr, result.stderr
+
+
 @pytest.mark.parametrize("command", [
     # THE COUNTER-BATTERY: ordinary docker work, including this project's OWN compose project by
     # name, and the one `-p` that means a port rather than a project.
+    #
+    # THE LAST FOUR ARE THE PRICE OF THE WIDENING ABOVE (BUG-0053), and they are here because they
+    # are the lines a widening like it breaks first. A compose file inside this repo is this
+    # repo's however compose would NAME the project it derives from the file's directory:
+    # `-f docker/compose.yml` really does make compose call the project `docker`, so comparing the
+    # derived NAME would refuse an ordinary layout. A location is therefore compared against this
+    # repo's tree and only a NAME against this repo's names.
     "docker compose -p myproject down",
     "docker compose down",
     "docker compose up -d",
@@ -15902,6 +16005,10 @@ def test_a_foreign_compose_project_named_on_the_command_line_is_refused(tmp_path
     "docker logs -f api",
     "docker inspect api",
     "docker exec api rm -rf /tmp/cache",
+    "docker compose -f docker-compose.yml down",
+    "docker compose -f docker/docker-compose.yml down",
+    "docker compose --project-directory . down",
+    "docker rm -f mycontainer",
 ])
 def test_ordinary_docker_work_stays_open(tmp_path, command):
     """A gate that blocks diagnosis gets worked around, and the widening above is only affordable

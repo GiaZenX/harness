@@ -1,0 +1,62 @@
+id: BUG-0081
+title: gate_git demands acceptance evidence before the FIRST work-branch push, but
+  under packaging.method shopify-theme acceptance testability only ARISES through
+  that push -- circular, and the PM routes around the gate via the user's hand
+related_pr: BUG-0071
+observed: 'Canyon_3.4.0 live 2026-08-31, reported by the project''s own PM as a construction
+  defect (his words relayed by the user): the merge/push gate requires the complete
+  QA verdict incl. acceptance check before any push belonging to PR-0001; review and
+  test verdicts exist, but the acceptance check can only honestly run against pages
+  RENDERED in a Shopify preview theme -- which requires exactly this push. Liquid
+  themes cannot be started locally the way ordinary software can. The PM refused to
+  fake an acceptance pass and refused to modify the gate (both correct), reported
+  it as a kit defect, and then asked the USER to run ''git push -u origin pr/PR-0001-redesign''
+  in his own terminal because ''die Schutzregeln binden meine Werkzeuge -- nicht deine
+  Hand'', citing the user''s documented double approval of the push. Two defects:
+  (a) the gate''s evidence demand is blind to packaging methods whose acceptance surface
+  only exists post-push -- a work-branch push is treated like a delivery push; (b)
+  the sanctioned escape hatch is again the user''s hand driving what the apparatus
+  refuses (the BUG-0071/BUG-0080 pattern) -- this time around a GATE, which normalises
+  exactly the gesture the gates exist to prevent, even though the user approving a
+  push is legitimately the gate''s own authority.'
+expected: 'A work-branch push whose purpose is to CREATE the acceptance surface is
+  distinguishable from a delivery push, and the kit has an honest route for it: e.g.
+  gate_git recognises packaging.method shopify-theme (or a declared preview-push class)
+  and admits a work-branch push with review+test verdicts present and acceptance explicitly
+  OUTSTANDING-BY-DESIGN, recorded as such and demanded at the merge instead; or an
+  approval kind covers the preview push. Which shape is right is the round''s measuring
+  decision -- but the user''s terminal is not the route, and a PM never presents hand-driving
+  around a gate as ''der saubere Ausweg''.'
+repro: 'In a scaffolded dev-team project with packaging.method shopify-theme and a
+  PR in delivery: record review+test evidence, attempt the first work-branch push
+  -> gate refuses for missing acceptance evidence; observe no kit route exists to
+  create the acceptance surface. Canyon session carries the live chain.'
+severity: high
+acceptance_criteria:
+- id: AC-1
+  text: the chosen route is decided measuring against the real gate code (gate_git
+    + evidence demands), recorded with reasons, and a scaffolded shopify-theme project
+    walks first-push -> preview -> acceptance -> merge end to end with no user file/git
+    operation; red-first reproduces the circle
+- id: AC-2
+  text: 'the acceptance demand is not weakened for delivery: the merge still requires
+    the acceptance verdict, and a work-branch push admitted without it is marked outstanding
+    in a way the validator and the user''s overview can see'
+- id: AC-3
+  text: 'the PM guidance stops offering the user''s hand as the clean escape around
+    a gate: the role text names the honest route and, where none exists yet, the report-a-gap
+    duty -- measured against the live message''s failure form'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0045
+created: '2026-08-31T06:59:08'
+triage_result: 'Live mitigation 2026-08-31: the user connected the Shopify dev tooling
+  in Canyon, so the PM can now render and the acceptance check can run BEFORE the
+  push -- the circle is broken for this one project. The kit defect stands unchanged:
+  gate_git still cannot distinguish a work-branch push from a delivery push, nothing
+  in the kit tells a PM that connecting the dev preview is the route, and a project
+  without that connection hits the same dead end. The round should weigh BOTH shapes:
+  teach the flow (preview connection as the named prerequisite for shopify-theme acceptance)
+  AND/OR the gate route from the original report.'
+approved_hash: 3c56fbcc2f06e0f1f6715e5b39c465a564dbaf7b038844f0b48e879972047946
+closed_at: '2026-09-12T06:19:40'

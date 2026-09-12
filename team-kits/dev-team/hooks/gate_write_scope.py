@@ -123,6 +123,7 @@ except BaseException as exc:  # noqa: BLE001 — a hook that cannot load must no
     sys.exit(2)
 
 import bisect  # noqa: E402
+import glob  # noqa: E402
 import posixpath  # noqa: E402
 import re  # noqa: E402
 import shlex  # noqa: E402 — everything after GATE_PREAMBLE, which must stay verbatim
@@ -1087,6 +1088,70 @@ def _names(rx, tokens):
     return any(rx.search(reading) for token in tokens for reading in _readings(token))
 
 
+# The characters with which a word stops being the path it spells and becomes a QUESTION to the
+# filesystem. `{` is not among them: brace expansion produces its alternatives out of the word
+# itself, and `_readings` already hands both halves of a quoted word to the comparison above.
+_GLOB_CHARS = "*?["
+
+
+def _glob_readings(word, base):
+    """Every path this word can already resolve to on disk, relative to `base` -- () for a word
+    that asks the filesystem nothing.
+
+    THE SHELL'S OWN EXPANSION, PERFORMED HERE. A pattern is not a guess about what a word might
+    mean: the shell resolves it against the same filesystem this gate is standing in, so the gate
+    can resolve it too and compare the ANSWER. Measured 2026-08-31 and again for TSK-0139 against
+    a scaffolded proxy project: `python .claude/hooks/gate_approval.py` rc 2 while
+    `python .cla*de/hooks/gate_approval.py`, `cp .cla*de/... /tmp/x.py` and
+    `rm -f .cla*de/hooks/gate_approval.py` were rc 0 -- the shell expanded the metacharacter, this
+    reader compared the literal token, and the protected name was never spelled (BUG-0082).
+
+    EXPANDED PER COMPONENT, and that is the half a plain `glob.glob` of the whole word does not
+    give: a pattern only matches what EXISTS, so `cp evil.py .cla*de/hooks/gate_new.py` -- a file
+    that is not there yet -- would answer nothing while naming the layer perfectly well. Every
+    PREFIX of the word that carries a metacharacter is expanded on its own and the untouched tail
+    is put back on, so the DIRECTORY the word reaches is compared whether or not its leaf exists.
+
+    WHAT IS RETURNED IS RELATIVE, deliberately: an absolute answer would carry the project's own
+    location into the comparison, and a checkout that happens to live under a directory called
+    `.claude` (a provider's project store is exactly that) would then refuse every write in it.
+
+    THE PRICE IS MEASURED AND IT IS NONE for ordinary work: a pattern that resolves to no protected
+    path adds no refusal. `cp src/*.js dist/`, `rm -rf dist/*` and `pytest tests/test_*.py` were
+    measured rc 0 before and after. What stays open is the OTHER half of the unresolvable class --
+    a word whose value comes from the shell's own state (`$VAR`, `${VAR}`, `$(cmd)`, a backtick) --
+    which no filesystem question can answer; that residue is BUG-0082's own entry and this gate's
+    `_names` says nothing about it.
+    """
+    if not any(char in word for char in _GLOB_CHARS):
+        return ()
+    parts = str(word).replace("\\", "/").split("/")
+    found = set()
+    for count in range(1, len(parts) + 1):
+        prefix = "/".join(parts[:count])
+        if not any(char in prefix for char in _GLOB_CHARS):
+            continue
+        try:
+            matches = glob.glob(os.path.join(base, prefix) if base else prefix)
+        except (OSError, ValueError):
+            continue
+        tail = parts[count:]
+        for match in matches:
+            try:
+                relative = os.path.relpath(match, base) if base else match
+            except ValueError:
+                continue                    # another drive: it names nothing under this one
+            found.add("/".join([relative.replace("\\", "/")] + tail))
+    return tuple(found)
+
+
+def _names_expanded(rx, tokens, base):
+    """`_names`, asked of what the SHELL will really hand the program -- see `_glob_readings`."""
+    return any(rx.search(expanded)
+               for token in tokens for reading in _readings(token)
+               for expanded in _glob_readings(reading, base))
+
+
 # A `NAME=value` word, and a `$NAME`/`${NAME}` reference to one. Used to resolve a redirect target
 # the shell would expand from the SAME command line before rule 5 judges it.
 _ASSIGNMENT_RX = re.compile(r"^([A-Za-z_]\w*)=(.*)$", re.DOTALL)
@@ -1395,8 +1460,12 @@ def handle_shell(data):
         # writes. A redirect into the null device retains nothing and is therefore not one — see
         # `_null_sinks` for why that is a property of the target and not a list of harmless forms.
         writes = not verbs_read_only or bool(redirects)
-        names_enforcement = _names(_ENFORCEMENT_RX, pipeline) or _inside(_ENFORCEMENT_RX, cwd)
-        names_state = _names(_STATE_RX, pipeline) or _inside(_STATE_RX, cwd)
+        names_enforcement = (_names(_ENFORCEMENT_RX, pipeline)
+                             or _names_expanded(_ENFORCEMENT_RX, pipeline, cwd)
+                             or _inside(_ENFORCEMENT_RX, cwd))
+        names_state = (_names(_STATE_RX, pipeline)
+                       or _names_expanded(_STATE_RX, pipeline, cwd)
+                       or _inside(_STATE_RX, cwd))
         if names_enforcement and writes:
             # a RETAINING redirect counts even to an unprotected target: `cat <hook> > copy.py` IS
             # the relocation this refuses. Suppressing output is not that, and this branch used to
@@ -1421,10 +1490,16 @@ def handle_shell(data):
             # on state, and refusing it teaches nothing except to work around the gate.
             # ...but NOT once a `cd` has put us inside the state dir: there a relative redirect
             # target names nothing and still lands in canonical state
+            # the two `_names_expanded` terms are not decoration: the carve-out asks whether the
+            # TARGET is outside both trees, and a target the shell expands answered "outside" by
+            # spelling nothing -- `echo x > project_mem*ry/bugs/active/BUG-9999.yaml` was rc 0
+            # with the refusal above already in place (BUG-0082's class one level down).
             captures_out = (verbs_read_only and redirects and not _inside(_STATE_RX, cwd)
                             and not _inside(_ENFORCEMENT_RX, cwd)
                             and not _names(_ENFORCEMENT_RX, redirects)
-                            and not _names(_STATE_RX, redirects))
+                            and not _names_expanded(_ENFORCEMENT_RX, redirects, cwd)
+                            and not _names(_STATE_RX, redirects)
+                            and not _names_expanded(_STATE_RX, redirects, cwd))
             # ...and the mirror of it on the way IN: a proposal being handed to the entry point.
             # Both carve-outs stand down inside the state tree for the same reason — there a
             # relative path names the tree without spelling it, so nothing here can compare it.

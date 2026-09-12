@@ -1,0 +1,15 @@
+id: EVD-0304
+kind: test
+related:
+- BUG-0067
+result: pass
+summary: 'tests naming BUG-0067: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_both_seeding_scripts_carry_the_same_refusal
+  tools/test_hooks.py::test_the_seeding_script_refuses_the_tree_that_ships_the_templates
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:56:21'

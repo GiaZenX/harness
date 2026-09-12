@@ -1,0 +1,38 @@
+id: BUG-0046
+title: Specialist narration and mixed-language jargon leak into the user's view, and
+  the PM cannot switch it off
+related_pr: PR-0003
+observed: 'Pilot 3 (B5): specialist work narration appears in the same session stream;
+  4 persona complaints (S3 turns 1, 9, 10, 11); the PM answered honestly ''kann ich
+  technisch nicht zuverlaessig garantieren''. Partly instrument (the SDK relay shows
+  everything), partly real: mixed German/English jargon within single PM turns violates
+  the report-language rule the kits carry. [CORRECTED by TSK-0074 measurement 2026-08-17,
+  verifier-confirmed: the ''within single PM turns'' claim overclaimed. Measured over
+  the whole pilot: 132 of 256 relayed assistant blocks (51.6%) were NOT the PM but
+  specialist transcripts the provider stores separately and the rig relayed unfiltered;
+  every English block of the four complaint turns is specialist-origin; the PM''s
+  own mixing was ONE one-word case in 112 kit-PM blocks (''Good, alles gestaged.'').
+  The mixture was a two-speaker effect inside one TURN (the pilot doc''s wording ''im
+  selben Zug'' was correct all along); the kit fault was the constitutions PROMISING
+  ''jargon stays between agents'' -- an assurance about foreign voices the kit does
+  not build. Fixed by TSK-0074: assurance removed, mechanism (run_in_background) named
+  with its measured limit (SDK stream; terminal rendering unmeasured), PM address
+  made conditional. Full table: docs/reviews/2026-08-17-tsk0074-measurements.md]'
+expected: 'The kit-side half is fixed: PM turns to the user hold the report-language
+  rule even while specialists run; the instrument half is named as such wherever the
+  finding is cited.'
+repro: 'Any kit project with dispatched specialists: the user-visible stream carries
+  their technical narration and English fragments; the persona complained four times
+  in one session.'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the kit-side leak (mixed language in PM turns) has a measured fix or a named
+  limitation'
+- 'AC-2: the instrument share is separated by measurement, not estimate'
+source: TSK-0027 pilot 3, finding B5
+status: VERIFIED
+revision: 1
+approval_ref: APR-0044
+created: '2026-08-15T06:59:20'
+approved_hash: 7852553887bfe892e333e39a19505672175e78cc4b460ea2d342c03397c82195
+closed_at: '2026-09-12T06:18:43'

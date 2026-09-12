@@ -1,4 +1,4 @@
-generated_at: '2026-09-11T18:49:15'
+generated_at: '2026-09-12T06:20:08'
 items:
 - id: APR-0001
   type: APR
@@ -252,65 +252,34 @@ items:
   status: null
   revision: null
   approval_ref: null
+- id: APR-0043
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0044
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0045
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0046
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
 - id: BUG-0008
   type: BUG
   title: Ein PowerShell-Modulcache liegt unverfolgt im Repo-Wurzelverzeichnis
   status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0010
-  type: BUG
-  title: Ohne Lease ist eine Aufgabe nicht ehrlich abschliessbar -- und LEASED ist
-    genau das, was sweep-leases zuruecksetzt
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0014
-  type: BUG
-  title: Die Gate-Suite dieses Repos ist rot, und niemand hat es bemerkt
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0016
-  type: BUG
-  title: Die Einstiegssitzung sagt die Neustart-Bitte und arbeitet danach weiter,
-    wenn der Nutzer weiterredet
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0017
-  type: BUG
-  title: Der Freigabe-/Mint-Mechanismus funktioniert im Headless-/SDK-Betrieb nicht
-    und fuehrt zu Nutzer-Irrefuehrung
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0022
-  type: BUG
-  title: 'Der CR-Typ wird nie erreicht: Aenderungen am schon Gebauten laufen als PR-Ersatz
-    plus TSK'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0023
-  type: BUG
-  title: 'create-task nimmt expected_outputs: [] an -- ein Auftrag ohne erwartete
-    Ausgaben ist kein Auftrag'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0026
-  type: BUG
-  title: record_deposit_of laesst den Digest weg, waehrend die Abhilfe den Leser die
-    Quelle kuerzen heisst -- ein echter Datensatz kann spurlos verschwinden
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0027
-  type: BUG
-  title: Die gedruckte READY-Zeile der Migration laesst die Flags weg, mit denen der
-    Plan gebaut wurde
-  status: OPEN
   revision: 1
   approval_ref: null
 - id: BUG-0030
@@ -319,73 +288,10 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0031
-  type: BUG
-  title: The Codex entry file routes handover on a bare mention of the marker (BUG-0011
-    analogue)
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: BUG-0032
   type: BUG
   title: validate's orphan heuristic reads staging dirs against active item NAMES
     only -- a dir referenced by active EVD artifact_refs is reported as orphaned
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0034
-  type: BUG
-  title: Gate 3 asks Invocation.runs('commit') -- every other history-recording git
-    subcommand passes without a verdict
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0037
-  type: BUG
-  title: kit_trust_state.py prose claims 'nothing here leads OUT of hooks_trust_required'
-    -- the running code exits it on a re-matching hash
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0044
-  type: BUG
-  title: 'The entry session wrote preset: duo without asking -- the interview lacks
-    the preset question the entry file claims is confirmed'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0046
-  type: BUG
-  title: Specialist narration and mixed-language jargon leak into the user's view,
-    and the PM cannot switch it off
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0050
-  type: BUG
-  title: 'The no-technical-questions property is hook-enforced and porous: guard_question_context
-    caught 2, two technical questions reached the user uncaught'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0052
-  type: BUG
-  title: 'The tools/ suite writes into canonical state on every run: project_memory/.audit/hook_events.jsonl
-    grows from test fixtures'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0053
-  type: BUG
-  title: Compose foreign-project rule enumerates flag spellings instead of deciding
-    the property -- four spellings of the same target pass
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0054
-  type: BUG
-  title: architecture_refs is hashed in the delivery manifest and has no producer
-    -- a second freeze_architecture leaves the approval in force
   status: OPEN
   revision: 1
   approval_ref: null
@@ -403,27 +309,6 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0057
-  type: BUG
-  title: doctor reports spawn_veto verified where the Codex path has no veto -- the
-    capability line promises a provider it never measured
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0058
-  type: BUG
-  title: 'P4-2: idle dispatched specialist goes unnoticed -- PM waits turn after turn
-    without checking'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0062
-  type: BUG
-  title: 'P4-13: only 5 of 28 registered office-kit hook entries carry a timeout --
-    potential kill-passthrough class'
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0067
   type: BUG
   title: A measuring run wrote office-kit TEMPLATES into this repo's own project_memory
@@ -435,84 +320,6 @@ items:
   type: BUG
   title: GitHub CI is red on every push -- the delivery suite passes locally but fails
     on the hosted runners, so the one external check the user sees mails him failure
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0074
-  type: BUG
-  title: freeze-* empties the ENTIRE staging folder of the task -- three unfrozen
-    wireframes deleted alongside the one being frozen (dev-team live find, data loss)
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0075
-  type: BUG
-  title: 'The document write route exists but the roles that OWN documents are not
-    routed onto it -- measured live: the product-editor staged prose in a .md and
-    asked the user to paste it into content_guidelines.yaml'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0076
-  type: BUG
-  title: 'The design draft reaches the user UNSEEN: no kit duty renders and reviews
-    a DSN before the user sees it, and the product-designer has no tool to look at
-    his own work'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0077
-  type: BUG
-  title: 'Circular ordering: the PM skill wants the approved wireframe INSIDE the
-    scope manifest, but gate_dispatch refuses the designer spawn that would draw it
-    until the scope approval exists'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0079
-  type: BUG
-  title: 'documents.py''s own remedy line is refused by the code that prints it: the
-    document_proposal remedy omits --reason, and the printed command line then fails
-    with ''reason is missing'''
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0080
-  type: BUG
-  title: Repairing a freeze bound to the wrong approval needs a staged copy of the
-    artifact -- and no role may write it, so the USER hand-copies again (Canyon live
-    find, the BUG-0071 class at the freeze input)
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0081
-  type: BUG
-  title: gate_git demands acceptance evidence before the FIRST work-branch push, but
-    under packaging.method shopify-theme acceptance testability only ARISES through
-    that push -- circular, and the PM routes around the gate via the user's hand
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0082
-  type: BUG
-  title: 'The kits'' gate_write_scope misses a glob-expanded path to the enforcement
-    layer: `python .cla*de/hooks/gate_approval.py` is rc 0 where the literal spelling
-    is rc 2'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0087
-  type: BUG
-  title: tools/test_hooks_v2.py:9428 is an assert-or-True -- a test that cannot fail,
-    standing next to the hook time-budget checks
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0092
-  type: BUG
-  title: team-kits/model_tiers.yaml carries a dead pricing comment and a dead watch
-    date (Sonnet 5 'intro $2/$10 until 2026-08-31') -- flagged by the radar watcher
-    three times, fixed by nobody because the fix fell between the roles
   status: OPEN
   revision: 1
   approval_ref: null
@@ -1442,6 +1249,14 @@ items:
     a measuring one: BUG-0050''s only naming test says ''nothing was caught'', BUG-0044''s
     is a historical aside -- both would have been VERIFIED by a click (TSK-0138 verify
     round 2)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0280
+  type: BUG
+  title: A hook a suite starts without its own CLAUDE_PROJECT_DIR judges whatever
+    tree the ambient variable names -- 55 of 65 call sites, and the suite cannot tell
+    an honest one from a forgetful one
   status: OPEN
   revision: 1
   approval_ref: null
@@ -3865,6 +3680,198 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0283
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0284
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0285
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0286
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0287
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0288
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0289
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0290
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0291
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0292
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0293
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0294
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0295
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0296
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0297
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0298
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0299
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0300
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0301
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0302
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0303
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0304
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0305
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0306
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0307
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0308
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0309
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0310
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0311
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0312
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0313
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0314
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -4033,12 +4040,12 @@ items:
 - id: TSK-0138
   type: TSK
   title: null
-  status: READY
+  status: CANCELLED
   revision: 1
   approval_ref: null
 - id: TSK-0139
   type: TSK
   title: null
-  status: DRAFT
+  status: READY
   revision: 1
   approval_ref: null

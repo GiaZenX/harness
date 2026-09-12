@@ -1,0 +1,14 @@
+id: EVD-0296
+kind: test
+related:
+- BUG-0046
+result: pass
+summary: 'tests naming BUG-0046: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_role_contracts.py::test_no_constitution_promises_that_a_specialists_voice_stays_out_of_the_users_view
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:55:28'

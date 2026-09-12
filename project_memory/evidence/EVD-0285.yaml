@@ -1,0 +1,14 @@
+id: EVD-0285
+kind: test
+related:
+- BUG-0014
+result: pass
+summary: 'tests naming BUG-0014: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_repo_hygiene.py::test_a_suite_the_default_run_does_not_collect_is_named_with_its_own_run_command
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:53:53'

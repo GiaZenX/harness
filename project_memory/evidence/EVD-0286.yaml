@@ -1,0 +1,14 @@
+id: EVD-0286
+kind: test
+related:
+- BUG-0016
+result: pass
+summary: 'tests naming BUG-0016: 2 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_hooks.py::test_handover_guard_blocks_product_code_write_under_marker
+  tools/test_hooks.py::test_install_sh_places_every_hook_it_registers -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:54:02'

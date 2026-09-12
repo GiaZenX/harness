@@ -1,0 +1,14 @@
+id: EVD-0312
+kind: test
+related:
+- BUG-0082
+result: pass
+summary: 'tests naming BUG-0082: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_hooks_v2.py::test_a_metacharacter_does_not_hide_a_protected_path_from_the_kit_gate
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:57:39'

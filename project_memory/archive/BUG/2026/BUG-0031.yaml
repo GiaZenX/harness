@@ -1,0 +1,34 @@
+id: BUG-0031
+title: The Codex entry file routes handover on a bare mention of the marker (BUG-0011
+  analogue)
+related_pr: PR-0003
+severity: medium
+repro: 1. In a repo AGENTS.md driven by the Codex/OpenAI entry file, put a line near
+  the top that merely NAMES the install marker inside a quote, a negation, or prose.
+  2. The Codex entry file at user/codex/AGENTS.md:22-25 decides handover by whether
+  the file CONTAINS the marker string, not whether line 1 is the exact shim form.
+  3. Handover fires on the mention -- the same occurrence-vs-mention flaw BUG-0011
+  fixed for the Claude entry detector.
+expected: The Codex entry file distinguishes an occurrence of the marker from a mention
+  of it -- the same way DEC-0039 anchored the Claude-side detector to the shim form
+  -- or it states expressly that the marker must never be written about, with a test
+  that measures it.
+observed: Named as a residue across the TSK-0052 verifier rounds. DEC-0039 deliberately
+  scoped its shim-form anchor to the Claude entry file (user/claude); user/codex/AGENTS.md:22-25
+  still carries the old contains-the-marker rule. Left open because the Codex handover
+  path has no running detector in this repo to red-without-fix against, so closing
+  it honestly needs its own measurement, not a blind text edit.
+acceptance_criteria:
+- The Codex entry rule reads the marker only in its anchored shim form on line 1,
+  not as a bare occurrence anywhere in the file -- or it states the marker must not
+  be written about, with a test.
+- A test measures that a Codex AGENTS.md which merely mentions the marker does not
+  read as an installed kit.
+- Checked whether the Codex half has its own running detector analogous to session_status;
+  if so, anchored to the same shim form -- measured, not assumed.
+status: VERIFIED
+revision: 1
+approval_ref: APR-0043
+created: '2026-08-12T11:00:10'
+approved_hash: f120d084425db3d6579565d5629729c25e13698c1537054253faa0706216d82d
+closed_at: '2026-09-12T06:17:47'

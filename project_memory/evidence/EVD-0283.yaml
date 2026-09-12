@@ -1,0 +1,19 @@
+id: EVD-0283
+kind: review
+related:
+- TSK-0138
+- PR-0012
+result: pass
+summary: 'verifier PASS for diff:db40f9996f9c21f09444a72be66c2f0ee5ebab0ab512d1b1dfcd7143ce532cba
+  -- TSK-0138 (PR-0012 order 1: the batch verification mint + the re-runs): round
+  1 FAIL (half-closed batch, first-node evidence), rework (all-or-nothing coverage
+  in batch_walk_blockers; evidence = tests that NAME the bug, 49 named / 49 held back),
+  round 2: mechanism PASS, two incidental-mention ids withheld by the lead (BUG-0044/0050
+  -> H195/BUG-0279), the user minted five batches (43 bugs VERIFIED, APR-0038..0042);
+  stamp 2026.09.11-17 x3 unchanged in the verifier''s copy; verify-round-1/2.md'
+artifact_refs:
+- staging/TSK-0138/verify-round-2.md
+- staging/TSK-0138/protocol.md
+revision: 1
+approval_ref: null
+created: '2026-09-11T18:49:43'

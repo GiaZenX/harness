@@ -1,0 +1,14 @@
+id: EVD-0307
+kind: test
+related:
+- BUG-0076
+result: pass
+summary: 'tests naming BUG-0076: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_role_contracts.py::test_the_product_designer_can_look_at_its_own_draft_and_says_what_that_costs
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:56:33'

@@ -1147,7 +1147,8 @@ DEC_SUPERSEDES_FIELD = "supersedes"
 # `test_backlog_types.test_every_kernel_read_of_a_reference_list_field_goes_through_field_elements`
 # then holds every derived read site to the one definition. What that derivation cannot see is
 # named in its own docstring rather than promised away here.
-REFERENCE_LIST_FIELDS = ("design_refs", DEC_SUPERSEDES_FIELD, "premise_rechecks")
+REFERENCE_LIST_FIELDS = ("design_refs", "architecture_refs", DEC_SUPERSEDES_FIELD,
+                         "premise_rechecks")
 
 
 # -- the item fields that hold exactly ONE thing, by contract -------------------------------------

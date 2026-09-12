@@ -139,13 +139,24 @@ def target_items(command, repo_root):
     if unresolved:
         named.update(match.group(0).upper() for match in TARGET_RX.finditer(text))
     if not named:
-        try:
-            branch = _compat.run_captured(
-                ["git", "-C", repo_root, "rev-parse", "--abbrev-ref", "HEAD"], timeout=5).stdout
-        except Exception:  # noqa: BLE001 — no git, detached head, timeout: simply no branch name
-            branch = ""
-        named.update(match.group(0).upper() for match in TARGET_RX.finditer(branch or ""))
+        named.update(match.group(0).upper()
+                     for match in TARGET_RX.finditer(current_branch(repo_root)))
     return sorted(named)
+
+
+def current_branch(repo_root):
+    """The branch HEAD is on, or "" when there is none to read.
+
+    A function because TWO rules need the same answer and they must not disagree about it: which
+    item a line is ABOUT when the command names none (`target_items`), and where a bare `git push`
+    would land (`_destinations_of`). It was inline in the first of those until the BUG-0081 round,
+    and the second one reading it separately is how the two would drift.
+    """
+    try:
+        return _compat.run_captured(
+            ["git", "-C", repo_root, "rev-parse", "--abbrev-ref", "HEAD"], timeout=5).stdout or ""
+    except Exception:  # noqa: BLE001 — no git, detached head, timeout: simply no branch name
+        return ""
 
 
 def _describe(subject, verdicts):
@@ -318,7 +329,155 @@ def _refuse_an_authorisation_a_program_gave_itself(state, approvals, target):
                "make." % (apr.get("kind"), target))
 
 
-def _refuse_unless_the_item_is_green(types, target, verdicts):
+# WHICH QA KIND HAS NO SUBJECT UNTIL THE WORK IS PUBLISHED (BUG-0081).
+#
+# The Canyon case, live 2026-08-31: a Shopify theme's acceptance check can only run against pages
+# RENDERED in a preview theme, and the preview theme is created BY the first push of the work
+# branch. The gate demanded the acceptance verdict before that push, the PM refused to fake it and
+# refused to edit the gate -- both correct -- and then asked the USER to run the push from his own
+# terminal. A gate whose only exit is the user's hand is the gesture the gates exist to prevent.
+#
+# WHAT WAS WRONG WAS THE OCCASION, NOT THE DEMAND, and that is why nothing here is packaging-
+# specific: a push whose DESTINATION is a work branch is not a delivery. It publishes unfinished
+# work -- that is what a work branch is for -- while delivery is the MERGE, and a push to the
+# TRUNK, which this file gates unchanged either way. So the distinction is one the gate can make
+# out of what is on the line (`_destinations_of` plus `TARGET_RX`), and it needs no
+# `packaging.method` list, no new field and no second vocabulary. A theme preview, a mobile build
+# a store has to install, a staging deployment: all the same shape, none of them enumerated.
+#
+# THE DESTINATION AND NOT THE BRANCH YOU STAND ON. The first cut of this rule asked `target_items`,
+# which answers "which item is this line about" -- it scans the segment and falls back to the
+# current branch -- and three lines that deliver to the trunk answered "a work branch" with it:
+# `git push origin HEAD:main`, `git push origin feat/PR-0001-x:main` and `git push --all origin`,
+# all rc 2 before the softening and rc 0 after it (measured on a scaffolded pilot, verification
+# round 1 F1).
+#
+# AN ENUMERATION WITH A TRIPWIRE AT BOTH ENDS, because this one cannot be derived from anywhere
+# else: `tools/test_hooks.py::test_the_kind_outstanding_at_a_work_branch_push_is_a_real_qa_kind`
+# measures that every name here is a QA kind the kernel has (a dead entry says so) and that it is a
+# PROPER subset (an entry added for every kind would switch the rule off and say so).
+OUTSTANDING_UNTIL_PUBLISHED = frozenset(("acceptance",))
+
+
+# What a push option does to the DESTINATION, when the destination is the whole question.
+#
+# `--all`, `--mirror` and `--tags` push refs the line does not name -- every branch, the whole ref
+# space, every tag -- so no reading of the positionals can say where they land, and one of the refs
+# they carry is the trunk. `--delete` removes a ref instead of publishing to it, which is not the
+# act this softening is about either.
+#
+# AN ENUMERATION, and it is one this gate cannot derive: git's option table is git's. Its tripwire
+# is `tools/test_hooks.py::test_every_push_option_that_spreads_past_its_refspecs_is_refused_the_softening`,
+# which drives each spelling through the running gate, so an entry that stops mattering and a
+# spelling git adds are both a failing row rather than a silent pass.
+_SPREADS_PAST_ITS_REFSPECS = frozenset((
+    "--all", "--mirror", "--tags", "--follow-tags", "--delete", "-d"))
+
+# Push options that EAT THE NEXT WORD, so that word is neither the remote nor a refspec. Without
+# them `git push -o ci.skip origin feat/PR-0001-x` reads `ci.skip` as the remote and the real
+# remote as a refspec -- a misreading toward MORE softening, which is the wrong direction. The
+# options that take a value only as `--flag=value` (`--force-with-lease`, `--force-if-includes`)
+# are deliberately absent: they never consume a separate word, and the `=` form is handled by the
+# name split above. `-u`/`--set-upstream` take nothing at all.
+_PUSH_OPTIONS_WITH_A_VALUE = frozenset((
+    "-o", "--push-option", "--repo", "--receive-pack", "--exec"))
+
+
+def _destinations_of(invocation):
+    """(the refs this push WRITES TO, whether it spreads past them) -- BUG-0081's F1.
+
+    THE DESTINATION IS THE QUESTION, and the first cut of this rule asked a different one. It read
+    `target_items`, which scans the whole segment for an item id and otherwise falls back to the
+    branch HEAD is on -- so `git push origin HEAD:main`, `git push origin feat/PR-0001-x:main` and
+    `git push --all origin` all answered "a work branch", because the SOURCE side named the item or
+    the current branch did. All three were rc 2 before the softening and rc 0 after it, measured on
+    a scaffolded pilot with review and test verdicts and no acceptance. A push to the trunk is a
+    delivery however the branch you are standing on is called.
+
+    A refspec's destination is what stands after the colon, and a refspec without one pushes to the
+    ref of the same name. A leading `+` is a force marker and not part of the name -- stripped here
+    as a belt and not as a claim about anything that arrives: the force-push ban above refuses
+    every `+refspec` before this reader is reached (measured, `git push origin +feat/PR-0001-x:main`
+    is rc 2 with the force-push reason). A push with NO
+    refspec at all lands on the current branch's upstream, which git's own `simple` default makes
+    the like-named remote branch -- so the caller supplies the current branch for that case, and
+    the LIMIT is named rather than hidden: a project configured `push.default = matching` or an
+    upstream deliberately given another name is not read here, and the answer is then the branch
+    name rather than the true ref.
+    """
+    arguments, destinations, spreads = list(invocation.arguments), [], False
+    expect_value, seen_remote = False, False
+    for token in arguments:
+        word = str(token).strip("\"'")
+        if expect_value:
+            expect_value = False
+            continue
+        if word.startswith("-"):
+            name = word.split("=", 1)[0].lower()
+            if name in _SPREADS_PAST_ITS_REFSPECS:
+                spreads = True
+            elif "=" not in word and name in _PUSH_OPTIONS_WITH_A_VALUE:
+                expect_value = True
+            continue
+        if not seen_remote:
+            seen_remote = True          # the repository, not a ref
+            continue
+        refspec = word.lstrip("+")
+        destinations.append(refspec.split(":", 1)[1] if ":" in refspec else refspec)
+    return destinations, spreads
+
+
+def _publishes_a_work_branch(command, targets, repo_root):
+    """Is this line a PUSH whose DESTINATION names the work it carries, rather than a delivery?
+
+    Three halves, and each is read off something that is on the line or under it. NO MERGE may be
+    in the line -- `git push && git merge main` is a delivery with a push in front of it, and a
+    reading that looked only for the push would hand the whole line the lighter rule. NOTHING may
+    spread past the refspecs (`_SPREADS_PAST_ITS_REFSPECS`). And EVERY DESTINATION must NAME an
+    item: the trunk names none, so this cannot soften a push to it under any spelling, and a ref
+    that names an item is by construction the place unfinished work for that item is published to.
+
+    The item-naming test is `TARGET_RX`, the same reader `target_items` decides with, so "a ref
+    that names an item" is one fact here and there. `targets` still has to be non-empty because the
+    caller needs an item to speak about; a line whose destination names one always gives it one.
+    """
+    invocations = list(_compat.git_invocations(command))
+    if not targets or not invocations:
+        return False
+    standing_on = None
+    for invocation in invocations:
+        if not invocation.runs("push") or invocation.runs("merge"):
+            return False
+        destinations, spreads = _destinations_of(invocation)
+        if spreads:
+            return False
+        if not destinations:
+            if standing_on is None:
+                standing_on = current_branch(repo_root)
+            destinations = [standing_on]
+        if not all(TARGET_RX.search(str(ref)) for ref in destinations):
+            return False
+    return True
+
+
+def _say_what_stays_outstanding(target, outstanding):
+    """Not a refusal and not silence: the kind is named as owed, and the audit line says so.
+
+    A gate that simply stood down here would leave the acceptance verdict owed by nobody until the
+    merge refused it much later. This is the only channel a PreToolUse gate has for that -- it may
+    not write state, and the marker BUG-0081 AC-2 asks the validator to show needs a stored field
+    with a producer (the BUG-0054 class), which is named as not closed rather than implied here.
+    """
+    message = (
+        "%s is pushed WITHOUT the %s verdict, and this gate is letting it through: a work-branch "
+        "push publishes unfinished work, and for this item the %s check has no subject until it is "
+        "published (BUG-0081). It stays OWED -- the merge refuses without it."
+        % (target, "/".join(sorted(outstanding)), "/".join(sorted(outstanding))))
+    _kernel.record_note(HOOK, message)
+    sys.stderr.write("[team-kit note] %s\n" % message)
+
+
+def _refuse_unless_the_item_is_green(types, target, verdicts, publishing=False):
     """The main rule for ONE item: a current verdict of EVERY delivery-judging kind, none a fail.
 
     "Every kind" is `types.QA_EVIDENCE_KINDS`, asked of the kernel at run time. Not a tuple here,
@@ -365,6 +524,14 @@ def _refuse_unless_the_item_is_green(types, target, verdicts):
                    "--related %s --summary ... --artifact-ref <path to the raw proof>`." % target
                    + _FROM_THE_ROOT)
     unanswered = sorted(set(types.QA_EVIDENCE_KINDS) - set(verdicts))
+    # A WORK-BRANCH PUSH IS NOT A DELIVERY (BUG-0081). Only the kinds whose subject does not exist
+    # until the work is published stand down, and only for a push -- a failing or blocked verdict
+    # above still refuses, and the merge below still asks for all of them.
+    if publishing and unanswered:
+        outstanding = [kind for kind in unanswered if kind in OUTSTANDING_UNTIL_PUBLISHED]
+        unanswered = [kind for kind in unanswered if kind not in OUTSTANDING_UNTIL_PUBLISHED]
+        if outstanding and not unanswered:
+            _say_what_stays_outstanding(target, outstanding)
     if unanswered:
         _kernel.block(
             HOOK,
@@ -476,8 +643,10 @@ def main():
     for target in targets:
         _refuse_a_status_no_delivery_can_follow(state, types, target)
     if targets:
+        publishing = _publishes_a_work_branch(command, targets, repo_root)
         for target in targets:
-            _refuse_unless_the_item_is_green(types, target, report.qa_verdicts(state, target))
+            _refuse_unless_the_item_is_green(types, target, report.qa_verdicts(state, target),
+                                             publishing)
     else:
         _refuse_unless_nothing_is_failing(types, report.qa_verdicts_by_subject(state))
     sys.exit(0)

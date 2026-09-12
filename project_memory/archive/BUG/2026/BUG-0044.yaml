@@ -1,0 +1,23 @@
+id: BUG-0044
+title: 'The entry session wrote preset: duo without asking -- the interview lacks
+  the preset question the entry file claims is confirmed'
+related_pr: PR-0003
+observed: 'Pilot 3 (B2): the interview asked no team/preset question; the entry file
+  requires the preset ''confirmed in the interview'' to be written to project_config.yaml.
+  Consequence measured as B4/BUG-0041 (dead-end change path).'
+expected: The interview asks and records the preset choice; the written value cites
+  the answer.
+repro: 'Entry session per shipped flow: no preset question appears; project_config.yaml
+  carries preset: duo regardless.'
+severity: low
+acceptance_criteria:
+- 'AC-1: the preset question exists in the flow and its answer is what gets written
+  (red-without-fix)'
+- 'AC-2: covered jointly with BUG-0041 AC-2 -- one fix, both bugs name it'
+source: TSK-0027 pilot 3, finding B2; folded into BUG-0041's AC-2 as the same stroke
+status: VERIFIED
+revision: 1
+approval_ref: APR-0044
+created: '2026-08-15T06:58:51'
+approved_hash: 4f9f118a214cf391a81c2d149a191eafa3360e81c6cc00debda2296315ca7e8f
+closed_at: '2026-09-12T06:18:42'

@@ -1,0 +1,14 @@
+id: EVD-0313
+kind: test
+related:
+- BUG-0087
+result: pass
+summary: 'tests naming BUG-0087: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_repo_hygiene.py::test_no_assertion_in_the_suites_is_statically_true
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:57:43'

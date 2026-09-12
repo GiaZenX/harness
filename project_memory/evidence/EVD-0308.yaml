@@ -1,0 +1,14 @@
+id: EVD-0308
+kind: test
+related:
+- BUG-0077
+result: pass
+summary: 'tests naming BUG-0077: 1 nodes, all passed'
+artifact_refs:
+- staging/TSK-0139/rerun.log
+run_command: python -B -m pytest tools/test_role_contracts.py::test_no_kit_text_puts_an_artifact_into_the_scope_manifest_the_kernel_does_not_hash
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-11T22:56:36'

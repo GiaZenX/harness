@@ -1,0 +1,39 @@
+id: BUG-0034
+title: Gate 3 asks Invocation.runs('commit') -- every other history-recording git
+  subcommand passes without a verdict
+related_pr: PR-0002
+observed: 'Measured (H2, docs/POST_V2_WISHLIST.md section 12): `git merge --no-ff
+  other` -> rc 0 and `git revert --no-edit HEAD` -> rc 0, with a valid verdict in
+  the tree or without one -- a commit is recorded into branch history and no evidence
+  was asked. The property the gate needs is ''this subcommand can record a commit
+  into branch history'', which also covers cherry-pick, am, rebase --continue and
+  kin; gate 3 today matches the literal word commit (gate_commit_evidence.py via Invocation.runs).'
+expected: 'Per SR-0009 clause 3: a line whose git subcommand can record a new commit
+  into branch history runs only under an active passing Evidence naming the digest
+  of the tree that commit records; where that digest cannot pre-exist, the line is
+  refused with the produce-first remedy (--no-commit and kin, verdict, then git commit).
+  No over-refusal of the ordinary path to a commit.'
+repro: 'In this repo with any tree: `git revert --no-edit HEAD` -> rc 0 today (no
+  gate asks for evidence); expected rc 2 with the produce-first remedy.'
+severity: high
+acceptance_criteria:
+- 'AC-1: the measured H2 chains and their kin (git merge --no-ff, git revert --no-edit
+  HEAD, cherry-pick, am, rebase --continue) are refused (rc 2) with a remedy naming
+  the certifiable route'
+- 'AC-2: no over-refusal -- branch, checkout -b, switch, fetch, status, diff, add
+  and the standard evidence->commit flow stay rc 0; fast-forward and stash get an
+  explicit, measured, justified classification (DEC-0042), not silence'
+- 'AC-3: the subcommand set is derived from the running git where git names it; an
+  unavoidable enumeration carries a tripwire measuring both ends (entry records history
+  on the installed git; a missing recorder turns a test red)'
+- 'AC-4: every new refusal edge and every kept non-refusal has a test that is red
+  without the fix (or pins the edge), run against the RUNNING hook as a process'
+- 'AC-5: deadline discipline holds -- the registration''s timeout is obeyed and the
+  budget guard still fires on long lines'
+source: docs/POST_V2_WISHLIST.md H2; DEC-0042; SR-0009; session 2026-08-13
+status: VERIFIED
+revision: 1
+approval_ref: APR-0043
+created: '2026-08-13T11:21:54'
+approved_hash: 4456782baf0cf9063a31aa662d20b57b59fb38ae36aba8e9f9229cb02a064ee2
+closed_at: '2026-09-12T06:17:49'

@@ -71,6 +71,7 @@ from .backlog_types import (
     is_terminal,
     parse_id,
 )
+from . import naming_tests
 from .hashing import subject_manifest_hash
 from .state import ProjectState, StateError, _now_iso, names_a_drive
 
@@ -1042,7 +1043,6 @@ def batch_walk_blockers(state: ProjectState, kind: str, item_ids, request: dict 
     At REQUEST time there is no signed list yet (the records are being built FROM the current
     content), which is why the parameter is optional rather than a second function.
     """
-    from . import report          # deferred: `report` imports this module at its own scope
     from .state import CONFIRMING_EVIDENCE, PASSING_RESULT
 
     types = batch_closing_types(kind)
@@ -1053,6 +1053,15 @@ def batch_walk_blockers(state: ProjectState, kind: str, item_ids, request: dict 
         # answered a question nobody had asked -- whether the goals could be WALKED -- about an
         # approval that only stands in for their own scope question.
         return []
+    # ONE PASS over the Evidence store for the whole list -- see `proofs_naming` for why the batch
+    # asks a NARROWER question than `report.qa_verdicts`, and for the store that measured it.
+    naming = proofs_naming(
+        state, item_ids,
+        CONFIRMING_EVIDENCE.get(sorted(types)[0]) if len(types) == 1 else None)
+    if len(types) > 1:
+        naming = {}
+        for one in sorted(types):
+            naming.update(proofs_naming(state, item_ids, CONFIRMING_EVIDENCE.get(one)))
     blockers = []
     for item_id in item_ids:
         try:
@@ -1097,8 +1106,7 @@ def batch_walk_blockers(state: ProjectState, kind: str, item_ids, request: dict 
         confirming = confirming_edge(item_type)
         proof = CONFIRMING_EVIDENCE.get(item_type)
         if proof and confirming and confirming[1] == end:
-            verdict = report.qa_verdicts(state, str(item_id),
-                                         report.CONFIRMATION_QUESTION).get(proof)
+            verdict = naming.get(str(item_id))
             if not verdict or verdict.get("result") != PASSING_RESULT:
                 blockers.append(
                     "%s has no passing %r Evidence naming it (%s), and %s -> %s needs one -- the "
@@ -1110,7 +1118,81 @@ def batch_walk_blockers(state: ProjectState, kind: str, item_ids, request: dict 
                        "the current verdict is %r" % verdict.get("result") if verdict
                        else "there is none",
                        confirming[0], confirming[1], proof, item_id))
+                continue
+            # ...AND THAT EVIDENCE HAS TO HAVE MEASURED THIS DEFECT (DEC-0100 (3), round 1 F2).
+            # A passing `test` evidence related to the item was the whole test until here, and it
+            # is not enough: measured, a TRIAGED bug whose evidence carried a run command naming a
+            # node that exists nowhere in the tree was walked to VERIFIED and archived by ONE
+            # click. `naming_tests` is the one reader of "a test names this item", shared with
+            # `tools/close_measured_pass.py` so the search that PROPOSES a batch and the check that
+            # accepts one cannot disagree about what naming means.
+            why = naming_tests.coverage_blocker(
+                os.path.dirname(state.root), str(item_id), verdict.get("run_command"))
+            if why:
+                blockers.append(
+                    "%s cannot be closed by this approval: %s. Remedy: re-run the test that NAMES "
+                    "the defect and record that run (`evidence --kind %s --result pass --related "
+                    "%s --run-scope selection --run-command <the node>`); a defect no test names "
+                    "needs a closing test, not a click."
+                    % (item_id, why, proof, item_id))
     return blockers
+
+
+def _recorded_at(record) -> tuple:
+    """The order two Evidences were recorded in -- see `proofs_naming` for why the id is in it."""
+    return (str(record.get("created") or ""), str(record.get("id") or ""))
+
+
+def proofs_naming(state: ProjectState, item_ids, proof: str) -> dict:
+    """{item id: the NEWEST `proof` Evidence whose `related` NAMES it} -- direct only, any result.
+
+    NOT `report.qa_verdicts`, and that difference is the whole point. `evidence_covers` accepts an
+    INDIRECT hop -- an evidence about something that hangs from the item -- which is right for the
+    delivery question ("does this body of work ship") and wrong for this one ("is THIS defect
+    repaired"). Measured on the real store while round 1's F2 was being closed: `BUG-0082` carries
+    `related_pr: BUG-0075`, so the passing run that measured the metacharacter fix answered as
+    BUG-0075's current verdict too, and the batch would have offered the user a defect whose proof
+    is about a different one. DEC-0100 (3) says the evidence has to NAME the bug; a parent closed
+    on its child's green run is that rule broken one level up.
+
+    ONE PASS over the Evidence store for the WHOLE batch, because the caller has the whole list: a
+    per-item scan of ~300 records times 31 items is ~10 000 YAML reads at request time.
+
+    `tools/test_approvals_dispatch.py::test_a_parent_defect_is_not_closed_by_its_childs_green_run`
+    """
+    wanted = {str(one) for one in (item_ids or [])}
+    newest = {}
+    for _stem, path in state.iter_active_items("EVD"):
+        try:
+            record = state._read_yaml(path)
+        except Exception:  # noqa: BLE001 -- an unreadable record proves nothing
+            continue
+        if not isinstance(record, dict):
+            continue
+        # ANY RESULT, and the caller judges it. Keeping only the passing ones would make a FAIL
+        # recorded after a PASS invisible -- which is the regression reading `_newest_per_kind`
+        # exists for, and a batch that closed a defect whose newest run is red would be the false
+        # verdict this whole route avoids. Measured: with a passing-only scan,
+        # `test_a_batch_that_moved_since_the_question_closes_nothing_at_all` reached the WALK and
+        # was refused there by `_assert_confirmed` instead of by the blocker list.
+        if record.get("kind") != proof:
+            continue
+        related = record.get("related") or []
+        related = list(related) if isinstance(related, (list, tuple)) else [related]
+        for reference in related:
+            item_id = str(reference)
+            if item_id not in wanted:
+                continue
+            previous = newest.get(item_id)
+            # (created, id) AND NOT created ALONE: `_now_iso` has second resolution, so two
+            # Evidences recorded in the same second compare equal and the winner is whichever the
+            # directory listing yielded last. Measured -- a `fail` captured right after a `pass`
+            # lost the comparison and the batch reached the WALK, where the refusal arrives after
+            # the APR exists. The id is monotonic in capture order, which is the tie-break
+            # `report._newest_per_kind` gets from its own iteration order.
+            if previous is None or _recorded_at(record) > _recorded_at(previous):
+                newest[item_id] = record
+    return newest
 
 
 def batch_walk_end(item_type: str, kind: str) -> str:
@@ -1140,7 +1222,6 @@ def verification_batch(state: ProjectState, item_ids) -> list:
     question, so a role fixing one id at a time would ask the store the same question 25 times.
     `tools/test_approvals_dispatch.py::test_a_bug_without_a_passing_test_evidence_is_refused_from_the_batch_by_name`
     """
-    from . import report          # deferred: `report` imports this module at its own scope
     from .state import CONFIRMING_EVIDENCE
 
     ids = [str(one) for one in (item_ids or [])]
@@ -1161,11 +1242,17 @@ def verification_batch(state: ProjectState, item_ids) -> list:
                       "fehlende Messung nachholen. %s"
                       % (len(blockers), len(ids), NEXT_START_OVER))
     records = []
+    # THE SAME RECORD THE BLOCKERS JUDGED, and that identity is the whole point: `batch_walk_blockers`
+    # accepts the batch on the Evidence whose `related` NAMES the item, so storing a different one
+    # in the question would show the user a proof nobody checked. Measured on the real store: with
+    # `report.qa_verdicts` here, BUG-0075's line carried EVD-0312 -- the run that measured its
+    # CHILD BUG-0082, which `evidence_covers` accepts through the hop and this question must not.
+    naming = {}
+    for one in sorted({parse_id(one)[0] for one in ids}):
+        naming.update(proofs_naming(state, ids, CONFIRMING_EVIDENCE.get(one)))
     for item_id in ids:
         item = state.read_item(item_id)
-        item_type, _number = parse_id(item_id)
-        verdict = report.qa_verdicts(
-            state, item_id, report.CONFIRMATION_QUESTION).get(CONFIRMING_EVIDENCE[item_type], {})
+        verdict = naming.get(item_id, {})
         records.append({
             GOAL_ITEM_FIELD: item_id,
             "revision": item.get("revision"),
@@ -1519,23 +1606,38 @@ def _assert_the_list_covers(request: dict, item: dict) -> None:
         for record in value:
             if isinstance(record, dict) and record.get(GOAL_ITEM_FIELD):
                 listed[str(record[GOAL_ITEM_FIELD])] = record
+    # EVERY ONE OF THE THREE SPEAKS TO THE USER TOO. These refusals reach the person who just
+    # CLICKED -- a list approval is answered by a human, and the walk then stops -- so a message
+    # addressed only to a role leaves them with a screen full of ids and no idea what happened.
+    # Measured: all three stood without a `user_text` and `test_every_approval_refusal_the_hook_can
+    # _surface_speaks_to_the_user` named them by line number.
     record = listed.get(item["id"])
     if record is None:
         raise ApprovalError(
             "the approved list does not name %s (it names %s), so it approves nothing about this "
             "item. Remedy: an item captured after the list was approved needs its own approval, "
             "or a fresh one over the current list."
-            % (item["id"], ", ".join(sorted(listed)) or "no item at all"))
+            % (item["id"], ", ".join(sorted(listed)) or "no item at all"),
+            user_text="Es wurde nichts abgeschlossen: einer der Punkte stand gar nicht auf der "
+                      "Liste, die du freigegeben hast — er ist erst danach dazugekommen. Dein "
+                      "Assistent muss dir die Liste noch einmal vorlegen. " + NEXT_START_OVER)
     if record.get("revision") != item.get("revision"):
         raise ApprovalError(
             "the approved list covers %s at revision %s and the item is at %s -- it no longer "
             "describes it. Remedy: re-run the approval over the current list."
-            % (item["id"], record.get("revision"), item.get("revision")))
+            % (item["id"], record.get("revision"), item.get("revision")),
+            user_text="Es wurde nichts abgeschlossen: einer der Punkte auf deiner Liste ist "
+                      "inzwischen in einer neueren Fassung — die Liste beschreibt ihn nicht mehr. "
+                      "Dein Assistent muss dir die aktuelle Liste noch einmal vorlegen. "
+                      + NEXT_START_OVER)
     if listed_content_hash(item) != record.get(GOAL_SCOPE_HASH_FIELD):
         raise ApprovalError(
             "the content of %s changed since the list was approved -- an out-of-band edit "
             "invalidated its cover for this item (spec II.4 gate 4). Remedy: re-run the "
-            "approval, or restore the approved content." % item["id"])
+            "approval, or restore the approved content." % item["id"],
+            user_text="Es wurde nichts abgeschlossen: der Inhalt eines Punktes wurde geaendert, "
+                      "nachdem du die Liste freigegeben hattest — deine Zustimmung galt dem alten "
+                      "Text. Dein Assistent muss dir die Liste neu vorlegen. " + NEXT_START_OVER)
 
 
 def live_list_approval(state: ProjectState, item: dict, kind: str):

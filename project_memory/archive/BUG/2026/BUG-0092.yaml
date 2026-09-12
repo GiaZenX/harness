@@ -1,0 +1,39 @@
+id: BUG-0092
+title: team-kits/model_tiers.yaml carries a dead pricing comment and a dead watch
+  date (Sonnet 5 'intro $2/$10 until 2026-08-31') -- flagged by the radar watcher
+  three times, fixed by nobody because the fix fell between the roles
+severity: low
+observed: 'radar/2026-09-04-claude.md item 5 (and 2026-08-29, 2026-08-21): team-kits/model_tiers.yaml
+  line 22 reads ''Sonnet 5 $3/$15 (intro $2/$10 until 2026-08-31)'' and line 24 lists
+  ''2026-08-31 Sonnet 5 intro pricing ends'' as a watch date; the pricing page says
+  $2/$10 is the permanent price and the increase will not occur; 2026-08-31 has passed.
+  The file''s own header names the two watchers as maintainers of the table''s currency,
+  but the watcher''s mandate is report-only, the lead may not write a kit file (gate
+  1: model_tiers.yaml is in the kit hash), and no stream item carried the two lines;
+  radar/decided.md 2026-08-29 says ''rider fix itemized'' -- in the journal, not in
+  an item (the prose-instead-of-item failure).'
+expected: The comment states the standard price and no dead watch date; the table's
+  MAINTENANCE header says how a watcher finding becomes a change (an item under the
+  current goal, not a journal line), so the third-report class cannot recur; the model_tiers
+  reader test (FR-0047 lineage) or a small tripwire refuses a watch date in the past.
+repro: grep -n '2026-08-31' team-kits/model_tiers.yaml -> two hits; compare with https://platform.claude.com/docs/en/about-claude/pricing
+  (Sonnet 5 $2/$10 standard).
+acceptance_criteria:
+- id: AC-1
+  text: model_tiers.yaml lines 22/24 reworded to the standard price, the dead watch
+    date removed; the Opus-4.1 line kept
+- id: AC-2
+  text: a shipped test is red on a watch date in the past inside model_tiers.yaml
+    (red-first with today's file), so a stale trigger date cannot outlive itself again
+- id: AC-3
+  text: 'the MAINTENANCE header names the route from a watcher finding to a change:
+    an item under the open goal, captured by the lead at triage -- measured against
+    the text'
+related_pr: PR-0010
+source: radar/2026-09-04-claude.md item 5; radar/decided.md radar-0821-sonnet5-price-trigger
+status: VERIFIED
+revision: 1
+approval_ref: APR-0046
+created: '2026-09-05T10:03:17'
+approved_hash: 6f7826bfc80014b226b337c91285f1e2ec93efd3a8c05812c06a53caa4b7c9ef
+closed_at: '2026-09-12T06:20:07'

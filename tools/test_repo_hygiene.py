@@ -2170,3 +2170,100 @@ def test_no_assertion_in_the_suites_is_statically_true():
     # the reader's floor: it sees both shapes, and it does not see a string
     probe = ast.parse("assert x or True\nassert True\nassert x\nwrite('assert True')\n")
     assert [node.lineno for node in _assert_statements_that_cannot_fail(probe)] == [1, 2]
+
+
+# ---------------- the suite's own writes: nothing of a run lands in canonical state ------------
+REPO_AUDIT_LOG = os.path.join(ROOT, "project_memory", ".audit", "hook_events.jsonl")
+
+
+def _audit_bytes(path):
+    """The log's current content, or None when it is not there -- both are a legitimate before."""
+    try:
+        with io.open(path, "rb") as handle:
+            return handle.read()
+    except FileNotFoundError:
+        return None
+
+
+def test_no_hook_started_by_this_suite_can_write_this_repos_audit_log(tmp_path):
+    """BUG-0052: a kit gate this suite started appended its refusal to the REPO's canonical
+    `project_memory/.audit/hook_events.jsonl`, and the lead committed those lines with the package.
+
+    MEASURED on fd7e2fa before the fix: one `tools/test_hooks_v2.py` run took the file from 697 to
+    699 lines (md5 09b9875a... -> 92d2f0d7...), the two added records being a `gate_needs` parse
+    error at 18:55:14 and the `OtherDB`/`neighbour-stack` compose fixture at 19:06:31. The sink is
+    `<_root.find_repo_root()>/project_memory/.audit/`, and that resolver answers `$CLAUDE_PROJECT_DIR`
+    first -- so any hook started WITHOUT an explicit project dir inherits the session's, which in
+    this repository is this repository. `tools/conftest.py` redirects the ambient variable; this
+    measures the result against a hook started exactly the way the leaking fixture started one.
+
+    BOTH ENDS, because "the log did not grow" is also what a hook that recorded NOTHING produces:
+    the record has to arrive in the ambient sink. Without that half the test would stay green if
+    `_audit` silently stopped writing, which is a different defect wearing this one's face.
+    """
+    gate = os.path.join(ROOT, "team-kits", "dev-team", "hooks", "gate_shell_hygiene.py")
+    sink = os.path.join(os.environ["CLAUDE_PROJECT_DIR"], "project_memory", ".audit",
+                        "hook_events.jsonl")
+    before_repo, before_sink = _audit_bytes(REPO_AUDIT_LOG), _audit_bytes(sink)
+    # An unparseable payload is the shortest route into `_kernel.payload`'s fail-closed block, which
+    # is what calls `_audit.record` -- and it is the shape the measured leak had. The environment is
+    # passed through UNCHANGED on purpose: the defect is exactly the call site that names no project.
+    proc = subprocess.run([sys.executable, gate], input="not json at all",
+                          capture_output=True, text=True, env=dict(os.environ),
+                          cwd=str(tmp_path), timeout=120)
+    assert proc.returncode == 2, proc.stdout + proc.stderr
+    assert "could not be read or parsed" in proc.stderr, proc.stderr
+    assert _audit_bytes(REPO_AUDIT_LOG) == before_repo, (
+        "a hook this suite started appended to the repo's canonical audit log (BUG-0052)")
+    after_sink = _audit_bytes(sink)
+    assert after_sink is not None and after_sink != before_sink, (
+        "the refusal was recorded nowhere -- the redirection cannot be read off a log that never "
+        "grows, so this assertion is the one that keeps the check above honest")
+
+
+def _test_modules_outside_the_default_surface():
+    """Every `test_*.py` of this repository that `python -m pytest tools/` does NOT collect.
+
+    Derived by walking the tree, not listed: a module added next to an existing one is covered the
+    day it ships. `.git`, `node_modules` and the scratch trees a run leaves behind are not the
+    repository's source.
+    """
+    found = []
+    for base, directories, names in os.walk(ROOT):
+        directories[:] = [d for d in directories
+                          if d not in (".git", "node_modules", "__pycache__", ".pytest_cache")]
+        rel_base = os.path.relpath(base, ROOT).replace(os.sep, "/")
+        if rel_base == "tools" or rel_base.startswith("tools/"):
+            continue
+        for name in names:
+            if name.startswith("test_") and name.endswith(".py"):
+                prefix = "" if rel_base == "." else rel_base + "/"
+                found.append(prefix + name)
+    return sorted(found)
+
+
+def test_a_suite_the_default_run_does_not_collect_is_named_with_its_own_run_command():
+    """BUG-0014: `.claude/hooks/test_gates.py` stood red for at least a whole round because nothing
+    noticed -- it is the one suite `python -m pytest tools/` does not collect, and no text tied its
+    existence to a command anybody runs.
+
+    THE PROPERTY IS THE PAIR, not the file name: whatever test module this repository grows outside
+    the default surface must appear in `CLAUDE.md` TOGETHER with a pytest line that names it, so the
+    round that has to run it can find out that it has to. A second such module added tomorrow turns
+    this red on the day it ships, which is the half BUG-0014's AC-3 asks for and a list of names
+    would not give.
+
+    What this does NOT claim, and the reason it is worded as it is: it cannot make anybody RUN the
+    suite, and it does not pretend to -- it measures that the suite is documented with its command,
+    which is what was missing when the red survived. The red itself is caught by running it.
+    """
+    outside = _test_modules_outside_the_default_surface()
+    assert outside, "the scan found no suite outside tools/ -- it would be vacuous"
+    with io.open(os.path.join(ROOT, "CLAUDE.md"), encoding="utf-8") as handle:
+        governing = handle.read()
+    runs = [line for line in governing.splitlines() if "pytest" in line]
+    unnamed = [module for module in outside
+               if not any(module in line for line in runs)]
+    assert not unnamed, (
+        "CLAUDE.md carries no pytest line that names these suites, so a round has no way to learn "
+        "they exist: %s" % unnamed)

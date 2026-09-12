@@ -1,0 +1,51 @@
+request_id: b0cae8b5ba9d4586976acdeade13c9e9
+kind: verification
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  bugs:
+  - item: BUG-0037
+    revision: 1
+    scope_hash: 67dbbf270b2b29018a6f4b71ec91c14b545d27f1120daa311a27e05e597b60ff
+    evidence: EVD-0294
+  - item: BUG-0044
+    revision: 1
+    scope_hash: dc3a7288563694944d6ab8c8bddf6a950d0d6221533aad5a7056b7da9a487a9d
+    evidence: EVD-0295
+  - item: BUG-0046
+    revision: 1
+    scope_hash: ba9a8ab697326fb04c48d1ce5d1dcfb3d2824ab2dbafea73ebc37e52c97f9e4d
+    evidence: EVD-0296
+  - item: BUG-0050
+    revision: 1
+    scope_hash: 187cb70c3c321d41295079117072f790a3c044be21c04cdc6e5776979bd8ca6a
+    evidence: EVD-0297
+  - item: BUG-0052
+    revision: 1
+    scope_hash: 23a0ca978ed40de697b4c4684a4aa54ffa8342a2113ebea2bc376cfe11f0cfc5
+    evidence: EVD-0298
+  - item: BUG-0053
+    revision: 1
+    scope_hash: 1d55f4b9d826ed540ce536452558ef1a594cab7ea27039546d8fa54966d0ae17
+    evidence: EVD-0299
+  - item: BUG-0054
+    revision: 1
+    scope_hash: 20b3bf53a7cfb74fe1cf60637cf5c993b300cba27c5ad79a0eab39d349b200ec
+    evidence: EVD-0300
+  - item: BUG-0057
+    revision: 1
+    scope_hash: 4d515e0daa89c7d31b52dd0e9dd55c28baa664856ce9a4f9521938494a218c54
+    evidence: EVD-0301
+  - item: BUG-0058
+    revision: 1
+    scope_hash: 80a7ff9196666a3629fcb6f12c8a771a0e70ad7e5bd385b5deba7ee6589a2518
+    evidence: EVD-0302
+  - item: BUG-0062
+    revision: 1
+    scope_hash: 9cdc56f4f1d9c89dfd603a14d2e6f8f66923d07f254d6e5d2e06a1a1e85c5a7a
+    evidence: EVD-0303
+subject_manifest_hash: 03e2407514bd6073519607667c5d59af1aaacea32e0eb30f56d2f29975500ea5
+created: '2026-09-11T23:56:17'
+expires_at_epoch: 1789250177.2344708
+mint_code: 495fbd

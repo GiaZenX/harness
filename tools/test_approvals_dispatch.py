@@ -4826,18 +4826,46 @@ def test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it(sta
 
 # ============================================ PR-0012 AC-1: the BATCH form of a repaired bug's close
 
-def _repaired_bug(state, title="a defect", measured=True):
+def _plant_a_naming_test(state, item_id, names=True):
+    """Write a real pytest node beside the state, naming `item_id` in its docstring's first
+    paragraph -- or, with `names=False`, naming it nowhere.
+
+    A FILE AND NOT A STRING, because since round 1's F2 `approvals.batch_walk_blockers` RESOLVES
+    the nodes an Evidence records: a run command naming a node that exists nowhere measured
+    nothing, and a TRIAGED bug with exactly that evidence was walked to VERIFIED and archived by
+    one click. The node is resolved against the state root's parent, which is where a project's
+    own tests live.
+    """
+    root = os.path.dirname(state.root)
+    folder = os.path.join(root, "tools")
+    os.makedirs(folder, exist_ok=True)
+    function = "test_names_%s" % str(item_id).replace("-", "_").lower()
+    subject = str(item_id) if names else "something else entirely"
+    with io.open(os.path.join(folder, "test_planted.py"), "a", encoding="utf-8",
+                 newline="\n") as handle:
+        handle.write('def %s():\n    """closes %s"""\n    assert True\n\n\n'
+                     % (function, subject))
+    return "tools/test_planted.py::%s" % function
+
+
+def _repaired_bug(state, title="a defect", measured=True, node=None):
     """A BUG at TRIAGED with -- unless `measured` says otherwise -- the passing test Evidence that
-    names it: exactly the shape TSK-0131's survey measured 98 times over."""
+    names it: exactly the shape TSK-0131's survey measured 98 times over.
+
+    `node` overrides the run command, which is what the F2 rows need: the evidence's run has to
+    name a test that NAMES the defect, and the two ways to fail that are a node nothing declares
+    and a node whose test is about something else.
+    """
     goal = state.capture("PR", dict(PR_FIELDS, title="Kasse"))
     bug = state.capture("BUG", {"title": title, "related_pr": goal["id"], "observed": "o",
                                 "expected": "e", "repro": "r", "severity": "low",
                                 "acceptance_criteria": [{"id": "AC-1", "text": "t"}]})
     state.transition(bug["id"], "TRIAGED")
     if measured:
+        run = node if node is not None else _plant_a_naming_test(state, bug["id"])
         state.capture("EVD", {"kind": "test", "result": "pass", "related": [bug["id"]],
                               "summary": "the regression run", "artifact_refs": ["staging/x/r.log"],
-                              "run_command": "python -B -m pytest tools/test_x.py::test_y",
+                              "run_command": "python -B -m pytest " + run,
                               "run_scope": "selection"})
     return state.read_item(bug["id"])
 
@@ -4885,6 +4913,94 @@ def test_a_bug_without_a_passing_test_evidence_is_refused_from_the_batch_by_name
         approvals.verification_batch(state, [measured["id"], unmeasured["id"]])
     assert unmeasured["id"] in str(refusal.value) and "no passing" in str(refusal.value)
     assert measured["id"] not in str(refusal.value).split(unmeasured["id"])[1]
+
+
+@pytest.mark.parametrize("shape", ["a node nothing declares", "a test about something else",
+                                   "no node at all"])
+def test_a_bug_whose_evidence_does_not_name_it_is_refused_from_the_batch(state, shape):
+    """DEC-0100 (3) / round 1 F2: a passing `test` Evidence RELATED to the bug was the whole test,
+    and it let a defect be closed on a run that never looked at it.
+
+    MEASURED by the verifier: a TRIAGED bug whose evidence carried
+    `--run-command "python -B -m pytest tools/test_x.py::test_y"` -- a node that exists nowhere in
+    the tree -- was walked TRIAGED -> APPROVED -> FIXED -> VERIFIED and archived by ONE click. The
+    three shapes here are the three ways an evidence can fail to be about its defect, and each
+    earns its own sentence because each needs a different repair.
+
+    `naming_tests.coverage_blocker` is the reader, shared with `tools/close_measured_pass.py`, so
+    the search that PROPOSES a batch and the check that accepts one cannot disagree.
+    """
+    if shape == "a node nothing declares":
+        bug = _repaired_bug(state, node="tools/test_x.py::test_y")
+    elif shape == "no node at all":
+        bug = _repaired_bug(state, node="tools/test_planted.py")
+    else:
+        bug = _repaired_bug(state, measured=False)
+        elsewhere = _plant_a_naming_test(state, bug["id"], names=False)
+        state.capture("EVD", {"kind": "test", "result": "pass", "related": [bug["id"]],
+                              "summary": "a run about a neighbour", "run_scope": "selection",
+                              "artifact_refs": ["staging/x/r.log"],
+                              "run_command": "python -B -m pytest " + elsewhere})
+    with pytest.raises(ApprovalError) as refusal:
+        approvals.verification_batch(state, [bug["id"]])
+    assert bug["id"] in str(refusal.value), str(refusal.value)
+    assert "DEC-0100" in str(refusal.value) or "repeat" in str(refusal.value), str(refusal.value)
+    # ...and the item did not move: a refusal at the request is only half of "nothing was closed"
+    assert state.read_item(bug["id"])["status"] == "TRIAGED"
+
+
+def test_the_batch_the_request_refused_cannot_be_minted_either(state):
+    """The second half of F2: the refusal has to stand where the WRITES happen, not only where the
+    question is built.
+
+    A request built while the evidence still named a real test, then the test taken away -- the
+    shape a moving tree has -- is put to the mint, and the mint re-checks coverage before its first
+    write (DEC-0100 (3)'s all-or-nothing clause). Without the check in `batch_walk_blockers`, which
+    the mint calls too, the click closes the defect on a run nobody can repeat.
+    """
+    bug = _repaired_bug(state)
+    request = _ask_the_batch(state, [state.read_item(bug["id"])])
+    os.remove(os.path.join(os.path.dirname(state.root), "tools", "test_planted.py"))
+    assert request, "the request was not built, so nothing below measures the second half"
+    with pytest.raises(ApprovalError) as refusal:
+        approvals.verification_batch(state, [bug["id"]])
+    assert bug["id"] in str(refusal.value)
+    assert state.read_item(bug["id"])["status"] == "TRIAGED"
+
+
+def test_a_parent_defect_is_not_closed_by_its_childs_green_run(state):
+    """DEC-0100 (3) one level up, and it was live in this repository's own store: `BUG-0082` carries
+    `related_pr: BUG-0075`, so the passing run that measured the metacharacter fix answered as
+    BUG-0075's CURRENT verdict too -- `report.evidence_covers` accepts an indirect hop by design,
+    which is right for "does this body of work ship" and wrong for "is THIS defect repaired".
+
+    Measured while round 1's F2 was being closed: the third batch line of the 31 closable ids was
+    refused with "its evidence names <the child's node>, and none of those tests NAMES BUG-0075".
+    The refusal was correct and the SELECTION was the defect -- `proofs_naming` now asks for an
+    Evidence whose `related` names the item itself.
+
+    The child's run is green here, so nothing in this test is about a failing measurement: what is
+    measured is that a green run about a CHILD closes the child and not its parent.
+    """
+    parent = _repaired_bug(state, "the parent", measured=False)
+    child = state.capture("BUG", {"title": "the child", "related_pr": parent["id"],
+                                  "observed": "o", "expected": "e", "repro": "r",
+                                  "severity": "low",
+                                  "acceptance_criteria": [{"id": "AC-1", "text": "t"}]})
+    state.transition(child["id"], "TRIAGED")
+    node = _plant_a_naming_test(state, child["id"])
+    state.capture("EVD", {"kind": "test", "result": "pass", "related": [child["id"]],
+                          "summary": "the child's regression run", "run_scope": "selection",
+                          "artifact_refs": ["staging/x/r.log"],
+                          "run_command": "python -B -m pytest " + node})
+
+    # the control: the CHILD closes on its own run
+    assert approvals.verification_batch(state, [child["id"]])[0][approvals.GOAL_ITEM_FIELD] \
+        == child["id"]
+    # ...and the parent does not, however green the child is
+    with pytest.raises(ApprovalError) as refusal:
+        approvals.verification_batch(state, [parent["id"]])
+    assert parent["id"] in str(refusal.value) and "no passing" in str(refusal.value)
 
 
 def test_a_bug_past_the_edge_the_batch_commits_is_refused_from_it_by_name(state):

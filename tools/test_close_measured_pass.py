@@ -41,9 +41,15 @@ def _tree(tmp_path, naming=None):
 
     `naming` maps a defect id to the outcome of the test that NAMES it, so a case can plant exactly
     the shape it is about: a defect a green test names, one a red test names, one nothing names.
+
+    THE TREE AND THE STATE SHARE A ROOT, the way a real project has them: `_state` puts
+    `project_memory/` under the same `tmp_path`, and `approvals.batch_walk_blockers` resolves the
+    nodes of an Evidence against the state root's parent (round 1 F2). A tree one directory to the
+    side made the kernel look where the tests are not, and the batch then refused every entry for
+    "a run nobody can repeat" -- which is the check working and the fixture lying.
     """
-    tree = tmp_path / "tree"
-    (tree / "tools").mkdir(parents=True)
+    tree = tmp_path
+    (tree / "tools").mkdir(parents=True, exist_ok=True)
     body = ["def test_still_holds():\n    assert True\n"]
     for item_id, outcome in sorted((naming or {}).items()):
         body.append('def test_names_%s():\n    """about %s"""\n    assert %s\n'
@@ -304,17 +310,20 @@ def test_the_evidence_comes_from_the_tests_that_name_the_bug_and_from_no_other_n
             'import pytest\n\n'
             'NOTE = "BUG-0300 is named by a module constant and by no test"\n\n\n'
             'def test_by_docstring():\n    """closes BUG-0100"""\n    assert True\n\n\n'
-            'def test_by_comment():\n    # the shape BUG-0100 left behind\n    assert True\n\n\n'
+            'def test_by_comment():\n    # the shape BUG-0500 left behind\n    assert True\n\n\n'
+            'def test_by_a_later_paragraph():\n'
+            '    """closes BUG-0400\n\n    see also BUG-0600, a neighbour\n    """\n'
+            '    assert True\n\n\n'
             '@pytest.mark.parametrize("case", ["BUG-0200"])\n'
-            'def test_by_case_id(case):\n    assert case\n\n\n'
-            'def test_about_something_else():\n    """closes BUG-0400"""\n    assert True\n')
+            'def test_by_case_id(case):\n    assert case\n')
 
-    assert tool.nodes_naming("BUG-0100", str(tree)) == [
-        "tools/test_shapes.py::test_by_comment", "tools/test_shapes.py::test_by_docstring"]
+    assert tool.nodes_naming("BUG-0100", str(tree)) == ["tools/test_shapes.py::test_by_docstring"]
     assert tool.nodes_naming("BUG-0200", str(tree)) == ["tools/test_shapes.py::test_by_case_id"]
     assert tool.nodes_naming("BUG-0400", str(tree)) == [
-        "tools/test_shapes.py::test_about_something_else"]
+        "tools/test_shapes.py::test_by_a_later_paragraph"]
     assert tool.nodes_naming("BUG-0300", str(tree)) == [], "a module constant is no test"
+    assert tool.nodes_naming("BUG-0500", str(tree)) == [], "a comment in the body is a mention"
+    assert tool.nodes_naming("BUG-0600", str(tree)) == [], "a later paragraph is a mention"
     assert tool.nodes_naming("BUG-0999", str(tree)) == []
 
 

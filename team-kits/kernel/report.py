@@ -3202,12 +3202,22 @@ def _check_design_refs_resolve(state: ProjectState, active_items: dict) -> list:
     """Every `design_refs` entry names a frozen design that EXISTS -- the II.6a question, asked
     where the state is judged rather than only where a spawn is refused.
 
-    THE ONE FIELD OF `REFERENCE_LIST_FIELDS` NOTHING RESOLVED HERE. `supersedes` and
-    `premise_rechecks` have carried existence checks since BUG-0009(b)/BUG-0004, so a letter-split
-    value at least surfaces as findings naming letters; `design_refs` had none, which is why the
-    measured BUG-0038 chain ended in "0 error(s), 0 warning(s)" over an item holding 34 one-letter
-    entries. Normalising the readers stops the damage being CREATED; an item written that way
-    before is reachable only through a check, and this is it.
+    WHY THIS CHECK EXISTS. `supersedes` and `premise_rechecks` have carried existence checks since
+    BUG-0009(b)/BUG-0004, so a letter-split value at least surfaces as findings naming letters;
+    `design_refs` had none, which is why the measured BUG-0038 chain ended in "0 error(s),
+    0 warning(s)" over an item holding 34 one-letter entries. Normalising the readers stops the
+    damage being CREATED; an item written that way before is reachable only through a check, and
+    this is it.
+
+    AND ONE MEMBER OF `REFERENCE_LIST_FIELDS` STILL HAS NO EXISTENCE CHECK: `architecture_refs`,
+    which joined that tuple with TSK-0139 when `staging.freeze_architecture` finally gained a writer
+    for it (BUG-0054). What it DOES get from joining is the shape check --
+    `_check_flattened_reference_fields` walks the tuple, so a scalar written where the state holds
+    a list is reported for it exactly as for the other three, which is the BUG-0038 damage class.
+    What is missing is only "the frozen revision this entry names is on disk". Not added in that
+    round on purpose: a new validator finding changes what `validate` says about every existing
+    project, and the field had been producer-less until that hour, so no stored entry can yet be
+    stale. Named here rather than left to be discovered.
 
     Through `dispatch._design_ref_resolves`, the resolver the dispatch gate itself uses, so a
     validator that says "fine" and a gate that refuses the spawn cannot come apart.
@@ -3578,6 +3588,26 @@ def approval_mint_is_wired(repo_root: str) -> bool:
     return False
 
 
+# The providers a project configures whose enforcement registrations `_wired_hooks` does NOT read.
+#
+# ONE ENTRY TODAY and it is not an enumeration of providers: the pair below says, per provider,
+# which MARKER declares it configured and whether this reader opens its registrations at all.
+# `_wired_hooks` reads the Claude layers, so `claude` answers True on the second element and every
+# other entry answers False -- a provider added to the kits arrives here unmeasured, which is the
+# fail-closed direction rule 1 of `capability_matrix` asks for.
+# `tools/test_report.py::test_the_spawn_veto_is_not_claimed_for_a_provider_this_report_cannot_read`
+PROVIDER_MARKERS = (
+    ("claude", os.path.join(".claude", "settings.json"), True),
+    ("codex", ".codex", False),
+)
+
+
+def _unmeasured_providers(repo_root: str) -> list:
+    """Configured providers whose registrations this report cannot open -- see PROVIDER_MARKERS."""
+    return sorted(name for name, marker, measured in PROVIDER_MARKERS
+                  if not measured and os.path.exists(os.path.join(repo_root, marker)))
+
+
 def capability_matrix(state: ProjectState, repo_root: str = None, enumeration=None):
     """(matrix, reasons) — every enforcement capability, and WHY each reads as it does.
 
@@ -3610,10 +3640,25 @@ def capability_matrix(state: ProjectState, repo_root: str = None, enumeration=No
         return "verified" if ok else "unverified"
 
     spawn = _fires_for(wired, "gate_dispatch.py", "PreToolUse", ("Agent", "Task"))
+    # A CAPABILITY IS VERIFIED FOR THE PROJECT, NOT FOR ONE PROVIDER OF IT (BUG-0057).
+    # `_wired_hooks` reads the three `.claude` layers and nothing else, so on a `claude+codex`
+    # installation it answers about the Claude path alone -- and the line then said `verified`
+    # with the reason "gate_dispatch fires on PreToolUse for Agent/Task" while the Codex path has
+    # no spawn veto at all (spec II.13 calls that gap mechanically documented). Measured 2026-08-16
+    # on a fresh claude+codex install: `capabilities.spawn_veto: verified`, and `spawn_veto` absent
+    # from `enforcement_blockers`.
+    # DERIVED, not a second provider list: whatever `_unmeasured_providers` finds configured beside
+    # the layers this reader can open is a provider it has not measured, so rule 1 of this
+    # function's own contract applies -- what cannot be determined stays `unverified`.
+    unmeasured = _unmeasured_providers(repo_root)
     matrix = {"spawn_veto": verdict(
-        "spawn_veto", spawn,
+        "spawn_veto", spawn and not unmeasured,
         "gate_dispatch fires on PreToolUse for Agent/Task, the only event that can DENY a spawn"
-        if spawn else
+        if spawn and not unmeasured else
+        "gate_dispatch fires on PreToolUse for Agent/Task, but this project also configures %s, "
+        "whose registrations this report cannot read — so the veto is measured for the Claude "
+        "path only and the capability answers for the project (spec II.8/II.13)"
+        % "/".join(unmeasured) if spawn else
         "no gate_dispatch registration fires on PreToolUse for Agent/Task — either it is not "
         "registered, its matcher excludes those tools, the file is missing, or hooks are disabled")}
 
