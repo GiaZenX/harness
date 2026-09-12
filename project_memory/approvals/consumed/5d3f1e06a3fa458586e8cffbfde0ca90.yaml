@@ -1,0 +1,16 @@
+request_id: 5d3f1e06a3fa458586e8cffbfde0ca90
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0164
+    revision: 1
+    scope_hash: 9891afec423463ffa69e4be7796c86bad2a8549d9dad2e23093d43c424af4b27
+    bound: 'Die Vier-Augen-Regel fürs Archiv hält, was sie sagt: kein fremdes oder
+      vertauschtes Dokument kommt unter einem doppelt gelesenen Namen durch. Bewusst…'
+subject_manifest_hash: e44162e2be741a2c0935206c3878736cb9fc96cce1ec86ad83ee8c7429eb04e1
+created: '2026-09-12T22:56:12'
+expires_at_epoch: 1789332972.9973238
+mint_code: fee1a4

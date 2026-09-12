@@ -1,6 +1,7 @@
 id: BUG-0056
-title: A recorded V1 file outside the state tree is writable -- protected is the PLACE,
-  not the record
+title: Die Ablage-Kopie eines alten Datensatzes unter staging/ ist beschreibbar --
+  der ursprüngliche Fall (aufgezeichnete Datei AUSSERHALB des Zustandsbaums) entsteht
+  gemessen nie
 related_pr: PR-0001
 observed: 'TSK-0069 side check N11 (live, gate_write_scope.py): the legacy path under
   the state root (legacy/, file tasks.yaml) rc 2, and the monolith spelling directly
@@ -29,7 +30,14 @@ acceptance_criteria:
     it lies (red-without-fix)
 - id: AC-2
   text: the rule is derived from the migration's own record, not a path list
-status: OPEN
+status: ACCEPTED_EXCEPTION
 revision: 1
-approval_ref: null
+approval_ref: APR-0068
 created: '2026-08-16T14:05:13'
+limits: 'Beim Hochziehen alter Projekte legt der Kern Kopien alter Datensätze unter
+  staging/ ab; diese Ablage ist absichtlich frei, weil dort Vorschläge liegen und
+  kein Zustand. Wer so eine Kopie ändert, ändert einen Vorschlag; das Original bleibt
+  unberührt. Sie zu schützen würde jeden Schreibzugriff in jedem Projekt langsamer
+  machen -- deine Entscheidung vom 2026-09-12: offen lassen, benannt.'
+approved_hash: 2f9dce91897c5276f69895c3367425b56754aae64f9d08fbd92b5e5a510cbeee
+closed_at: '2026-09-12T22:57:18'

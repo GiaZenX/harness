@@ -1,0 +1,25 @@
+id: DEC-0110
+title: 'The migration''s deposit copy under staging/ stays a proposal file: no write
+  gate scans the migration records on every write (BUG-0056, the user''s answer ''offen
+  lassen'')'
+work: PR-0012
+context: 'BUG-0056''s headline case -- a RECORDED V1 file outside the state tree being
+  writable -- does not exist: migrate.py records `legacy_source` from a walk under
+  the state root only (measured, TSK-0142 B3 and verifier B round 3). What remains
+  is the deposit copy under project_memory/staging/, deliberately open because staging
+  holds proposals, not state. Protecting it means the write-scope gate scanning the
+  migration records in the decision path of EVERY write (H61''s cost class). Put to
+  the user 2026-09-12 ~22:2x; answer: leave, named.'
+decision: No scan. BUG-0056 closes as an accepted exception with an honest title (the
+  recorded-outside case does not arise; the staging copy is a proposal); staging/
+  stays open.
+alternatives: Scan the migration records on every write -- every write in every project
+  slower, for a file that is not state; rejected.
+consequences: The exception question (the click); the item's title is corrected at
+  the same time.
+source: staging/TSK-0142/protocol.md, the BUG-0056 row; verify-round-3.md (7); the
+  user's click 2026-09-12
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-12T22:56:43'

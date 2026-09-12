@@ -26,12 +26,15 @@ acceptance_criteria:
 - id: AC-2
   text: until then the office ladder.yaml comment and the office constitution say
     the value is unreachable (today they do)
-limits: the default (`medium`) is the value DEC-0078 named for ordinary office work,
-  so nothing runs too high; the office declaration and constitution state the gap
-  in their own words
+limits: 'Das Büro-Team hat keinen Ziel-Vorgang und damit kein Größen-Wort; große Büro-Arbeit
+  läuft auf der mittleren Denk-Stufe, die laut DEC-0078 für gewöhnliche Büro-Arbeit
+  richtig ist. Deine Entscheidung vom 2026-09-12 (DEC-0104): so lassen — eine größere
+  Aufgabe wird in Teilaufgaben zerlegt statt teurer gerechnet.'
 regression_tests: []
 hole_number: H170
-status: OPEN
+status: ACCEPTED_EXCEPTION
 revision: 1
-approval_ref: null
+approval_ref: APR-0069
 created: '2026-09-05T22:20:23'
+approved_hash: f861bcd43d43ce319861f54e049b82c721d3534f174bc21becfdcf263a2ddb3c
+closed_at: '2026-09-12T22:59:12'

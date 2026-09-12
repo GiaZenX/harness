@@ -20,14 +20,14 @@ observed: '**Anlass:** `FR-0035` verlangte den Vier-Augen-Mechanismus wörtlich 
 severity: low
 hole_number: H72
 source: docs/holes/H72.md
-limits: 'gemessene Grenzen der Vier-Augen-Wand, je im Eintrag: die Aufräum-Ausnahme
-  vergleicht Vorlage+Dateiname statt Ort (ein Platzhalterwechsel läuft ohne Lesung,
-  K7/K8 — Verschärfung wäre eine Nutzerentscheidung); Überschreiben eines Inbox-Dokuments
-  ist frei (die Folge ist per Byte-Bindung geschlossen, der Verlust sichtbar); drei
-  benannte Über-Verweigerungen; und die Verfahrens-Grenze (Blindheit, fremde Programme,
-  Lead als Zweitleser). Keine Kette erreicht mehr das Geschlossene: ein fremdes/getauschtes
-  Dokument unter doppelt gelesenem Namen'
-status: TRIAGED
+limits: 'Die Vier-Augen-Regel fürs Archiv hält, was sie sagt: kein fremdes oder vertauschtes
+  Dokument kommt unter einem doppelt gelesenen Namen durch. Bewusst nicht geprüft
+  werden das Aufräumen nach Vorlage (Vorlage und Dateiname statt Ablageort) und das
+  Überschreiben eines Posteingangs-Dokuments; deine Entscheidung vom 2026-09-12: so
+  lassen, weil strenger jede Umbenennung im Büro-Alltag eine Freigabe kosten würde.'
+status: ACCEPTED_EXCEPTION
 revision: 1
-approval_ref: null
+approval_ref: APR-0067
 created: '2026-09-05T20:24:45'
+approved_hash: fc2c092aa8366a7e56c7a2d8bf4d4bc38f8fb112ae4a0fdeccacc130df80ac37
+closed_at: '2026-09-12T22:57:01'

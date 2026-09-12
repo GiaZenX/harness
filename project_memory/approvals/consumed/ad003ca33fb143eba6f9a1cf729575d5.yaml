@@ -1,0 +1,16 @@
+request_id: ad003ca33fb143eba6f9a1cf729575d5
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0286
+    revision: 1
+    scope_hash: dcba8a1eadada0f228b18cceb71cfb819a9fe04916c23bfaa9feb9668c837b1a
+    bound: Ein Patch, der in einer Datei liegt, kann die Schutzregeln überschreiben;
+      die Regel sieht nur den Dateinamen, und `git apply angriff.diff` sieht gena…
+subject_manifest_hash: 70e4e2748c7d8d976c939c4527cb5ce8f20a507d7c40012ac0bb506f68770149
+created: '2026-09-12T22:52:53'
+expires_at_epoch: 1789332773.2754545
+mint_code: 25b966

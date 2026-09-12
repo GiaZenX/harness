@@ -1,0 +1,16 @@
+request_id: e87b1c975b4e40c5b760f405c023f6d7
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0056
+    revision: 1
+    scope_hash: a19c4fb685bc0ddaf7b8ea2c613b32c7850eeddbedb84e1dbd74370c441b8112
+    bound: Beim Hochziehen alter Projekte legt der Kern Kopien alter Datensätze unter
+      staging/ ab; diese Ablage ist absichtlich frei, weil dort Vorschläge liege…
+subject_manifest_hash: e3318e535b9cd6bb7cf9ad2c36e3d9797d17e9d54b138b2042d0540cc3177228
+created: '2026-09-12T22:56:45'
+expires_at_epoch: 1789333005.4436662
+mint_code: f18320

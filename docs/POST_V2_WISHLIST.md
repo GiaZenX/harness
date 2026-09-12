@@ -2382,7 +2382,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H69](docs/holes/H69.md) | BUG-0161 | TRIAGED | Die Gates dieses Repos erben die halbe CR-Härtung der Kits — offen, Werkbank, `DEC-0022` (TSK-0084) |
 | [H70](docs/holes/H70.md) | BUG-0162 | VERIFIED | Der Vollständigkeits-Draht des Ledger-Gates fragt nach MUSTERN, also sieht er eine Ausnahme ohne Muster nicht — offen, Messlücke des Instruments (TSK-0083/TSK-0084) |
 | [H71](docs/holes/H71.md) | BUG-0163 | VERIFIED | Was der Leser der Merge-Rückstandsliste NICHT entscheiden kann — offen, vier gemessene Grenzen (TSK-0086) |
-| [H72](docs/holes/H72.md) | BUG-0164 | TRIAGED | Was die Vier-Augen-Wand NICHT bindet — offen, gemessene Grenzen der Zweitlesungs-Mechanik (TSK-0087) |
+| [H72](docs/holes/H72.md) | BUG-0164 | ACCEPTED_EXCEPTION | Was die Vier-Augen-Wand NICHT bindet — offen, gemessene Grenzen der Zweitlesungs-Mechanik (TSK-0087) |
 | [H73](docs/holes/H73.md) | BUG-0165 | VERIFIED | Was die Entscheidungs-zuerst-Runde NICHT misst — offen, drei gemessene Grenzen (TSK-0089) |
 | [H74](docs/holes/H74.md) | BUG-0166 | ACCEPTED_EXCEPTION | Was die schnellere Gate-Suite NICHT schützt — offen, gemessene Grenzen (TSK-0090) |
 | [H75](docs/holes/H75.md) | BUG-0167 | VERIFIED | Was der E-Rechnungs-Leser NICHT prüft — offen, gemessene Grenzen des Geldpfads (TSK-0091) |
@@ -2502,7 +2502,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | H199 | BUG-0283 | ACCEPTED_EXCEPTION | H12 neu aufgelegt (Ausnahme nie freigegeben): Ein Subagent kann sich die Ausnahme von Gate 2 selbst ausstellen |
 | H200 | BUG-0284 | ACCEPTED_EXCEPTION | H16 neu aufgelegt (Ausnahme nie freigegeben): Der Pfad steht in einer Variablen, das Gate liest den Text (neu, TSK-0008) |
 | H201 | BUG-0285 | VERIFIED | H21 neu aufgelegt (Ausnahme nie freigegeben): `Push-Location`/`Pop-Location` fehlen im Verzeichnis-Vokabular (neu, TSK-0011) |
-| H202 | BUG-0286 | OPEN | H22 neu aufgelegt (Ausnahme nie freigegeben): Die Read-only-Klassifikation gilt pro Stufe, der Pfad reist weiter (neu, TSK-0011) |
+| H202 | BUG-0286 | ACCEPTED_EXCEPTION | H22 neu aufgelegt (Ausnahme nie freigegeben): Die Read-only-Klassifikation gilt pro Stufe, der Pfad reist weiter (neu, TSK-0011) |
 | H203 | BUG-0287 | ACCEPTED_EXCEPTION | H25 neu aufgelegt (Ausnahme nie freigegeben): Die Frist, die ein Gate sich zugesteht, und die, nach der es getötet wird (neu, TSK-0013) |
 | H204 | BUG-0288 | VERIFIED | H32 neu aufgelegt (Ausnahme nie freigegeben): Ein Befehl, den eine Ersetzung einführt (neu, TSK-0019) |
 | H205 | BUG-0289 | VERIFIED | H38 neu aufgelegt (Ausnahme nie freigegeben): Ein Programm, das ein Hier-Dokument einer Shell übergibt, liest keines der Gates (neu, TSK-0022) |

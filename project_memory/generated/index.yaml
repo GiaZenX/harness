@@ -1,4 +1,4 @@
-generated_at: '2026-09-12T22:49:17'
+generated_at: '2026-09-12T22:59:29'
 items:
 - id: APR-0001
   type: APR
@@ -390,12 +390,29 @@ items:
   status: null
   revision: null
   approval_ref: null
-- id: BUG-0056
-  type: BUG
-  title: A recorded V1 file outside the state tree is writable -- protected is the
-    PLACE, not the record
-  status: OPEN
-  revision: 1
+- id: APR-0066
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0067
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0068
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0069
+  type: APR
+  title: null
+  status: null
+  revision: null
   approval_ref: null
 - id: BUG-0069
   type: BUG
@@ -458,13 +475,6 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: BUG-0164
-  type: BUG
-  title: Was die Vier-Augen-Wand NICHT bindet — offen, gemessene Grenzen der Zweitlesungs-Mechanik
-    (TSK-0087)
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: BUG-0197
   type: BUG
   title: Das Fristenregister kennt kein „erledigt" (neu, TSK-0107, FR-0034)
@@ -501,14 +511,6 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0252
-  type: BUG
-  title: 'The office `large` effort (DEC-0078 (2): `high` when the goal''s class is
-    large) is unreachable: a `PROC` root carries no `class` field, so every office
-    order gets the default (new, TSK-0130, PR-0010 AC-6)'
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0253
   type: BUG
   title: 'A project without a scaffold record -- this repository''s own harness --
@@ -542,13 +544,6 @@ items:
     pattern carries escaped backticks AND a space: `grep -c "\`a\`, \`b\`" README.md`
     is rc 2 with ''no tool call in this repo may write C:\'' (over-refusal, measured
     2026-09-06 in the generation-5 merge, TSK-0133)'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0286
-  type: BUG
-  title: 'H22 neu aufgelegt (Ausnahme nie freigegeben): Die Read-only-Klassifikation
-    gilt pro Stufe, der Pfad reist weiter (neu, TSK-0011)'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -603,6 +598,14 @@ items:
   title: Der Beweis-Vokabular-Leser entschuldigt eine ganze Spanne, sobald irgendwo
     vor dem nächsten Backtick eine berechnete Flagge (`--%s`) steht -- eine echte
     Auslassung daneben bleibt stumm
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0302
+  type: BUG
+  title: 'Eine offene Freigabe-Anfrage ohne Verfallsdatum hat keine Rücknahme-Tür:
+    elf abgelehnte Stapel von 09:15 bleiben unter approvals/pending stehen, der Hook
+    meldet sie bei jeder späteren Frage und `sweep-requests` löscht sie nicht'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -1364,6 +1367,54 @@ items:
   type: DEC
   title: 'The office kit keeps no goal item and no goal size: office work stays on
     the middle effort (H170 / BUG-0252, the user''s answer C)'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0105
+  type: DEC
+  title: A project without a scaffold record reads its rungs from a tier file its
+    own config names -- this repository's harness roles get a declared ladder instead
+    of 'keine Angabe' (H171 / BUG-0253, the user's answer A)
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0106
+  type: DEC
+  title: A patch applied from a FILE stays an open, named gap of the H11 class --
+    the kits' gate does not open the file and does not refuse every file patch (BUG-0286
+    / H202, the user's answer 3)
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0107
+  type: DEC
+  title: 'A QA fail classified ''narrow/mechanical'' does not climb the rung: the
+    classification is a field only the verifying role may set, a hook measures the
+    writer, and the climb counter reads it (H178 / BUG-0260, the user''s answer b
+    ''mit Hook gemessen, keine Gewohnheitsaktionen'')'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0108
+  type: DEC
+  title: A mixed-VAT invoice is booked as one ledger row per tax rate under a shared
+    invoice number (H166 / BUG-0248, the user's answer)
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0109
+  type: DEC
+  title: 'The office archive''s four-eyes wall stays at its measured strictness: tidy-up
+    by template and inbox overwrite remain open, named (H72 / BUG-0164, the user''s
+    answer ''so lassen'')'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0110
+  type: DEC
+  title: 'The migration''s deposit copy under staging/ stays a proposal file: no write
+    gate scans the migration records on every write (BUG-0056, the user''s answer
+    ''offen lassen'')'
   status: VALID
   revision: 1
   approval_ref: null
@@ -3797,6 +3848,12 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0416
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -4002,5 +4059,11 @@ items:
   type: TSK
   title: null
   status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0145
+  type: TSK
+  title: null
+  status: DRAFT
   revision: 1
   approval_ref: null

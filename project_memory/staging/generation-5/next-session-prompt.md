@@ -78,3 +78,10 @@ STAND 2026-09-11 11:35 (clock read) -- GENERATION 6 GESCHLOSSEN, AUSGEROLLT, GES
 - **Shell-Patch des Nutzers:** `staging/TSK-0143/h182-harness-patch-EXTENDED.md` (7 Stellen) + `staging/TSK-0141/s4-gate-commit-evidence-patch.md` (Stelle 8, mit Lead-Notiz) + H47-Zeile in `_harness.py` (TSK-0142 protocol, Seam 1). Danach Session-Neustart; dann wird der S4-Test grün.
 - **Nächster Auftrag (in-repo, kein Klick nötig):** H61/BUG-0153 (timeout in alle Kit-Hook-Registrierungen, dann der Leser), H113/BUG-0197 (Erledigt-Datensatz), H59/BUG-0151 (Verweigerung statt Warnung -- Entscheidung?), BUG-0295..0301 (Prüfer-Reste), BUG-0069 (schließt mit grüner CI nach dem Patch). Noch nicht als TSK angelegt.
 - **Nicht vergessen:** Desktop-App-Sitzung für die Claude-Watcher-Aufgabe (DEC-0098), Codex-Automationen, FR-0089-Experiment, `migrate-holes --reindex` nach jeder Loch-Aufnahme (Stand 207 Löcher).
+
+### Nachtrag 2026-09-12 22:58 (Uhr gelesen) -- nach den Klicks und Entscheidungen des Nutzers
+
+- 18 + 3 Klicks erteilt: 65 VERIFIED, 56 ACCEPTED_EXCEPTION (Archiv: 199 VERIFIED / 70 ACCEPTED_EXCEPTION / 4 REJECTED / 2 DUPLICATE). **Aktive BUGs: 27** (davon 9 = Schutzdateien dieses Repos -> Nutzer-Patch: H13 H18 H19 H23 H47 H69 H151 H182 H188; 5 = durch Entscheidungen bestellt: H155 H171 H178 H166 + H170 als Ausnahme angefragt; 3 = in-repo-Rest H59 H61 H113; 1 = Stempel-Nachmessung H160; 8 = Prüfer-Reste BUG-0295..0302; BUG-0069 = CI).
+- Acht Entscheidungen als DEC-0103..0110 aufgenommen. **Order 4 = TSK-0145 (DRAFT)**, Skript `generation-6/create_bug_null_order_4.py`; READY + Spawn nach dem Wort des Nutzers (Zeitpunkt).
+- Elf alte Anfragen von 09:15 stehen weiter unter approvals/pending (BUG-0302: keine Rücknahme-Tür); der Hook meldet sie bei jeder Frage -- harmlos, aber laut.
+- Commits: 18f9c24 (3b + Zielrunde), 05f7d79 (Zustand), dann der Abschluss-Commit dieser Sitzung; alle gepusht.

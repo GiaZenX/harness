@@ -1,0 +1,23 @@
+id: DEC-0109
+title: 'The office archive''s four-eyes wall stays at its measured strictness: tidy-up
+  by template and inbox overwrite remain open, named (H72 / BUG-0164, the user''s
+  answer ''so lassen'')'
+work: PR-0012
+context: 'H72/BUG-0164: the four-eyes wall holds what it says (no foreign or swapped
+  document under a doubly read name); it deliberately does not bind tidy-up by template
+  (compares template + file name, not place), overwriting an inbox document, and three
+  named over-refusals. Put to the user 2026-09-12 ~22:2x as a question with prices
+  (leave / stricter: check place, protect the inbox at the price of more refusals
+  in daily office work); answer: leave.'
+decision: No stricter wall. BUG-0164 becomes ACCEPTED_EXCEPTION with the bound in
+  `limits`; the office lead skill keeps its one sentence on what the wall does not
+  bind.
+alternatives: 'Stricter (place comparison + inbox protection): every rename and re-read
+  would need an approval -- rejected by the user.'
+consequences: One exception question (the click); no build.
+source: staging/TSK-0142/protocol.md, the BUG-0164 row in question form (verifier
+  B round 3 D1); the user's click 2026-09-12
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-12T22:56:10'

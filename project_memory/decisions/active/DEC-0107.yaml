@@ -1,0 +1,30 @@
+id: DEC-0107
+title: 'A QA fail classified ''narrow/mechanical'' does not climb the rung: the classification
+  is a field only the verifying role may set, a hook measures the writer, and the
+  climb counter reads it (H178 / BUG-0260, the user''s answer b ''mit Hook gemessen,
+  keine Gewohnheitsaktionen'')'
+work: PR-0012
+context: 'H178/BUG-0260: the role texts promise that a fail classified ''purely mechanical''
+  (a typo, not a reasoning error) does not cost a rung, but `count_failed_run_locked`
+  counts every FAILED run and nothing in the kernel knows the classification (grep:
+  0 hits). Two ways put to the user 2026-09-12 ~22:0x: (a) strike the promise from
+  the role texts; (b) a field only QA may set. Answer: b, with the condition that
+  a HOOK measures it -- no habitual action of the PM.'
+decision: The order carries a `fail_class` written ONLY through a kernel command the
+  verifying role runs (`evidence --kind test --result fail --fail-class mechanical|reasoning`),
+  stamped with the writer's role from the dispatch lease; gate_dispatch (a hook, not
+  prose) refuses a `fail_class` written by any other role or on an evidence item whose
+  run is not FAILED; `count_failed_run_locked` skips runs whose class is `mechanical`,
+  capped as before at the role's top. The PM never sets it -- it has no command for
+  it (no habitual action to police).
+alternatives: (a) strike the promise -- the report loses the distinction; rejected
+  by the user.
+consequences: One order (kernel + gate_dispatch + the QA role texts of the three kits);
+  the ladder comment names DEC-0106's sibling; a test that a PM-written class is refused
+  by the hook as a process.
+source: staging/TSK-0142/protocol.md, the BUG-0260 row (question with prices, verifier
+  B round 3 D3); the user's click 2026-09-12
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-12T22:53:37'

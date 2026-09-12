@@ -1,0 +1,28 @@
+id: DEC-0106
+title: A patch applied from a FILE stays an open, named gap of the H11 class -- the
+  kits' gate does not open the file and does not refuse every file patch (BUG-0286
+  / H202, the user's answer 3)
+work: PR-0012
+context: 'BUG-0286/H202: `git apply <<''EOF''` naming .claude/hooks was rc 0 at every
+  hook and is CLOSED (TSK-0142, `_STDIN_PARSER_RX`); the third carrier, a patch FILE
+  (`git apply changes.diff`, `patch -p1 <`, `cat x | git apply`, `git apply <(cat
+  x)`), is measured open: attack and everyday line are the same shape, they differ
+  only in the content of a file the gate never opens (verifier B rounds 2-3). Three
+  ways with prices were put to the user 2026-09-12 ~22:0x: (1) read the patch file
+  in the decision path (42.1 s hang measured on an unreachable path -> a killed hook
+  reads as pass), (2) refuse every file patch (over-refusal on an everyday command
+  in three kits), (3) leave it named. Answer: 3.'
+decision: 'The file carrier stays open and named: BUG-0286 becomes ACCEPTED_EXCEPTION
+  with the bound in `limits` (the rule protects against error, not intent; a hand-made
+  patch is a deliberate act; the heredoc and pipe carriers are closed). No file reading
+  in any gate''s decision path (H61''s cost), no blanket refusal of `git apply <file>`.'
+alternatives: (1) and (2) as above, both rejected by the user on their measured price.
+consequences: One exception question to the user (the click); docs/POST_V2_WISHLIST.md
+  row H202 carries the measurement; a future DEC may revisit if a hook layer with
+  an 'afterwards' (PostToolUse diff over .claude/) becomes available.
+source: staging/TSK-0142/protocol.md 'DEC question BUG-0286'; verify-round-2/3.md;
+  the user's click 2026-09-12
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-12T22:52:50'

@@ -1,0 +1,26 @@
+id: DEC-0105
+title: A project without a scaffold record reads its rungs from a tier file its own
+  config names -- this repository's harness roles get a declared ladder instead of
+  'keine Angabe' (H171 / BUG-0253, the user's answer A)
+work: PR-0012
+context: 'H171/BUG-0253: this repo runs no kit, so the kernel derives no rung for
+  harness-implementer/verifier; the order head says ''keine Angabe'' and the tiers
+  stand by hand in the role files. DEC-0078 (4) forbids the kernel to INVENT a default
+  ladder. Asked the user 2026-09-12 ~21:5x (own tier file vs leave); answer: A.'
+decision: project_config.yaml may name a tier file (`model_tiers:` path); the kernel
+  reads it ONLY when no scaffold record exists, validates it against the same shape
+  the kits' model_tiers.yaml has, and the dispatch header prints the derived pair
+  from it. A missing or unreadable file keeps 'keine Angabe' (never a guess). This
+  repository's config names one; the role files stop carrying the tiers by hand once
+  the file is the source (one place).
+alternatives: 'B (leave): the tiers of this repo readable nowhere in one place --
+  rejected.'
+consequences: One order (in-repo, kernel + this repo's config + the two role files
+  + a test that a missing file yields 'keine Angabe'); DEC-0078 (4) stands -- reading
+  a declared file is not inventing.
+source: staging/TSK-0141/protocol.md 'DEC questions for the user' (Frage 3) and 'DEC
+  proposal H171'; the user's click 2026-09-12
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-12T22:49:57'

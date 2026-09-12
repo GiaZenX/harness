@@ -28,11 +28,17 @@ acceptance_criteria:
   understands'
 source: 'archive BUG-0114; staging/generation-6/refile_unclicked_exceptions.py (lead
   classification: ja, stream B)'
-limits: '**nichts Technisches**, dieselbe Begrenzung wie H11 — die Reparaturstelle
-  liegt in der Read-only-Klassifikation der Kits'
+limits: 'Ein Patch, der in einer Datei liegt, kann die Schutzregeln überschreiben;
+  die Regel sieht nur den Dateinamen, und `git apply angriff.diff` sieht genauso aus
+  wie ein normaler `git apply feature.patch`. Begrenzt: der Patch direkt im Befehl
+  (Heredoc, Rohrleitung) ist zu; wer einen Patch von Hand anlegt und einspielt, tut
+  es mit Absicht — dieselbe Grenze wie beim selbstgeschriebenen Skript (H11). Deine
+  Entscheidung vom 2026-09-12: offen lassen, benannt.'
 supersedes: BUG-0114
 hole_number: H202
-status: OPEN
+status: ACCEPTED_EXCEPTION
 revision: 1
-approval_ref: null
+approval_ref: APR-0066
 created: '2026-09-12T09:46:27'
+approved_hash: 2d0e7d130e7c6f70a54cdc2425a23617c0e0a6849f7253ccf2c69d8f52fa6cf5
+closed_at: '2026-09-12T22:54:08'

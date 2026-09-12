@@ -1,0 +1,32 @@
+id: BUG-0302
+title: 'Eine offene Freigabe-Anfrage ohne Verfallsdatum hat keine Rücknahme-Tür: elf
+  abgelehnte Stapel von 09:15 bleiben unter approvals/pending stehen, der Hook meldet
+  sie bei jeder späteren Frage und `sweep-requests` löscht sie nicht'
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-12 21:5x: 11 hole_exception requests created 09:15 (the
+  batches the user rejected in prose; one was refused by click) carry no `expires`
+  in their manifest; `sweep-requests` -> ''deleted: -, still open: 11 (answering one
+  of these still mints)''; every following AskUserQuestion answer triggers gate_approval''s
+  ''11 approval request(s) outstanding'' note to the user (BUG-0039 text). No kernel
+  command withdraws a request; approvals/pending is canonical state (gate 1). The
+  items those requests bind are mostly archived by now, so a late click would fail
+  at the walk -- but the noise reaches the user on every decision question.'
+expected: A `withdraw-request <id>` (or `sweep-requests --stale <hours>`) door through
+  the kernel that removes a pending request the lead has replaced or the user rejected,
+  recorded in the audit log; the hook's note names only requests younger than the
+  session's own questions or stops counting withdrawn ones.
+repro: create a batch request, ask a different question -> the hook note appears;
+  run sweep-requests -> 'still open'.
+severity: medium
+acceptance_criteria:
+- 'AC-1: the lead can withdraw a pending request through the kernel; the audit log
+  records it'
+- 'AC-2: after withdrawal the hook note no longer counts it; a late click on a withdrawn
+  request mints nothing (measured)'
+- 'AC-3: a request bound to items that are all archived is reported as dead by sweep-requests'
+source: this session's transcript 2026-09-12 21:4x-21:5x; kernel/cli.py sweep-requests;
+  gate_approval PostToolUse note
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T22:49:59'

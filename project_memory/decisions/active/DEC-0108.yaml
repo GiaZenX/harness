@@ -1,0 +1,27 @@
+id: DEC-0108
+title: A mixed-VAT invoice is booked as one ledger row per tax rate under a shared
+  invoice number (H166 / BUG-0248, the user's answer)
+work: PR-0012
+context: 'H166/BUG-0248: the office kit''s invoice intake refuses a document with
+  two VAT rates side by side (7 % and 19 %) and names the rates; booking is by hand,
+  because the ledger''s row identity is `net x (1 + rate) = gross` and the EUeR per-line
+  sums and the section 19 threshold watch read it. Two shapes were put to the user
+  2026-09-12 ~22:1x (several rows with a shared invoice number / keep refusing) with
+  the note that either changes how the evaluation sums; answer: one row per rate,
+  shared invoice number.'
+decision: Intake splits a mixed-rate document into one ledger row per rate, each carrying
+  the same invoice number and its own net/rate/gross so the per-row identity holds;
+  the EUeR evaluation sums per rate as before and the document count is derived from
+  distinct invoice numbers, not rows; the refusal remains only for a document whose
+  per-rate breakdown the intake cannot read (BR-CO-14 stays).
+alternatives: Keep refusing and book by hand (manual work per mixed document) -- rejected;
+  one row with two rates (breaks the row identity every reader stands on) -- not offered.
+consequences: One office-kit order (invoice_intake.py, ledger_add.py, the EUeR evaluation's
+  document count, BR-CO rules text, tests red-first with a real mixed document); the
+  user may still confirm the shape with their tax advisor -- the DEC records the shape,
+  not tax advice.
+source: staging/TSK-0142/protocol.md, the BUG-0248 row; the user's click 2026-09-12
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-12T22:54:11'

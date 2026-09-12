@@ -1,0 +1,16 @@
+request_id: 2395e48e675848c99873a92417b517f8
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0252
+    revision: 1
+    scope_hash: a6717e49c5ce4a0c5d5ac33ca8e25ecb91f631a3958ef9dd37b70c9b261c5762
+    bound: Das Büro-Team hat keinen Ziel-Vorgang und damit kein Größen-Wort; große
+      Büro-Arbeit läuft auf der mittleren Denk-Stufe, die laut DEC-0078 für gewöhnl…
+subject_manifest_hash: 4acb9d0f7a76eb3847d73e1e926969860508f924198a256c66c09ead76f1ecc9
+created: '2026-09-12T22:58:43'
+expires_at_epoch: 1789333123.1308875
+mint_code: e1df9e
