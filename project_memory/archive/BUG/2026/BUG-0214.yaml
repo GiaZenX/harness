@@ -1,0 +1,30 @@
+id: BUG-0214
+title: Die Zeilennummern der Anlage EÜR stammen nicht aus dem amtlichen Vordruck (neu,
+  TSK-0116, FR-0076)
+related_pr: PR-0003
+observed: '**Mechanismus.** Das Kit liefert seit dieser Runde ein Standardvokabular
+  aus, in dem jede Kategorie
+
+  die Zeilennummer der Anlage EÜR trägt
+
+  (`team-kits/office-team/templates/project_memory/master_data.yaml`, Block `euer_form:`).
+  Die Zahlen
+
+  stammen aus öffentlichen Ausfüllhilfen, gelesen am 2026-09-03; der amtliche Vordruck
+  und
+
+  seine Anleitung wurden NICHT gelesen und werden nicht mitgeliefert.'
+severity: low
+hole_number: H131
+source: docs/holes/H131.md
+limits: Die Zeilennummern der Steuer-Anlage EÜR stammen aus öffentlichen Ausfüllhilfen.
+  Der amtliche Vordruck selbst liegt nicht vor und gehört auch nicht in dieses Projekt;
+  wer ihn hat, sollte sie einmal abgleichen.
+regression_tests:
+- tools/test_finance_dashboard.py::test_a_fresh_project_ships_a_category_vocabulary_the_p4_12_stall_cannot_recur_on
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0059
+created: '2026-09-05T20:27:00'
+approved_hash: ce1b9b90eda784536ff915269a769822ee35c8c6cbff07535878c2b6bb581968
+closed_at: '2026-09-12T22:30:36'

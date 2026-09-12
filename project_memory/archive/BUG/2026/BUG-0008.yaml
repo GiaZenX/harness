@@ -1,0 +1,23 @@
+id: BUG-0008
+title: Ein PowerShell-Modulcache liegt unverfolgt im Repo-Wurzelverzeichnis
+related_pr: PR-0003
+severity: low
+repro: '`git status` im Repo-Wurzelverzeichnis ausfuehren.'
+expected: Werkzeugspuren, die beim Ausfuehren entstehen, sind ignoriert und tauchen
+  nicht als neue Dateien auf.
+observed: '`Microsoft/Windows/PowerShell/ModuleAnalysisCache` liegt im Wurzelverzeichnis
+  und ist NICHT in .gitignore. Es taucht bei jedem `git status` als unverfolgt auf
+  und koennte versehentlich mitcommittet werden -- der Pruefer hat es in Runde 1 selbst
+  als Befund gemeldet. Entstanden durch einen PowerShell-Aufruf, der seinen Cache
+  dorthin schrieb.'
+acceptance_criteria:
+- Der Pfad ist ignoriert und der vorhandene Ordner entfernt.
+- Der .gitignore-Eintrag traegt eine Begruendung, damit ihn niemand als Altlast wieder
+  herausnimmt.
+- Geprueft ist, ob weitere Werkzeuge in dieses Repo schreiben -- gemessen, nicht vermutet.
+status: VERIFIED
+revision: 1
+approval_ref: APR-0056
+created: '2026-08-04T16:59:05'
+approved_hash: eb8bc53623788601e5afd5c47e2caca2beb95ddf3cf62484c0dfe0a18b432e01
+closed_at: '2026-09-12T21:25:54'

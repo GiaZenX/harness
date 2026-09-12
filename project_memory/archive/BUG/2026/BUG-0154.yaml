@@ -1,0 +1,32 @@
+id: BUG-0154
+title: Die Köder-Prüfung des Ledger-Gates urteilt segmentweit — offen, Kandidat gemessen
+  und zurückgestellt (neu, TSK-0083)
+related_pr: PR-0003
+observed: '**Mechanismus:** Seit TSK-0083 stellt `gate_ledger_valid` die Frage „schreibt
+  diese Zeile?" je
+
+  Pipeline-**Stufe** (`_stages_beside_the_vouched_runs`), die Köder-Frage aber weiter
+  je
+
+  **Segment** (`_DECOY_VALIDATOR_RX` in `_writes_ledger`): nennt die Argument-Prosa
+  eines
+
+  verbürgten Laufs einen Pfad, der nur so **aussieht** wie der Validator (`tools/ledger_add.py`),
+
+  wird das ganze Segment verweigert, sobald es auch das Ledger nennt.'
+severity: medium
+hole_number: H62
+source: docs/holes/H62.md
+limits: 'die Köder-Prüfung des Ledger-Gates (`_DECOY_VALIDATOR_RX`) urteilt noch über
+  das ganze Segment, während dieselbe Frage seit TSK-0083 sonst je Stufe gestellt
+  wird — ehrliche Argument-Prosa eines verbürgten Laufs, die einen Köder-Pfad nennt,
+  wird verweigert, sobald das Segment auch das Ledger nennt. Der Ein-Zeilen-Kandidat
+  wurde gemessen und NICHT genommen: er befreit zwei von drei Über-Verweigerungen,
+  lässt die nutzersichtbare stehen (BUG-0064) und lockert zugleich die einzige Regel
+  zwischen dem Gate und einem unbewachten Validator'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0051
+created: '2026-09-05T20:24:19'
+approved_hash: e6af043f304abc76449ef7a9ff442e7fff647feceadfa2b6e7595220c7f882da
+closed_at: '2026-09-12T21:23:20'

@@ -1,0 +1,30 @@
+id: BUG-0143
+title: Nach der einen Verweigerung schweigt der Melder für denselben Befund — offen
+  (neu, TSK-0080)
+related_pr: PR-0003
+observed: '**Mechanismus:** `gate_dispatch` verweigert das Zugende höchstens **einmal
+  je Befund**
+
+  (`mark_idle_reported` vergleicht die gespeicherte Begründung; bei `stop_hook_active`
+  hält es
+
+  still) — ein verweigerter Stop wird vom Provider mit Weitermachen beantwortet, ohne
+  die Schranke
+
+  wäre es eine Schleife. Ein Lead, der die Verweigerung liest und trotzdem weiter
+  wartet, wird
+
+  nicht erneut angehalten.'
+severity: medium
+hole_number: H51
+source: docs/holes/H51.md
+limits: 'Eine Schutzregel kann einen Abbruch nur EINMAL je Befund verweigern: Claude
+  Code beantwortet eine Verweigerung mit Weitermachen, und die Ursache besteht weiter
+  — eine zweite Verweigerung wäre eine Endlosschleife. Der Befund geht nicht verloren,
+  er steht im Protokoll.'
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0065
+created: '2026-09-05T20:23:51'
+approved_hash: 1fc068f71768ff80c61e6ceee134721eae36e113a3e39bcb89b329479217cbdf
+closed_at: '2026-09-12T22:44:06'

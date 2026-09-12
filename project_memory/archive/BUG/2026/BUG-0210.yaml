@@ -1,0 +1,54 @@
+id: BUG-0210
+title: Die Ablaufregel für eine offene Anfrage steht dreimal, und die drei Leser stehen
+  auf zwei Uhren (neu, TSK-0115, FR-0075)
+related_pr: PR-0003
+observed: '**Mechanismus.** Seit FR-0075 beantwortet die Tafel „was wartet auf dich?"
+  — dafür muss sie
+
+  `approvals/pending/` lesen und die Regel anwenden, die eine abgelaufene Anfrage
+  nicht mehr als
+
+  offen zählt. Dieselbe Regel steht schon an zwei Stellen: `approvals.open_requests`
+  fragt sie je
+
+  Datei über `pending_request`, `report.generate_session_brief` schreibt sie für den
+  Sitzungsbrief
+
+  noch einmal aus. Die Tafel ist die dritte. Sie kann die erste nicht rufen, und der
+  Grund ist
+
+  struktureller Natur: `approvals` importiert `state`, `state` importiert `board`
+  — ein Import
+
+  zurück schlösse den Importgraphen des Pakets zu einem Zyklus. Drei Kopien einer
+  Regel driften;
+
+  das ist die Fehlklasse.'
+severity: low
+hole_number: H126
+source: docs/holes/H126.md
+limits: 'die Ablaufregel für eine offene Freigabe-Anfrage steht DREIMAL: in `approvals.open_requests`
+  (je Datei über `pending_request`), in `report.generate_session_brief` und seit TSK-0115
+  in `board.open_requests`. Der Grund ist der Importgraph — `approvals` importiert
+  `state`, `state` importiert `board`, ein Import zurück schlösse den Zyklus. Drei
+  Leser stehen dabei auf ZWEI Uhren: `approvals.open_requests` (über `has_expired`)
+  und der Brief lesen beide `time.time()`, die Tafel ihren eigenen Seitenstempel.
+  Gemessen an einem Store mit einer Anfrage von 2 s Laufzeit: Tafel **1**, Brief drei
+  Sekunden später **0**, Tafel auf der Platte weiter **1**, nach dem nächsten Zustandsschreiben
+  **0**. Begrenzt durch: `test_board.test_the_board_and_the_session_brief_agree_on_the_open_requests`
+  hält die zwei Leser im selben Moment gegeneinander, und die Tafel sagt in ihrem
+  eigenen Kopf, dass ihr Stempel der Vergleichspunkt ist. Naht an Strom C: ein OPTIONALES
+  zweites Argument `now=None` an der **vorhandenen** `approvals.open_requests`, das
+  die Tafel setzt und die drei Haken-Aufrufer weglassen'
+regression_tests:
+- test_board.test_the_board_and_the_session_brief_agree_on_the_open_requests
+- tools/test_hooks_v2.py::test_a_relay_in_the_models_own_words_still_reaches_the_user
+- tools/test_hooks_v2.py::test_an_expired_request_is_not_open_and_a_reworded_relay_goes_silent
+- tools/test_board.py::test_the_board_and_the_session_brief_agree_on_the_open_requests
+- tools/test_approvals_dispatch.py::test_every_reader_of_the_expiry_rule_asks_this_one
+status: VERIFIED
+revision: 1
+approval_ref: APR-0049
+created: '2026-09-05T20:26:49'
+approved_hash: 5a87e7c5d8540089bc530af00d5a3ceb1e2a8685e3b4ffe9b24b3703d92969ce
+closed_at: '2026-09-12T21:21:55'

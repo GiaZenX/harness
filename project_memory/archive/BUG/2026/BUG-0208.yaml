@@ -1,0 +1,28 @@
+id: BUG-0208
+title: Die Fristenmeldung liest eine Uhr, die keinem Feld dieses Kits gehört (neu,
+  TSK-0113, FR-0034)
+related_pr: PR-0003
+observed: '**Mechanismus.** `_duties.briefing` nimmt `datetime.date.today()` der lokalen
+  Maschine, einmal je
+
+  Sitzungsstart, und vergleicht jede Frist gegen diesen einen Wert. Die Zeitzone des
+  Geschäfts steht
+
+  in keinem Feld des Kits, und die Sitzung liest ihre Uhr nicht noch einmal.'
+severity: low
+hole_number: H124
+source: docs/holes/H124.md
+limits: 'die Fristenmeldung liest die Uhr der lokalen Maschine einmal je Sitzungsstart
+  (`_duties.briefing`, `datetime.date.today()`): eine Sitzung über Mitternacht behält
+  die Antwort von gestern, und zwei Maschinen in verschiedenen Zonen antworten im
+  selben Moment verschieden. Begrenzt durch: kein Angriff und kein Datenverlust —
+  eine Meldung wechselt einen Tag zu früh oder zu spät —, die Tagesgrenze selbst ist
+  beidseitig gemessen, und der Nutzer entscheidet ohnehin über jede Frist'
+regression_tests:
+- test_routine_feed.test_the_routine_is_due_again_on_the_monday_after_a_run
+status: VERIFIED
+revision: 1
+approval_ref: APR-0054
+created: '2026-09-05T20:26:43'
+approved_hash: 592392fe6c94b94844f2216bc332e02dcb7f86d51e8e393552e4b099b4ed86b4
+closed_at: '2026-09-12T21:25:15'

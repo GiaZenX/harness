@@ -1,0 +1,34 @@
+id: BUG-0198
+title: Nach `/cd` läuft die Registrierung des ZIELVERZEICHNISSES, aber die Hook-DATEIEN
+  des Startverzeichnisses (neu, TSK-0108, FR-0059)
+related_pr: PR-0003
+observed: '**Mechanismus.** Seit Claude Code 2.1.246 tauscht `/cd` Einstellungen,
+  Hooks, Skills und MCP-Server
+
+  gegen die des Zielverzeichnisses aus. `${CLAUDE_PROJECT_DIR}` bleibt dabei — laut
+  Doku absichtlich —
+
+  auf dem **Startverzeichnis** stehen. Jede Hook-Kommandozeile, die unsere Kits und
+  dieses Repo
+
+  schreiben, buchstabiert ihren Pfad genau damit
+
+  (`python -B "${CLAUDE_PROJECT_DIR}/.claude/hooks/<gate>.py"`). Beides zusammen ergibt
+  ein Paar, das
+
+  niemand gewollt hat: **welche** Hooks registriert sind, entscheidet das Ziel; **welcher
+  Code** dann
+
+  läuft, entscheidet der Start.'
+severity: medium
+hole_number: H114
+source: docs/holes/H114.md
+limits: Wechselt man mitten in der Sitzung in einen anderen Projektordner, gelten
+  die Regeln des neuen Ordners, aber die Dateien des alten sind noch geladen. Das
+  entscheidet Claude Code, nicht dieses Projekt.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0058
+created: '2026-09-05T20:26:16'
+approved_hash: 3b6c8bd12bf871a13b841f7bd651fda67b58d9358f77485441dbb05b192653de
+closed_at: '2026-09-12T22:29:22'

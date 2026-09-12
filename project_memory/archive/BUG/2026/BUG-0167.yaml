@@ -1,0 +1,48 @@
+id: BUG-0167
+title: Was der E-Rechnungs-Leser NICHT prüft — offen, gemessene Grenzen des Geldpfads
+  (TSK-0091)
+related_pr: PR-0003
+observed: '**Anlass:** `BUG-0072`, Live-Fund im echten Projekt des Nutzers — der Kit-Extraktor
+  las aus einer
+
+  ZUGFeRD/CII-Rechnung den Positionswert statt der Dokumentsumme (14,28 statt 214,20)
+  und gab das
+
+  stille Falsch-Tripel mit rc 0 zurück; **alle vier** strukturierten E-Rechnungen
+  des Archivs waren
+
+  betroffen, gebucht wurde dank der Rechenprobe im Buchungs-Richter nichts Falsches.
+  Die Runde hat
+
+  den Leser strukturell verankert, die Dokument-Identität (EN 16931 BR-CO-15, `BT-112
+  = BT-109 +
+
+  BT-110`; Rundungsbetrag nur auf dem BR-CO-16-Rückfall) als lauten Wächter gebaut
+  und den Prüfer
+
+  zweimal überlebt — der dabei mit der Norm selbst gegenlas und eine Über-Verweigerung
+  UND eine
+
+  Segnung fing, bevor sie auslieferbar waren. Was bleibt, jede Grenze gemessen:'
+severity: low
+hole_number: H75
+source: docs/holes/H75.md
+limits: 'gemessene Grenzen des E-Rechnungs-Geldpfads, je im Eintrag: der Wächter ist
+  Arithmetik, nicht Semantik (`FR-0065` trägt die zweite Lesung); BR-CO-14 ungeprüft
+  (in sich stimmiger, positions-widriger Kopf läuft durch, gemessen); UBL nur synthetisch
+  belegt, Anzahlungs-Rückfall verweigert laut; XML ohne Geld-Tripel jetzt rc 2 statt
+  still leer; die Geldleser-Klasse im Owned-Manifest ist Urteil mit zwei gepinnten
+  Enden; ein künftiges Umgebungs-Leck wird still geheilt statt angezeigt (der Draht
+  hält die Fixture, die Fixture heilt die Quellen — beides gemessen); und drei Randformen
+  des Lesers mit je sicherer Richtung (ungepinnte dritte Anker-Schreibweise, Rohtext-Ausgabe
+  der Geldfelder, unlesbarer Rundungsbetrag zählt als 0 und endet laut)'
+regression_tests:
+- tools/test_kitupdate.py::test_every_guarded_repo_template_is_refreshed_by_the_scaffold
+- tools/test_kitupdate.py::test_every_kit_owned_path_is_shipped_by_some_kit
+- tools/test_repo_hygiene.py::test_no_test_in_this_suite_leaks_an_environment_variable
+status: VERIFIED
+revision: 1
+approval_ref: APR-0055
+created: '2026-09-05T20:24:53'
+approved_hash: a46ea85a3966aa58bb5457024fa935e4f8ee020da04b1db1c82d373d82ff5ad3
+closed_at: '2026-09-12T21:25:34'

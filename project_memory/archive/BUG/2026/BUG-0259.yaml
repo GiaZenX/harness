@@ -1,0 +1,60 @@
+id: BUG-0259
+title: The empty-lists rule that keeps a kit template from shipping somebody's business
+  reads only LISTS, so every SCALAR term of correspondence.yaml ships as a value the
+  kit chose and a customer letter carries it unchallenged
+related_pr: PR-0009
+observed: 'Measured 2026-09-05 in TSK-0132 while making `reminders` ship empty: `tools/test_kit_neutrality.py::test_every_office_state_template_ships_its_lists_empty`
+  walks the shipped office templates through `_lists_in`, which yields only nodes
+  that are LISTS. A scalar is never judged. `correspondence.yaml` therefore ships
+  three terms the kit decided for the business, and `scripts/letter_draft.py` renders
+  each of them verbatim into a letter that goes to a customer: `offer.valid_days:
+  14` becomes ''Dieses Angebot gilt bis zum <date>'', `address: "Sie"` decides the
+  form of address of every letter, and `closing: "Mit freundlichen Gruessen"` is its
+  last line. The dunning ladder of the SAME file was refused as content in this stream,
+  on the argument that after how many days a business writes is its own decision --
+  and ''how long an offer stands'' is the same kind of decision, only spelled as a
+  scalar. Nothing in the suite tells the two apart, so the rule protects one half
+  of one document.'
+expected: 'The neutrality rule judges what a template SHIPS, not what shape it ships
+  it in: a scalar the kit chose that reaches an outgoing text is content in the same
+  sense a list entry is. Either the reader descends into scalars with a recorded exception
+  list of the same both-directions shape (a scalar shipped filled needs a reason plus
+  a tripwire, as `master_data.yaml:categories` and `chart_of_accounts.yaml:accounts`
+  have), or the terms move to a shipped-empty shape and `letter_draft.py` refuses
+  with the `apply-proposal` route named, as its reminder branch now does. Either way,
+  a value a customer reads is one the user chose.'
+repro: 'Scaffold an office project, run `python scripts/letter_draft.py offer --to
+  "X" --line "A;1;100.00"` without touching `project_memory/correspondence.yaml`:
+  the draft says the offer stands 14 days and addresses the customer with `Sie`, neither
+  of which the user was asked. `python -m pytest tools/test_kit_neutrality.py -q`
+  is green throughout.'
+severity: low
+limits: 'What limits it today: the three values are the least loaded terms of the
+  document and each is a defensible German-business default, none of them is a figure
+  that is booked or a deadline anybody is held to, and the draft never leaves the
+  house by itself -- `outbox/` is a draft directory, the manager reads every text
+  against `/humanizer` and the USER sends (constitution 2.2), so a wrong validity
+  or form of address is caught by a human who is in the loop by construction. The
+  values are also visible in the document the user owns and reachable through `revise-document`.
+  The loaded half of the same file -- the dunning ladder, where the fee and the days
+  carry legal weight -- ships empty and refuses with its route named (`tools/test_office_package.py::test_a_reminder_the_data_does_not_carry_is_refused`),
+  which is where the measured live damage of BUG-0041''s class would have been.'
+acceptance_criteria:
+- id: AC-1
+  text: the neutrality reader judges scalars of the shipped office state templates
+    too, or the terms ship empty -- decided with the reason, and the decision names
+    which of the two the round took
+- id: AC-2
+  text: 'red-first: with the fix, a scalar term added to a shipped template without
+    a recorded exception turns the neutrality suite red; without the fix it does not
+    (measured on a copy outside the repo)'
+- id: AC-3
+  text: no sentence in the kit claims the templates ship no content while a scalar
+    the kit chose reaches a customer letter
+hole_number: H177
+status: VERIFIED
+revision: 1
+approval_ref: APR-0052
+created: '2026-09-05T22:45:06'
+approved_hash: 6f93a9a7d5ab3e9c8246c2a7f4bfcfffef1d664c8bbb3095b711406d9412db71
+closed_at: '2026-09-12T21:24:04'

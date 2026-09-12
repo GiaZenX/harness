@@ -1,0 +1,35 @@
+id: BUG-0212
+title: Was eine Zerstörung ist, bleibt eine Vokabelliste (neu, TSK-0116, FR-0050)
+related_pr: PR-0003
+observed: '**Mechanismus.** Die WO-Hälfte der Zerstörungsregel ist eine Definition,
+  die WAS-Hälfte
+
+  nicht: `guard_fs_tripwire.NAMING_DESTRUCTION` und `SWEEPING_DESTRUCTION` sind Wortstämme.
+  Ob ein
+
+  Programm eine Datei entfernt, ist eine Tatsache über dieses Programm und aus der
+  Befehlszeile
+
+  nicht ableitbar — ein `PreToolUse`-Haken läuft VOR der Zeile und hat kein Nachher,
+  gegen das
+
+  er vergleichen könnte. Ein Programm, dessen Kommandowort, Flaggen und Unterbefehle
+  keinen dieser
+
+  Stämme tragen, geht durch; dasselbe gilt für eine Löschung innerhalb eines anderen
+
+  Programms (`python -c` mit `os.remove`).'
+severity: low
+hole_number: H129
+source: docs/holes/H129.md
+limits: Ob ein Programm eine Datei löscht, kann man der Befehlszeile nicht ansehen
+  — die Schutzregel läuft vor dem Befehl und hat kein Nachher zum Vergleichen; sie
+  erkennt die gängigen Löschbefehle und sagt selbst, was sie nicht sieht.
+regression_tests:
+- tools/test_hooks.py::test_every_destroying_stem_is_load_bearing_at_both_ends
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0065
+created: '2026-09-05T20:26:55'
+approved_hash: da704ec43dadff337c53823e6f9bfbd74e10d290e7ecd3bae8990da37c11d4bb
+closed_at: '2026-09-12T22:44:06'

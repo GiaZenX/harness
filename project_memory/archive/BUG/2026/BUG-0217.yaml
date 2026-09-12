@@ -1,0 +1,26 @@
+id: BUG-0217
+title: '`blocked` ist ein Zustand, keine Messung (neu, TSK-0117, FR-0082)'
+related_pr: PR-0003
+observed: '**Mechanismus.** `backlog_types.EVIDENCE_RESULTS` kennt seit dieser Runde
+  einen dritten Ausgang.
+
+  Der Kernel verlangt zu einem `blocked` den Satz, der sagt, WAS den Lauf verhindert
+  hat
+
+  (`state.capture_preflight`), und `gate_git` liest ihn vor und sagt dazu, dass nichts
+  geprüft wurde.
+
+  Niemand misst nach, ob der Browser wirklich fehlte. Der Wert macht aus einer Ehrlichkeitspflicht
+
+  einen Zustand; er fügt der Frage „ist das wahr?" nichts hinzu.'
+severity: medium
+hole_number: H134
+source: docs/holes/H134.md
+limits: Wenn jemand angibt, eine Prüfung sei blockiert gewesen, glaubt das System
+  den Grund — nachprüfen kann es ihn nicht; geliefert wird deswegen trotzdem nichts.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0063
+created: '2026-09-05T20:27:09'
+approved_hash: 3b3b666a33ef1de64bd7b8b27e0456e0b219c05aedeca34dc51305a172cf3780
+closed_at: '2026-09-12T22:42:49'

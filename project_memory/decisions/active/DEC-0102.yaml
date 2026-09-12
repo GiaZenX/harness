@@ -1,0 +1,63 @@
+id: DEC-0102
+title: 'Bug-Null 3b retrospective: the parallel cut halves wall-clock, the verification
+  rounds are where the cost sits, and a language reader is a DEC-first class -- five
+  rules for the next parallel round'
+work: PR-0012
+context: 'MEASURED (generation-6-streams.md, 2026-09-12): three parallel builders
+  A (kernel), B (kits), C (tools) spawned 09:50 on measured-disjoint scopes (check-scopes
+  09:49 disjoint; DEC-0101); all three PASS by 15:12 = 5 h 22 min wall clock; builder
+  time A 185 min (3 reworks), B 301 min over three agents (B/B2/B3, two of them stopped
+  by wall clock, 0 unreached at the end), C 140 min (3 reworks) = ~626 min sequential
+  equivalent -> the cut saved ~5 h on the critical path. Verification: 10 rounds (A4,
+  B3, C3), ~4 h verifier time, 2.6 M builder tokens + ~1.4 M verifier tokens. Goal
+  round M 15:13-20:10 (~5 h): seams, H196, stamp 2026.09.12-5, ONE full run 68 min
+  (1 failed = the user''s S4 arbiter / 5077 passed), first full run had 9 reds all
+  fixed at mechanism. Outcome: 68 ids ready for the user''s verification clicks (10
+  lines, 0 refused), ~33 exception questions with a German sentence, 8 decision questions,
+  ~13 user-patch sites, 4 holes the verifiers found (BUG-0295..0298). WHAT REPEATED:
+  (1) ''closed'' claimed broader than built -- the verifier found unbuilt spellings
+  of the SAME mechanism in every stream (heredoc via pipe, process substitution, `neither`
+  alone, shell literals, a four-verb list) = 7 of the 10 rounds; (2) a natural-language
+  reader (the acceptance-line negation reader, H194) had a hole in each of four rounds
+  -- a word inventory over a language never finishes (DEC-0070 (2) class); (3) a builder
+  stopping on wall clock twice (B, B2) with the same item; (4) a kernel contract change
+  (S2, --run-scope mandatory) broke callers in three other owners'' files (kits 17
+  sites, test_gates.py 10, this repo''s gate remedy text) -- DEC-0080 (2) reach measured
+  too late; (5) the subagent cannot deliver a HALF report (one message per agent)
+  -- three orders asked for one. WHAT COST: rework rounds 7, each 13-53 min builder
+  + 8-36 min verifier; the ''seam by message'' worked (every queued message drained)
+  but cost the lead ~40 relays.'
+decision: '(1) Parallel by default for a goal with >= 2 measured-disjoint file families
+  (DEC-0101 confirmed); the goal round stays ONE builder and owns stamp, full run,
+  known_holes and every shared file. (2) An order''s closure claim names the MECHANISM
+  and the builder measures every spelling of it it can enumerate BEFORE the EVD --
+  the verifier''s first attack is always ''another spelling of the same mechanism'';
+  a closure the verifier widens twice is re-filed as a hole with the mechanism, not
+  reworked a third time. (3) A reader over natural language (negation, cadence, size
+  words) is a DEC-first design round (DEC-0070 (2) extended): the class question --
+  does the kernel judge prose at all, or does it ask for the shaped form -- is recorded
+  before any further word is added; BUG-0296 is the open instance. (4) A stream that
+  changes a kernel command''s REQUIRED arguments greps every caller in the tree (kits,
+  tools, this repo''s .claude/hooks, README) BEFORE the change and lists them in its
+  protocol; the callers outside its scope go to the owners as seam rows at once, not
+  after the verifier finds them (DEC-0080 (2) made concrete). (5) The half report
+  is a PROTOCOL SECTION with a clock reading, never a message -- orders stop asking
+  a subagent for a mid-run message; the lead reads the protocol instead. A builder
+  that stops on wall clock leaves the protocol in a state the next builder can continue
+  from (B2/B3 did; formalised).'
+alternatives: 'Sequential single builder (DEC-0087 light form as measured in TSK-0138/0139):
+  ~10 h critical path for the same 121 holes -- rejected by the user''s word and by
+  the measurement. Fable escalation at FAIL 3 (DEC-0096): not applied on TSK-0141
+  because two of four round-3 findings lay in other owners'' files and the rest were
+  one line each -- the deviation is recorded in verify-round-3.md; the rule stays,
+  the reason it did not fire is a seam, not a builder limit.'
+consequences: The kits' lead skill 'Before the order goes out' gets rules (2) and
+  (4); the harness-lead file gets (1), (3), (5) -- both as orders (FR), not as edits
+  from this session. The next parallel round measures whether rule (2) lowers the
+  verify-round count below 10 for three streams.
+source: project_memory/staging/generation-6-streams.md; staging/TSK-0141..0144/protocol.md
+  and verify-round-*.md
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-12T21:15:33'

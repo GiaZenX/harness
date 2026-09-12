@@ -1,0 +1,37 @@
+id: BUG-0222
+title: Die BUILD-Hälfte der Standard-Härtung ist nicht gebaut, weil ihre beiden Wirtsdateien
+  in ein fremdes Kit gespiegelt sind (neu, TSK-0119, FR-0077)
+related_pr: PR-0003
+observed: '**Mechanismus.** `FR-0077` verlangt die mechanisch prüfbaren Hälften; die
+  Synthese verortet C1/C2/C3
+
+  im schon gebooteten `browser_smoke()` und B3 (Farbliterale im Anwendungscode) auf
+  dem Walker
+
+  `kit_checks._frontend_sources()`. Beide Wirtsdateien liefern **dev-team und research-team
+
+  byte-gleich** aus, `research-team/**` stand im `forbidden_scope` von TSK-0119, und
+  eine einseitige
+
+  Änderung bricht die Spiegelregel (`tools/test_hooks.py::test_shared_kit_files_identical`).
+
+  Gebaut wurde deshalb die frühere Stelle: der gestagte DSN-Entwurf, dessen Renderer
+  `dev-team`
+
+  allein ausliefert.'
+severity: medium
+hole_number: H139
+source: docs/holes/H139.md
+limits: 'die BUILD-Hälfte von `FR-0077` (C1/C2/C3 im `browser_smoke()`, B3 über `kit_checks._frontend_sources()`)
+  ist nicht gebaut: beide Wirtsdateien liefern dev-team und research-team **byte-gleich**
+  aus (sha256 gemessen), und `research-team/**` war diesem Strom verboten. Gebaut
+  ist die frühere Stelle, der gestagte DSN-Entwurf. Begrenzt durch: den eingefrorenen
+  Vertrag selbst und den Fidelity-Review der Phase 3 — Urteil, keine Messung'
+regression_tests:
+- tools/test_hooks.py::test_shared_kit_files_identical
+status: VERIFIED
+revision: 1
+approval_ref: APR-0054
+created: '2026-09-05T20:27:23'
+approved_hash: f81c44e14c2ad23512001ee83a11f10fbb6cefa4b85efe70db2246eec910a419
+closed_at: '2026-09-12T21:25:18'

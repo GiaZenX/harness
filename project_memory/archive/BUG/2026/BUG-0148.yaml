@@ -1,0 +1,21 @@
+id: BUG-0148
+title: Ein abgebrochener Brückenlauf lässt ein gemischtes Bündel stehen — offen, erholbar
+  (neu, TSK-0081)
+related_pr: PR-0003
+observed: '**Mechanismus:** Die Brücke fährt den Installer des gestagten Kits und
+  nimmt bei einem Kill
+
+  nichts zurück; der Scaffold rollt nur zurück, wenn er selbst verweigert.'
+severity: medium
+hole_number: H56
+source: docs/holes/H56.md
+limits: Wird das Hochziehen alter Projekte mittendrin abgebrochen, bleibt ein halb
+  umgestellter Stand liegen; ein zweiter Lauf räumt ihn sauber auf (gemessen, kein
+  Datenverlust). Ein Umbau, der alles auf einmal oder gar nicht macht, wäre ein anderes
+  Design.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0063
+created: '2026-09-05T20:24:04'
+approved_hash: e1895cf1965905fb0d51fa324e4b4ba4a5f7140557b99fb806beb14584ec9f53
+closed_at: '2026-09-12T22:42:49'

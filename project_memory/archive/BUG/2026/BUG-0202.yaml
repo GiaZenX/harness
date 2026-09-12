@@ -1,0 +1,34 @@
+id: BUG-0202
+title: Das Alter offener Posten und jeder Mahnstempel entstehen erst im Browser (neu,
+  TSK-0109, FR-0032)
+related_pr: PR-0003
+observed: '**Mechanismus.** Der Ledger kennt kein Fälligkeitsdatum und `business_profile.yaml`
+  keine
+
+  Zahlungsfrist (gemessen an den ausgelieferten Vorlagen). Die Seite ist außerdem
+  eine reine Funktion
+
+  der Daten — sie trägt bewusst keinen Erzeugungszeitpunkt —, also kann sie „älter
+  als 30 Tage" nicht
+
+  zum Renderzeitpunkt entscheiden. Beides zusammen heißt: das Alter, die Zahl der
+  Mahnkandidaten und
+
+  jeder Stempel „mahnen" werden beim Öffnen aus der Uhr des Betrachters gerechnet,
+  und die Frist ist
+
+  eine Konstante im Generator (§ 286 Abs. 3 BGB).'
+severity: low
+hole_number: H118
+source: docs/holes/H118.md
+limits: 'die Seite sagt beides selbst: „gerechnet beim Öffnen der Seite aus der Uhr
+  dieses Rechners" und woher die 30 Tage kommen (§ 286 Abs. 3 BGB); ohne Skript bleibt
+  der Strich stehen statt eine Zahl zu behaupten'
+regression_tests:
+- test_finance_dashboard.py::test_the_same_tree_renders_the_same_bytes
+status: VERIFIED
+revision: 1
+approval_ref: APR-0054
+created: '2026-09-05T20:26:27'
+approved_hash: e63d3578e6d990e74e13b6f9e5b066ee1599144707a753cef13f46149f81a3cb
+closed_at: '2026-09-12T21:25:13'

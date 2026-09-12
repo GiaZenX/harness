@@ -1,0 +1,31 @@
+id: BUG-0141
+title: Die zweite Vertragsverletzung eines Subagenten läuft ungebremst durch (neu,
+  TSK-0075)
+related_pr: PR-0003
+observed: '**Mechanismus:** `gate_subagent_output` blockiert einen Spezialisten, der
+  ohne seinen
+
+  Ausgabeblock stoppt. Der Provider setzt auf der dadurch ausgelösten Fortsetzung
+
+  `stop_hook_active`, und der Hook ehrt dieses Flag: er beendet mit 0, statt erneut
+  zu blockieren.
+
+  Wäre es anders, liefe der Subagent in eine Endlosschleife, denn das Flag steht auf
+  jeder
+
+  weiteren Fortsetzung ebenfalls. Damit ist genau die **zweite** aufeinanderfolgende
+  Verletzung
+
+  ungeblockt — der PM baut dann doch auf Prosa.'
+severity: medium
+hole_number: H49
+source: docs/holes/H49.md
+limits: Wird ein Befehl einmal abgelehnt und der Nutzer lässt ihn trotzdem weiterlaufen,
+  markiert Claude Code diese Fortsetzung. Ein zweites Mal zu blockieren würde eine
+  Endlosschleife ergeben -- der Hersteller entscheidet das, nicht dieses Projekt.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0058
+created: '2026-09-05T20:23:46'
+approved_hash: 6847c375f9f35d7497594a0dcaf74624a9eecd6d5057f582739a82048e2e4d92
+closed_at: '2026-09-12T22:29:22'

@@ -1,0 +1,55 @@
+id: BUG-0171
+title: Was die Besitz-Ableitung der Dokument-Schreibroute NICHT bindet — offen, gemessene
+  Grenzen (TSK-0096)
+related_pr: PR-0003
+observed: '**Anlass:** `BUG-0075`, live im echten Office-Projekt des Nutzers am 2026-08-30,
+  einen Tag nach
+
+  `apply-proposal` (H76): der Produkt-Redakteur überarbeitete eine Inhaltsregel, legte
+  sie als PROSA
+
+  unter einem NEUEN Namen (`claims_policy.proposed.md`) in den Vorschlagsbereich und
+  bat den Nutzer,
+
+  sie von Hand in `content_guidelines.yaml` einzusetzen — eine zweite Autorität neben
+  dem Kit-Dokument
+
+  und dieselbe Sackgasse, die `BUG-0071` am Vortag geschlossen hatte. Ursache: von
+  den Rollen, die in
+
+  §6 ein Kit-Dokument BESITZEN, kannte die Mehrzahl das Kommando in der eigenen Definition
+  gar nicht.
+
+  Die Runde macht das Kennen der Route zu einer EIGENSCHAFT des Besitzes: die Besitzer
+  werden aus der
+
+  Besitztabelle der Verfassung × `documents.accepts` abgeleitet, und drei Prüfungen
+  in
+
+  `tools/test_role_contracts.py` (Abschnitt 7) halten beide Richtungen — Besitzer
+  ohne Route, Route
+
+  ohne Besitz, Route auf ein Dokument, das das Kommando verweigert. Eine vierte, vom
+  Prüfer
+
+  gemessene Lücke ist in derselben Runde GESCHLOSSEN worden: ein schreibbares Kit-Dokument,
+  für das
+
+  die Tabelle KEINEN Besitzer nennt, schuldete die Route niemandem; das ist jetzt
+  ein eigener Befund
+
+  je Kit (rot gemessen an einem eingelegten `supplier_terms.yaml`). Was bleibt, jede
+  Grenze gemessen:'
+severity: low
+hole_number: H79
+source: docs/holes/H79.md
+limits: 'Der Schreibweg für Dokumente prüft Namen, nicht Absichten: eine erfundene
+  zweite Datei am falschen Ort sieht er nicht. Jede der vier Kanten ist begrenzt und
+  keine ist ein Angriffsweg; schließen ließen sie sich nur mit derselben zweiten Definition,
+  die BUG-0178 verbietet.'
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0065
+created: '2026-09-05T20:25:03'
+approved_hash: 094156135dd7d82aab131394f92091c80d88cbbe479e18bb0e28cf3b01d4364c
+closed_at: '2026-09-12T22:44:06'

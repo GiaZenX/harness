@@ -1,0 +1,71 @@
+id: BUG-0263
+title: 'The repo-wide test-pointer check pairs backticks running across a whole file,
+  so ONE code fence blinds it for everything below: 48 files, 39 citations, judged
+  by nothing'
+related_pr: PR-0009
+observed: 'Measured 2026-09-06 by the verifier of TSK-0132 and re-measured by the
+  implementer against the shipped reader. `tools/test_repo_hygiene.py` `_CODE_SPAN_RX
+  = re.compile(r"`([^`]+)`", re.DOTALL)` pairs single backticks consecutively over
+  the ENTIRE file. A fenced block (three backticks) is an odd number of backticks,
+  so from the first fence onward the reader pairs the GAPS between spans instead of
+  the spans -- every citation below the first fence disappears. `docs/office-kit-from-field.md`
+  has its first fence in line 23 and contributes 0 of its 8 node ids. Measured consequence,
+  planted: a node id in that file replaced by `test_this_name_resolves_to_nothing_at_all`
+  left the test GREEN (1 passed in 46.90s). THE MAGNITUDE IS CONVENTION-DEPENDENT
+  AND THE CONVENTION BELONGS HERE, because two honest readers gave two figures for
+  one defect: counting the corpus with fenced blocks BLANKED but their surrounding
+  text still read gives 486 judged by the shipped reader against 525 by the fence-aware
+  one, i.e. 39 unseen in 48 files (implementer, `_round-scratch/TSK-0132/probe_spans.py`);
+  counting with the fenced blocks EXCLUDED from the corpus altogether gives 475 against
+  529, i.e. 54 unseen (verifier of round 2, own reader). Same mechanism, same order
+  of magnitude, two conventions for what a citation INSIDE a fence is worth. Whoever
+  closes this counts once, says which convention, and does not quote either pair as
+  exact.'
+expected: 'The reader sees a citation wherever a citation stands. A fence-aware reader
+  (blank out fenced blocks before pairing single backticks, offsets preserved) is
+  one expression and was measured on this tree: it raises the judged corpus from 486
+  to 525 and finds exactly THREE citations that do not resolve, all in field-report
+  documents -- docs/pilot/2026-09-01-research-pilot.md (`tools/test_research_chain.py::test_a_task_on_an_experiment_cannot_name_the_question_the_experiment_hangs_from`),
+  docs/reviews/2026-09-02-tsk0107-office-duties-measurements.md (`tools/test_hooks_v2.py::test_the_session_start_budgets_together_fit_inside_the_hook_deadline`
+  and `.claude/hooks/test_gates.py::test_every_test_the_hole_list_names_is_one_that_exists`).
+  So the repair is the reader plus those three sentences, and it is measured, not
+  estimated. A per-file floor would additionally stop a whole file dropping out unnoticed.'
+repro: 'In a copy outside the repo: replace any cited node id in a file BELOW its
+  first code fence (docs/office-kit-from-field.md is one) with a name no suite defines,
+  run `python -B -m pytest tools/test_repo_hygiene.py::test_every_test_pointer_this_repo_writes_resolves
+  -q` -> 1 passed. Move the same citation ABOVE the first fence -> 1 failed.'
+severity: medium
+limits: 'What still holds meanwhile: the check is not blind, it is PARTIALLY blind
+  -- 486 of 525 citations are still judged, and every file with no fence at all (most
+  shipped kit .py and .md role texts) is read completely. `.claude/hooks/test_gates.py`
+  holds the unqualified half of the same claim inside the hook directory with its
+  own reader, untouched by this defect. The claim in TSK-0132''s protocol that this
+  test holds the AC-4 verdict table has been WITHDRAWN and replaced by a measurement
+  of that one document with a fence-aware reader (`tools/test_office_package.py::test_every_test_the_field_report_verdicts_name_is_one_that_exists`),
+  which is scoped and says why it exists. That scoped reader is a second copy of a
+  definition and is only justified while this item is open -- closing this item deletes
+  it.'
+acceptance_criteria:
+- id: AC-1
+  text: the citation reader sees a citation below a code fence; measured red-first
+    by planting a nonexistent node id below a fence in a shipped file
+- id: AC-2
+  text: the three citations the wider reader surfaces are corrected or their sentences
+    rewritten, and the suite is green with the wider reader
+- id: AC-3
+  text: the corpus floor notices a FILE dropping out, not only a global count -- or
+    the round records why a global floor is enough
+- id: AC-4
+  text: the scoped reader in tools/test_office_package.py is deleted in the same change,
+    so one definition is left
+- id: AC-5
+  text: the round states its counting convention for a citation inside a fenced block,
+    and the numbers it reports are that convention's -- the two pairs in `observed`
+    differ only by that choice
+hole_number: H181
+status: VERIFIED
+revision: 1
+approval_ref: APR-0056
+created: '2026-09-06T05:17:21'
+approved_hash: d4f72c51c929e489d4cad58bee241c3a22da9db3b37f2a148ecb7d199ce00601
+closed_at: '2026-09-12T21:26:07'

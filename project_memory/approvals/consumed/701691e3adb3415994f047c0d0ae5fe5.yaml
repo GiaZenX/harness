@@ -1,0 +1,26 @@
+request_id: 701691e3adb3415994f047c0d0ae5fe5
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0282
+    revision: 1
+    scope_hash: 316d2b0a9b4bf28e29d4a71c8e43c644814132cf4462749caf2ff0667dc91ae7
+    bound: Ein Programm, das von der Kommandozeile gestartet wird, führt danach eigenen
+      Code aus. Was dieser Code tut, steht nicht in der Zeile -- eine Prüfung,…
+  - item: BUG-0284
+    revision: 1
+    scope_hash: 0efdd53ac24a21a71e0b9f5856bde766b47189792b1aa24462e1cb23c17e9679
+    bound: Steht der Dateipfad in einer Variablen, sieht die Prüfung nur deren Namen.
+      Welcher Pfad wirklich dahintersteht, weiß erst das Kommandozeilen-Programm…
+  - item: BUG-0292
+    revision: 1
+    scope_hash: 6083416c2088aef23c34f12b23d781adeb4567cdbce95c40a61fdd5d57e9d612
+    bound: 'Dieselbe Lücke wie beim Programm-Start: ein Skript kann eine Buchungszeile
+      ins Kassenbuch eintragen, die vorher niemand gelesen hat. Was stattdessen…'
+subject_manifest_hash: 1025a15ff7b4b3c0f86e4baa415c8d8b8653bd2edc5084f0a0f8c3e02ec4b8d0
+created: '2026-09-12T21:19:16'
+expires_at_epoch: 1789327156.411827
+mint_code: 02e986

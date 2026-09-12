@@ -1,0 +1,40 @@
+id: BUG-0213
+title: Die leere Aufbewahrung ist über `add-filing-rule` nicht erreichbar (neu, TSK-0116,
+  FR-0049)
+related_pr: PR-0003
+observed: '**Mechanismus.** Die Vorlage des Aktenplans nennt zwei ehrliche Formen
+  für `retention`: eine
+
+  zählbare Spanne, oder `null` für ein Fach, dessen Uhr nicht am Jahresende beginnt.
+  Seit
+
+  dieser Runde verweigert `kernel.filing.retention_refusal` alles dazwischen — aber
+  die leere Form
+
+  ist über den sanktionierten Weg gar nicht zu bekommen: `approvals.filing_rule_subject_manifest`
+
+  verweigert schon die FRAGE nach einer Regel ohne Aufbewahrung, also kann keine Freigabe
+  dafür
+
+  entstehen und `filing.apply` wird nie erreicht.'
+severity: low
+hole_number: H130
+source: docs/holes/H130.md
+limits: 'die zweite ehrliche Form einer Aufbewahrung — `retention: null` für ein Fach
+  ohne zählbare Frist, die die Vorlage ausdrücklich erlaubt — ist über `add-filing-rule`
+  NICHT erreichbar: `approvals.filing_rule_subject_manifest` verweigert schon die
+  FRAGE nach einer Regel ohne Aufbewahrung, also kann keine Freigabe dafür entstehen.
+  Gemessen in `tools/test_kernel.py::test_a_retention_the_deadline_register_cannot_read_is_refused_before_it_reaches_the_plan`.
+  Begrenzt durch: der Kernel-Leser akzeptiert die leere Form (dieselbe Messung), eine
+  von Hand geschriebene Regel darf sie tragen, und das Fristenregister meldet eine
+  Regel ohne Aufbewahrung gar nicht erst. `kernel/approvals.py` liegt im `forbidden_scope`
+  dieses Stroms'
+regression_tests:
+- tools/test_kernel.py::test_a_retention_the_deadline_register_cannot_read_is_refused_before_it_reaches_the_plan
+- tools/test_office_duties.py::test_the_kernel_and_the_duty_register_read_a_retention_the_same_way
+status: VERIFIED
+revision: 1
+approval_ref: APR-0049
+created: '2026-09-05T20:26:57'
+approved_hash: 09e46a5095cfc488e0e98daa36dc5056a43e755a7a0ef2567a40041ea6e308e7
+closed_at: '2026-09-12T21:21:57'

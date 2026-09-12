@@ -1,0 +1,70 @@
+# German sentences the A/B protocols wrote for downgraded rows (extracted by the lead for the exception questions)
+
+- B BUG-0286 (line 880; DEC question BUG-0286 (for the user, in plain German)): Ein Patch (eine Datei mit Änderungen, die ein Befehl auf dein Projekt anwendet) kann auch die
+- B BUG-0286 (line 881; DEC question BUG-0286 (for the user, in plain German)): Schutzregeln selbst überschreiben. Steht der Patch direkt im Befehl, wird das heute erkannt und
+- B BUG-0286 (line 882; DEC question BUG-0286 (for the user, in plain German)): verweigert. Liegt er in einer DATEI, sieht die Schutzregel nur den Dateinamen und lässt ihn
+- B BUG-0286 (line 883; DEC question BUG-0286 (for the user, in plain German)): durch. Drei Wege, jeder mit seinem Preis — welchen willst du?
+- B BUG-0286 (line 884; DEC question BUG-0286 (for the user, in plain German)): 
+- B BUG-0286 (line 885; DEC question BUG-0286 (for the user, in plain German)): 1. **Die Schutzregel liest die Patch-Datei** und urteilt über die Pfade darin. Preis: sie öffnet
+- B BUG-0286 (line 886; DEC question BUG-0286 (for the user, in plain German)): beim Prüfen eine Datei; liegt die auf einem nicht erreichbaren Netzlaufwerk, kann das Prüfen
+- B BUG-0286 (line 887; DEC question BUG-0286 (for the user, in plain German)): hängen (im Harness einmal mit 42,1 s gemessen), und der Haken wird dann abgewürgt, was der
+- B BUG-0286 (line 888; DEC question BUG-0286 (for the user, in plain German)): Anbieter als „durchlassen" liest.
+- B BUG-0286 (line 889; DEC question BUG-0286 (for the user, in plain German)): 2. **Jede Anwendung eines Patches aus einer Datei wird verweigert.** Preis, gemessen: das trifft
+- B BUG-0286 (line 890; DEC question BUG-0286 (for the user, in plain German)): `git apply feature.patch` genauso wie den Angriff — also jedes normale Einspielen eines
+- B BUG-0286 (line 891; DEC question BUG-0286 (for the user, in plain German)): Patches in jedem Projekt aller drei Kits, weil beide Zeilen sich nur im Inhalt der Datei
+- B BUG-0286 (line 892; DEC question BUG-0286 (for the user, in plain German)): unterscheiden.
+- B BUG-0286 (line 893; DEC question BUG-0286 (for the user, in plain German)): 3. **Es bleibt offen**, wie schon beim selbstgeschriebenen Skript (`H11`): die Regel schützt
+- B BUG-0286 (line 894; DEC question BUG-0286 (for the user, in plain German)): gegen Irrtum, nicht gegen Absicht, und wer einen Patch von Hand anlegt und einspielt, weiß,
+- B BUG-0286 (line 895; DEC question BUG-0286 (for the user, in plain German)): was er tut. Preis: der Weg bleibt offen und steht mit dieser Messung in der Löcherliste.
+- B BUG-0143 (line 955; `BUG-0143` / H51 -- DOWNGRADED with a measurement): Ein Hook kann einen Abbruch nur EINMAL je Befund verweigern: der Anbieter beantwortet eine
+- B BUG-0143 (line 956; `BUG-0143` / H51 -- DOWNGRADED with a measurement): Verweigerung mit Weitermachen, und die Ursache besteht weiter -- eine zweite Verweigerung waere
+- B BUG-0143 (line 957; `BUG-0143` / H51 -- DOWNGRADED with a measurement): eine Endlosschleife zwischen Anbieter und Hook. Jeder weitere Fall steht im Pruefprotokoll.
+- B BUG-0260 (line 976; `BUG-0260` / H178 -- the USER's decision, with the question written): Wenn die Qualitaetssicherung einen Fehlschlag als "rein mechanisch" einstuft, aendert das heute
+- B BUG-0260 (line 977; `BUG-0260` / H178 -- the USER's decision, with the question written): nichts: der naechste Versuch laeuft trotzdem eine Stufe teurer, weil der Zaehler nur zaehlt, dass
+- B BUG-0260 (line 978; `BUG-0260` / H178 -- the USER's decision, with the question written): ein Lauf gescheitert ist. Zwei Wege, und jeder kostet etwas:
+- B BUG-0260 (line 979; `BUG-0260` / H178 -- the USER's decision, with the question written): 
+- B BUG-0260 (line 980; `BUG-0260` / H178 -- the USER's decision, with the question written): (a) Wir streichen die Einstufung aus den Rollentexten. Preis: der Bericht kann den Unterschied
+- B BUG-0260 (line 981; `BUG-0260` / H178 -- the USER's decision, with the question written): zwischen "der Code war falsch" und "ein Tippfehler im Befehl" dann gar nicht mehr ausdruecken --
+- B BUG-0260 (line 982; `BUG-0260` / H178 -- the USER's decision, with the question written): die Information geht ganz verloren, dafuer verspricht kein Text mehr etwas, das es nicht gibt.
+- B BUG-0260 (line 983; `BUG-0260` / H178 -- the USER's decision, with the question written): 
+- B BUG-0260 (line 984; `BUG-0260` / H178 -- the USER's decision, with the question written): (b) Die Einstufung wird ein Feld auf dem Auftrag, das NUR die pruefende Rolle setzen darf.
+- B BUG-0260 (line 985; `BUG-0260` / H178 -- the USER's decision, with the question written): Preis: jede andere Rolle -- auch die, die den Fehlschlag verursacht hat -- braucht dafuer eine
+- B BUG-0260 (line 986; `BUG-0260` / H178 -- the USER's decision, with the question written): Rueckfrage bei der Pruefung, also einen Schritt mehr pro Fehlschlag; dafuer bleibt die
+- B BUG-0260 (line 987; `BUG-0260` / H178 -- the USER's decision, with the question written): Unterscheidung erhalten und ein billiger Wiederholungslauf wird moeglich.
+- B BUG-0260 (line 988; `BUG-0260` / H178 -- the USER's decision, with the question written): 
+- B BUG-0260 (line 989; `BUG-0260` / H178 -- the USER's decision, with the question written): Welchen willst du?
+- B BUG-0212 (line 1001; `BUG-0212` / H129 -- DOWNGRADED with a measurement): Ob ein Programm eine Datei loescht, kann man der Befehlszeile nicht ansehen -- die Schutzregel
+- B BUG-0212 (line 1002; `BUG-0212` / H129 -- DOWNGRADED with a measurement): laeuft vor dem Befehl und hat kein Nachher zum Vergleichen; sie erkennt die gaengigen
+- B BUG-0212 (line 1003; `BUG-0212` / H129 -- DOWNGRADED with a measurement): Loeschbefehle und sagt selbst, was sie nicht sieht.
+- B BUG-0164 (line 1018; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): **Lage.** Die Vier-Augen-Regel fuers Archiv haelt, was sie sagt: ein fremdes oder vertauschtes
+- B BUG-0164 (line 1019; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): Dokument unter einem doppelt gelesenen Namen kommt nicht durch (gemessen). An drei Stellen greift
+- B BUG-0164 (line 1020; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): sie bewusst nicht: beim Aufraeumen nach Vorlage (dort werden Vorlage und Dateiname verglichen,
+- B BUG-0164 (line 1021; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): nicht der Ablageort), beim Ueberschreiben eines Dokuments im Posteingang, und an drei benannten
+- B BUG-0164 (line 1022; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): Stellen, an denen sie sonst zu oft verweigern wuerde.
+- B BUG-0164 (line 1023; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): 
+- B BUG-0164 (line 1024; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): (a) Es bleibt, wie es ist. Preis: nichts wird langsamer, und die drei Stellen bleiben offen --
+- B BUG-0164 (line 1025; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): wer dort ein Dokument austauscht, wird nicht bemerkt.
+- B BUG-0164 (line 1026; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): 
+- B BUG-0164 (line 1027; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): (b) Die Regel gilt auch dort. Preis: jedes Aufraeumen und jedes Ueberschreiben im Posteingang
+- B BUG-0164 (line 1028; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): braucht dann eine zweite Bestaetigung, also einen Klick mehr an einer Stelle, die heute
+- B BUG-0164 (line 1029; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): nebenbei laeuft -- und die drei benannten Ueber-Verweigerungen kommen zurueck.
+- B BUG-0164 (line 1030; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): 
+- B BUG-0164 (line 1031; `BUG-0164` / H72 -- DOWNGRADED with a measurement, and ONE question with its price): Es ist keine Frage nach einem Fehler im Code, sondern nach der Strenge, die du willst.
+- B BUG-0203 (line 1049; `BUG-0203` / H119 -- DOWNGRADED with a measurement (both halves)): Die Finanzseite wird immer neu erzeugt; wer sie von Hand aendert, verliert die Aenderung beim
+- B BUG-0203 (line 1050; `BUG-0203` / H119 -- DOWNGRADED with a measurement (both halves)): naechsten Lauf -- sie ist kein Dokument, sondern ein Ausdruck.
+- B BUG-0248 (line 1059; `BUG-0248` / H166 -- the USER's decision (and the Steuerberatung's)): Eine Rechnung mit zwei Steuersaetzen (7 % und 19 % nebeneinander) kann das Kassenbuch heute nicht
+- B BUG-0248 (line 1060; `BUG-0248` / H166 -- the USER's decision (and the Steuerberatung's)): in EINER Zeile fuehren, also verweigert die Annahme und nennt die Saetze; gebucht wird von Hand.
+- B BUG-0248 (line 1061; `BUG-0248` / H166 -- the USER's decision (and the Steuerberatung's)): Wie so ein Beleg kuenftig aussehen soll -- mehrere Zeilen mit einer gemeinsamen Rechnungsnummer
+- B BUG-0248 (line 1062; `BUG-0248` / H166 -- the USER's decision (and the Steuerberatung's)): oder eine Zeile je Satz --, entscheidest du mit deiner Steuerberatung; beides aendert, wie die
+- B BUG-0248 (line 1063; `BUG-0248` / H166 -- the USER's decision (and the Steuerberatung's)): Auswertung summiert.
+- B BUG-0174 (line 1081; `BUG-0174` / H82 -- DOWNGRADED with a measurement): Die Regel "kein Entwurf zum Nutzer, den niemand angesehen hat" ist gebaut und gemessen; die Reste
+- B BUG-0174 (line 1082; `BUG-0174` / H82 -- DOWNGRADED with a measurement): sind Fragen, wie weit ein Hook einer Rolle hineinreden darf.
+- B BUG-0191 (line 1090; `BUG-0191` / H107 -- DOWNGRADED with a measurement): Ein Auftragstext laesst sich nicht maschinell in "Ziel" und "Vorschrift" zerlegen; dafuer sind
+- B BUG-0191 (line 1091; `BUG-0191` / H107 -- DOWNGRADED with a measurement): beide Seiten angewiesen, eine Vorschrift im Brief zu melden statt sie auszufuehren.
+- B BUG-0147 (line 1102; `BUG-0147` / H55 -- DOWNGRADED with a measurement, plus a seam): Alte Installationen tragen eine Update-Bruecke, die auf ein gesprochenes Ja statt einer
+- B BUG-0147 (line 1103; `BUG-0147` / H55 -- DOWNGRADED with a measurement, plus a seam): protokollierten Freigabe laeuft; geheilt wird das erst mit dem Hochziehen auf das neue Kit, weil
+- B BUG-0147 (line 1104; `BUG-0147` / H55 -- DOWNGRADED with a measurement, plus a seam): niemand eine Datei aendern kann, die laengst auf einem fremden Rechner liegt.
+- B BUG-0223 (line 1154; Correction to my own `BUG-0223` row, 14:36 -- it is a DOWNGRADE and not "not reached"): Die Rangfolge-Regel ("eine Seite sagt genau EINE Sache, die der Nutzer hier tun soll") braucht
+- B BUG-0223 (line 1155; Correction to my own `BUG-0223` row, 14:36 -- it is a DOWNGRADE and not "not reached"): eine ausgezeichnete Ansicht. Ein Entwurf, der keine auszeichnet, kann ein Kachelblatt sein, bei
+- B BUG-0223 (line 1156; Correction to my own `BUG-0223` row, 14:36 -- it is a DOWNGRADE and not "not reached"): dem mehrere Hauptaktionen richtig sind -- deshalb sagt die Prüfung dort "nicht entscheidbar"
+- B BUG-0223 (line 1157; Correction to my own `BUG-0223` row, 14:36 -- it is a DOWNGRADE and not "not reached"): statt zu urteilen, und sie druckt diesen Satz, damit niemand das Schweigen als Bestanden liest.

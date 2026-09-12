@@ -1,0 +1,41 @@
+id: BUG-0254
+title: 'The Codex effort ceiling (`max` vs `ultra`) is unmeasured against the Codex
+  CLI: no Codex CLI on the measuring host, the vendor''s pages contradict each other,
+  model_tiers.yaml claims no ceiling (new, TSK-0130, PR-0010 AC-2, DEC-0076 (3))'
+related_pr: PR-0010
+severity: low
+observed: '**Mechanism.** DEC-0076 (3) asks that the Codex effort ceiling be measured
+  against the CLI before any note claims it. radar/2026-09-05-codex.md item 3 measured
+  the contradiction (model pages: `max`; the CLI agent-config page: `ultra`). On the
+  measuring host of TSK-0130 the Codex CLI is not installed (`codex` not on PATH,
+  no npm global, 2026-09-05 21:2x; `~/.codex/config.toml` exists and pins `gpt-6-astra`
+  at `model_reasoning_effort = "high"`), so no `.codex/agents/*.toml` could be run
+  against it. `team-kits/model_tiers.yaml` therefore states the contradiction under
+  the `codex:` block and names no ceiling; the shared vocabulary stays `low|medium|high|xhigh|max`,
+  and a provider-only value would travel unverified through the `codex:` frontmatter
+  overlay.'
+expected: A round with the Codex CLI installed writes a `.codex/agents/<role>.toml`
+  with `model_reasoning_effort = "ultra"` and one with `"max"` against `gpt-5.6-sol`
+  and `gpt-6-astra`, reads back accept/400, and the tiers table's comment states the
+  measured ceiling with the date.
+repro: '`where.exe codex` -> not found; `codex --version` -> command not found (Git
+  Bash, 2026-09-05 21:2x). radar/2026-09-05-codex.md item 3 for the two contradicting
+  pages.'
+acceptance_criteria:
+- id: AC-1
+  text: the ceiling is measured against the CLI on a host that has it, both values,
+    both models; the table's comment carries the result and the date
+- id: AC-2
+  text: the generator's overlay check refuses a provider-only effort value the measurement
+    showed the CLI rejects
+limits: 'Wie hoch die Denk-Intensität auf der zweiten Arbeitsumgebung (Codex) gehen
+  kann, ist ungemessen: das Programm ist auf diesem Rechner nicht installiert, und
+  die Seiten des Herstellers widersprechen sich.'
+regression_tests: []
+hole_number: H172
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0058
+created: '2026-09-05T22:20:31'
+approved_hash: a7b1fc39a8227130169ab56105e171cda6ade9a8686f51ed2dd8cf955fdb2c63
+closed_at: '2026-09-12T22:29:23'

@@ -1,0 +1,26 @@
+id: BUG-0102
+title: Codehälften ohne rote Mutation — ZWEI GESCHLOSSEN, keine erschöpfende Suche
+related_pr: PR-0003
+observed: '**Mechanismus:** eine Hälfte einer Fallunterscheidung, die kein Test unterscheidet,
+  ist unbelegt —
+
+  sie lässt sich löschen, ohne dass etwas rot wird.'
+severity: low
+hole_number: H10
+source: docs/holes/H10.md
+limits: 'WIR HABEN UNS ENTSCHIEDEN, DIESE ZEIT NICHT AUSZUGEBEN -- das ist keine Grenze
+  der Technik, sondern eine Entscheidung, und du sollst sie treffen können. Es geht
+  um eine lückenlose Suche nach Code-Stellen, die von keinem Test unterschieden werden:
+  gemessen sind 405 solche Stellen in den sieben Schutzdateien, und jede einzelne
+  verlangt, sie zu verändern und danach die ganze Testsuite mit 553 Tests laufen zu
+  lassen. Zwei gefundene Stellen sind geschlossen und je durch einen Test gedeckt.
+  Sag Bescheid, wenn du diese Suche als eigene Runde willst.'
+regression_tests:
+- test_gate3_sees_a_file_git_does_not_track_yet
+- test_gate3_reads_the_digest_in_any_field_of_the_record
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0064
+created: '2026-09-05T20:22:11'
+approved_hash: 26f5aa8a3ee8a60be94b94fe508dd6989c04010c50ac26033a8396e496639353
+closed_at: '2026-09-12T22:43:26'

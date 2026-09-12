@@ -1,0 +1,38 @@
+id: BUG-0107
+title: Gate 1 hängt jetzt an privaten Helfern eines Kit-Hooks (neu, Preis desselben
+  Fixes)
+related_pr: PR-0003
+observed: '**Mechanismus:** die Shell-Hälfte von Gate 1 und die Zeilenform-Prüfung
+  von Gate 3 benutzen
+
+  `team-kits/<kit>/hooks/gate_write_scope` als **Modul** — Tokenizer, Pipeline-Trennung,
+
+  Read-only-Klassifikation, Redirect-Form. Das ist Absicht: eine zweite Antwort auf
+  „ist diese Stufe
+
+  lesend" ist genau die Drift, die dieses Repo wiederholt bezahlt hat, und der Kit-Hook
+  trägt drei
+
+  dokumentierte Umschreibungen derselben Regel. Der Preis ist eine Kopplung an **unterstrichene**
+
+  Namen (`_tokenise`, `_pipelines`, `_stage_is_read_only`, `_redirect_targets`, `_null_sinks`,
+
+  `_walk`, `_operator`, `_has_write_flag`, `_stage_verb`, `_HEREDOC_RX`, `_MESSAGE_ARG_RX`).'
+severity: low
+hole_number: H15
+source: docs/holes/H15.md
+limits: 'the coupling is deliberate and the alternative is worse: a SECOND answer
+  to ''is this stage read-only'' is the drift this repository has paid for repeatedly,
+  so gate 1 borrows the kits'' own reader (`gate_write_scope._tokenise`, `_pipelines`,
+  `_stage_is_read_only`, `_redirect_targets`, `_walk`, `_operator`) through `_from_kit`.
+  The price is a dependency on UNDERSCORED names. Bounded because the failure direction
+  is LOUD and closed: a renamed helper makes the borrow raise, and a gate that cannot
+  execute refuses (spec II.4 fail-closed) instead of allowing -- and `.claude/hooks/test_gates.py`
+  drives every registered pair through the real hook process, so a broken borrow is
+  red before it ships.'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0051
+created: '2026-09-05T20:22:23'
+approved_hash: 8655512ae1a76b4b53ebbb065f4e2275a924cbbf944e167fe28cf37a2a2378ed
+closed_at: '2026-09-12T21:23:16'

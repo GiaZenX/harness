@@ -1,0 +1,29 @@
+id: BUG-0183
+title: Der gerenderte Aktenplan-Baum zeigt den PLAN, nicht die Platte (neu, TSK-0102,
+  FR-0031)
+related_pr: PR-0003
+observed: '**Mechanismus.** `scripts/filing_plan.py --tree` und der Ablage-Abschnitt
+  der
+
+  Verfahrensdokumentation rendern die `path_template`s der Regeln. Das ist gewollt
+  — der Baum IST der
+
+  Plan, so hat der Nutzer es gesteuert — aber es heißt auch: ein Ordner, der unter
+  `archive/`
+
+  tatsächlich EXISTIERT und von keiner Regel gedeckt ist, kommt in dem Bild, das dem
+  Nutzer als
+
+  „sichtbare Wahrheit" vorgelegt wird, nirgends vor.'
+severity: low
+hole_number: H91
+source: docs/holes/H91.md
+limits: der gerenderte Aktenplan-Baum zeigt den PLAN und nicht die Platte — er beschreibt
+  die Form mit `<year>`-Platzhaltern. Der Abgleich Plan↔Platte ist die Prüfung des
+  `project-auditor`
+status: VERIFIED
+revision: 1
+approval_ref: APR-0054
+created: '2026-09-05T20:25:35'
+approved_hash: 07a16a06aa28870a8e3af02944f4e113c57b121f54fffa93e6de2a004214c2cb
+closed_at: '2026-09-12T21:25:08'

@@ -1,0 +1,62 @@
+request_id: be5645adb2bd41569db1e2061ed21299
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0143
+    revision: 1
+    scope_hash: 624dfd012f3c15bb3e3b03c4fb5cef88f57b1bcb09927ffad6a0dbcb9d315a74
+    bound: 'Eine Schutzregel kann einen Abbruch nur EINMAL je Befund verweigern: Claude
+      Code beantwortet eine Verweigerung mit Weitermachen, und die Ursache best…'
+  - item: BUG-0147
+    revision: 1
+    scope_hash: 9da6b607145e612e894f6dcc4bf2f3633447a4abc55924b9c6297d97ed43bd65
+    bound: Alte Installationen tragen eine Update-Brücke, die auf ein gesprochenes
+      Ja statt einer protokollierten Freigabe läuft; die Meldung sagt das jetzt. Ge…
+  - item: BUG-0168
+    revision: 1
+    scope_hash: 6ee6c35e500c3190f262fab87f6dba83c415dd38637618d2fdaaa68b7ebb3297
+    bound: Derselbe falsche Weg-Text in allen Rollendateien fällt nicht auf, weil
+      nur Gleichheit geprüft wird, nicht Richtigkeit; und eine Freigabe deckt ein
+      er…
+  - item: BUG-0171
+    revision: 1
+    scope_hash: 003d5525d207dbedf1e5180ebba29171aebb56dbb091f4d581985a2f094e4183
+    bound: 'Der Schreibweg für Dokumente prüft Namen, nicht Absichten: eine erfundene
+      zweite Datei am falschen Ort sieht er nicht. Jede der vier Kanten ist begre…'
+  - item: BUG-0174
+    revision: 1
+    scope_hash: 3e2e60a93cb05f88d8a289f9c0ff2064fd3227ef21f2f31a28f3d7da2042a43d
+    bound: Die Regel „kein Entwurf zum Nutzer, den niemand angesehen hat“ ist gebaut
+      und gemessen; die Reste sind Fragen, wie weit eine Schutzregel einer Rolle…
+  - item: BUG-0176
+    revision: 1
+    scope_hash: 5bc7ff23867796ea83d0781572f34bf6f14019afc23c77c962c0867bb103032c
+    bound: Die Herleitung der Referenz-Fähigkeiten informiert nur und erlaubt nichts;
+      deshalb gibt es dort nichts, was ein Angreifer nutzen könnte.
+  - item: BUG-0191
+    revision: 1
+    scope_hash: 4f65554a35a19e693c5d3fd7ef3addd45c9ac4e128d8d284a89a9113dea2aa12
+    bound: Ein Auftragstext lässt sich nicht maschinell in „Ziel“ und „Vorschrift“
+      zerlegen; dafür sind beide Seiten angewiesen, eine Vorschrift im Brief zu mel…
+  - item: BUG-0203
+    revision: 1
+    scope_hash: a8c4491e0bbdd708c0d10f1525332fdd81ededac48e32008db904f2d05927789
+    bound: Die Finanzseite wird immer neu erzeugt; wer sie von Hand ändert, verliert
+      die Änderung beim nächsten Lauf — sie ist kein Dokument, sondern ein Ausdru…
+  - item: BUG-0212
+    revision: 1
+    scope_hash: 23dea351e99ceaf50234ced03a966e6bfc9a2c211bbb1871b1757dd68e047e3d
+    bound: Ob ein Programm eine Datei löscht, kann man der Befehlszeile nicht ansehen
+      — die Schutzregel läuft vor dem Befehl und hat kein Nachher zum Vergleiche…
+  - item: BUG-0223
+    revision: 1
+    scope_hash: f0f13ef40db39f60a432d30f6b7c9558cb7a547c198bef66bfe989875f880bfd
+    bound: Die Rangfolge-Regel („eine Seite sagt genau EINE Sache, die der Nutzer
+      hier tun soll“) braucht eine ausgezeichnete Ansicht. Ein Entwurf ohne eine sol…
+subject_manifest_hash: a7a30b0134fa5a59d3190ee7bc3a2e7ace7c1dae00fbbd245bebfee1bfc28920
+created: '2026-09-12T21:19:18'
+expires_at_epoch: 1789327158.4998636
+mint_code: 34b40f

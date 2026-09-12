@@ -1,0 +1,41 @@
+id: BUG-0159
+title: Köder und Geschwister werden nur befragt, wenn dieselbe Zeile schon blockiert
+  — offen, Loch, vorbestehend (benannt TSK-0083)
+related_pr: PR-0003
+observed: '**Mechanismus:** Die Prüfung, ob eine Zeile einen **Zwilling** des Validators
+  oder einen
+
+  Köderpfad benutzt, wird im Ledger-Gate nur dann gestellt, wenn dieselbe Zeile ohnehin
+  eine
+
+  blockierte Operation trägt (ein Commit, ein Schreibzugriff aufs Ledger, ein Schreibzugriff
+  auf
+
+  eine geschützte Datei). Eine Zeile, die den unbewachten Zwilling nur **laufen lässt**,
+  wird
+
+  nicht befragt. **Halbiert seit TSK-0083:** der Geschwister-Fall (ein Nachbarname
+  wie
+
+  `ledger_add.py.bak`) ist zu, weil der Wortende-Anker dort greift; offen ist nur
+  noch der Köder
+
+  mit **eigenem Verzeichnis**, den kein Anker vom kanonischen Pfad unterscheidet,
+  solange nichts
+
+  in der Zeile die Frage überhaupt stellt.'
+severity: medium
+hole_number: H67
+source: docs/holes/H67.md
+limits: 'die Köder- und Geschwisterprüfung des Ledger-Gates wird **nur befragt, wenn
+  dieselbe Zeile eine blockierte Operation trägt**. Ein Lauf eines unbewachten Zwillings
+  ohne Commit und ohne Ledger-Schreibzugriff in derselben Zeile (`python tools/ledger_add.py`,
+  `python scripts/ledger_add.py.bak ledger/2026.csv`) ist rc 0 — an beiden Zwillingen
+  identisch, also nicht Preis einer Runde. Begrenzt: der Gewinn des Angreifers wird
+  erst mit einer zweiten, dann geprüften Zeile wirksam'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0051
+created: '2026-09-05T20:24:32'
+approved_hash: 527a18b537aab5df924d29745eac7e7364870495a7b2d97c4c11624b75050e77
+closed_at: '2026-09-12T21:23:28'

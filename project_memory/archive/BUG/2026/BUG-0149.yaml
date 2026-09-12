@@ -1,0 +1,36 @@
+id: BUG-0149
+title: Ein Interpreter-Heredoc ist vor `gate_ledger_valid` unsichtbar (neu, Preis
+  des TSK-0081-Fixes)
+related_pr: PR-0003
+observed: '**Mechanismus:** `_compat.literal_heredoc_free` entfernt den Körper eines
+  **quotierten**
+
+  Heredocs, bevor der Leser urteilt; stehen bleibt nur, was eine **Shell** parst
+
+  (`_STDIN_PARSER_RX`). Ein Interpreter (`python`, `perl`), der sein Programm von
+  der
+
+  Standardeingabe liest, ist keine Shell — sein Heredoc-Körper verschwindet mitsamt
+  dem
+
+  Schreibzugriff darin. Für die Gates, die den Helfer schon nutzten, war das gemessen
+
+  verlustfrei; `gate_ledger_valid` übernimmt ihn seit TSK-0081, und dort ist es das
+  nicht.'
+severity: medium
+hole_number: H57
+source: docs/holes/H57.md
+limits: 'ein quotiertes Heredoc an einen INTERPRETER (`python <<''EOF''`) ist vor
+  `gate_ledger_valid` unsichtbar, seit es `_compat.literal_heredoc_free` übernimmt
+  — der Schreibzugriff im Körper kann den Richter des Ledgers ersetzen, und danach
+  fängt nichts mehr (die Commit-Prüfung fährt den Validator, der dasteht; gemessen
+  rc 0 auf kaputtem Ledger). Was begrenzt: der Werkzeug-Weg auf den Validator ist
+  für jeden doppelt verweigert (`guard_harness_selfmod`, `gate_write_scope`), die
+  Zeile muss vom Agenten kommen, und der ersetzte Validator steht sichtbar im Commit-Diff;
+  `_compat.py` benennt den Verlust seit TSK-0081 ehrlich'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0051
+created: '2026-09-05T20:24:06'
+approved_hash: 64c488bc626b4823aaacf6ff40a4a03f68bf8227b32ea909a62c7ca16fe6b6b9
+closed_at: '2026-09-12T21:23:18'

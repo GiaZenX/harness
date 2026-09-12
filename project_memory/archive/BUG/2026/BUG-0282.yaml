@@ -1,0 +1,47 @@
+id: BUG-0282
+title: 'H11 neu aufgelegt (Ausnahme nie freigegeben): Ein Interpreter führt Code aus,
+  den kein Gate lesen kann (neu, Preis des Fixes zu F2)'
+related_pr: PR-0012
+observed: 'Migrated 2026-09-05 as H11 into BUG-0103 with status ACCEPTED_EXCEPTION
+  and approval null -- the user never saw a question for it (measured 2026-09-12 over
+  archive/bug/*). Original finding: **Mechanismus:** Gate 1s Shell-Hälfte erkennt
+  einen Schreibzugriff an drei Positionen einer
+
+  Befehlszeile. Eine Ausnahme war unvermeidbar, sonst hätte das Gate die dokumentierten
+  Befehle dieses
+
+  Repos verweigert (`PYTHONPATH=team-kits python -B -m kernel.cli …`,
+
+  `python -B -m pytest .claude/hooks/test_gates.py`, `python tools/bump_kit_version.py`):
+  die Operanden
+
+  eines **Interpreters** gelten als Programm, nicht als Ziel. Der Inline-Text (`python
+  -c …`) ist von
+
+  der Ausnahme ausgenommen und wird verweigert.'
+expected: 'Not closable in this repository (a program the shell starts runs code no
+  text reader sees): an accepted exception the USER clicks, asked with this sentence:
+  Ein Programm, das die Kommandozeile startet, fuehrt Code aus, den keine Textpruefung
+  sieht - das kann kein Waechter lesen, der nur die Zeile liest.'
+repro: 'read BUG-0103 (status ACCEPTED_EXCEPTION, approval: null); the mechanism:
+  docs/holes/H11.md'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the item ends VERIFIED on a passing test that names it, or ACCEPTED_EXCEPTION
+  on a request the user answered -- never on a migration'
+- 'AC-2: if an exception, its `limits` is the plain-German sentence a non-developer
+  understands'
+source: 'archive BUG-0103; staging/generation-6/refile_unclicked_exceptions.py (lead
+  classification: nein, stream -)'
+limits: 'Ein Programm, das von der Kommandozeile gestartet wird, führt danach eigenen
+  Code aus. Was dieser Code tut, steht nicht in der Zeile -- eine Prüfung, die nur
+  die Zeile liest, kann es nicht sehen. Was stattdessen begrenzt: das Starten der
+  Schutzdateien selbst ist jedem verboten.'
+supersedes: BUG-0103
+hole_number: H198
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0061
+created: '2026-09-12T09:46:14'
+approved_hash: 9b3d8d83cade34a4c470cc1cbf8caf82a91987e29dea0129d93017bd589f9c4d
+closed_at: '2026-09-12T22:40:53'

@@ -1,0 +1,29 @@
+id: BUG-0176
+title: Was die Ableitung der Referenz-Skills NICHT bindet — offen, gemessene Grenzen
+  (TSK-0100)
+related_pr: PR-0003
+observed: '**Anlass:** `FR-0071`, Nutzerfrage „wie entscheidet der PM wann welche
+  eingesetzt werden? Nicht dass
+
+  er blauäugig immer dieselben nutzt?". Gebaut: `kernel/references.py` liest die
+
+  `reference_for:`-Erklärung jedes Skills gegen `assigned_role` und `type` der Aufgabe;
+
+  `create_lease` legt das Ergebnis in die Lease, `dispatch_header` trägt es in die
+  eine Zeile des
+
+  Prompts, die den Spezialisten wörtlich erreicht.'
+severity: low
+hole_number: H84
+source: docs/holes/H84.md
+limits: Die Herleitung der Referenz-Fähigkeiten informiert nur und erlaubt nichts;
+  deshalb gibt es dort nichts, was ein Angreifer nutzen könnte.
+regression_tests:
+- tools/test_reference_skills.py::test_the_dispatch_header_names_the_reference_skills_the_task_derives
+- tools/test_reference_skills.py::test_every_skill_retrieval_route_a_shipped_kit_file_spells_resolves
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0065
+created: '2026-09-05T20:25:17'
+approved_hash: 5d1f83f567b598d7a1c2c66787a32c98919777c941dbe3b672a791bb105cd614
+closed_at: '2026-09-12T22:44:06'

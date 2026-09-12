@@ -1,0 +1,52 @@
+request_id: 26b1b6a7d5a941a8824257835a4d2741
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0102
+    revision: 1
+    scope_hash: bf209981f02a50f019a3c5292627f31313626a8271cf12e413f83ae3a631a48c
+    bound: WIR HABEN UNS ENTSCHIEDEN, DIESE ZEIT NICHT AUSZUGEBEN -- das ist keine
+      Grenze der Technik, sondern eine Entscheidung, und du sollst sie treffen könn…
+  - item: BUG-0166
+    revision: 1
+    scope_hash: c78effb45d09297e55aa7c972eacb151cdad6dd24271e307a12ae517e8431d1a
+    bound: 'Die Messungen, mit denen die Testsuite schneller gemacht wurde, hängen
+      an der Auslastung dieses Rechners: läuft etwas anderes daneben, verschieben
+      si…'
+  - item: BUG-0177
+    revision: 1
+    scope_hash: 46b17e75b010a93a522091450c62904653b26b98565ebe8cdb416bb795454670
+    bound: Woher eine fremde Design-Vorlage stammt, prüft dieses Projekt an den Angaben
+      IN der Datei -- kein Test geht dafür ins Internet. Ändert jemand den Tex…
+  - item: BUG-0206
+    revision: 1
+    scope_hash: 5e63a3b17776487609720678672b2306ecbbd92c282d657e6177efdeb5ae1759
+    bound: Der Hinweis auf Dokumente, die niemand mehr liest, fragt die Versionsverwaltung,
+      welche Dateien zum Projekt gehören. Absichtlich ignorierte Dateien -…
+  - item: BUG-0234
+    revision: 1
+    scope_hash: 65dc392f6531cdfb198140fa64035c3763629ac9c9e78b1a9e0c0966eaee85e5
+    bound: Eine Option, die einen Testlauf verkleinern soll, aber gar nichts trifft,
+      lässt die Schutzregel durch. Um das zu erkennen, müsste sie vorher einmal d…
+  - item: BUG-0241
+    revision: 1
+    scope_hash: 99a2247f2e2e4c2572690d116701aade10e47db329fbf610410509880c738158
+    bound: 'Der Leser der drei Rollentexte prüft seit dieser Runde auch Pfade: zeigt
+      ein Satz auf eine Datei, die es nicht gibt, wird er rot. Was er weiter nicht…'
+  - item: BUG-0270
+    revision: 1
+    scope_hash: b99266c08081a521ead08e9338f53e0be2498c3c461cf0e4bed2f7e61667e156
+    bound: Der Rundgang, der Verweise auf Tests prüft, liest die Testdateien dieses
+      Projekts selbst nicht mit. Ihn zu erweitern setzt voraus, dass man ein BEISP…
+  - item: BUG-0291
+    revision: 1
+    scope_hash: 1e12924fbb8b2ef96d9dbd93d0c575e6e10043d06a82afca55fc8354f9a53500
+    bound: In der Datei, aus der Claude Code seine Schutzregeln liest, steht ein Satz,
+      der eine abgelöste Regel als die geltende nennt. Er erlaubt nichts -- er…
+subject_manifest_hash: 35db7676d888dbe6962ce011d1f77a03491b2dcbb2d5b9a7990cd30ca2b0fa82
+created: '2026-09-12T21:19:17'
+expires_at_epoch: 1789327157.463743
+mint_code: 7fabb7

@@ -1,0 +1,26 @@
+id: BUG-0145
+title: Die Lebensdauer von `stop_hook_active` ist ungemessen — offen (neu, TSK-0080)
+related_pr: PR-0003
+observed: '**Mechanismus:** Der Melder hält still, wenn der Provider den Stop als
+  bereits blockiert
+
+  markiert. Ob dieser Schlüssel nur die unmittelbar ausgelöste Fortsetzung trägt oder
+  länger
+
+  steht, ist hier nicht gemessen (`provider_observations.json` führt ihn nicht). Bliebe
+  er
+
+  sitzungslang stehen, schwiege der Melder für **alle** weiteren Befunde derselben
+  Sitzung.'
+severity: medium
+hole_number: H53
+source: docs/holes/H53.md
+limits: Wie lange sich Claude Code merkt, dass der Nutzer einen abgelehnten Befehl
+  einmal durchgewinkt hat, steht in keiner Datei dieses Projekts und lässt sich von
+  hier aus nicht messen.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0058
+created: '2026-09-05T20:23:56'
+approved_hash: 51c3201ac6fc85f53da398d2d4b42b6446c7b132ff6f05dd8c134b5cbd14ab44
+closed_at: '2026-09-12T22:29:22'

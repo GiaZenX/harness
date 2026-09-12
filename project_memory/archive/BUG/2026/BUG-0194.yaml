@@ -1,0 +1,28 @@
+id: BUG-0194
+title: Einen Check, den der Kernel nicht lesen kann, beantwortet er mit UNENTSCHIEDEN
+  (neu, TSK-0106, FR-0039)
+related_pr: PR-0003
+observed: '**Mechanismus.** Die Auflösung oben parst die Datei, die `check.ref` nennt.
+  Für eine Datei, die
+
+  kein Python ist — `src/rules.test.ts`, eine Go- oder Rust-Datei —, kann sie die
+  Frage nicht
+
+  beantworten. Sie gibt darum `None` zurück, und der Validator macht daraus eine **Warnung**:
+  kein
+
+  Merge wird angehalten, und der Produzent lässt das Item `unverified`.'
+severity: medium
+hole_number: H110
+source: docs/holes/H110.md
+limits: Einen Test in einer anderen Programmiersprache kann der Kern nicht lesen;
+  er sagt dann „weiß ich nicht“ statt den Merge zu sperren.
+regression_tests:
+- test_report.test_an_invariant_whose_check_this_kernel_cannot_read_blocks_nothing
+- test_staging_cli.test_verify_invariants_records_what_the_check_resolves_to_and_exits_on_the_gap
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0063
+created: '2026-09-05T20:26:05'
+approved_hash: 06a7e42b51eab19585a6a2924dbf4455005d1fa086b43bbc31e12911f9f01a7d
+closed_at: '2026-09-12T22:42:49'

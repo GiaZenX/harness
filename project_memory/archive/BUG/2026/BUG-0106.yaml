@@ -1,0 +1,26 @@
+id: BUG-0106
+title: Gate 3 druckt den Befehl, der es aufhebt
+related_pr: PR-0003
+observed: '**Mechanismus:** die Abhilfe des Gates ist `kernel.cli evidence --result
+  pass --summary <digest>`,
+
+  und genau die *darf* der Sitzungsagent ausführen — er muss es, denn er zeichnet
+  das Urteil des
+
+  Prüfers auf.'
+severity: low
+hole_number: H14
+source: docs/holes/H14.md
+limits: 'Die Schutzregel vor dem Speichern druckt selbst den Befehl, mit dem man sie
+  aufhebt -- und sie muss das, denn genau so wird das Urteil des Prüfers überhaupt
+  aufgeschrieben. Was stattdessen begrenzt: dieser Eintrag trägt einen Autor, er ist
+  unveränderlich, und er deckt nur genau den Stand der Dateien, für den er geschrieben
+  wurde -- bei der nächsten Änderung deckt er nichts mehr.'
+regression_tests:
+- test_gate3_remedy_is_executable_and_opens_the_commit
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0062
+created: '2026-09-05T20:22:20'
+approved_hash: 95af1eafc9cad3ae522dfebaae5a45ccb5da52422e1f601bc9831da5ef9fa8e1
+closed_at: '2026-09-12T22:41:50'

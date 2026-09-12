@@ -1,0 +1,26 @@
+request_id: f715b19ab29346b2a967adb00b71d305
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0157
+    revision: 1
+    scope_hash: 610028d1c2dd795cf9ce211d01c1361989b1275bc9755fdf1a74eee83d4b8deb
+    bound: Wenn eine Befehlszeile den Dateipfad erst im Moment des Ausführens zusammensetzt,
+      steht er nirgends im Text, den die Prüfung liest. Sie müsste dafür…
+  - item: BUG-0257
+    revision: 1
+    scope_hash: 5931197a82f2d568801ddf07445409d78e2fc37707958e633fcdc868efab8d4a
+    bound: Ein Beispiel in einem Text und ein echter Verweis auf einen Test sehen
+      genau gleich aus. An der Zeichenfolge selbst ist kein Unterschied zu erkennen,…
+  - item: BUG-0273
+    revision: 1
+    scope_hash: 490681efff49739ad3ae6a241547746fc3d92c3585ff1e3d20647fffe741c785
+    bound: Ein Satz, der einen Rhythmus behauptet, ohne zu sagen WAS ihn auslöst,
+      wird als Absicht gelesen und nicht als Behauptung. Den Unterschied zu erkennen…
+subject_manifest_hash: 0bc530ba82c0e977fbe3ea4ecdfce7b0b3f7b20a3e34f55056db9682fe10c9f7
+created: '2026-09-12T21:19:15'
+expires_at_epoch: 1789327155.8831291
+mint_code: 0ff7df

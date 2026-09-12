@@ -1,0 +1,35 @@
+id: BUG-0191
+title: 'Der Design-Brief trennt das ZIEL von der SCHREIBWEISE nur als Prosa: eine
+  Prozessregel im Brief fängt nichts (neu, TSK-0105, FR-0069)'
+related_pr: PR-0003
+observed: '**Mechanismus.** Der Brief ist seit dieser Runde ein Decision-Item mit
+  zwei Hälften — die aus dem
+
+  Repo abgeleitete (Stack, Palette, Typografie, Produktvokabular, bestehende Site)
+  und die gefragte
+
+  (Ambition — bei Exploration mit den Referenzen in ihrem Freitext —, was es erreichen
+  soll und für
+
+  wen, Ton, was es nicht werden darf) —,
+
+  geschrieben vom PM nach EINEM Frageaufruf und gelesen vom Designer. Ein Decision-Item
+  ist
+
+  Freitext: nichts parst die Hälften, nichts erkennt eine Prozessregel („keine Shop-Daten
+  hart
+
+  codieren", ein Dateibudget) darin, und nichts hindert den PM, sie in den Designauftrag
+  zu tragen.'
+severity: low
+hole_number: H107
+source: docs/holes/H107.md
+limits: Ein Auftragstext lässt sich nicht maschinell in „Ziel“ und „Vorschrift“ zerlegen;
+  dafür sind beide Seiten angewiesen, eine Vorschrift im Brief zu melden statt sie
+  auszuführen.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0065
+created: '2026-09-05T20:25:57'
+approved_hash: a135540523fede5a44ff89936e1f917725a1be36730d78ee9c783bd9c05f769e
+closed_at: '2026-09-12T22:44:06'

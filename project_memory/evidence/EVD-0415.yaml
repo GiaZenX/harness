@@ -1,0 +1,15 @@
+id: EVD-0415
+kind: review
+related:
+- TSK-0144
+result: pass
+summary: 'verifier PASS for diff:16f34efbea2c6a9ab6e465788eb8c507b93d6148e7466f05b45c9f427c3097a1
+  -- same tree as 18f9c24 outside project_memory (state-only change: the user''s 18
+  clicks, 65 VERIFIED + 53 ACCEPTED_EXCEPTION, hole index, EVD-0414 stands)'
+artifact_refs:
+- staging/TSK-0144/verify-round-2.md
+run_command: git diff HEAD --stat
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T22:48:21'

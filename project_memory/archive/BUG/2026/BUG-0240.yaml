@@ -1,0 +1,39 @@
+id: BUG-0240
+title: Die Rückschau hat keinen Ereignis-Auslöser; der Pflichtenmelder kennt nur die
+  Periode (neu, TSK-0123, FR-0084)
+related_pr: PR-0003
+observed: '**Mechanismus.** FR-0084 verlangt eine Rückschau, die an EREIGNISSEN hängt
+  — eine Phase ist zu Ende,
+
+  etwas wurde gemergt oder ausgeliefert, eine Befundklasse wiederholt sich, die Prämisse
+  einer
+
+  Entscheidung hat sich bewegt. Gebaut ist ein Takt: `_routine.audit_period_id` ist
+  die ISO-Woche, und
+
+  `_routine.routine_duties` beantwortet „ist der Lauf fällig" allein aus dem Datum
+  und dem Laufprotokoll
+
+  in `project_memory/.audit/hook_events.jsonl`. Kein Anlass geht in diese Antwort
+  ein — weder macht er
+
+  den Lauf fällig, noch räumt er ihn ab.'
+severity: medium
+hole_number: H158
+source: docs/holes/H158.md
+limits: 'die Rückschau hängt an Anlässen, gebaut ist ein Takt: `_routine.routine_duties`
+  antwortet allein aus Datum und Laufprotokoll. Gemessen je Kit über zwei Projekten
+  desselben Tages — eines leer, eines mit einem auf `DELIVERED` gelaufenen Ziel: ohne
+  Laufprotokoll dieselbe Pflicht Wort für Wort, mit Laufprotokoll beide still (`tools/test_review_procedure.py::test_no_occasion_makes_the_audit_run_due_and_that_is_the_seam`).
+  Die Verdrahtung liegt in `hooks/_routine.py` + `session_status.py`, dem verbotenen
+  Bereich dieses Stroms. Begrenzt durch: Schritt UND Rollendefinition sagen die Grenze,
+  beides gemessen'
+regression_tests:
+- tools/test_review_procedure.py::test_a_delivery_since_the_last_run_makes_the_audit_due_and_names_it
+- tools/test_routine_feed.py::test_a_run_in_an_earlier_week_leaves_the_routine_due
+status: VERIFIED
+revision: 1
+approval_ref: APR-0057
+created: '2026-09-05T20:28:15'
+approved_hash: 8c7c1141f2179b8edbc34def927c36f4c1695c10a2245c25300e36a8ef49c21c
+closed_at: '2026-09-12T21:26:29'

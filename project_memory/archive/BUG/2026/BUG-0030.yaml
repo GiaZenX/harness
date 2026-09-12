@@ -1,0 +1,29 @@
+id: BUG-0030
+title: Zwei literale Backspace-Zeichen (0x08) im Quelltext von gate_ledger_valid.py
+related_pr: PR-0003
+observed: 'Prueferbefund bei TSK-0038 2026-08-11: ruff --select PLE meldet 2x PLE2510
+  in team-kits/office-team/hooks/gate_ledger_valid.py:355 -- zwei literale Backspace-Zeichen
+  (Byte 0x08) im Whitespace der Zeile. Die Datei kompiliert (compile() ok), Regex-/Logikverhalten
+  unberuehrt, also kosmetisch/kein funktionaler Defekt. Aber ein Steuerzeichen im
+  Quelltext eines ausgelieferten Kit-Hooks ist ein Copy-Paste-Artefakt, das niemand
+  beabsichtigt hat, und ist gespiegelt zu pruefen (office/research/dev). Nicht Teil
+  von BUG-0007.'
+expected: Der Quelltext enthaelt keine Steuerzeichen ausser Tab/Newline; die Zeile
+  ist bereinigt, gespiegelt byte-identisch geprueft. Optional ein Stolperdraht, der
+  Steuerzeichen in Kit-Hook-Quellen faengt.
+repro: 'ruff check team-kits --select PLE2510 -> 2 Funde in gate_ledger_valid.py:355.
+  Oder per Python: any(0x08 in open(p,''rb'').read() for p in kit hook sources).'
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: Keine Steuerzeichen (Byte 0x08 u.a.) mehr in Kit-Hook-Quellen -- gemessen
+    ueber alle drei Kits
+- id: AC-2
+  text: Die Bereinigung ist byte-identisch gespiegelt und der Kit-Stempel entsprechend
+    neu
+status: VERIFIED
+revision: 1
+approval_ref: APR-0051
+created: '2026-08-11T12:10:38'
+approved_hash: 96201a88090ea791eb71dfc539be5bedc0bb5b1cd3b2d39bd760fef9d744a188
+closed_at: '2026-09-12T21:23:13'

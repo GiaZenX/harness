@@ -2320,12 +2320,12 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H7](docs/holes/H7.md) | BUG-0099 | ACCEPTED_EXCEPTION | `carries_work` verlangt keinen erreichbaren Endzustand — OFFEN |
 | [H8](docs/holes/H8.md) | BUG-0100 | VERIFIED | Acht Tests hingen am Status *eines* Items — GESCHLOSSEN |
 | [H9](docs/holes/H9.md) | BUG-0101 | REJECTED | Inhalt in diesem Auftrag nicht enthalten |
-| [H10](docs/holes/H10.md) | BUG-0102 | TRIAGED | Codehälften ohne rote Mutation — ZWEI GESCHLOSSEN, keine erschöpfende Suche |
+| [H10](docs/holes/H10.md) | BUG-0102 | ACCEPTED_EXCEPTION | Codehälften ohne rote Mutation — ZWEI GESCHLOSSEN, keine erschöpfende Suche |
 | [H11](docs/holes/H11.md) | BUG-0103 | ACCEPTED_EXCEPTION | Ein Interpreter führt Code aus, den kein Gate lesen kann (neu, Preis des Fixes zu F2) |
 | [H12](docs/holes/H12.md) | BUG-0104 | ACCEPTED_EXCEPTION | Ein Subagent kann sich die Ausnahme von Gate 2 selbst ausstellen |
 | [H13](docs/holes/H13.md) | BUG-0105 | TRIAGED | Der Produzent ist als DATEI geschützt, nicht als Verzeichnis |
-| [H14](docs/holes/H14.md) | BUG-0106 | TRIAGED | Gate 3 druckt den Befehl, der es aufhebt |
-| [H15](docs/holes/H15.md) | BUG-0107 | TRIAGED | Gate 1 hängt jetzt an privaten Helfern eines Kit-Hooks (neu, Preis desselben Fixes) |
+| [H14](docs/holes/H14.md) | BUG-0106 | ACCEPTED_EXCEPTION | Gate 3 druckt den Befehl, der es aufhebt |
+| [H15](docs/holes/H15.md) | BUG-0107 | VERIFIED | Gate 1 hängt jetzt an privaten Helfern eines Kit-Hooks (neu, Preis desselben Fixes) |
 | [H16](docs/holes/H16.md) | BUG-0108 | ACCEPTED_EXCEPTION | Der Pfad steht in einer Variablen, das Gate liest den Text (neu, TSK-0008) |
 | [H17](docs/holes/H17.md) | BUG-0109 | VERIFIED | Die andere Schreibweise einer Funktionsdefinition — GESCHLOSSEN (TSK-0011) |
 | [H18](docs/holes/H18.md) | BUG-0110 | TRIAGED | Das Repo als Operand eines Kopier- oder Archivbefehls gilt als Schreibzugriff (TSK-0008, korrigiert TSK-0011) |
@@ -2346,171 +2346,171 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H33](docs/holes/H33.md) | BUG-0125 | VERIFIED | Die erweiternde Antwort kam von einer Funktion, die eine andere Frage beantwortet (neu, TSK-0021) |
 | [H34](docs/holes/H34.md) | BUG-0126 | VERIFIED | Die Prosa-Entfernung löscht eine quotierte Spanne hinter einer Flagschreibweise, unabhängig vom Verb (neu, TSK-0021) |
 | [H35](docs/holes/H35.md) | BUG-0127 | VERIFIED | Was das Lesen einer Zeile kostet, war durch keine Frist begrenzt (neu, TSK-0021) |
-| [H36](docs/holes/H36.md) | BUG-0128 | TRIAGED | Ein einzelner Aufruf nach C gibt den Interpreter nicht zurück (neu, TSK-0021) |
+| [H36](docs/holes/H36.md) | BUG-0128 | ACCEPTED_EXCEPTION | Ein einzelner Aufruf nach C gibt den Interpreter nicht zurück (neu, TSK-0021) |
 | [H37](docs/holes/H37.md) | BUG-0129 | VERIFIED | Die Messvorrichtung selbst schreibt den Baum, den sie misst (neu, TSK-0022) |
 | [H38](docs/holes/H38.md) | BUG-0130 | ACCEPTED_EXCEPTION | Ein Programm, das ein Hier-Dokument einer Shell übergibt, liest keines der Gates (neu, TSK-0022) |
 | [H39](docs/holes/H39.md) | BUG-0131 | ACCEPTED_EXCEPTION | Endzustände, die dieses Repo nicht ehrlich erreichen kann: TSK `DONE`, BUG `VERIFIED` (neu, TSK-0055) |
 | [H40](docs/holes/H40.md) | BUG-0132 | ACCEPTED_EXCEPTION | Vertragszitationen außerhalb der `.py`-Quellen von `.claude/hooks/` liest kein Stolperdraht (neu, TSK-0058) |
-| [H41](docs/holes/H41.md) | BUG-0133 | TRIAGED | Vier gemessene Grenzen des Zeiger-Wächters (neu, TSK-0009) |
+| [H41](docs/holes/H41.md) | BUG-0133 | VERIFIED | Vier gemessene Grenzen des Zeiger-Wächters (neu, TSK-0009) |
 | [H42](docs/holes/H42.md) | BUG-0134 | VERIFIED | `INV.scope` als Liste geschrieben schaltete die Testabdeckungs-Regel still ab — GESCHLOSSEN (TSK-0060) |
 | [H43](docs/holes/H43.md) | BUG-0135 | VERIFIED | Was der Kernel selbst schreibt, lag außerhalb der Feldmenge, die der Sweep abgeleitet hat — GESCHLOSSEN (TSK-0059) |
-| [H44](docs/holes/H44.md) | BUG-0136 | TRIAGED | Vier gemessene Grenzen der Amendment-Ableitung (neu, TSK-0062) |
-| [H45](docs/holes/H45.md) | BUG-0137 | TRIAGED | Zwei Grenzen der Arbiter-Härtung der Gate-Suite (neu, TSK-0063) |
+| [H44](docs/holes/H44.md) | BUG-0136 | ACCEPTED_EXCEPTION | Vier gemessene Grenzen der Amendment-Ableitung (neu, TSK-0062) |
+| [H45](docs/holes/H45.md) | BUG-0137 | VERIFIED | Zwei Grenzen der Arbiter-Härtung der Gate-Suite (neu, TSK-0063) |
 | [H46](docs/holes/H46.md) | BUG-0138 | VERIFIED | `>&datei` ist eine bytehaltende Umleitung, die Gate 1 nicht als Schreibzugriff sah — GESCHLOSSEN (TSK-0070, über die Kit-Leih-Mechanik mitgeheilt) |
 | [H47](docs/holes/H47.md) | BUG-0139 | TRIAGED | Das Repo-Gate leiht den Ziel-Leser des Kits, aber nicht dessen Zeilen-Zuweisungskarte: `F=…; > $F` schreibt kanonischen Zustand an Gate 1 vorbei — OFFEN (neu, TSK-0070) |
-| [H48](docs/holes/H48.md) | BUG-0140 | TRIAGED | Ein offener Lesehandle friert das Board für die Dauer der Sitzung ein; das einzige aktive Signal ist eine im Hook-Pfad praktisch ungelesene stderr-Zeile — OFFEN als bewusster Tausch (neu, TSK-0071) |
-| [H49](docs/holes/H49.md) | BUG-0141 | TRIAGED | Die zweite Vertragsverletzung eines Subagenten läuft ungebremst durch (neu, TSK-0075) |
-| [H50](docs/holes/H50.md) | BUG-0142 | TRIAGED | Ein gebundenes Kind ohne `SubagentStop` ist nach dem TTL-Sweep unsichtbar — OFFEN als bewusster Tausch (neu, TSK-0080) |
-| [H51](docs/holes/H51.md) | BUG-0143 | TRIAGED | Nach der einen Verweigerung schweigt der Melder für denselben Befund — offen (neu, TSK-0080) |
-| [H52](docs/holes/H52.md) | BUG-0144 | TRIAGED | Ein Zombie-Dispatch hält rollengleiche id-lose Zuordnungen dauerhaft still — offen (neu, TSK-0080) |
-| [H53](docs/holes/H53.md) | BUG-0145 | TRIAGED | Die Lebensdauer von `stop_hook_active` ist ungemessen — offen (neu, TSK-0080) |
-| [H54](docs/holes/H54.md) | BUG-0146 | TRIAGED | Ein ungebunden laufendes Kind wird als „nie verfolgt" gemeldet — offen, nicht blockierend (neu, TSK-0080) |
-| [H55](docs/holes/H55.md) | BUG-0147 | TRIAGED | Die Alt-Bestand-Brücke läuft ohne gemintete Freigabe, und ein Subagent erreicht sie — offen (neu, TSK-0081) |
-| [H56](docs/holes/H56.md) | BUG-0148 | TRIAGED | Ein abgebrochener Brückenlauf lässt ein gemischtes Bündel stehen — offen, erholbar (neu, TSK-0081) |
-| [H57](docs/holes/H57.md) | BUG-0149 | TRIAGED | Ein Interpreter-Heredoc ist vor `gate_ledger_valid` unsichtbar (neu, Preis des TSK-0081-Fixes) |
-| [H58](docs/holes/H58.md) | BUG-0150 | TRIAGED | `TSK DONE → VALIDATED` fordert keine Evidence — offen als Semantik-Entscheidung (neu, TSK-0082) |
+| [H48](docs/holes/H48.md) | BUG-0140 | VERIFIED | Ein offener Lesehandle friert das Board für die Dauer der Sitzung ein; das einzige aktive Signal ist eine im Hook-Pfad praktisch ungelesene stderr-Zeile — OFFEN als bewusster Tausch (neu, TSK-0071) |
+| [H49](docs/holes/H49.md) | BUG-0141 | ACCEPTED_EXCEPTION | Die zweite Vertragsverletzung eines Subagenten läuft ungebremst durch (neu, TSK-0075) |
+| [H50](docs/holes/H50.md) | BUG-0142 | ACCEPTED_EXCEPTION | Ein gebundenes Kind ohne `SubagentStop` ist nach dem TTL-Sweep unsichtbar — OFFEN als bewusster Tausch (neu, TSK-0080) |
+| [H51](docs/holes/H51.md) | BUG-0143 | ACCEPTED_EXCEPTION | Nach der einen Verweigerung schweigt der Melder für denselben Befund — offen (neu, TSK-0080) |
+| [H52](docs/holes/H52.md) | BUG-0144 | VERIFIED | Ein Zombie-Dispatch hält rollengleiche id-lose Zuordnungen dauerhaft still — offen (neu, TSK-0080) |
+| [H53](docs/holes/H53.md) | BUG-0145 | ACCEPTED_EXCEPTION | Die Lebensdauer von `stop_hook_active` ist ungemessen — offen (neu, TSK-0080) |
+| [H54](docs/holes/H54.md) | BUG-0146 | ACCEPTED_EXCEPTION | Ein ungebunden laufendes Kind wird als „nie verfolgt" gemeldet — offen, nicht blockierend (neu, TSK-0080) |
+| [H55](docs/holes/H55.md) | BUG-0147 | ACCEPTED_EXCEPTION | Die Alt-Bestand-Brücke läuft ohne gemintete Freigabe, und ein Subagent erreicht sie — offen (neu, TSK-0081) |
+| [H56](docs/holes/H56.md) | BUG-0148 | ACCEPTED_EXCEPTION | Ein abgebrochener Brückenlauf lässt ein gemischtes Bündel stehen — offen, erholbar (neu, TSK-0081) |
+| [H57](docs/holes/H57.md) | BUG-0149 | VERIFIED | Ein Interpreter-Heredoc ist vor `gate_ledger_valid` unsichtbar (neu, Preis des TSK-0081-Fixes) |
+| [H58](docs/holes/H58.md) | BUG-0150 | VERIFIED | `TSK DONE → VALIDATED` fordert keine Evidence — offen als Semantik-Entscheidung (neu, TSK-0082) |
 | [H59](docs/holes/H59.md) | BUG-0151 | TRIAGED | Nichts treibt ein Projekt in die Phasen 6–9 — offen, die Leere ist jetzt gesagt (neu, TSK-0082) |
-| [H60](docs/holes/H60.md) | BUG-0152 | TRIAGED | `document_sources` erzwingt nichts — offen, doppelt begrenzt (neu, TSK-0082) |
+| [H60](docs/holes/H60.md) | BUG-0152 | VERIFIED | `document_sources` erzwingt nichts — offen, doppelt begrenzt (neu, TSK-0082) |
 | [H61](docs/holes/H61.md) | BUG-0153 | TRIAGED | Kein Kit-Hook merkt, dass sein Fenster abläuft — offen, Schließrichtung gebaut (neu, TSK-0082) |
-| [H62](docs/holes/H62.md) | BUG-0154 | TRIAGED | Die Köder-Prüfung des Ledger-Gates urteilt segmentweit — offen, Kandidat gemessen und zurückgestellt (neu, TSK-0083) |
+| [H62](docs/holes/H62.md) | BUG-0154 | VERIFIED | Die Köder-Prüfung des Ledger-Gates urteilt segmentweit — offen, Kandidat gemessen und zurückgestellt (neu, TSK-0083) |
 | [H63](docs/holes/H63.md) | BUG-0155 | VERIFIED | Das Ledger-Gate verweigert seine eigene beworbene Remedy — GESCHLOSSEN (TSK-0083, `BUG-0064`) |
-| [H64](docs/holes/H64.md) | BUG-0156 | TRIAGED | Jedes `>` eines Segments ist dem Ledger-Gate eine Umleitung, auch quotierte Prosa — offen, Über-Verweigerung als bewusster Preis (neu, TSK-0083) |
-| [H65](docs/holes/H65.md) | BUG-0157 | TRIAGED | Ein Wort, das die Shell erst durch Expansion herstellt, sieht dieser Leser nicht — offen, Loch, vorbestehend (benannt TSK-0083) |
-| [H66](docs/holes/H66.md) | BUG-0158 | TRIAGED | `shell_readings` sagt „jede Lesart" zu und liefert nur die POSIX-Lesart — offen, Loch, vorbestehend (benannt TSK-0083) |
-| [H67](docs/holes/H67.md) | BUG-0159 | TRIAGED | Köder und Geschwister werden nur befragt, wenn dieselbe Zeile schon blockiert — offen, Loch, vorbestehend (benannt TSK-0083) |
-| [H68](docs/holes/H68.md) | BUG-0160 | TRIAGED | Zwei Schreibweisen, die verweigert werden, ohne zu schreiben — offen, Über-Verweigerung, naheliegender Fix gemessen falsch (TSK-0083) |
+| [H64](docs/holes/H64.md) | BUG-0156 | VERIFIED | Jedes `>` eines Segments ist dem Ledger-Gate eine Umleitung, auch quotierte Prosa — offen, Über-Verweigerung als bewusster Preis (neu, TSK-0083) |
+| [H65](docs/holes/H65.md) | BUG-0157 | ACCEPTED_EXCEPTION | Ein Wort, das die Shell erst durch Expansion herstellt, sieht dieser Leser nicht — offen, Loch, vorbestehend (benannt TSK-0083) |
+| [H66](docs/holes/H66.md) | BUG-0158 | VERIFIED | `shell_readings` sagt „jede Lesart" zu und liefert nur die POSIX-Lesart — offen, Loch, vorbestehend (benannt TSK-0083) |
+| [H67](docs/holes/H67.md) | BUG-0159 | VERIFIED | Köder und Geschwister werden nur befragt, wenn dieselbe Zeile schon blockiert — offen, Loch, vorbestehend (benannt TSK-0083) |
+| [H68](docs/holes/H68.md) | BUG-0160 | VERIFIED | Zwei Schreibweisen, die verweigert werden, ohne zu schreiben — offen, Über-Verweigerung, naheliegender Fix gemessen falsch (TSK-0083) |
 | [H69](docs/holes/H69.md) | BUG-0161 | TRIAGED | Die Gates dieses Repos erben die halbe CR-Härtung der Kits — offen, Werkbank, `DEC-0022` (TSK-0084) |
-| [H70](docs/holes/H70.md) | BUG-0162 | TRIAGED | Der Vollständigkeits-Draht des Ledger-Gates fragt nach MUSTERN, also sieht er eine Ausnahme ohne Muster nicht — offen, Messlücke des Instruments (TSK-0083/TSK-0084) |
-| [H71](docs/holes/H71.md) | BUG-0163 | TRIAGED | Was der Leser der Merge-Rückstandsliste NICHT entscheiden kann — offen, vier gemessene Grenzen (TSK-0086) |
+| [H70](docs/holes/H70.md) | BUG-0162 | VERIFIED | Der Vollständigkeits-Draht des Ledger-Gates fragt nach MUSTERN, also sieht er eine Ausnahme ohne Muster nicht — offen, Messlücke des Instruments (TSK-0083/TSK-0084) |
+| [H71](docs/holes/H71.md) | BUG-0163 | VERIFIED | Was der Leser der Merge-Rückstandsliste NICHT entscheiden kann — offen, vier gemessene Grenzen (TSK-0086) |
 | [H72](docs/holes/H72.md) | BUG-0164 | TRIAGED | Was die Vier-Augen-Wand NICHT bindet — offen, gemessene Grenzen der Zweitlesungs-Mechanik (TSK-0087) |
-| [H73](docs/holes/H73.md) | BUG-0165 | TRIAGED | Was die Entscheidungs-zuerst-Runde NICHT misst — offen, drei gemessene Grenzen (TSK-0089) |
-| [H74](docs/holes/H74.md) | BUG-0166 | TRIAGED | Was die schnellere Gate-Suite NICHT schützt — offen, gemessene Grenzen (TSK-0090) |
-| [H75](docs/holes/H75.md) | BUG-0167 | TRIAGED | Was der E-Rechnungs-Leser NICHT prüft — offen, gemessene Grenzen des Geldpfads (TSK-0091) |
-| [H76](docs/holes/H76.md) | BUG-0168 | TRIAGED | Was der neue Dokument-Schreibweg NICHT bindet — offen, gemessene Grenzen (TSK-0092) |
-| [H77](docs/holes/H77.md) | BUG-0169 | TRIAGED | Was die Wertsprache-Regel NICHT hält — offen, gemessene Grenzen (TSK-0093) |
-| [H78](docs/holes/H78.md) | BUG-0170 | TRIAGED | Ein Startmodus, der die Projekteinstellungen nicht lädt, entfernt den ganzen Durchsetzungsapparat — offen, von innen nicht schließbar (TSK-0094) |
-| [H79](docs/holes/H79.md) | BUG-0171 | TRIAGED | Was die Besitz-Ableitung der Dokument-Schreibroute NICHT bindet — offen, gemessene Grenzen (TSK-0096) |
+| [H73](docs/holes/H73.md) | BUG-0165 | VERIFIED | Was die Entscheidungs-zuerst-Runde NICHT misst — offen, drei gemessene Grenzen (TSK-0089) |
+| [H74](docs/holes/H74.md) | BUG-0166 | ACCEPTED_EXCEPTION | Was die schnellere Gate-Suite NICHT schützt — offen, gemessene Grenzen (TSK-0090) |
+| [H75](docs/holes/H75.md) | BUG-0167 | VERIFIED | Was der E-Rechnungs-Leser NICHT prüft — offen, gemessene Grenzen des Geldpfads (TSK-0091) |
+| [H76](docs/holes/H76.md) | BUG-0168 | ACCEPTED_EXCEPTION | Was der neue Dokument-Schreibweg NICHT bindet — offen, gemessene Grenzen (TSK-0092) |
+| [H77](docs/holes/H77.md) | BUG-0169 | VERIFIED | Was die Wertsprache-Regel NICHT hält — offen, gemessene Grenzen (TSK-0093) |
+| [H78](docs/holes/H78.md) | BUG-0170 | ACCEPTED_EXCEPTION | Ein Startmodus, der die Projekteinstellungen nicht lädt, entfernt den ganzen Durchsetzungsapparat — offen, von innen nicht schließbar (TSK-0094) |
+| [H79](docs/holes/H79.md) | BUG-0171 | ACCEPTED_EXCEPTION | Was die Besitz-Ableitung der Dokument-Schreibroute NICHT bindet — offen, gemessene Grenzen (TSK-0096) |
 | [H80](docs/holes/H80.md) | BUG-0172 | VERIFIED | Der Freigabe-Haken ließ sich in dieser Werkstatt von Hand fahren — GESCHLOSSEN (TSK-0098), mit benannten Resten |
-| [H81](docs/holes/H81.md) | BUG-0173 | TRIAGED | Der Mint-Leser irrt in BEIDE Richtungen: eine unzerlegbare Zeile warnt zu viel, eine fehlende Datei zu wenig (neu, TSK-0097) |
-| [H82](docs/holes/H82.md) | BUG-0174 | TRIAGED | Was die interne Sicht-Schleife für Design-Entwürfe NICHT bindet — offen, gemessene Grenzen (TSK-0099) |
+| [H81](docs/holes/H81.md) | BUG-0173 | VERIFIED | Der Mint-Leser irrt in BEIDE Richtungen: eine unzerlegbare Zeile warnt zu viel, eine fehlende Datei zu wenig (neu, TSK-0097) |
+| [H82](docs/holes/H82.md) | BUG-0174 | ACCEPTED_EXCEPTION | Was die interne Sicht-Schleife für Design-Entwürfe NICHT bindet — offen, gemessene Grenzen (TSK-0099) |
 | [H83](docs/holes/H83.md) | BUG-0175 | VERIFIED | Ein Referenz-Skill erreichte nur Projekte auf dem Preset `all` — GESCHLOSSEN (TSK-0104), beide Ketten, mit benanntem Rest |
-| [H84](docs/holes/H84.md) | BUG-0176 | TRIAGED | Was die Ableitung der Referenz-Skills NICHT bindet — offen, gemessene Grenzen (TSK-0100) |
-| [H85](docs/holes/H85.md) | BUG-0177 | TRIAGED | Was die Herkunfts- und Bündelprüfungen NICHT sehen — offen, gemessene Grenzen (TSK-0100) |
-| [H86](docs/holes/H86.md) | BUG-0178 | TRIAGED | Was die Bestandsklassifikation NICHT sieht — offen, gemessene Grenzen (TSK-0101) |
+| [H84](docs/holes/H84.md) | BUG-0176 | ACCEPTED_EXCEPTION | Was die Ableitung der Referenz-Skills NICHT bindet — offen, gemessene Grenzen (TSK-0100) |
+| [H85](docs/holes/H85.md) | BUG-0177 | ACCEPTED_EXCEPTION | Was die Herkunfts- und Bündelprüfungen NICHT sehen — offen, gemessene Grenzen (TSK-0100) |
+| [H86](docs/holes/H86.md) | BUG-0178 | ACCEPTED_EXCEPTION | Was die Bestandsklassifikation NICHT sieht — offen, gemessene Grenzen (TSK-0101) |
 | [H87](docs/holes/H87.md) | BUG-0179 | VERIFIED | Pin und Rollback hatten keinen Kernel-Befehl, und der Pin schwieg in der Sitzungsmeldung — GESCHLOSSEN (TSK-0104), mit benanntem Rest |
-| [H88](docs/holes/H88.md) | BUG-0180 | TRIAGED | Der Rollback ist byte-gleich nur über die aufgezeichnete Menge, und ältere Sicherungen tragen keine — offen, gemessen (TSK-0101) |
-| [H89](docs/holes/H89.md) | BUG-0181 | TRIAGED | Ohne `git` kann die Vier-Augen-Buchung alte von neuen Zeilen nicht unterscheiden und tritt zurück (neu, TSK-0102, FR-0065) |
-| [H90](docs/holes/H90.md) | BUG-0182 | TRIAGED | Zwei identische Buchungen EINES Belegs teilen sich ein Lesepaar (neu, TSK-0102, FR-0065) |
-| [H91](docs/holes/H91.md) | BUG-0183 | TRIAGED | Der gerenderte Aktenplan-Baum zeigt den PLAN, nicht die Platte (neu, TSK-0102, FR-0031) |
+| [H88](docs/holes/H88.md) | BUG-0180 | VERIFIED | Der Rollback ist byte-gleich nur über die aufgezeichnete Menge, und ältere Sicherungen tragen keine — offen, gemessen (TSK-0101) |
+| [H89](docs/holes/H89.md) | BUG-0181 | ACCEPTED_EXCEPTION | Ohne `git` kann die Vier-Augen-Buchung alte von neuen Zeilen nicht unterscheiden und tritt zurück (neu, TSK-0102, FR-0065) |
+| [H90](docs/holes/H90.md) | BUG-0182 | VERIFIED | Zwei identische Buchungen EINES Belegs teilen sich ein Lesepaar (neu, TSK-0102, FR-0065) |
+| [H91](docs/holes/H91.md) | BUG-0183 | VERIFIED | Der gerenderte Aktenplan-Baum zeigt den PLAN, nicht die Platte (neu, TSK-0102, FR-0031) |
 | [H92](docs/holes/H92.md) | BUG-0184 | VERIFIED | Der Wurzel-Leser des Kernels löste EINEN Sprung auf, die Forschungskette ist zwei tief — GESCHLOSSEN (TSK-0106) |
 | [H93](docs/holes/H93.md) | BUG-0185 | VERIFIED | Die Freigabe, auf die der genannte Ausweg zwang, gibt es laut Kernel und Verfassung nicht, sie unterschrieb keinen Inhalt und sie starb nie — GESCHLOSSEN (TSK-0106) |
-| [H94](docs/holes/H94.md) | BUG-0186 | TRIAGED | Der gerenderte Forschungsbericht hatte keinen Schreibweg, während der Merge auf ihm bestand — Weg gebaut (TSK-0106), Verfassungszeile offen |
+| [H94](docs/holes/H94.md) | BUG-0186 | VERIFIED | Der gerenderte Forschungsbericht hatte keinen Schreibweg, während der Merge auf ihm bestand — Weg gebaut (TSK-0106), Verfassungszeile offen |
 | [H95](docs/holes/H95.md) | BUG-0187 | VERIFIED | Die Ursprungsprüfung des Dispatchs fiel bei MEHRDEUTIGER Elternschaft offen aus, in allen Kits — GESCHLOSSEN (TSK-0106) |
 | [H99](docs/holes/H99.md) | BUG-0188 | ACCEPTED_EXCEPTION | H11 hebt die Vier-Augen-Buchung mit auf: ein Skript trägt eine ungelesene Zeile nach `HEAD` und prägt die zweite Lesung (neu, TSK-0102, FR-0065) |
 | [H105](docs/holes/H105.md) | BUG-0189 | VERIFIED | Das Rollengedächtnis des Bookkeepers war ein Kanal zwischen erster und zweiter Lesung, den `gate_second_booking` nicht sieht — GESCHLOSSEN (TSK-0105, FR-0064), mit benanntem Rest |
-| [H106](docs/holes/H106.md) | BUG-0190 | TRIAGED | Der Umfang eines QS-Laufs ist Prosa: kein Feld und kein Hook zählt, ob die Suite einmal oder zehnmal lief (neu, TSK-0105, FR-0057) |
-| [H107](docs/holes/H107.md) | BUG-0191 | TRIAGED | Der Design-Brief trennt das ZIEL von der SCHREIBWEISE nur als Prosa: eine Prozessregel im Brief fängt nichts (neu, TSK-0105, FR-0069) |
-| [H108](docs/holes/H108.md) | BUG-0192 | TRIAGED | Eine Evidenz, die ihren Laufumfang GAR NICHT erklärt, zählt weiter als Volllauf (neu, TSK-0106, FR-0040) |
-| [H109](docs/holes/H109.md) | BUG-0193 | TRIAGED | „Sammelbar" ist geparst und nicht gefahren: ein übersprungener Test gilt als vorhanden (neu, TSK-0106, FR-0039) |
-| [H110](docs/holes/H110.md) | BUG-0194 | TRIAGED | Einen Check, den der Kernel nicht lesen kann, beantwortet er mit UNENTSCHIEDEN (neu, TSK-0106, FR-0039) |
-| [H111](docs/holes/H111.md) | BUG-0195 | TRIAGED | Die Freigabe, auf der die Auditor-Routine reitet, hat in keinem Kit einen Erzeuger (neu, TSK-0107, FR-0038) |
-| [H112](docs/holes/H112.md) | BUG-0196 | TRIAGED | Der Laufdatensatz der Routine ist ein Nebenprodukt und sagt nicht, was er zu sagen scheint (neu, TSK-0107, FR-0038) |
+| [H106](docs/holes/H106.md) | BUG-0190 | VERIFIED | Der Umfang eines QS-Laufs ist Prosa: kein Feld und kein Hook zählt, ob die Suite einmal oder zehnmal lief (neu, TSK-0105, FR-0057) |
+| [H107](docs/holes/H107.md) | BUG-0191 | ACCEPTED_EXCEPTION | Der Design-Brief trennt das ZIEL von der SCHREIBWEISE nur als Prosa: eine Prozessregel im Brief fängt nichts (neu, TSK-0105, FR-0069) |
+| [H108](docs/holes/H108.md) | BUG-0192 | VERIFIED | Eine Evidenz, die ihren Laufumfang GAR NICHT erklärt, zählt weiter als Volllauf (neu, TSK-0106, FR-0040) |
+| [H109](docs/holes/H109.md) | BUG-0193 | VERIFIED | „Sammelbar" ist geparst und nicht gefahren: ein übersprungener Test gilt als vorhanden (neu, TSK-0106, FR-0039) |
+| [H110](docs/holes/H110.md) | BUG-0194 | ACCEPTED_EXCEPTION | Einen Check, den der Kernel nicht lesen kann, beantwortet er mit UNENTSCHIEDEN (neu, TSK-0106, FR-0039) |
+| [H111](docs/holes/H111.md) | BUG-0195 | VERIFIED | Die Freigabe, auf der die Auditor-Routine reitet, hat in keinem Kit einen Erzeuger (neu, TSK-0107, FR-0038) |
+| [H112](docs/holes/H112.md) | BUG-0196 | VERIFIED | Der Laufdatensatz der Routine ist ein Nebenprodukt und sagt nicht, was er zu sagen scheint (neu, TSK-0107, FR-0038) |
 | [H113](docs/holes/H113.md) | BUG-0197 | TRIAGED | Das Fristenregister kennt kein „erledigt" (neu, TSK-0107, FR-0034) |
-| [H114](docs/holes/H114.md) | BUG-0198 | TRIAGED | Nach `/cd` läuft die Registrierung des ZIELVERZEICHNISSES, aber die Hook-DATEIEN des Startverzeichnisses (neu, TSK-0108, FR-0059) |
-| [H115](docs/holes/H115.md) | BUG-0199 | TRIAGED | `/cd` bringt die Subagenten und die `agent:`-Bindung des Ziels NICHT mit, obwohl der Changelog „agents" nennt (neu, TSK-0108, FR-0059) |
+| [H114](docs/holes/H114.md) | BUG-0198 | ACCEPTED_EXCEPTION | Nach `/cd` läuft die Registrierung des ZIELVERZEICHNISSES, aber die Hook-DATEIEN des Startverzeichnisses (neu, TSK-0108, FR-0059) |
+| [H115](docs/holes/H115.md) | BUG-0199 | ACCEPTED_EXCEPTION | `/cd` bringt die Subagenten und die `agent:`-Bindung des Ziels NICHT mit, obwohl der Changelog „agents" nennt (neu, TSK-0108, FR-0059) |
 | [H116](docs/holes/H116.md) | BUG-0200 | ACCEPTED_EXCEPTION | Die Hook-REGISTRIERUNG wird mitten in der Sitzung neu gelesen — auch zwischen zwei Werkzeugaufrufen einer Runde (neu, TSK-0108, FR-0059) |
-| [H117](docs/holes/H117.md) | BUG-0201 | TRIAGED | Nichts startet den Generator: eine Buchung bewegt die Seite nicht (neu, TSK-0109, FR-0032) |
-| [H118](docs/holes/H118.md) | BUG-0202 | TRIAGED | Das Alter offener Posten und jeder Mahnstempel entstehen erst im Browser (neu, TSK-0109, FR-0032) |
-| [H119](docs/holes/H119.md) | BUG-0203 | TRIAGED | Keine Herkunft, und dem Ledger-Gate ist der Generator kein Bericht (neu, TSK-0109, FR-0032) |
+| [H117](docs/holes/H117.md) | BUG-0201 | VERIFIED | Nichts startet den Generator: eine Buchung bewegt die Seite nicht (neu, TSK-0109, FR-0032) |
+| [H118](docs/holes/H118.md) | BUG-0202 | VERIFIED | Das Alter offener Posten und jeder Mahnstempel entstehen erst im Browser (neu, TSK-0109, FR-0032) |
+| [H119](docs/holes/H119.md) | BUG-0203 | ACCEPTED_EXCEPTION | Keine Herkunft, und dem Ledger-Gate ist der Generator kein Bericht (neu, TSK-0109, FR-0032) |
 | [H120](docs/holes/H120.md) | BUG-0204 | REJECTED | Die Haken-Spiegelregel hat keine Präsenz-Hälfte; für die Haken entscheidet die Registrierung, und das halten zwei Nachbartests (neu, TSK-0111) |
 | [H121](docs/holes/H121.md) | BUG-0205 | VERIFIED | Der Leser der Löcherliste kennt keinen Code-Zaun; jedes Zitat hinter einem Zaun ist ungeprüft (neu, TSK-0111) |
-| [H122](docs/holes/H122.md) | BUG-0206 | TRIAGED | Der Melder über ungelesene Prosa fragt, was git TRÄGT, und nicht, was auf der Platte liegt (neu, TSK-0110, FR-0036) |
-| [H123](docs/holes/H123.md) | BUG-0207 | TRIAGED | Eine Löschung mit einer FLAGGE kommt am Archiv-Wächter vorbei — seit TSK-0116 nur noch, wenn sie im ZIEL löscht (TSK-0113, FR-0050) |
-| [H124](docs/holes/H124.md) | BUG-0208 | TRIAGED | Die Fristenmeldung liest eine Uhr, die keinem Feld dieses Kits gehört (neu, TSK-0113, FR-0034) |
+| [H122](docs/holes/H122.md) | BUG-0206 | ACCEPTED_EXCEPTION | Der Melder über ungelesene Prosa fragt, was git TRÄGT, und nicht, was auf der Platte liegt (neu, TSK-0110, FR-0036) |
+| [H123](docs/holes/H123.md) | BUG-0207 | VERIFIED | Eine Löschung mit einer FLAGGE kommt am Archiv-Wächter vorbei — seit TSK-0116 nur noch, wenn sie im ZIEL löscht (TSK-0113, FR-0050) |
+| [H124](docs/holes/H124.md) | BUG-0208 | VERIFIED | Die Fristenmeldung liest eine Uhr, die keinem Feld dieses Kits gehört (neu, TSK-0113, FR-0034) |
 | [H125](docs/holes/H125.md) | BUG-0209 | VERIFIED | Die Lösch-Regel des Archiv-Wächters war eine Verbliste, und jedes Verb daneben ging durch — GESCHLOSSEN (TSK-0114 gemessen, TSK-0116 behoben) |
-| [H126](docs/holes/H126.md) | BUG-0210 | TRIAGED | Die Ablaufregel für eine offene Anfrage steht dreimal, und die drei Leser stehen auf zwei Uhren (neu, TSK-0115, FR-0075) |
-| [H127](docs/holes/H127.md) | BUG-0211 | TRIAGED | Eine Handänderung an einem erzeugten Diagramm sieht zwischen zwei Zustandsschreibvorgängen niemand (neu, TSK-0115, FR-0080) |
-| [H129](docs/holes/H129.md) | BUG-0212 | TRIAGED | Was eine Zerstörung ist, bleibt eine Vokabelliste (neu, TSK-0116, FR-0050) |
-| [H130](docs/holes/H130.md) | BUG-0213 | TRIAGED | Die leere Aufbewahrung ist über `add-filing-rule` nicht erreichbar (neu, TSK-0116, FR-0049) |
-| [H131](docs/holes/H131.md) | BUG-0214 | TRIAGED | Die Zeilennummern der Anlage EÜR stammen nicht aus dem amtlichen Vordruck (neu, TSK-0116, FR-0076) |
-| [H132](docs/holes/H132.md) | BUG-0215 | TRIAGED | Eine Antwort autorisiert jetzt N Ziele statt eines (neu, TSK-0117, FR-0074) |
-| [H133](docs/holes/H133.md) | BUG-0216 | TRIAGED | Der SDK-Weg prägt ohne die dritte Bedingung, und jedes Programm, das die Brücke ruft, prägt (neu, TSK-0117, FR-0083) |
-| [H134](docs/holes/H134.md) | BUG-0217 | TRIAGED | `blocked` ist ein Zustand, keine Messung (neu, TSK-0117, FR-0082) |
-| [H135](docs/holes/H135.md) | BUG-0218 | TRIAGED | Der Zeugen-Halbteil der Überlappungsprüfung ist eine Stichprobe, keine Sprache (neu, TSK-0118, FR-0021) |
+| [H126](docs/holes/H126.md) | BUG-0210 | VERIFIED | Die Ablaufregel für eine offene Anfrage steht dreimal, und die drei Leser stehen auf zwei Uhren (neu, TSK-0115, FR-0075) |
+| [H127](docs/holes/H127.md) | BUG-0211 | VERIFIED | Eine Handänderung an einem erzeugten Diagramm sieht zwischen zwei Zustandsschreibvorgängen niemand (neu, TSK-0115, FR-0080) |
+| [H129](docs/holes/H129.md) | BUG-0212 | ACCEPTED_EXCEPTION | Was eine Zerstörung ist, bleibt eine Vokabelliste (neu, TSK-0116, FR-0050) |
+| [H130](docs/holes/H130.md) | BUG-0213 | VERIFIED | Die leere Aufbewahrung ist über `add-filing-rule` nicht erreichbar (neu, TSK-0116, FR-0049) |
+| [H131](docs/holes/H131.md) | BUG-0214 | ACCEPTED_EXCEPTION | Die Zeilennummern der Anlage EÜR stammen nicht aus dem amtlichen Vordruck (neu, TSK-0116, FR-0076) |
+| [H132](docs/holes/H132.md) | BUG-0215 | ACCEPTED_EXCEPTION | Eine Antwort autorisiert jetzt N Ziele statt eines (neu, TSK-0117, FR-0074) |
+| [H133](docs/holes/H133.md) | BUG-0216 | ACCEPTED_EXCEPTION | Der SDK-Weg prägt ohne die dritte Bedingung, und jedes Programm, das die Brücke ruft, prägt (neu, TSK-0117, FR-0083) |
+| [H134](docs/holes/H134.md) | BUG-0217 | ACCEPTED_EXCEPTION | `blocked` ist ein Zustand, keine Messung (neu, TSK-0117, FR-0082) |
+| [H135](docs/holes/H135.md) | BUG-0218 | VERIFIED | Der Zeugen-Halbteil der Überlappungsprüfung ist eine Stichprobe, keine Sprache (neu, TSK-0118, FR-0021) |
 | [H136](docs/holes/H136.md) | BUG-0219 | VERIFIED | Die Vor-Dispatch-Prüfung hat in einem Kit-Projekt keinen ausführbaren Weg (neu, TSK-0118, FR-0021) |
 | [H137](docs/holes/H137.md) | BUG-0220 | VERIFIED | Ein Haken-Docstring nennt einen Takt, den keine Verfassung mehr nennt (neu, TSK-0118, N2) |
 | [H138](docs/holes/H138.md) | BUG-0221 | ACCEPTED_EXCEPTION | Die Konformitätsbefunde des Renderers verweigern nichts: der Datensatz beantwortet eine andere Frage (neu, TSK-0119, FR-0077/FR-0078) |
-| [H139](docs/holes/H139.md) | BUG-0222 | TRIAGED | Die BUILD-Hälfte der Standard-Härtung ist nicht gebaut, weil ihre beiden Wirtsdateien in ein fremdes Kit gespiegelt sind (neu, TSK-0119, FR-0077) |
-| [H140](docs/holes/H140.md) | BUG-0223 | TRIAGED | Die Rangfolge-Prüfung urteilt über das, was der Entwurf DEKLARIERT, und der Kontrast schweigt über das, was er nicht ausrechnen kann (neu, TSK-0119, FR-0077/FR-0078) |
-| [H141](docs/holes/H141.md) | BUG-0224 | TRIAGED | Der Takt-Leser ist eine Aufzählung von Adverbien (neu, TSK-0118 Nacharbeit 1, N2) |
-| [H142](docs/holes/H142.md) | BUG-0225 | TRIAGED | Eine genannte Route, die auflöst und trotzdem kein Paar ergibt, bleibt rc 0 (neu, TSK-0118 Nacharbeit 1, FR-0021) |
-| [H143](docs/holes/H143.md) | BUG-0226 | TRIAGED | Eine Naht, die einen TEIL der Überlappung deckt, deckt ihn weiterhin zu (neu, TSK-0118 Nacharbeit 1, FR-0021) |
+| [H139](docs/holes/H139.md) | BUG-0222 | VERIFIED | Die BUILD-Hälfte der Standard-Härtung ist nicht gebaut, weil ihre beiden Wirtsdateien in ein fremdes Kit gespiegelt sind (neu, TSK-0119, FR-0077) |
+| [H140](docs/holes/H140.md) | BUG-0223 | ACCEPTED_EXCEPTION | Die Rangfolge-Prüfung urteilt über das, was der Entwurf DEKLARIERT, und der Kontrast schweigt über das, was er nicht ausrechnen kann (neu, TSK-0119, FR-0077/FR-0078) |
+| [H141](docs/holes/H141.md) | BUG-0224 | VERIFIED | Der Takt-Leser ist eine Aufzählung von Adverbien (neu, TSK-0118 Nacharbeit 1, N2) |
+| [H142](docs/holes/H142.md) | BUG-0225 | VERIFIED | Eine genannte Route, die auflöst und trotzdem kein Paar ergibt, bleibt rc 0 (neu, TSK-0118 Nacharbeit 1, FR-0021) |
+| [H143](docs/holes/H143.md) | BUG-0226 | VERIFIED | Eine Naht, die einen TEIL der Überlappung deckt, deckt ihn weiterhin zu (neu, TSK-0118 Nacharbeit 1, FR-0021) |
 | [H144](docs/holes/H144.md) | BUG-0227 | VERIFIED | Die Verengung folgt einem Verzeichniswechsel, der landet, aber nicht wirkt (neu, TSK-0116, FR-0050) |
 | [H145](docs/holes/H145.md) | BUG-0228 | VERIFIED | Ein Blatt, dessen Regeln das Dokument nicht lesen darf, war für die Prüfung ein leeres Blatt — GESCHLOSSEN bis auf die verbleibende Unentscheidbarkeit (neu, Prüfung TSK-0119, FR-0077) |
 | [H146](docs/holes/H146.md) | BUG-0229 | VERIFIED | Der Kontrast sah zwei Sorten Text nicht: verblasste Elemente und erzeugten Text — GESCHLOSSEN bis auf die Gruppen-Komposition (neu, Prüfung TSK-0119, FR-0077) |
-| [H147](docs/holes/H147.md) | BUG-0230 | TRIAGED | Welche Datums-Schreibweisen ein Meilenstein annimmt, entscheidet der Interpreter (neu, TSK-0117 Nacharbeit 1, DEC-0064) |
-| [H148](docs/holes/H148.md) | BUG-0231 | TRIAGED | Eine Naht kann noch immer breiter sein als das, was zwei Aufträge wirklich teilen (neu, TSK-0117 Nacharbeit 1, DEC-0062) |
+| [H147](docs/holes/H147.md) | BUG-0230 | ACCEPTED_EXCEPTION | Welche Datums-Schreibweisen ein Meilenstein annimmt, entscheidet der Interpreter (neu, TSK-0117 Nacharbeit 1, DEC-0064) |
+| [H148](docs/holes/H148.md) | BUG-0231 | VERIFIED | Eine Naht kann noch immer breiter sein als das, was zwei Aufträge wirklich teilen (neu, TSK-0117 Nacharbeit 1, DEC-0062) |
 | [H150](docs/holes/H150.md) | BUG-0232 | VERIFIED | Ein Verzeichniswechsel, den niemand ausrechnen kann, ließ die Fege-Basis stehen (neu, Merge-Prüfung TSK-0120, N1) |
 | [H151](docs/holes/H151.md) | BUG-0233 | TRIAGED | Die Erklärung, auf der Gate 5 entscheidet, liegt ausserhalb seines eigenen Schutzbereichs (neu, TSK-0121, PR-0004 AC-1) |
-| [H152](docs/holes/H152.md) | BUG-0234 | TRIAGED | Was eine Option dem Läufer antut, entscheidet kein Text (neu, TSK-0121; nach Prüfung 1 und 2 korrigiert) |
-| [H153](docs/holes/H153.md) | BUG-0235 | TRIAGED | Was der Leser nicht platzieren kann, und was er gar nicht erst sieht (neu, TSK-0121; nach Prüfung 3 erweitert) |
-| [H154](docs/holes/H154.md) | BUG-0236 | TRIAGED | Die Migrationstuer schreibt einen Endzustand ohne die Evidenz, die die Kante verlangt (neu, TSK-0122) |
+| [H152](docs/holes/H152.md) | BUG-0234 | ACCEPTED_EXCEPTION | Was eine Option dem Läufer antut, entscheidet kein Text (neu, TSK-0121; nach Prüfung 1 und 2 korrigiert) |
+| [H153](docs/holes/H153.md) | BUG-0235 | ACCEPTED_EXCEPTION | Was der Leser nicht platzieren kann, und was er gar nicht erst sieht (neu, TSK-0121; nach Prüfung 3 erweitert) |
+| [H154](docs/holes/H154.md) | BUG-0236 | VERIFIED | Die Migrationstuer schreibt einen Endzustand ohne die Evidenz, die die Kante verlangt (neu, TSK-0122) |
 | [H155](docs/holes/H155.md) | BUG-0237 | TRIAGED | Die Zielklasse ist Freitext, also haengt die SR-Pflicht an einer Ausnahmeliste (neu, TSK-0122) |
-| [H156](docs/holes/H156.md) | BUG-0238 | TRIAGED | Die Dispatch-Verweigerung sieht nur LAUFENDE Leases (neu, TSK-0122) |
-| [H157](docs/holes/H157.md) | BUG-0239 | TRIAGED | Kein Leser urteilt über den WORTLAUT einer Auftragszeile (neu, TSK-0123, FR-0005/FR-0010) |
-| [H158](docs/holes/H158.md) | BUG-0240 | TRIAGED | Die Rückschau hat keinen Ereignis-Auslöser; der Pflichtenmelder kennt nur die Periode (neu, TSK-0123, FR-0084) |
-| [H159](docs/holes/H159.md) | BUG-0241 | TRIAGED | Der Zeigerleser der drei Rollentexte sieht nur Backticks und nur Item-Ids (neu, TSK-0123, DEC-0070) |
+| [H156](docs/holes/H156.md) | BUG-0238 | VERIFIED | Die Dispatch-Verweigerung sieht nur LAUFENDE Leases (neu, TSK-0122) |
+| [H157](docs/holes/H157.md) | BUG-0239 | ACCEPTED_EXCEPTION | Kein Leser urteilt über den WORTLAUT einer Auftragszeile (neu, TSK-0123, FR-0005/FR-0010) |
+| [H158](docs/holes/H158.md) | BUG-0240 | VERIFIED | Die Rückschau hat keinen Ereignis-Auslöser; der Pflichtenmelder kennt nur die Periode (neu, TSK-0123, FR-0084) |
+| [H159](docs/holes/H159.md) | BUG-0241 | ACCEPTED_EXCEPTION | Der Zeigerleser der drei Rollentexte sieht nur Backticks und nur Item-Ids (neu, TSK-0123, DEC-0070) |
 | [H160](docs/holes/H160.md) | BUG-0242 | TRIAGED | Ein Kit-Update MELDET den Gedächtnisbaum, den keine Rolle mehr deklariert, und entfernt ihn nicht (neu, TSK-0125, BUG-0088) |
-| [H161](docs/holes/H161.md) | BUG-0243 | TRIAGED | Der Schwestertest von Gate 1 misst seine eigene Dimensionierung mit (neu, TSK-0125, BUG-0033) |
+| [H161](docs/holes/H161.md) | BUG-0243 | VERIFIED | Der Schwestertest von Gate 1 misst seine eigene Dimensionierung mit (neu, TSK-0125, BUG-0033) |
 | [H162](docs/holes/H162.md) | BUG-0244 | VERIFIED | Die Last-Hälfte des Gate-3-Zeittests ist ungemessen; das Rig ist umgebaut und wartet auf ein Fenster (neu, TSK-0125, BUG-0033) |
 | [H163](docs/holes/H163.md) | BUG-0245 | VERIFIED | Die Architektenschritt-Pflicht fragt das office-Kit nach einem `SR`, den es nicht kennt (neu, TSK-0126, DEC-0072) |
-| [H164](docs/holes/H164.md) | BUG-0246 | TRIAGED | Ein Modulname in Backticks wird als Testzitat in ein Loch-Item geschrieben (neu, TSK-0126, DEC-0073) |
+| [H164](docs/holes/H164.md) | BUG-0246 | VERIFIED | Ein Modulname in Backticks wird als Testzitat in ein Loch-Item geschrieben (neu, TSK-0126, DEC-0073) |
 | [H165](docs/holes/H165.md) | BUG-0247 | VERIFIED | Ein positionaler GLOB innerhalb einer erklaerten Wurzel verengte nichts (neu, TSK-0126 Merge, Pruefrunde 1 B2) |
 | H166 | BUG-0248 | OPEN | The docking point (scripts/invoice_intake.py) refuses a mixed-VAT-rate outgoing invoice for booking -- a ledger row carries ONE vat_rate, so a document with 7 % and 19 % positions (ordinary in trade: food beside hardware) is accepted by the norm check and then handed back 'by hand' |
 | H167 | BUG-0249 | VERIFIED | The session brief does not show the rung and the effort the dispatcher derived: `report.generate_session_brief` builds each `active_tasks` row from a fixed field set (id/status/assigned_role/blocked_by), so DEC-0077 (5) and PR-0010 AC-6 ("shown in the session brief") are unbuilt while the values sit on the task item (new, TSK-0130, PR-0010 AC-6) |
-| H168 | BUG-0250 | OPEN | One kit release ships two contradicting ladder texts: the constitutions say the escalation is derived by the kernel and "there is no user-gated escalation ladder any more", while the PMs' own SKILL and all three project_config templates still instruct the retired `sonnet-high -> sonnet-xhigh -> opus-high -> opus-xhigh/max` -- and session_status plus the scaffold still translate the retired `light` rung (new, TSK-0130, PR-0010 AC-3/AC-7, DEC-0076/DEC-0077/DEC-0078) |
-| H169 | BUG-0251 | OPEN | The EFFORT axis of the ladder (DEC-0077 (1)) is derived, written and shown but never applied: the Agent tool has no per-spawn effort parameter, so the child runs on its installed `effort:` pin (new, TSK-0130, PR-0010 AC-6) |
+| H168 | BUG-0250 | VERIFIED | One kit release ships two contradicting ladder texts: the constitutions say the escalation is derived by the kernel and "there is no user-gated escalation ladder any more", while the PMs' own SKILL and all three project_config templates still instruct the retired `sonnet-high -> sonnet-xhigh -> opus-high -> opus-xhigh/max` -- and session_status plus the scaffold still translate the retired `light` rung (new, TSK-0130, PR-0010 AC-3/AC-7, DEC-0076/DEC-0077/DEC-0078) |
+| H169 | BUG-0251 | ACCEPTED_EXCEPTION | The EFFORT axis of the ladder (DEC-0077 (1)) is derived, written and shown but never applied: the Agent tool has no per-spawn effort parameter, so the child runs on its installed `effort:` pin (new, TSK-0130, PR-0010 AC-6) |
 | H170 | BUG-0252 | OPEN | The office `large` effort (DEC-0078 (2): `high` when the goal's class is large) is unreachable: a `PROC` root carries no `class` field, so every office order gets the default (new, TSK-0130, PR-0010 AC-6) |
 | H171 | BUG-0253 | OPEN | A project without a scaffold record -- this repository's own harness -- dispatches with `ladder: absent`: no rung is derived and no spawn is held, because there is no kit declaration to read (new, TSK-0130, PR-0010 AC-6, DEC-0078 (4)) |
-| H172 | BUG-0254 | OPEN | The Codex effort ceiling (`max` vs `ultra`) is unmeasured against the Codex CLI: no Codex CLI on the measuring host, the vendor's pages contradict each other, model_tiers.yaml claims no ceiling (new, TSK-0130, PR-0010 AC-2, DEC-0076 (3)) |
-| H173 | BUG-0255 | OPEN | On Codex the spawn-side hold of the rung does not exist: the Agent tool is not hookable there (`gen_provider_artifacts.CODEX_UNSUPPORTED_TOOLS`), so a climbed order's rung is on the lease and in the header only (new, TSK-0130, PR-0010 AC-6) |
+| H172 | BUG-0254 | ACCEPTED_EXCEPTION | The Codex effort ceiling (`max` vs `ultra`) is unmeasured against the Codex CLI: no Codex CLI on the measuring host, the vendor's pages contradict each other, model_tiers.yaml claims no ceiling (new, TSK-0130, PR-0010 AC-2, DEC-0076 (3)) |
+| H173 | BUG-0255 | ACCEPTED_EXCEPTION | On Codex the spawn-side hold of the rung does not exist: the Agent tool is not hookable there (`gen_provider_artifacts.CODEX_UNSUPPORTED_TOOLS`), so a climbed order's rung is on the lease and in the header only (new, TSK-0130, PR-0010 AC-6) |
 | H174 | BUG-0256 | DUPLICATE | Doppelt zu BUG-0251: was am Spawn fehlt, ist der EFFORT -- das Modell ist waehlbar |
-| H175 | BUG-0257 | OPEN | Der Zeiger-Sweep kann eine ILLUSTRATION nicht von einem Zeiger unterscheiden -- und den Bestand eines fremden Stores nicht vom eigenen |
+| H175 | BUG-0257 | ACCEPTED_EXCEPTION | Der Zeiger-Sweep kann eine ILLUSTRATION nicht von einem Zeiger unterscheiden -- und den Bestand eines fremden Stores nicht vom eigenen |
 | H176 | BUG-0258 | VERIFIED | After the generation-4 hole migration docs/POST_V2_WISHLIST.md carries no `### H` entry any more, so test_repo_hygiene::test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole is RED at HEAD b7f282e |
-| H177 | BUG-0259 | OPEN | The empty-lists rule that keeps a kit template from shipping somebody's business reads only LISTS, so every SCALAR term of correspondence.yaml ships as a value the kit chose and a customer letter carries it unchallenged |
+| H177 | BUG-0259 | VERIFIED | The empty-lists rule that keeps a kit template from shipping somebody's business reads only LISTS, so every SCALAR term of correspondence.yaml ships as a value the kit chose and a customer letter carries it unchallenged |
 | H178 | BUG-0260 | OPEN | A QA fail classified narrow/mechanical still climbs the rung: the constitutions offer that classification as the alternative to escalating, and the built mechanic counts FAILED RUNS, which no classification is part of -- so the one lever the rule gave QA no longer reaches the model (new, TSK-0130, PR-0010 AC-6, DEC-0034 rule 2 vs parity matrix row 43/45) |
-| H179 | BUG-0261 | OPEN | Ein bestandener Test, der einen Fehler NENNT, sagt nicht, dass der Fehler weg ist -- 106 gemessene Bugs ohne Urteil |
-| H180 | BUG-0262 | OPEN | Ein zweiter Zeitmess-Test faellt auf einem beschaeftigten Host rot statt zu ueberspringen -- dieselbe Klasse wie BUG-0033, anderer Test |
-| H181 | BUG-0263 | OPEN | The repo-wide test-pointer check pairs backticks running across a whole file, so ONE code fence blinds it for everything below: 48 files, 39 citations, judged by nothing |
+| H179 | BUG-0261 | ACCEPTED_EXCEPTION | Ein bestandener Test, der einen Fehler NENNT, sagt nicht, dass der Fehler weg ist -- 106 gemessene Bugs ohne Urteil |
+| H180 | BUG-0262 | VERIFIED | Ein zweiter Zeitmess-Test faellt auf einem beschaeftigten Host rot statt zu ueberspringen -- dieselbe Klasse wie BUG-0033, anderer Test |
+| H181 | BUG-0263 | VERIFIED | The repo-wide test-pointer check pairs backticks running across a whole file, so ONE code fence blinds it for everything below: 48 files, 39 citations, judged by nothing |
 | H182 | BUG-0264 | OPEN | Four schedule claims survive in the enforcement layer that AC-1 cleaned everywhere else: .claude/hooks/gate_spawn_needs_item.py and .claude/hooks/_harness.py still say the watchers 'run on a weekly schedule', no test reads them, and the reworded watcher definitions now POINT at them (new, TSK-0130, PR-0010 AC-1, DEC-0084) |
-| H183 | BUG-0265 | OPEN | Der Zeiger-Sweep liest in einem Projekt mit installiertem Kit die Skript-Verzeichnisse gar nicht -- auch das eigene Skript des Projekts nicht |
-| H184 | BUG-0266 | OPEN | The project-auditor routine is REMINDED but cannot be DISPATCHED on its own route: `request-approval` offers twelve kinds and neither `routine` nor `analysis`, so the only walkable way to run the auditor is an ordinary work order with a writable allowed_scope -- measured as a process on a scaffolded dev pilot (new, TSK-0130, DEC-0084 (2)(b), confirms H111 four weeks on) |
+| H183 | BUG-0265 | VERIFIED | Der Zeiger-Sweep liest in einem Projekt mit installiertem Kit die Skript-Verzeichnisse gar nicht -- auch das eigene Skript des Projekts nicht |
+| H184 | BUG-0266 | VERIFIED | The project-auditor routine is REMINDED but cannot be DISPATCHED on its own route: `request-approval` offers twelve kinds and neither `routine` nor `analysis`, so the only walkable way to run the auditor is an ordinary work order with a writable allowed_scope -- measured as a process on a scaffolded dev pilot (new, TSK-0130, DEC-0084 (2)(b), confirms H111 four weeks on) |
 | H185 | BUG-0268 | VERIFIED | CLAUDE.md sagt "die vier Gates dieses Repos", registriert sind fuenf -- und die Datei ist fuer jede Rolle verbotener Bereich |
-| H186 | BUG-0269 | OPEN | The radar watcher's Desktop scheduled task is a mechanism this repository can neither ask nor see fire: its day, hour and enabled flag live in the Desktop app, it runs only while that app is open, and a week with the app closed is silent -- the report cadence in radar/ is the only evidence, read by `--due` (corrected under DEC-0089: the task IS the mechanism and its reports DO carry the `-claude` suffix; TSK-0130, PR-0010 AC-1) |
-| H187 | BUG-0270 | OPEN | Der Zeiger-Sweep dieses Repos liest team-kits/ und docs/, nicht tools/ -- 39 Testzeiger in den eigenen Suiten pruefen nichts |
+| H186 | BUG-0269 | ACCEPTED_EXCEPTION | The radar watcher's Desktop scheduled task is a mechanism this repository can neither ask nor see fire: its day, hour and enabled flag live in the Desktop app, it runs only while that app is open, and a week with the app closed is silent -- the report cadence in radar/ is the only evidence, read by `--due` (corrected under DEC-0089: the task IS the mechanism and its reports DO carry the `-claude` suffix; TSK-0130, PR-0010 AC-1) |
+| H187 | BUG-0270 | ACCEPTED_EXCEPTION | Der Zeiger-Sweep dieses Repos liest team-kits/ und docs/, nicht tools/ -- 39 Testzeiger in den eigenen Suiten pruefen nichts |
 | H188 | BUG-0272 | OPEN | Gate 1 refuses a READ-ONLY grep as a write to the drive root when its double-quoted pattern carries escaped backticks AND a space: `grep -c "\`a\`, \`b\`" README.md` is rc 2 with 'no tool call in this repo may write C:\' (over-refusal, measured 2026-09-06 in the generation-5 merge, TSK-0133) |
-| H189 | BUG-0273 | OPEN | The radar claim reader admits a cadence sentence that names no mechanism word: 'The watcher duo runs once a week without a human.' passes tools/test_radar_trigger.py by design, because a claim is recognised by its WORD (schedule, automatic, cron, Desktop task, the cloud option's names, a weekday) and a cadence alone is read as intent -- so a sentence asserting agentless recurrence in plain words is judged by nobody (TSK-0133 verify round 1, P6; beside H182) |
-| H190 | BUG-0274 | OPEN | The claim reader's list of names for the rejected cloud routine (`cloud_option.named_as`) has no tripwire at either end: the shipped README's own words for that option ('hosted code routine of the platform', 'sandbox routine against the remote') pass the reader as a mechanism claim (verify round 2 N1, TSK-0133) |
-| H191 | BUG-0275 | OPEN | The ladder-paragraph reader's lead-in branch (`_states_the_scaling_rule`) accepts rung and effort a whole bullet apart while its docstring says a rule states both axes 'in one breath': moving the word effort into the bold lead-in and deleting the effort RULE keeps the constitution qualifying (verify round 2 N2, TSK-0133) |
+| H189 | BUG-0273 | ACCEPTED_EXCEPTION | The radar claim reader admits a cadence sentence that names no mechanism word: 'The watcher duo runs once a week without a human.' passes tools/test_radar_trigger.py by design, because a claim is recognised by its WORD (schedule, automatic, cron, Desktop task, the cloud option's names, a weekday) and a cadence alone is read as intent -- so a sentence asserting agentless recurrence in plain words is judged by nobody (TSK-0133 verify round 1, P6; beside H182) |
+| H190 | BUG-0274 | VERIFIED | The claim reader's list of names for the rejected cloud routine (`cloud_option.named_as`) has no tripwire at either end: the shipped README's own words for that option ('hosted code routine of the platform', 'sandbox routine against the remote') pass the reader as a mechanism claim (verify round 2 N1, TSK-0133) |
+| H191 | BUG-0275 | VERIFIED | The ladder-paragraph reader's lead-in branch (`_states_the_scaling_rule`) accepts rung and effort a whole bullet apart while its docstring says a rule states both axes 'in one breath': moving the word effort into the bold lead-in and deleting the effort RULE keeps the constitution qualifying (verify round 2 N2, TSK-0133) |
 | H192 | BUG-0276 | VERIFIED | A module added under tools/ shadows the team-kits module of the same name for every `python tools/<script>.py` entry point, and nothing measures the collision |
-| H193 | BUG-0277 | OPEN | scaffold_team warns and continues when the staging carries no write_kit_state.py, so a project installs green with no hook-bundle trust recorded -- and the missing file is a kit-hash input, so every later stamp check refuses the same staging (new, TSK-0135, DEC-0092 (6) rig) |
-| H194 | BUG-0278 | OPEN | The test-shaped-acceptance reader (`dispatch.acceptance_is_test_shaped`, DEC-0097 (2)) claims both kit languages but its negation and word lists are English-shaped: 'ein Test wird rot, ohne den Fix' is refused (`ohne` counted as a negation) and German compounds ('Regressionstest', 'Unittest') are invisible -- false negatives, the order stays on the opus default (TSK-0137 verify round 2, N-e/N-f) |
+| H193 | BUG-0277 | VERIFIED | scaffold_team warns and continues when the staging carries no write_kit_state.py, so a project installs green with no hook-bundle trust recorded -- and the missing file is a kit-hash input, so every later stamp check refuses the same staging (new, TSK-0135, DEC-0092 (6) rig) |
+| H194 | BUG-0278 | VERIFIED | The test-shaped-acceptance reader (`dispatch.acceptance_is_test_shaped`, DEC-0097 (2)) claims both kit languages but its negation and word lists are English-shaped: 'ein Test wird rot, ohne den Fix' is refused (`ohne` counted as a negation) and German compounds ('Regressionstest', 'Unittest') are invisible -- false negatives, the order stays on the opus default (TSK-0137 verify round 2, N-e/N-f) |
 | H195 | BUG-0279 | VERIFIED | The batch route's evidence rule 'a test that NAMES the bug' (DEC-0100 (3), tools/close_measured_pass.py nodes_naming) reads an incidental mention like a measuring one: BUG-0050's only naming test says 'nothing was caught', BUG-0044's is a historical aside -- both would have been VERIFIED by a click (TSK-0138 verify round 2) |
-| H196 | BUG-0280 | OPEN | A hook a suite starts without its own CLAUDE_PROJECT_DIR judges whatever tree the ambient variable names -- 55 of 65 call sites, and the suite cannot tell an honest one from a forgetful one |
-| H197 | BUG-0281 | OPEN | H7 neu aufgelegt (Ausnahme nie freigegeben): `carries_work` verlangt keinen erreichbaren Endzustand — OFFEN |
-| H198 | BUG-0282 | OPEN | H11 neu aufgelegt (Ausnahme nie freigegeben): Ein Interpreter führt Code aus, den kein Gate lesen kann (neu, Preis des Fixes zu F2) |
-| H199 | BUG-0283 | OPEN | H12 neu aufgelegt (Ausnahme nie freigegeben): Ein Subagent kann sich die Ausnahme von Gate 2 selbst ausstellen |
-| H200 | BUG-0284 | OPEN | H16 neu aufgelegt (Ausnahme nie freigegeben): Der Pfad steht in einer Variablen, das Gate liest den Text (neu, TSK-0008) |
-| H201 | BUG-0285 | OPEN | H21 neu aufgelegt (Ausnahme nie freigegeben): `Push-Location`/`Pop-Location` fehlen im Verzeichnis-Vokabular (neu, TSK-0011) |
+| H196 | BUG-0280 | VERIFIED | A hook a suite starts without its own CLAUDE_PROJECT_DIR judges whatever tree the ambient variable names -- 55 of 65 call sites, and the suite cannot tell an honest one from a forgetful one |
+| H197 | BUG-0281 | VERIFIED | H7 neu aufgelegt (Ausnahme nie freigegeben): `carries_work` verlangt keinen erreichbaren Endzustand — OFFEN |
+| H198 | BUG-0282 | ACCEPTED_EXCEPTION | H11 neu aufgelegt (Ausnahme nie freigegeben): Ein Interpreter führt Code aus, den kein Gate lesen kann (neu, Preis des Fixes zu F2) |
+| H199 | BUG-0283 | ACCEPTED_EXCEPTION | H12 neu aufgelegt (Ausnahme nie freigegeben): Ein Subagent kann sich die Ausnahme von Gate 2 selbst ausstellen |
+| H200 | BUG-0284 | ACCEPTED_EXCEPTION | H16 neu aufgelegt (Ausnahme nie freigegeben): Der Pfad steht in einer Variablen, das Gate liest den Text (neu, TSK-0008) |
+| H201 | BUG-0285 | VERIFIED | H21 neu aufgelegt (Ausnahme nie freigegeben): `Push-Location`/`Pop-Location` fehlen im Verzeichnis-Vokabular (neu, TSK-0011) |
 | H202 | BUG-0286 | OPEN | H22 neu aufgelegt (Ausnahme nie freigegeben): Die Read-only-Klassifikation gilt pro Stufe, der Pfad reist weiter (neu, TSK-0011) |
-| H203 | BUG-0287 | OPEN | H25 neu aufgelegt (Ausnahme nie freigegeben): Die Frist, die ein Gate sich zugesteht, und die, nach der es getötet wird (neu, TSK-0013) |
-| H204 | BUG-0288 | OPEN | H32 neu aufgelegt (Ausnahme nie freigegeben): Ein Befehl, den eine Ersetzung einführt (neu, TSK-0019) |
-| H205 | BUG-0289 | OPEN | H38 neu aufgelegt (Ausnahme nie freigegeben): Ein Programm, das ein Hier-Dokument einer Shell übergibt, liest keines der Gates (neu, TSK-0022) |
-| H206 | BUG-0290 | OPEN | H39 neu aufgelegt (Ausnahme nie freigegeben): Endzustände, die dieses Repo nicht ehrlich erreichen kann: TSK `DONE`, BUG `VERIFIED` (neu, TSK-0055) |
-| H207 | BUG-0291 | OPEN | H40 neu aufgelegt (Ausnahme nie freigegeben): Vertragszitationen außerhalb der `.py`-Quellen von `.claude/hooks/` liest kein Stolperdraht (neu, TSK-0058) |
-| H208 | BUG-0292 | OPEN | H99 neu aufgelegt (Ausnahme nie freigegeben): H11 hebt die Vier-Augen-Buchung mit auf: ein Skript trägt eine ungelesene Zeile nach `HEAD` und prägt die zweite Lesung (neu, TSK-0102, FR-0065) |
-| H209 | BUG-0293 | OPEN | H116 neu aufgelegt (Ausnahme nie freigegeben): Die Hook-REGISTRIERUNG wird mitten in der Sitzung neu gelesen — auch zwischen zwei Werkzeugaufrufen einer Runde (neu, TSK-0108, FR-0059) |
-| H210 | BUG-0294 | OPEN | H138 neu aufgelegt (Ausnahme nie freigegeben): Die Konformitätsbefunde des Renderers verweigern nichts: der Datensatz beantwortet eine andere Frage (neu, TSK-0119, FR-0077/FR-0078) |
+| H203 | BUG-0287 | ACCEPTED_EXCEPTION | H25 neu aufgelegt (Ausnahme nie freigegeben): Die Frist, die ein Gate sich zugesteht, und die, nach der es getötet wird (neu, TSK-0013) |
+| H204 | BUG-0288 | VERIFIED | H32 neu aufgelegt (Ausnahme nie freigegeben): Ein Befehl, den eine Ersetzung einführt (neu, TSK-0019) |
+| H205 | BUG-0289 | VERIFIED | H38 neu aufgelegt (Ausnahme nie freigegeben): Ein Programm, das ein Hier-Dokument einer Shell übergibt, liest keines der Gates (neu, TSK-0022) |
+| H206 | BUG-0290 | VERIFIED | H39 neu aufgelegt (Ausnahme nie freigegeben): Endzustände, die dieses Repo nicht ehrlich erreichen kann: TSK `DONE`, BUG `VERIFIED` (neu, TSK-0055) |
+| H207 | BUG-0291 | ACCEPTED_EXCEPTION | H40 neu aufgelegt (Ausnahme nie freigegeben): Vertragszitationen außerhalb der `.py`-Quellen von `.claude/hooks/` liest kein Stolperdraht (neu, TSK-0058) |
+| H208 | BUG-0292 | ACCEPTED_EXCEPTION | H99 neu aufgelegt (Ausnahme nie freigegeben): H11 hebt die Vier-Augen-Buchung mit auf: ein Skript trägt eine ungelesene Zeile nach `HEAD` und prägt die zweite Lesung (neu, TSK-0102, FR-0065) |
+| H209 | BUG-0293 | ACCEPTED_EXCEPTION | H116 neu aufgelegt (Ausnahme nie freigegeben): Die Hook-REGISTRIERUNG wird mitten in der Sitzung neu gelesen — auch zwischen zwei Werkzeugaufrufen einer Runde (neu, TSK-0108, FR-0059) |
+| H210 | BUG-0294 | VERIFIED | H138 neu aufgelegt (Ausnahme nie freigegeben): Die Konformitätsbefunde des Renderers verweigern nichts: der Datensatz beantwortet eine andere Frage (neu, TSK-0119, FR-0077/FR-0078) |
 | H211 | BUG-0295 | OPEN | Ein DEC-Verweis in einem Python-Docstring einer ausgelieferten Kit-Datei wird von keinem Leser beurteilt, wenn die Anfuehrungszeichen-Paarung ihn verschluckt (2 von 190, gemessen) |
 | H212 | BUG-0296 | OPEN | Der mehrdeutige deutsche Genitivartikel (`der`, `einer`) beendet ein Präpositionskomplement zu früh -- eine so formulierte Verneinung kauft die billige Sprosse |
 | H213 | BUG-0297 | OPEN | Die gedruckte Abhilfe des Commit-Gates dieses Repos ist rc 2, bis der Nutzer den S4-Patch fährt -- seit TSK-0144 hält ein Test in tools/ das rot, bis er gefahren ist |

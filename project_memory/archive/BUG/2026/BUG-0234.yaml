@@ -1,0 +1,31 @@
+id: BUG-0234
+title: Was eine Option dem Läufer antut, entscheidet kein Text (neu, TSK-0121; nach
+  Prüfung 1 und 2 korrigiert)
+related_pr: PR-0003
+observed: '**Mechanismus.** „Diese Zeile fährt die ganze erklärte Fläche" ist als
+  Eigenschaft gebaut, mit
+
+  genau einer unvermeidbaren Aufzählung: welche Optionen der Läufer so liest, dass
+  die Zeile die
+
+  Fläche NICHT mehr ganz fährt (`options_that_narrow` in `tools/test_surface.json`,
+  beim Kit-Haken im
+
+  `INV` mit `scope: test_surface`). Keine Eigenschaft des TEXTES entscheidet das.'
+severity: medium
+hole_number: H152
+source: docs/holes/H152.md
+limits: Eine Option, die einen Testlauf verkleinern soll, aber gar nichts trifft,
+  lässt die Schutzregel durch. Um das zu erkennen, müsste sie vorher einmal die ganze
+  Testsammlung durchzählen -- genau die Kosten, die sie sparen soll. Die versehentlich
+  getippte Variante ist zu; die verbleibende muss jemand absichtlich hinschreiben.
+regression_tests:
+- test_every_declared_narrowing_option_really_makes_the_runner_run_fewer_tests
+- test_every_declared_narrowing_option_is_one_the_runner_still_has
+- test_every_declared_narrowing_option_earns_its_place
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0064
+created: '2026-09-05T20:27:57'
+approved_hash: 26f18bb3496e4355295034ca062bed299a7104f00bec0927dfd72cbbd291ce9c
+closed_at: '2026-09-12T22:43:26'

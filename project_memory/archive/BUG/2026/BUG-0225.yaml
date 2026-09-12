@@ -1,0 +1,40 @@
+id: BUG-0225
+title: Eine genannte Route, die auflöst und trotzdem kein Paar ergibt, bleibt rc 0
+  (neu, TSK-0118 Nacharbeit 1, FR-0021)
+related_pr: PR-0003
+observed: '**Mechanismus.** Die Werkstatt-Kommandozeile trennt seit dieser Nacharbeit
+  zwei Klassen: was der
+
+  Aufrufer GENANNT hat, muss auflösen (rc 1), was niemand genannt hat, ist kein Fehler
+  (rc 0). Die
+
+  Trennung ist nötig, weil der Lauf ohne Argumente außerhalb eines Projekts eine gemessene
+
+  Anforderung ist. Dazwischen liegt ein Fall, den keine der beiden Regeln fängt: `--only`
+  mit
+
+  genau einer echten Id — die Route löst auf, ein Paar entsteht trotzdem nicht.'
+severity: low
+hole_number: H142
+source: docs/holes/H142.md
+limits: 'die Überlappungsprüfung unterscheidet seit dieser Nacharbeit, was der Aufrufer
+  GENANNT hat (ein `--root`, das kein Verzeichnis ist, und eine `--only`-Id, die kein
+  Auftrag trägt → rc 1) von dem, was niemand genannt hat (Standard-Wurzel außerhalb
+  eines Projekts → rc 0). Offen bleibt die Mitte: eine genannte Route, die AUFLÖST
+  und trotzdem kein Paar ergibt — `--only TSK-0001` allein — ist rc 0 mit „NOTHING
+  WAS COMPARED“. Gemessen (`_round-scratch/TSK-0118/probe_m4_m5.py`): Tippfehler-Wurzel
+  rc 1, unbekannte Id rc 1, eine echte Id rc 0, Standardwurzel ohne Projekt rc 0.
+  Begrenzt durch: die Meldung sagt in allen Fällen, dass nichts verglichen wurde,
+  und teilt kein Wort mit „disjoint“ (`tools/test_parallel_streams.py::test_a_route_the_caller_named_has_to_resolve_and_one_nobody_named_does_not`);
+  strenger geht es nicht, ohne den Lauf ohne Argumente außerhalb eines Projekts zu
+  brechen, den `tools/test_hooks_v2.py::test_a_repo_tool_that_imports_the_kit_tree_leaves_no_bytecode_in_it`
+  fährt'
+regression_tests:
+- tools/test_parallel_streams.py::test_a_route_the_caller_named_has_to_resolve_and_one_nobody_named_does_not
+- tools/test_hooks_v2.py::test_a_repo_tool_that_imports_the_kit_tree_leaves_no_bytecode_in_it
+status: VERIFIED
+revision: 1
+approval_ref: APR-0048
+created: '2026-09-05T20:27:31'
+approved_hash: 395b31f87921980a832cc6c3744849f85142bf801b078ad7a24ab46aaeb5fc98
+closed_at: '2026-09-12T21:21:13'

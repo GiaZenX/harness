@@ -1,0 +1,23 @@
+request_id: 091e1571626041e8900c8b3c0b5e61b2
+kind: verification
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  bugs:
+  - item: BUG-0167
+    revision: 1
+    scope_hash: 9e3b8add9002c87c80028bbaad1635faa7ddadadaa0f26dfcbb26f218b3efcc6
+    evidence: EVD-0407
+  - item: BUG-0169
+    revision: 1
+    scope_hash: 178840d98497e416a367d34675670bfe5cd3e930f80427308fe0504904e22798
+    evidence: EVD-0409
+  - item: BUG-0180
+    revision: 1
+    scope_hash: 7d83dd20220a3a9ffe517776c32c227e839559fbdad8a0f67ffcdd1c01f30f2b
+    evidence: EVD-0406
+subject_manifest_hash: d02d39b6114bb1250139719a9eb21b8d3910749b97f13ea5bddc0871741011fb
+created: '2026-09-12T21:18:51'
+expires_at_epoch: 1789327131.5842867
+mint_code: b77ce8

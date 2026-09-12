@@ -1,0 +1,41 @@
+id: BUG-0238
+title: Die Dispatch-Verweigerung sieht nur LAUFENDE Leases (neu, TSK-0122)
+related_pr: PR-0003
+observed: '**Mechanismus.** `dispatch._assert_no_running_lease_owns_the_same_file_locked`
+  vergleicht den
+
+  neuen Auftrag gegen die Auftraege, die eine noch nicht abgelaufene Lease halten.
+  Zwei READY-
+
+  Auftraege mit demselben `allowed_scope`, die nie gleichzeitig geleast werden, kollidieren
+  im Merge
+
+  trotzdem — und werden von dieser Stelle nie gesehen.'
+severity: medium
+hole_number: H156
+source: docs/holes/H156.md
+limits: 'die Dispatch-Verweigerung bei ueberlappenden Bereichen vergleicht den neuen
+  Auftrag nur gegen Leases, die NOCH LAUFEN. Zwei READY-Auftraege mit demselben `allowed_scope`,
+  die nie gleichzeitig geleast werden, kollidieren im Merge trotzdem und werden hier
+  von nichts gesehen. Begrenzt durch: genau dafuer gibt es `scripts/harness.py check-scopes`,
+  das ueber die OFFENEN Auftraege laeuft (`kernel.scopes.open_orders` liest `is_terminal`,
+  nicht den Lease-Zustand) und vor dem Schnitt gefahren wird -- DEC-0070 (1) macht
+  das ab Generation 4 zur Regel. Die zwei geerbten Grenzen des Praedikats sind `H135`
+  (eine Region, in der kein Zeuge landet und heute keine Datei liegt) und `H143` (eine
+  Naht, die schmaler ist als die Ueberlappung); diese Verweigerung erbt beide, weil
+  sie dasselbe `kernel.scopes` fragt, statt eine zweite Schreibweise zu bauen. Rot
+  ohne den Fix: `tools/test_parallel_streams.py::test_the_second_lease_is_refused_when_the_scopes_overlap`.
+  ZWEITE Restklasse, gemessen (Pruefung Runde 1, F19): `--worktree` prueft, dass ein
+  Verzeichnis dort liegt, und sonst nichts — nicht, ob es ein git-Checkout ist, nicht,
+  ob es zu diesem Zustandsverzeichnis gehoert. Dass ZWEI Leases denselben Baum nennen
+  duerfen, ist kein Rest, sondern der Normalfall: mehrere Auftraege in einem Baum
+  trennt die Bereichsregel, nicht der Baum'
+regression_tests:
+- tools/test_parallel_streams.py::test_the_second_lease_is_refused_when_the_scopes_overlap
+- tools/test_parallel_streams.py::test_a_worktree_nobody_can_stand_in_is_refused
+status: VERIFIED
+revision: 1
+approval_ref: APR-0049
+created: '2026-09-05T20:28:09'
+approved_hash: 0baf99ee08b310e6394810d2c952ca374ec9e91c30594386fe5157e5d30ac132
+closed_at: '2026-09-12T21:22:07'

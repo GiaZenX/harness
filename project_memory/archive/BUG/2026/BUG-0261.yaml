@@ -1,0 +1,45 @@
+id: BUG-0261
+title: Ein bestandener Test, der einen Fehler NENNT, sagt nicht, dass der Fehler weg
+  ist -- 106 gemessene Bugs ohne Urteil
+related_pr: PR-0008
+observed: 'MECHANISM: PR-0008 AC-1 asks for one of three verdicts per active BUG,
+  ''measured against the running code (its observed line re-run or its test executed)''.
+  The cheap measurement is the second one: run the tests whose docstrings name the
+  bug. MEASURED 2026-09-05 (TSK-0131) over 196 active BUG items at b7f282e: 307 runs,
+  106 items whose named tests all PASS, 6 re-measured as still open, 52 migrated holes
+  standing TRIAGED, 32 with no test and no probe (project_memory/staging/TSK-0131/survey-table.md
+  carries every row). BUT the run outcome does not carry the verdict: for a migrated
+  HOLE the test that names it is usually the test that PINS the gap -- it passes BECAUSE
+  the gap is still there (BUG-0111/H19 is the clearest case: the test asserts the
+  over-refusal the hole is about). Which of the two a passing run means is decided
+  by reading the item beside its test, one at a time; 106 such readings did not fit
+  this stream, and inventing them from the run outcome would have written 106 false
+  verdicts through the kernel.'
+expected: 'Every active BUG carries a verdict somebody measured AND judged: VERIFIED+archived
+  with the evidence, OPEN/TRIAGED with the re-measured chain, or CANCELLED naming
+  the absorber. The judgement half needs the item and its test read together -- or
+  a property that separates ''the test proves the fix'' from ''the test pins the gap'',
+  which nothing in the store carries today (a hole item''s `regression_tests` names
+  its test either way).'
+repro: python -B survey_table.py in the round's scratch directory regenerates the
+  table from the run log; compare any OPEN-BY-DESIGN row with its MEASURED-PASS neighbour
+  and note that the run output is identical for both.
+severity: medium
+limits: Dass ein Test grün ist, heißt nicht, dass der Fehler weg ist — manche Tests
+  halten die Lücke fest. Das muss ein Mensch je Eintrag lesen; genau das haben die
+  Bauer dieser Runde für jeden Eintrag getan.
+acceptance_criteria:
+- id: AC-1
+  text: Every active BUG carries a verdict that names both the measurement and the
+    reading that turned it into a verdict
+- id: AC-2
+  text: Either a property in the store separates a pinning test from a confirming
+    one, or the round protocol records that the separation stays a human reading and
+    how long 196 of them take
+hole_number: H179
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0063
+created: '2026-09-05T23:10:22'
+approved_hash: 131c235e9fceebc6999567f2daba4b73ef0f949752121a3788e1c7d58631f58e
+closed_at: '2026-09-12T22:42:49'

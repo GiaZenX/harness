@@ -1,0 +1,38 @@
+id: BUG-0190
+title: 'Der Umfang eines QS-Laufs ist Prosa: kein Feld und kein Hook zählt, ob die
+  Suite einmal oder zehnmal lief (neu, TSK-0105, FR-0057)'
+related_pr: PR-0003
+observed: '**Mechanismus.** Das Maß aus DEC-0050 — betroffene Tests, solange die Runde
+  offen ist; der volle
+
+  Lauf EINMAL vor dem Urteil — steht seit dieser Runde dort, wo die Verdict-Rolle
+  es liest: in der
+
+  `description` ihres Frontmatters (was ein Spawn zuerst sieht) und im `## Do` ihres
+  Skills, dazu als
+
+  Klausel am GATE-Schritt der Verfassung (§5a.7) und als Leiter im PM-Skill. Nichts
+  davon liest ein
+
+  Hook. Der Evidence-Datensatz trägt `--summary` (Freitext) und `--artifact-ref` (einen
+  Pfad); ein
+
+  Feld für den Umfang oder die Nummer eines Laufs gibt es nicht, und kein Hook zählt
+  Befehlszeilen
+
+  über eine Sitzung.'
+severity: low
+hole_number: H106
+source: docs/holes/H106.md
+limits: 'der Umfang eines QS-Laufs ist Prosa: kein Feld im Evidence-Datensatz und
+  kein Hook zählt, ob die Suite einmal oder zehnmal lief. Begrenzt durch den Rollentext
+  — Beschreibung und Skill, beide Hälften per Test gehalten —, die Verfassungsklausel
+  am GATE-Schritt und die Leiter des PM'
+regression_tests:
+- tools/test_role_contracts.py::test_every_verdict_role_states_the_scope_of_its_runs
+status: VERIFIED
+revision: 1
+approval_ref: APR-0050
+created: '2026-09-05T20:25:54'
+approved_hash: 3713a95ec420fd0fe9d6a9bc70c1874ee74a9285df3ee78a18d9c625f624d4e0
+closed_at: '2026-09-12T21:22:38'

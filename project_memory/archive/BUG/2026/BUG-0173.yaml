@@ -1,0 +1,41 @@
+id: BUG-0173
+title: 'Der Mint-Leser irrt in BEIDE Richtungen: eine unzerlegbare Zeile warnt zu
+  viel, eine fehlende Datei zu wenig (neu, TSK-0097)'
+related_pr: PR-0003
+observed: '**Mechanismus:** `report.approval_mint_is_wired` beantwortet „kann eine
+  Antwort des Nutzers hier
+
+  etwas bewirken" und entscheidet damit zwei Sätze, die eine Rolle liest (der stderr-Hinweis
+  an
+
+  `request-approval` und der Zusatz an der Transition-Verweigerung). Ob eine Registrierung
+  den Haken
+
+  FÄHRT, fragt er `report._invoked_scripts`. Dieser Leser findet ein `.py` nur, wenn
+  er die Zeile in
+
+  Wörter zerlegen kann; eine quotierte Spanne mit einem **Leerzeichen** darin zerlegt
+  er nicht. Die
+
+  Datei-Existenz fragt er umgekehrt gar nicht — das tat `_wired_hooks`, und genau
+  diese Bedingung
+
+  wurde bewusst fallengelassen, weil sie zur Blockier-Frage gehört.'
+severity: low
+hole_number: H81
+source: docs/holes/H81.md
+limits: 'der Mint-Leser irrt in beide Richtungen, beide gemessen: eine Registrierung
+  mit quotiertem Pfad, der ein **Leerzeichen** enthält, zerlegt `_invoked_scripts`
+  nicht → `False` + Warnung, obwohl die Zeile münzt (Item `APPROVED`); ein auflösbarer
+  Pfad mit **fehlender Datei** → `True`, kein Wort, obwohl nichts läuft. Kein Kit
+  betroffen (alle drei registrieren über `$CLAUDE_PROJECT_DIR`, gemessen `True`);
+  getroffen wäre ein ausgeschriebener Pfad; die Registrierung, die TSK-0098 in diesem
+  Repo geschrieben hat, geht deshalb über `${CLAUDE_PROJECT_DIR}` und liest gemessen
+  `True`. Nicht hier geschlossen: `_invoked_scripts` trägt auch `doctor` und die Bündel-Vertrauensprüfung,
+  eine Erweiterung ist eine eigene Runde mit eigenen roten Tests an diesen Lesern'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0048
+created: '2026-09-05T20:25:09'
+approved_hash: c4697f08eebadb6e91f7a578918ddb32ca6e058d5a93b35bf51013bd1ad2f322
+closed_at: '2026-09-12T21:21:01'

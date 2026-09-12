@@ -1,0 +1,26 @@
+id: BUG-0170
+title: Ein Startmodus, der die Projekteinstellungen nicht lädt, entfernt den ganzen
+  Durchsetzungsapparat — offen, von innen nicht schließbar (TSK-0094)
+related_pr: PR-0003
+observed: '**Der Mechanismus, in einem Satz** (so formuliert der Prüfer, und so gehört
+  er gelesen —
+
+  `--restricted` ist nur die Schreibweise, an der es auffiel): **jeder Client-Startmodus,
+  der die
+
+  Projekteinstellungen nicht lädt, entfernt alle vier Registrierungsflächen eines
+  Kits, während die
+
+  Dateiwerkzeuge im Projekt schreibfähig bleiben.**'
+severity: medium
+hole_number: H78
+source: docs/holes/H78.md
+limits: Es gibt eine Startart von Claude Code, bei der die Projekteinstellungen gar
+  nicht geladen werden -- dann sind alle Schutzregeln dieses Projekts aus. Dagegen
+  kann das Projekt von innen nichts bauen, denn es läuft dann gar nicht mit.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0058
+created: '2026-09-05T20:25:01'
+approved_hash: fcdefdff0fc678acd14e286a51b2e6826080013d5bc10bf1334224a9fc5e7a91
+closed_at: '2026-09-12T22:29:22'

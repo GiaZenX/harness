@@ -1,0 +1,34 @@
+id: BUG-0032
+title: validate's orphan heuristic reads staging dirs against active item NAMES only
+  -- a dir referenced by active EVD artifact_refs is reported as orphaned
+related_pr: PR-0003
+observed: 'team-kits/kernel/report.py:496 decides ''orphaned staging dir'' by ''if
+  entry not in active_items:'' -- a pure name match against active item ids. project_memory/staging/TSK-0022/
+  holds the artifact all three of EVD-0001/0002/0003 name in artifact_refs, yet validate
+  reports it as ''orphaned staging dir (no active task or root item)'' (measured 2026-08-13,
+  round TSK-0055). The mechanism, not the spelling: ANY staging file whose binding
+  runs through something other than an active item''s directory name is an orphan
+  to validate, even while an active record carries it as its only outward-pointing
+  proof (backlog_types.py:388-393 calls artifact_refs exactly that).'
+expected: 'A staging path that an active EVD names in artifact_refs is not an orphan:
+  the validator resolves artifact_refs (or any equivalent reference) before pronouncing
+  the warning, or the warning names the reference it ignored.'
+repro: 'In a state root where an active EVD carries artifact_refs: [staging/TSK-XXXX/file.md]
+  and no active task TSK-XXXX exists, run: PYTHONPATH=team-kits python -B -m kernel.cli
+  --root project_memory validate -- the WARNING ''staging/TSK-XXXX: orphaned staging
+  dir'' appears despite the live reference.'
+severity: low
+acceptance_criteria:
+- 'AC-1: with an active EVD referencing a staging path and no same-named active item,
+  validate emits no orphan warning for that dir (or the warning names the reference
+  it chose to ignore)'
+- 'AC-2: a truly unreferenced staging dir still warns'
+- 'AC-3: a red-without-fix test pins the edge'
+source: docs/reviews/2026-08-13-tsk0055-closure-round.md, section 'Before / after'
+  (the returning TSK-0022 warning); found by the TSK-0055 round verifier (R1)
+status: VERIFIED
+revision: 1
+approval_ref: APR-0050
+created: '2026-08-13T09:56:47'
+approved_hash: 5996a56f106adffe8c799a90e0120ca25f99e79f62a46a08d91e12d9907442a2
+closed_at: '2026-09-12T21:22:28'

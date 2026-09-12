@@ -1,0 +1,32 @@
+id: BUG-0216
+title: Der SDK-Weg prägt ohne die dritte Bedingung, und jedes Programm, das die Brücke
+  ruft, prägt (neu, TSK-0117, FR-0083)
+related_pr: PR-0003
+observed: '**Mechanismus.** `approvals._assert_minting_caller` kannte eine Route und
+  drei Bedingungen: ein
+
+  geladenes `_kernel`-Brückenmodul, der unmittelbare Aufrufer IST die Haken-Datei,
+  und `__main__` ist
+
+  dieselbe Datei. Die zweite Route (`kernel/sdk_approval.py`, der Einstieg aus `canUseTool`)
+  kann die
+
+  dritte Bedingung nicht tragen: das einbettende Programm IST `__main__`, per Konstruktion.
+  Geprüft
+
+  wird dort nur der unmittelbare Aufrufer. Damit prägt jedes Programm, das dieses
+  Paket importiert
+
+  und `mint_from_can_use_tool` ruft — ohne Haken, ohne Provider, ohne Nutzer.'
+severity: medium
+hole_number: H133
+source: docs/holes/H133.md
+limits: Wer das Paket in ein eigenes Programm einbaut, kann damit eine Freigabe erzeugen
+  — auf jedem solchen Datensatz steht aber, dass ein Programm geantwortet hat, und
+  liefern lässt sich damit nichts.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0063
+created: '2026-09-05T20:27:06'
+approved_hash: adfe6cd564de5cdd31620661749c0574152833cd4ed8a6869e850000188a246a
+closed_at: '2026-09-12T22:42:49'

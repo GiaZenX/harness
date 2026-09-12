@@ -709,3 +709,45 @@
 {"ts": "2026-09-12T09:21:49", "hook": "gate_approval", "event": "note", "reason": "minted APR-0047 for request 5d9af5c1af3c427c9e9abac9715d219c (user_answer_via_approval_hook)"}
 {"ts": "2026-09-12T09:22:02", "hook": "gate_approval", "event": "note", "reason": "approval question for 1eb81e42d24749fd9d023bd16d6cb02f matched the kernel's"}
 {"ts": "2026-09-12T09:23:25", "hook": "gate_approval", "event": "note", "reason": "no approval was created for request 1eb81e42d24749fd9d023bd16d6cb02f.\nanswer 'Ablehnen. Wieso wird das nicht behoben? Verstehe es nicht, will nicht blind Freigabe erteilen' does not mint: only the exact approval label of THIS request mints (it carries a per-request code shown in the option). Casual free text never approves. The pending request stays until TTL."}
+{"ts": "2026-09-12T21:20:21", "hook": "gate_approval", "event": "note", "reason": "approval question for da43602f531e4224ac39b4e2b55533a6 matched the kernel's"}
+{"ts": "2026-09-12T21:21:21", "hook": "gate_approval", "event": "note", "reason": "minted APR-0048 for request da43602f531e4224ac39b4e2b55533a6 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T21:21:45", "hook": "gate_approval", "event": "note", "reason": "approval question for 2b79bf4043e640218dcccb541f3a5260 matched the kernel's"}
+{"ts": "2026-09-12T21:22:13", "hook": "gate_approval", "event": "note", "reason": "minted APR-0049 for request 2b79bf4043e640218dcccb541f3a5260 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T21:22:22", "hook": "gate_approval", "event": "note", "reason": "approval question for 046183cd13454b1ca5b58fd5fbfa993b matched the kernel's"}
+{"ts": "2026-09-12T21:22:44", "hook": "gate_approval", "event": "note", "reason": "minted APR-0050 for request 046183cd13454b1ca5b58fd5fbfa993b (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T21:22:53", "hook": "gate_approval", "event": "note", "reason": "approval question for 7a366da893ab4ac7bb73c45d8eda007b matched the kernel's"}
+{"ts": "2026-09-12T21:23:36", "hook": "gate_approval", "event": "note", "reason": "minted APR-0051 for request 7a366da893ab4ac7bb73c45d8eda007b (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T21:23:46", "hook": "gate_approval", "event": "note", "reason": "approval question for af541498baaa44079a99d0f2f823f3a7 matched the kernel's"}
+{"ts": "2026-09-12T21:24:19", "hook": "gate_approval", "event": "note", "reason": "minted APR-0052 for request af541498baaa44079a99d0f2f823f3a7 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T21:24:26", "hook": "gate_approval", "event": "note", "reason": "approval question for b618fb709dee4ef6887f389bf64dc28c matched the kernel's"}
+{"ts": "2026-09-12T21:24:41", "hook": "gate_approval", "event": "note", "reason": "minted APR-0053 for request b618fb709dee4ef6887f389bf64dc28c (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T21:24:49", "hook": "gate_approval", "event": "note", "reason": "approval question for 1a8f21461ffb47879a3de06f13d4f62a matched the kernel's"}
+{"ts": "2026-09-12T21:25:19", "hook": "gate_approval", "event": "note", "reason": "minted APR-0054 for request 1a8f21461ffb47879a3de06f13d4f62a (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T21:25:28", "hook": "gate_approval", "event": "note", "reason": "approval question for 091e1571626041e8900c8b3c0b5e61b2 matched the kernel's"}
+{"ts": "2026-09-12T21:25:40", "hook": "gate_approval", "event": "note", "reason": "minted APR-0055 for request 091e1571626041e8900c8b3c0b5e61b2 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T21:25:49", "hook": "gate_approval", "event": "note", "reason": "approval question for 529ec12a789b4813a68b8db0f1b2fb31 matched the kernel's"}
+{"ts": "2026-09-12T21:26:15", "hook": "gate_approval", "event": "note", "reason": "minted APR-0056 for request 529ec12a789b4813a68b8db0f1b2fb31 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T21:26:24", "hook": "gate_approval", "event": "note", "reason": "approval question for 973dacf38c8e44209c5662791fdaafd9 matched the kernel's"}
+{"ts": "2026-09-12T21:26:36", "hook": "gate_approval", "event": "note", "reason": "minted APR-0057 for request 973dacf38c8e44209c5662791fdaafd9 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T21:26:59", "hook": "gate_approval", "event": "note", "reason": "approval question for d366f60d2a364e5ab3bdc52a99e91290 matched the kernel's"}
+{"ts": "2026-09-12T21:35:42", "hook": "gate_approval", "event": "note", "reason": "no approval was created for request d366f60d2a364e5ab3bdc52a99e91290.\nanswer \"Bevor ich freigebe: kann man die nicht beheben oder macht's keinen Sinn und deshalb benannte Lücke? Also bieten keinen Mehrwert oder? So seh ich das\" does not mint: only the exact approval label of THIS request mints (it carries a per-request code shown in the option). Casual free text never approves. The pending request stays until TTL."}
+{"ts": "2026-09-12T21:36:11", "hook": "gate_approval", "event": "note", "reason": "approval question for d366f60d2a364e5ab3bdc52a99e91290 matched the kernel's"}
+{"ts": "2026-09-12T22:29:24", "hook": "gate_approval", "event": "note", "reason": "minted APR-0058 for request d366f60d2a364e5ab3bdc52a99e91290 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T22:29:41", "hook": "gate_approval", "event": "note", "reason": "approval question for 9c17e5311adc4b22939217c994339d5a matched the kernel's"}
+{"ts": "2026-09-12T22:30:40", "hook": "gate_approval", "event": "note", "reason": "minted APR-0059 for request 9c17e5311adc4b22939217c994339d5a (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T22:31:00", "hook": "gate_approval", "event": "note", "reason": "approval question for f715b19ab29346b2a967adb00b71d305 matched the kernel's"}
+{"ts": "2026-09-12T22:39:35", "hook": "gate_approval", "event": "note", "reason": "minted APR-0060 for request f715b19ab29346b2a967adb00b71d305 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T22:39:49", "hook": "gate_approval", "event": "note", "reason": "approval question for 701691e3adb3415994f047c0d0ae5fe5 matched the kernel's"}
+{"ts": "2026-09-12T22:40:54", "hook": "gate_approval", "event": "note", "reason": "minted APR-0061 for request 701691e3adb3415994f047c0d0ae5fe5 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T22:41:08", "hook": "gate_approval", "event": "note", "reason": "approval question for 75ebd48340a0449bb4a4c44aaf970564 matched the kernel's"}
+{"ts": "2026-09-12T22:41:52", "hook": "gate_approval", "event": "note", "reason": "minted APR-0062 for request 75ebd48340a0449bb4a4c44aaf970564 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T22:42:12", "hook": "gate_approval", "event": "note", "reason": "approval question for 1ded64f295054122bfa9f89d8dfa0ca1 matched the kernel's"}
+{"ts": "2026-09-12T22:42:51", "hook": "gate_approval", "event": "note", "reason": "minted APR-0063 for request 1ded64f295054122bfa9f89d8dfa0ca1 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T22:43:10", "hook": "gate_approval", "event": "note", "reason": "approval question for 26b1b6a7d5a941a8824257835a4d2741 matched the kernel's"}
+{"ts": "2026-09-12T22:43:28", "hook": "gate_approval", "event": "note", "reason": "minted APR-0064 for request 26b1b6a7d5a941a8824257835a4d2741 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T22:43:48", "hook": "gate_approval", "event": "note", "reason": "approval question for be5645adb2bd41569db1e2061ed21299 matched the kernel's"}
+{"ts": "2026-09-12T22:44:08", "hook": "gate_approval", "event": "note", "reason": "minted APR-0065 for request be5645adb2bd41569db1e2061ed21299 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-12T22:46:06", "hook": "gate_approval", "event": "note", "reason": "11 approval request(s) outstanding and the answered question was none of them — nothing to mint, and the user was told (BUG-0039)."}
+{"ts": "2026-09-12T22:47:36", "hook": "gate_approval", "event": "note", "reason": "11 approval request(s) outstanding and the answered question was none of them — nothing to mint, and the user was told (BUG-0039)."}
+{"ts": "2026-09-12T22:48:19", "hook": "gate_approval", "event": "note", "reason": "11 approval request(s) outstanding and the answered question was none of them — nothing to mint, and the user was told (BUG-0039)."}
+{"ts": "2026-09-12T22:49:13", "hook": "gate_approval", "event": "note", "reason": "11 approval request(s) outstanding and the answered question was none of them — nothing to mint, and the user was told (BUG-0039)."}

@@ -1,0 +1,37 @@
+id: BUG-0181
+title: Ohne `git` kann die Vier-Augen-Buchung alte von neuen Zeilen nicht unterscheiden
+  und tritt zurück (neu, TSK-0102, FR-0065)
+related_pr: PR-0003
+observed: '**Mechanismus.** `gate_second_booking` urteilt nur über Ledger-Zeilen,
+  die noch nicht in `HEAD`
+
+  stehen. Das ist die Migrationsantwort: ein echtes Buch trägt Zeilen, die vor dieser
+  Schicht gebucht
+
+  wurden, und ein Mechanismus, der jede davon verweigert, ist schlechter als keiner
+  (`FR-0065` sagt
+
+  genau das). Die Grundlinie ist damit nichts Aufgezähltes und nichts, was sich prägen
+  ließe — der
+
+  einzige Weg nach `HEAD` ist ein Commit, und der Commit ist einer der Momente, an
+  denen dieses Gate
+
+  steht. Wo `git` aber gar nicht antwortet — nicht installiert, oder ein Verzeichnis,
+  das kein
+
+  Arbeitsbaum ist —, gibt es diese Unterscheidung nicht.'
+severity: low
+hole_number: H89
+source: docs/holes/H89.md
+limits: Ohne die Versionsverwaltung (git) kann die Buchungsprüfung nicht unterscheiden,
+  welche Zeilen im Kassenbuch schon vorher dastanden und welche neu sind. Sie tritt
+  dann zurück, statt sicherheitshalber alles abzulehnen.
+regression_tests:
+- tools/test_hooks.py::test_a_ledger_git_cannot_answer_for_stands_the_booking_gate_down_and_says_so
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0059
+created: '2026-09-05T20:25:30'
+approved_hash: 4c39109d80828c70f63c72408c4859d5a3f743bf164a4a81dea7cecebe0d2206
+closed_at: '2026-09-12T22:30:36'

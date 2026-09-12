@@ -1,0 +1,25 @@
+id: BUG-0146
+title: Ein ungebunden laufendes Kind wird als „nie verfolgt" gemeldet — offen, nicht
+  blockierend (neu, TSK-0080)
+related_pr: PR-0003
+observed: '**Mechanismus:** Der Waisen-Term meldet eine Lease, die nie ein Kind gebunden
+  hat und deren
+
+  Fenster ablief. Ein Kind, das gestartet, aber nie gebunden wurde (Antwortform ohne
+  `agentId`),
+
+  läuft dann noch — und der Befund nennt seinen Dispatch trotzdem, mit dem Satz „nothing
+  here was
+
+  ever tracking a run on it".'
+severity: medium
+hole_number: H54
+source: docs/holes/H54.md
+limits: Ein Helfer, den niemand zuordnen konnte, wird als unverfolgt gemeldet — schreiben
+  durfte er ohnehin nichts.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0063
+created: '2026-09-05T20:23:58'
+approved_hash: d4e3523aa2dbaa2d842bb3344ab52a71866d144e730f5bf40e367e7dde884269
+closed_at: '2026-09-12T22:42:49'

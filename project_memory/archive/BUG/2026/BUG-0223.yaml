@@ -1,0 +1,25 @@
+id: BUG-0223
+title: Die Rangfolge-Prüfung urteilt über das, was der Entwurf DEKLARIERT, und der
+  Kontrast schweigt über das, was er nicht ausrechnen kann (neu, TSK-0119, FR-0077/FR-0078)
+related_pr: PR-0003
+observed: '**Mechanismus.** Zwei Grenzen desselben Bauprinzips („lies den Teil, der
+  läuft"), beide in der
+
+  stillen Richtung:'
+severity: low
+hole_number: H140
+source: docs/holes/H140.md
+limits: Die Rangfolge-Regel („eine Seite sagt genau EINE Sache, die der Nutzer hier
+  tun soll“) braucht eine ausgezeichnete Ansicht. Ein Entwurf ohne eine solche kann
+  ein Kachelblatt sein, bei dem mehrere Hauptaktionen richtig sind — deshalb sagt
+  die Prüfung dort „nicht entscheidbar“ statt zu urteilen, und schreibt das hin.
+regression_tests:
+- tools/test_design_conformance.py::test_a_draft_that_declares_no_view_says_so_instead_of_saying_nothing
+- tools/test_design_conformance.py::test_a_value_the_check_cannot_decide_is_named_and_is_not_a_finding
+- tools/test_design_conformance.py::test_a_colour_literal_in_a_presentation_attribute_is_one_too
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0065
+created: '2026-09-05T20:27:26'
+approved_hash: df815dd4553d5c09f30538b1b3beee7f8cb6ef0dc4c7b7129453aa70c5e95ea0
+closed_at: '2026-09-12T22:44:06'

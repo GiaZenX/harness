@@ -1,0 +1,31 @@
+id: BUG-0206
+title: Der Melder über ungelesene Prosa fragt, was git TRÄGT, und nicht, was auf der
+  Platte liegt (neu, TSK-0110, FR-0036)
+related_pr: PR-0003
+observed: '**Mechanismus.** `test_repo_hygiene.test_docs_prose_nothing_reads_any_more_is_reported_not_failed`
+
+  nennt eine Datei unter `docs/`, die seit `_DOCS_GRACE_DAYS` niemand mehr anfasst
+  und die NICHTS
+
+  nennt. Sein Korpus ist `test_repo_hygiene._carried_files`, also
+
+  `git ls-files -c -o --exclude-standard`. Eine ignorierte Datei steht darin nicht.
+  Nennt sie ein
+
+  Dokument, sieht der Melder die Nennung nicht und meldet das Dokument als ungelesen.'
+severity: low
+hole_number: H122
+source: docs/holes/H122.md
+limits: Der Hinweis auf Dokumente, die niemand mehr liest, fragt die Versionsverwaltung,
+  welche Dateien zum Projekt gehören. Absichtlich ignorierte Dateien -- Zwischenspeicher
+  von Werkzeugen -- zählt er nicht mit; auf diesem Stand sind das 104424 Dateien,
+  praktisch alles Zwischenspeicher, und sie alle zu lesen würde jeden Lauf um Minuten
+  verlängern. Der Hinweis warnt nur und blockiert nie.
+regression_tests:
+- test_repo_hygiene.test_docs_prose_nothing_reads_any_more_is_reported_not_failed
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0064
+created: '2026-09-05T20:26:38'
+approved_hash: f26e0a603e86e2972c6d2d994991710a226adf062895a8e22c1b99e2b69cc269
+closed_at: '2026-09-12T22:43:26'

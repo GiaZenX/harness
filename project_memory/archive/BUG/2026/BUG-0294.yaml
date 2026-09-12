@@ -1,0 +1,55 @@
+id: BUG-0294
+title: 'H138 neu aufgelegt (Ausnahme nie freigegeben): Die Konformitätsbefunde des
+  Renderers verweigern nichts: der Datensatz beantwortet eine andere Frage (neu, TSK-0119,
+  FR-0077/FR-0078)'
+related_pr: PR-0012
+observed: 'Migrated 2026-09-05 as H138 into BUG-0221 with status ACCEPTED_EXCEPTION
+  and approval null -- the user never saw a question for it (measured 2026-09-12 over
+  archive/bug/*). Original finding: **Mechanismus.** `kit_design_render.py` prüft
+  den gerenderten Entwurf seit TSK-0119 gegen den
+
+  mechanisch entscheidbaren Anteil der Design-Standards und meldet Befunde mit **rc
+  3**. Der
+
+  Datensatz `review/render.json` wird dabei **trotzdem** geschrieben, und `gate_design_sighted`
+  liest
+
+  genau ihn — der Haken fragt „wurde dieser Entwurf gerendert", nicht „ist er in Ordnung".
+  Eine Rolle,
+
+  die den Rückgabewert ignoriert, präsentiert also einen Entwurf mit Befunden, ohne
+  dass irgendetwas
+
+  verweigert.'
+expected: 'CLOSED red-first by stream B with a test that NAMES this bug id (DEC-0100);
+  fix location: team-kits/dev-team/templates/repo/scripts/kit_design_render.py rc
+  3 + gate_design_sighted. If the attempt measures it unclosable here, the downgrade
+  carries the measurement and a plain-German sentence (never ''later'').'
+repro: 'read BUG-0221 (status ACCEPTED_EXCEPTION, approval: null); the mechanism:
+  docs/holes/H138.md'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the item ends VERIFIED on a passing test that names it, or ACCEPTED_EXCEPTION
+  on a request the user answered -- never on a migration'
+- 'AC-2: if an exception, its `limits` is the plain-German sentence a non-developer
+  understands'
+source: 'archive BUG-0221; staging/generation-6/refile_unclicked_exceptions.py (lead
+  classification: ja, stream B)'
+limits: 'die Konformitätsbefunde von `kit_design_render.py` verweigern nichts: der
+  Renderer meldet sie mit **rc 3** und schreibt `review/render.json` trotzdem, und
+  `gate_design_sighted` liest genau diesen Datensatz — der Haken fragt „wurde gerendert“,
+  nicht „ist er in Ordnung“. Gemessen: Entwurf mit Kontrast 1,92:1 → Renderer rc 3,
+  Haken **rc 0**. Begrenzt durch: Rückgabewert + gedruckter Befund, die drei Rückgabewerte
+  einzeln in der `product-designer`-SKILL-Zeile, und die ENFORCEMENT-Zeile, die das
+  Nicht-Urteil ausdrücklich sagt. Kein Gate, weil `DEC-0056` (b) für diese Fehlklasse
+  keinen gemessenen Fall kennt. Der Nutzer hat die Ausnahme am 2026-09-03 erteilt
+  (`DEC-0069`) („melden reicht vorerst“); sie FÄLLT beim ersten echten Fall, in dem
+  ein Entwurf MIT Befunden trotzdem gebaut oder eingefroren wurde'
+supersedes: BUG-0221
+hole_number: H210
+status: VERIFIED
+revision: 1
+approval_ref: APR-0053
+created: '2026-09-12T09:46:52'
+approved_hash: a1db5ce36b6518e910af5f7dd2e35b39699366ec39b7b163a090d867c07ec905
+closed_at: '2026-09-12T21:24:39'

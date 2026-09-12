@@ -1,0 +1,25 @@
+id: BUG-0128
+title: Ein einzelner Aufruf nach C gibt den Interpreter nicht zurück (neu, TSK-0021)
+related_pr: PR-0003
+observed: '**Mechanismus:** der Faden aus H35 kann nur unterbrechen, was der Interpreter
+  zwischen zwei
+
+  Bytecodes aus der Hand gibt. Ein einzelner Aufruf in eine C-Funktion tut das nicht.
+  Der teuerste
+
+  davon auf diesem Weg ist die Heredoc-Erkennung der Kits (`gate_write_scope._HEREDOC_RX`),
+  deren
+
+  Kosten quadratisch mit der Zahl der Öffner wachsen.'
+severity: low
+hole_number: H36
+source: docs/holes/H36.md
+limits: Ein einzelner Arbeitsschritt, der tief im Programmiersystem selbst läuft,
+  gibt die Kontrolle bis zu seinem Ende nicht zurück -- solange kann ihn nichts abbrechen.
+  Das entscheidet dieses Programmiersystem (Python) und nicht dieses Projekt.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0059
+created: '2026-09-05T20:23:14'
+approved_hash: 130450145a64eefc1f00fda6265dcfc553d665a515e56acfff094e1da0cfdeeb
+closed_at: '2026-09-12T22:30:36'

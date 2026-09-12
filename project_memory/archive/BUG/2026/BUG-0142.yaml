@@ -1,0 +1,32 @@
+id: BUG-0142
+title: Ein gebundenes Kind ohne `SubagentStop` ist nach dem TTL-Sweep unsichtbar —
+  OFFEN als bewusster Tausch (neu, TSK-0080)
+related_pr: PR-0003
+observed: '**Mechanismus:** Der Untätigkeits-Melder (`kernel.dispatch.idle_dispatches`)
+  urteilt nur aus
+
+  positiven Datensätzen: dem vermerkten Kind-Ende (`SubagentStop`) oder einer vorliegenden
+  Lease,
+
+  die nie ein Kind gebunden hat und deren Fenster ablief. Stirbt ein **gebundenes**
+  Kind, ohne dass
+
+  der Provider je ein `SubagentStop` liefert, existiert kein Datensatz, der es von
+  einem
+
+  arbeitenden unterscheidet — und nach `sweep_expired_leases` ist auch die Lease weg.
+  Von da an
+
+  meldet nichts mehr.'
+severity: medium
+hole_number: H50
+source: docs/holes/H50.md
+limits: Wenn Claude Code nie meldet, dass ein Helfer-Agent fertig ist, gibt es keinen
+  Eintrag, aus dem dieses Projekt es ableiten könnte. Es fehlt die Nachricht, nicht
+  die Auswertung.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0058
+created: '2026-09-05T20:23:49'
+approved_hash: 8da26284b024ed9cd1452af1a1736499263ee620f5a9c0d61bdf61ac45b0841c
+closed_at: '2026-09-12T22:29:22'

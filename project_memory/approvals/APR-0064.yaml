@@ -1,0 +1,11 @@
+id: APR-0064
+kind: hole_exception
+item: null
+revision: null
+subject_manifest_hash: 35db7676d888dbe6962ce011d1f77a03491b2dcbb2d5b9a7990cd30ca2b0fa82
+request_id: 26b1b6a7d5a941a8824257835a4d2741
+mint_code: 7fabb7
+minted_via: user_answer_via_approval_hook
+approved_at: '2026-09-12T22:43:25'
+expires: null
+revoked: false

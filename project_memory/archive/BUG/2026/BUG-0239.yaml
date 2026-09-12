@@ -1,0 +1,41 @@
+id: BUG-0239
+title: Kein Leser urteilt über den WORTLAUT einer Auftragszeile (neu, TSK-0123, FR-0005/FR-0010)
+related_pr: PR-0003
+observed: '**Mechanismus.** Die zwei Lesungen, die diese Runde vor den Auftrag setzt
+  — der kleinere Plan und
+
+  die fünf Formen, in denen eine Auftragszeile danebengeht — sind Pflichten in einem
+  Rollentext. Was
+
+  sie prüfen, ist der WORTLAUT der Zeilen eines Arbeitsauftrags, und den liest kein
+  gebauter Leser:
+
+  `gate_dispatch` prüft den Dispatch-Kopf gegen die Lease und sagt das in seinem eigenen
+  Kopfkommentar
+
+  („WHAT THIS GATE PARSES: the header, and only the header … Free prompt prose is
+  never evidence of
+
+  anything"), Gate 2 dieses Repos verlangt eine Id, die auflöst und nicht terminal
+  ist. Ein Auftrag,
+
+  dessen `expected_outputs` einen Baustein nennt, den keine Anforderung nennt — der
+  mechanische
+
+  Auslöser des kleineren Plans —, geht also unbeanstandet raus.'
+severity: medium
+hole_number: H157
+source: docs/holes/H157.md
+limits: Ob ein Arbeitsauftrag sinnvoll formuliert ist, liest kein Programm nach; das
+  bleibt die Aufgabe der Lesung, die im Arbeitsablauf steht.
+regression_tests:
+- tools/test_review_procedure.py::test_nothing_reads_what_a_work_order_LINE_says
+- tools/test_review_procedure.py::test_the_order_reading_is_a_step_of_the_work_loop_and_not_an_appendix
+- tools/test_review_procedure.py::test_every_kit_lead_is_given_the_ways_a_work_order_line_goes_wrong
+- tools/test_review_procedure.py::test_the_order_reading_claims_no_enforcement_it_does_not_have
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0063
+created: '2026-09-05T20:28:12'
+approved_hash: cd982521590dc591655249b9e0262018d5c9cad94d31aec82c2e668614b3ee97
+closed_at: '2026-09-12T22:42:49'

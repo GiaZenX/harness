@@ -1,0 +1,42 @@
+id: BUG-0226
+title: Eine Naht, die einen TEIL der Überlappung deckt, deckt ihn weiterhin zu (neu,
+  TSK-0118 Nacharbeit 1, FR-0021)
+related_pr: PR-0003
+observed: '**Mechanismus.** Eine erklärte Naht (`--seam`) wird von der Überlappungsprüfung
+
+  abgezogen, weil `DEC-0062` (5) genau dafür da ist: Dateien, die kein Strom allein
+  besitzen kann,
+
+  werden vorher benannt und in der Merge-Runde angewendet. Seit dieser Nacharbeit
+  wird eine Naht
+
+  verweigert, die die GESAMTE Ownership eines der beiden Aufträge deckt — dann wäre
+  die
+
+  Prüfung ein Nichts mit grünem Anstrich. Eine Naht, die nur einen TEIL der Überlappung
+
+  deckt, während beide Aufträge anderswo noch etwas besitzen, bleibt zulässig — und
+
+  deckt diesen Teil zu.'
+severity: low
+hole_number: H143
+source: docs/holes/H143.md
+limits: 'eine erklärte Naht, die die GESAMTE Ownership eines der beiden Aufträge deckt,
+  wird seit dieser Nacharbeit verweigert (rc 1) — eine, die nur einen TEIL der Überlappung
+  deckt, während beide Aufträge anderswo noch etwas besitzen, deckt diesen Teil weiter
+  zu. Gemessen (`_round-scratch/TSK-0118/probe_m4_m5.py` und die letzte Sonde in `tools/test_parallel_streams.py::test_a_seam_that_swallows_an_orders_whole_ownership_is_refused`):
+  `--seam "**"` und `--seam "src/**"` über zwei Aufträgen auf `src/**` sind rc 1,
+  während `--seam "src/**"` über `src/**`+`lib/**` gegen `src/**`+`docs/**` rc 0 bleibt,
+  obwohl `src/a.py` beiden gehört. Begrenzt durch: die Naht ist eine ERKLÄRUNG des
+  Orchestrators und wird gedruckt, nicht verschwiegen — jeder gedeckte Pfad steht
+  als `seam`-Zeile im Bericht —, und die Merge-Runde wendet genau diese Liste an,
+  also ist eine falsch erklärte Naht dort ein Befund gegen den Schnitt (`DEC-0062`
+  (5))'
+regression_tests:
+- tools/test_parallel_streams.py::test_a_seam_that_swallows_an_orders_whole_ownership_is_refused
+status: VERIFIED
+revision: 1
+approval_ref: APR-0049
+created: '2026-09-05T20:27:34'
+approved_hash: c423aec91959001b3738cff88063db1b5e5a9a69d469a2e8881d7899da97c5d8
+closed_at: '2026-09-12T21:22:02'

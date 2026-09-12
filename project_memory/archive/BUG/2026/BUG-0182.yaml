@@ -1,0 +1,27 @@
+id: BUG-0182
+title: Zwei identische Buchungen EINES Belegs teilen sich ein Lesepaar (neu, TSK-0102,
+  FR-0065)
+related_pr: PR-0003
+observed: '**Mechanismus.** `_bookings` verbindet Lesungen und Zeilen über die Spalte
+  `source` (den Beleg) und
+
+  prüft dann Feld für Feld auf Übereinstimmung. Die Spalte `id` ist bewusst ausgenommen
+  (sie entsteht
+
+  erst beim Schreiben). Zwei Zeilen, die sich NUR in der `id` unterscheiden, sind
+  damit beide von
+
+  demselben Lesepaar gedeckt — also eine Doppelbuchung desselben Belegs, die diese
+  Schicht durchlässt.'
+severity: low
+hole_number: H90
+source: docs/holes/H90.md
+limits: zwei identische Buchungen EINES Belegs teilen sich ein Lesepaar, solange keine
+  `invoice_no` gesetzt ist; mit ihr greift `ledger_add.validate_cross`. Gehört in
+  die Duplikatsregel des Validators, nicht in dieses Gate
+status: VERIFIED
+revision: 1
+approval_ref: APR-0051
+created: '2026-09-05T20:25:33'
+approved_hash: ef8550fce53cbb634c2277f480f0a71a8a3d62ebe83b76215f545157178c3db1
+closed_at: '2026-09-12T21:23:35'

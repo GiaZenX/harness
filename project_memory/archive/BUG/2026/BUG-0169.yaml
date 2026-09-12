@@ -1,0 +1,39 @@
+id: BUG-0169
+title: Was die Wertsprache-Regel NICHT hält — offen, gemessene Grenzen (TSK-0093)
+related_pr: PR-0003
+observed: '**Anlass:** `BUG-0073`, Live-Screenshot des Nutzers — eine Freigabe-Karte
+  erreichte ihn als
+
+  deutsch-englisches Gewebe, weil der Manager die Feldwerte englisch verfasste und
+  keine Fläche
+
+  sagte, welche Sprache **Werte** tragen. Die Runde legte die Regel auf beide Lead-Flächen
+  aller
+
+  drei Kits (verstehen = Deutsch; abgleichen = die Schreibweise des Dings, denn Übersetzen
+  ändert,
+
+  WAS freigegeben wird), warnte auf der geladenen Fläche vor dem Kürzungsschnitt (Deutsch
+  läuft
+
+  länger — „sag es kürzer, statt den Schnitt wählen zu lassen") und verengte eine
+  Karten-Klausel,
+
+  die dem Nutzer das Gegenteil dessen sagte, was zwei Zeilen darüber stand. Was bleibt,
+  gemessen:'
+severity: low
+hole_number: H77
+source: docs/holes/H77.md
+limits: 'gemessene Grenzen der Wertsprache-Regel, je im Eintrag: kein Gate erzwingt
+  sie (Freitext); der Prosa-Test liest Anker und Ehrlichkeit, nicht Richtung und nicht
+  Vokabelfreiheit (Umkehrung und apparat-freie Überbehauptung bleiben grün, beide
+  Sprachen gemessen — Sichtbarkeit über den Abschnitts-Pin); `document_types` steht
+  nackt im deutschen Satz; der Records-Clerk als einzige Nicht-Lead-Rolle mit freiem
+  `--reason` trägt die Regel nicht (kleine eigene Runde); und eine geänderte Kartenformulierung
+  entwertet offene Fragen fail-closed'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0055
+created: '2026-09-05T20:24:58'
+approved_hash: fb4249bf0eb59294d94829d2223d99aa418e835696cf175a5efd71bbc92870df
+closed_at: '2026-09-12T21:25:37'

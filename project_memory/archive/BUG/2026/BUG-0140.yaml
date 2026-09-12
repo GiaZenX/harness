@@ -1,0 +1,39 @@
+id: BUG-0140
+title: Ein offener Lesehandle friert das Board für die Dauer der Sitzung ein; das
+  einzige aktive Signal ist eine im Hook-Pfad praktisch ungelesene stderr-Zeile —
+  OFFEN als bewusster Tausch (neu, TSK-0071)
+related_pr: PR-0003
+observed: '**Mechanismus:** Seit TSK-0071 rendert der Kernel bei jeder Index-Regeneration
+  auch
+
+  `generated/board.html` (`kernel/state.py`, `_write_board`). Der Schreibweg ist atomar
+
+  (`os.replace`), und auf Windows scheitert `os.replace` gegen eine Datei, die irgendein
+  Prozess
+
+  auch nur **lesend** offen hält. Der Fail-Soft derselben Runde fängt das ab: der
+
+  Zustandsschreibvorgang **gelingt**, die Seite behält Inhalt und Zeitstempel, die
+  Warnung geht
+
+  auf stderr. Genau dieser Fang erzeugt die neue Klasse: solange der Handle gehalten
+  wird, ist die
+
+  Seite eingefroren — und eine nicht geschriebene Seite kann ihr eigenes Scheitern
+  nicht anzeigen,
+
+  nur ihren stehen gebliebenen Zeitstempel.'
+severity: medium
+hole_number: H48
+source: docs/holes/H48.md
+limits: 'keine Angriffskette auf Zustand oder Durchsetzung: eingefroren ist nur die
+  Anzeige. An die Stelle des Schutzes tritt die bedingte Frischezusage an allen fünf
+  Prosastellen plus der Zeitstempel auf der Seite als Kontrolle (die Seitenfußnote
+  nennt ihn ausdrücklich); Schließrichtung, falls die Klasse im Alltag auftritt: eine
+  Sitzungsbrief-Zeile „Board älter als Index"'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0048
+created: '2026-09-05T20:23:44'
+approved_hash: b1a309f29c9e6c9f6aa19aa13f9b119959858140ff672278da47f147de8ef0de
+closed_at: '2026-09-12T21:20:59'

@@ -1,0 +1,47 @@
+id: BUG-0162
+title: Der Vollständigkeits-Draht des Ledger-Gates fragt nach MUSTERN, also sieht
+  er eine Ausnahme ohne Muster nicht — offen, Messlücke des Instruments (TSK-0083/TSK-0084)
+related_pr: PR-0003
+observed: '**Mechanismus, als Klasse und nicht als Schreibweise:**
+
+  `tools/test_hooks_v2.py::test_every_vouching_run_pattern_is_named_here`
+
+  soll verhindern, dass eine vierte Ausnahme in `_stages_beside_the_vouched_runs`
+  eine Stufe befreit,
+
+  ohne in der geführten Liste zu stehen. Er fragt das über **Muster**: `_patterns_consulted_by`
+  folgt
+
+  Namen durch den geparsten Quelltext (alle Pfade, nur auflösbare Namen), `_patterns_called_by`
+
+  instrumentiert jedes modulweite `re.Pattern` und zeichnet auf, welche beim Laufen
+  wirklich gefragt
+
+  werden (alle Namen, nur die Pfade der Sonden); der Test nimmt die **Vereinigung**.
+  Eine Ausnahme,
+
+  die **gar kein** `re.Pattern` befragt, wird von beiden Fragen nicht erfasst — sie
+  befreit die Stufe
+
+  und der Draht bleibt grün. Dasselbe gilt für ein Muster, das nur bei einer Eingabe
+  **außerhalb** des
+
+  Sondenkorpus gefragt würde.'
+severity: low
+hole_number: H70
+source: docs/holes/H70.md
+limits: 'der Vollständigkeits-Draht des Ledger-Gates fragt nach **Mustern** (zwei
+  Leser, Vereinigung), also sieht er eine vierte Ausnahme nicht, die **gar kein**
+  `re.Pattern` befragt — gemessen von Umsetzer und Prüfer unabhängig (`stage.strip().startswith("deno
+  ")` befreit die Stufe, beide Leser grün, im Klon 1 passed), vom Lead ausdrücklich
+  **nicht** nachgemessen. Keine offene Kette im Produkt: der Draht bewacht eine künftige
+  Änderung. Die Frage, die es fangen müsste, ist „welche Stufe wird frei" — im Docstring
+  benannt, als eigene Runde zurückgestellt'
+regression_tests:
+- tools/test_hooks_v2.py::test_every_vouching_run_pattern_is_named_here
+status: VERIFIED
+revision: 1
+approval_ref: APR-0051
+created: '2026-09-05T20:24:40'
+approved_hash: 919fc3688906985950f732a78552796a87be635d96fb05ff09830b541dd592f0
+closed_at: '2026-09-12T21:23:32'

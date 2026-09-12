@@ -1,0 +1,42 @@
+id: BUG-0241
+title: Der Zeigerleser der drei Rollentexte sieht nur Backticks und nur Item-Ids (neu,
+  TSK-0123, DEC-0070)
+related_pr: PR-0003
+observed: '**Mechanismus.** `.claude/agents/` wird von keiner anderen Suite gelesen:
+
+  `tools/test_repo_hygiene.py::_texts_that_answer_for_a_claim` läuft über `team-kits/`
+  und `docs/`,
+
+  `.claude/hooks/test_gates.py` über sein eigenes Verzeichnis. Diese Runde gibt den
+  drei
+
+  Harness-Rollentexten ihren ersten Leser — er löst jede Item-Id gegen den Zustand
+  auf und jeden
+
+  Test-Knoten gegen die Suite. Was er NICHT sieht, ist dasselbe Restpaar, das `.claude/hooks/test_gates.py`
+  für sein
+
+  Verzeichnis benennt, plus eines mehr: ein Testname ohne Backticks, eine Eigenschaftsbehauptung,
+  die
+
+  gar keinen Test nennt, und ein Zeiger, der kein Item und keinen Test ist — ein Pfad,
+  ein
+
+  Dokumentabschnitt.'
+severity: medium
+hole_number: H159
+source: docs/holes/H159.md
+limits: 'Der Leser der drei Rollentexte prüft seit dieser Runde auch Pfade: zeigt
+  ein Satz auf eine Datei, die es nicht gibt, wird er rot. Was er weiter nicht sieht:
+  einen Testnamen, den niemand als Code markiert hat, und eine Behauptung, die gar
+  keinen Test nennt. Beides mit Absicht -- ein Leser ohne diese Markierung würde bei
+  normalem Fließtext Alarm schlagen.'
+regression_tests:
+- tools/test_review_procedure.py::test_every_test_pointer_the_harness_role_texts_write_resolves
+- tools/test_review_procedure.py::test_the_item_pointer_reader_can_tell_an_id_from_the_prose_around_it
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0064
+created: '2026-09-05T20:28:17'
+approved_hash: 411e13533ec7e0c7518b4537290dc51c87982a71130efeedda3cfdc78e9a95e6
+closed_at: '2026-09-12T22:43:26'

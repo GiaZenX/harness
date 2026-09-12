@@ -1,0 +1,40 @@
+id: BUG-0163
+title: Was der Leser der Merge-Rückstandsliste NICHT entscheiden kann — offen, vier
+  gemessene Grenzen (TSK-0086)
+related_pr: PR-0003
+observed: '**Anlass, und er ist der beste Grund für einen Eintrag:** `BUG-0068` kam
+  aus dem **Live-Gebrauch**
+
+  des Nutzers an seinem echten Büro-Projekt. Er aktualisierte es selbst, bekam vom
+  Manager
+
+  `cp`-Zeilen fürs Terminal gereicht und fragte nach, ob das so richtig sei. Es war
+  es nicht — und
+
+  aus der einen Rückfrage wurden **fünf** Reparaturen, von denen **zwei erst durch
+  die Fixes für die
+
+  ersten drei entstanden**. Was danach an Grenzen bleibt, steht hier, damit die nächste
+  Runde nicht
+
+  wieder bei null anfängt.'
+severity: low
+hole_number: H71
+source: docs/holes/H71.md
+limits: 'vier gemessene Grenzen des Lesers der Merge-Rückstandsliste, je im Eintrag:
+  ein Eintrag, den `open()` mit etwas anderem als `OSError` ablehnt, bricht `update-kit`
+  nach erfolgreichem Installerlauf ab (Hook abgesichert, Kommando nicht — Einzeiler
+  benannt); eine gelesene Liste, die zu keinem erkennbaren Eintrag dekodiert, gilt
+  als leer und wird gelöscht (UTF-16 gemessen, so nicht ausgeliefert); der Vergleich
+  entfernt JEDES `CR`, also auch eines mitten in der Zeile oder in einer Binärvorlage
+  (Über-Verwerfen; Verengen brächte Leser und Installer über dieselbe Datei in Streit
+  — genau der Bruch, der die Liste des Nutzers erzeugte); und zwei Zustände nörgeln
+  absichtlich weiter statt zu schweigen. Der Blocker der Runde — eine **unlesbare**
+  Liste galt als erledigt und wurde gelöscht — ist geschlossen: `unlesbar`, `leer`
+  und `verglichen` sind seither drei Antworten'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0049
+created: '2026-09-05T20:24:42'
+approved_hash: e0eb02eb90419478a02dec1994a4b4fe798dc29fce8b63df3898266839735cd3
+closed_at: '2026-09-12T21:21:53'

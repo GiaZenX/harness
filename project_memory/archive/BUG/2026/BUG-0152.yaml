@@ -1,0 +1,25 @@
+id: BUG-0152
+title: '`document_sources` erzwingt nichts — offen, doppelt begrenzt (neu, TSK-0082)'
+related_pr: PR-0003
+observed: '**Mechanismus:** Die neue Ableitung (Interview-Richtungen → `business_profile.document_sources`
+
+  → Deckungsvergleich gegen die Planregeln) hat keinen erzwingenden Leser: kein Gate
+  liest die
+
+  Liste, und ein nicht begangenes Interview hinterlässt eine leere Liste, die aussieht
+  wie
+
+  „nichts zu melden".'
+severity: medium
+hole_number: H60
+source: docs/holes/H60.md
+limits: '`document_sources` erzwingt nichts: kein Gate liest die Liste, ein nicht
+  begangenes Interview sieht aus wie „nichts zu melden" — aber ein leerer Plan verweigert
+  das erste Dokument ohnehin geschlossen, und die Deckungslücke wird jedem office-Sitzungsstart
+  angesagt'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0050
+created: '2026-09-05T20:24:14'
+approved_hash: c0742d3c939cfc713ce87d75bad3560a21803651e232192fbf1c21940f122e3c
+closed_at: '2026-09-12T21:22:35'

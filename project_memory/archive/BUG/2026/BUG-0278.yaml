@@ -1,0 +1,47 @@
+id: BUG-0278
+title: 'The test-shaped-acceptance reader (`dispatch.acceptance_is_test_shaped`, DEC-0097
+  (2)) claims both kit languages but its negation and word lists are English-shaped:
+  ''ein Test wird rot, ohne den Fix'' is refused (`ohne` counted as a negation) and
+  German compounds (''Regressionstest'', ''Unittest'') are invisible -- false negatives,
+  the order stays on the opus default (TSK-0137 verify round 2, N-e/N-f)'
+related_pr: PR-0011
+severity: low
+observed: 'MEASURED 2026-09-11 11:3x by the verifier (project_memory/staging/TSK-0137/verify-round-2.md,
+  N-e/N-f) against team-kits/kernel/dispatch.py: `_DENIES_RX` lists `ohne` but not
+  `without` -> ''ein Test wird rot, ohne den Fix'' -> False (denies=True, word=True,
+  verdict=True) while ''a test goes red without the fix'' -> True -- the repo''s own
+  red-first formula refused in German; `_WORD_TEST_RX` matches `test`/`tests` as a
+  whole word only -> ''der Regressionstest schlaegt fehl'' -> False, ''der Unittest
+  wird rot'' -> False although the verdict word stands. The module claims ''the two
+  languages the kits are written in'' (_VERDICT_WORDS comment). Mechanism: the negation
+  list and the word matcher are built for English word boundaries while the reader
+  claims two languages. Direction: both are FALSE NEGATIVES -- a PM''s ask for sonnet
+  stays on opus (the expensive, safe side, the direction the docstring names as deliberate).'
+expected: 'A German sentence that names a test with a verdict is read like its English
+  twin: `ohne` is a preposition, not a verb negator (drop it, or bind the negation
+  to the clause carrying the test word); German compounds ending in -test are read
+  as the test word when a verdict word stands (or the limit is stated for German in
+  the docstring, with the row measured). The two-ended tripwire on _VERDICT_WORDS
+  is extended by the two rows N-e/N-f.'
+repro: 'from kernel import dispatch; dispatch.acceptance_is_test_shaped({''expected_outputs'':
+  []}, {''text'': ''ein Test wird rot, ohne den Fix''}) -> False (expected True);
+  same with ''der Regressionstest schlaegt fehl'' -> False (expected True).'
+acceptance_criteria:
+- id: AC-1
+  text: the two German sentences of the repro are True; the seven refused phrasings
+    of verify-round-2.md stay False; the English rows unchanged
+- id: AC-2
+  text: 'red-first: removing the fix turns the two new rows red at the named arbiter'
+limits: 'Bounded by its direction: every miss keeps the order on the opus default
+  -- nothing is granted that should not be. What it costs: a German-writing PM cannot
+  reach sonnet with the repo''s own formula until closed. Until then, the PM writes
+  the acceptance line in English or names a runner/test path (both read correctly).'
+source: project_memory/staging/TSK-0137/verify-round-2.md (N-e, N-f); team-kits/kernel/dispatch.py
+  _DENIES_RX / _WORD_TEST_RX / _VERDICT_WORDS; DEC-0097 (2)
+hole_number: H194
+status: VERIFIED
+revision: 1
+approval_ref: APR-0048
+created: '2026-09-11T11:32:25'
+approved_hash: 1659215cdfe25403d36a0dd8a6128901bad8569daa51bf0d36c1c8f76f4a4abf
+closed_at: '2026-09-12T21:21:20'

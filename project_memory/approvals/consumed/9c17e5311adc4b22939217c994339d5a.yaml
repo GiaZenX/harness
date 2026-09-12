@@ -1,0 +1,36 @@
+request_id: 9c17e5311adc4b22939217c994339d5a
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0128
+    revision: 1
+    scope_hash: 2ab57247e5e2b2cfb5bfdef0240785230114ec049d4a7dccb9a45599199ca5dd
+    bound: Ein einzelner Arbeitsschritt, der tief im Programmiersystem selbst läuft,
+      gibt die Kontrolle bis zu seinem Ende nicht zurück -- solange kann ihn nich…
+  - item: BUG-0181
+    revision: 1
+    scope_hash: 5a203e4c8860a3b80f86621cde97788a7441ca330755788a30702d82c7d85356
+    bound: Ohne die Versionsverwaltung (git) kann die Buchungsprüfung nicht unterscheiden,
+      welche Zeilen im Kassenbuch schon vorher dastanden und welche neu sin…
+  - item: BUG-0214
+    revision: 1
+    scope_hash: 5518da1172e379d668534fef4dbcfc6180530a5436fc15c8cc64d0974449eed2
+    bound: Die Zeilennummern der Steuer-Anlage EÜR stammen aus öffentlichen Ausfüllhilfen.
+      Der amtliche Vordruck selbst liegt nicht vor und gehört auch nicht in…
+  - item: BUG-0230
+    revision: 1
+    scope_hash: b983d88935a0c5d726a634388fa712d3eeb80f27e6fb1b644129176f3806ad19
+    bound: Welche Schreibweisen für ein Datum akzeptiert werden, hängt daran, welche
+      Version des Programmiersystems (Python) auf dem Rechner installiert ist --…
+  - item: BUG-0269
+    revision: 1
+    scope_hash: d3d48935965c7433c8dafeef6eb279c78ccd8cc379825f9bc45023649da19b30
+    bound: Der Wochenplan für die beiden Beobachter-Agenten liegt in einer App (Claude
+      Desktop), die dieses Projekt weder fragen noch beobachten kann. Ob er gel…
+subject_manifest_hash: 8b6c3168ecc1f9e33328fcaa327434bf4793e096a40e1cf9662628877f3d9a03
+created: '2026-09-12T21:19:15'
+expires_at_epoch: 1789327155.365983
+mint_code: 202f27

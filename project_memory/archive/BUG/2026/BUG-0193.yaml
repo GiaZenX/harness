@@ -1,0 +1,41 @@
+id: BUG-0193
+title: '„Sammelbar" ist geparst und nicht gefahren: ein übersprungener Test gilt als
+  vorhanden (neu, TSK-0106, FR-0039)'
+related_pr: PR-0003
+observed: '**Mechanismus.** `INV.verified` hat seit dieser Runde einen Produzenten
+
+  (`state.record_invariant_verification`) und einen Merge-Blocker
+
+  (`report._check_invariant_checks`, ein Validator-Error, auf dem `gate_memory_complete`
+  jeden Push
+
+  anhält). Beide fragen dieselbe Stelle: `report.invariant_check_resolution` liest
+  `check.ref` als
+
+  `<pfad>::<name>`, öffnet die Datei relativ zur Projektwurzel und PARST sie — der
+  Check ist
+
+  aufgelöst, wenn die Datei den Namen definiert. Ob dieser Test bei einem Lauf auch
+  **ausgeführt**
+
+  wird, sieht der Kernel nicht: ein `@pytest.mark.skip`, ein Marker, den die Projektkonfiguration
+
+  abwählt, oder eine Parametrisierung, die keinen Fall erzeugt, ändern nichts an der
+  Definition.'
+severity: medium
+hole_number: H109
+source: docs/holes/H109.md
+limits: '„auflösbar" heißt für den Kernel: die Datei ist da und definiert den Namen
+  — GEPARST, nicht gefahren. Ein Test, der existiert und übersprungen wird (`skip`,
+  ein Marker, eine Runner-Konfiguration), gilt darum als vorhanden, und `INV.verified`
+  sagt dann mehr als es weiß. Begrenzt: die Erklärung ist an genau einer Stelle (`report.invariant_check_resolution`),
+  sie fällt bei jeder anderen Abweichung zu (fehlende Datei, fehlender Name), und
+  der Umfang eines Laufs ist bereits die Frage von FR-0040/H108'
+regression_tests:
+- test_state.test_an_invariant_is_verified_by_its_check_and_unverified_when_it_stops_resolving
+status: VERIFIED
+revision: 1
+approval_ref: APR-0048
+created: '2026-09-05T20:26:02'
+approved_hash: c6d5d669ef4d0609f78eb9c155ff1d4d7ea757a84fdd11d4ae28870ef2d1dd65
+closed_at: '2026-09-12T21:21:04'

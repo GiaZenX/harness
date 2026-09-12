@@ -1,0 +1,36 @@
+id: BUG-0255
+title: 'On Codex the spawn-side hold of the rung does not exist: the Agent tool is
+  not hookable there (`gen_provider_artifacts.CODEX_UNSUPPORTED_TOOLS`), so a climbed
+  order''s rung is on the lease and in the header only (new, TSK-0130, PR-0010 AC-6)'
+related_pr: PR-0010
+severity: low
+observed: '**Mechanism.** `gate_dispatch.py` PreToolUse(Agent|Task) passes the spawn''s
+  `model` to `dispatch.validate_dispatch`, which refuses a spawn that names no model
+  for a climbed order or the wrong one (`spawn_model_refusal`). On Codex the `Agent|Task`
+  matcher has no translation and is a DECLARED gap (`CODEX_UNSUPPORTED_TOOLS`; upstream
+  closed the payload request as not planned, openai/codex#32753), so no hook sees
+  a Codex spawn at all -- the whole dispatch gate is absent there, and with it this
+  hold. The lease, the header and the task item still carry rung and effort (provider-neutral),
+  and the generated `.codex/agents/<role>.toml` carries the role''s pinned model,
+  not the derived rung.'
+expected: Named as a limit of the provider until Codex exposes a blockable spawn event;
+  the Codex constitution text says the header's rung is an instruction the lead applies
+  by choosing the subagent model where the CLI lets it.
+repro: '`gen_provider_artifacts.codex_matchers(''Agent|Task'')` -> `()`; the generated
+  `.codex/hooks.json` of any pilot carries no PreToolUse entry for a spawn tool.'
+acceptance_criteria:
+- id: AC-1
+  text: the codex-watcher keeps a standing watch on the upstream request for a blockable
+    spawn event (openai/codex#32753 was closed as not planned, radar/decided.md codex-0905-subagentstart-payload)
+    and names one when it lands; until then the gap is a documented line in gen_provider_artifacts.py
+    and in this item
+limits: Auf der zweiten Arbeitsumgebung (Codex) lässt sich der Start eines Helfer-Agenten
+  nicht überwachen; der Hersteller hat die Anfrage danach abgelehnt.
+regression_tests: []
+hole_number: H173
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0058
+created: '2026-09-05T22:20:35'
+approved_hash: 65a5146c1d4d3c70bbca71c4bfcb3972c6db9f86a0db3a9a82163cac01f06830
+closed_at: '2026-09-12T22:29:23'

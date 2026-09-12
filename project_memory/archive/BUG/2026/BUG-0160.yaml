@@ -1,0 +1,28 @@
+id: BUG-0160
+title: Zwei Schreibweisen, die verweigert werden, ohne zu schreiben — offen, Über-Verweigerung,
+  naheliegender Fix gemessen falsch (TSK-0083)
+related_pr: PR-0003
+observed: '**Mechanismus:** Das Ledger-Gate urteilt über **alle** Lesarten, die die
+  Vorverarbeitung dem
+
+  Text geben kann, und verweigert, sobald **irgendeine** davon „schreibt" sagt. Das
+  ist die
+
+  gebaute Richtung und die sichere. Sie trifft zwei harmlose Schreibweisen mit:'
+severity: medium
+hole_number: H68
+source: docs/holes/H68.md
+limits: 'zwei Schreibweisen, die das Ledger-Gate verweigert, obwohl sie nichts schreiben:
+  ein **handgetippter Backslash** im Validatorpfad (`python scripts\ledger_add.py
+  --validate ledger/2026.csv`, rc 2, weil eine der beiden Lesarten den Backslash frisst
+  und das Gate verweigert, sobald IRGENDEINE Lesart „schreibt" sagt), und ein **quotiertes
+  Semikolon oder ein quotierter senkrechter Strich** in Argument-Prosa, der Segment
+  bzw. Pipeline-Stufe schneidet. Der naheliegende Fix — quotierungsbewusst trennen
+  — ist gemessen falsch: er schluckt den Trenner, den `_SUBSTITUTION_OPEN_RX` absichtlich
+  IN eine quotierte Spanne injiziert, und macht `BUG-0065` wieder auf'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0051
+created: '2026-09-05T20:24:34'
+approved_hash: 935998e78085931770336cd0ff3416264d02c0cc83e7840a7797a32574a09c19
+closed_at: '2026-09-12T21:23:30'

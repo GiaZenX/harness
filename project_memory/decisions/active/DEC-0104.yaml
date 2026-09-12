@@ -1,0 +1,25 @@
+id: DEC-0104
+title: 'The office kit keeps no goal item and no goal size: office work stays on the
+  middle effort (H170 / BUG-0252, the user''s answer C)'
+work: PR-0012
+context: 'H170/BUG-0252: dev and research kits carry a root goal item whose class
+  drives the effort ladder (DEC-0078 (2): `high` when the goal is large); the office
+  kit has no root type (ROOT_TYPE_BY_KIT), documents stand in its place, so no higher
+  effort can be asked for a large office job. Asked the user 2026-09-12 ~21:5x with
+  three options and costs (goal item for the office / size per task / leave); answer:
+  C.'
+decision: 'Leave it: the office kit derives no goal size; office work runs on the
+  middle effort DEC-0078 names for ordinary office work. BUG-0252 is closed as a decision
+  (ACCEPTED by design), its record points here; the office lead texts say in one sentence
+  that a larger job is split into tasks rather than raised in effort.'
+alternatives: 'A (office goal item): a larger rebuild every running office project
+  would take -- rejected. B (size per task): a per-task attribute instead of a property
+  of the undertaking -- rejected.'
+consequences: No build beyond the one sentence in the office lead skill and the item's
+  closure; the SR/architecture step stays a dev/research concern.
+source: staging/TSK-0141/protocol.md 'DEC questions for the user' (Frage 2); the user's
+  click 2026-09-12
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-12T22:49:17'

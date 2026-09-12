@@ -1,0 +1,36 @@
+id: BUG-0195
+title: Die Freigabe, auf der die Auditor-Routine reitet, hat in keinem Kit einen Erzeuger
+  (neu, TSK-0107, FR-0038)
+related_pr: PR-0003
+observed: '**Mechanismus.** Alle drei Verfassungen und alle drei `project-auditor`-Rollen
+  sagen denselben Satz:
+
+  der Auditor wird auf einer `APR.kind: routine` für die Wurzel seiner Audit-Aufgabe
+  gespawnt, oder
+
+  auf einer `APR.kind: analysis`, die diese Aufgabe listet; beide tragen ein Ablaufdatum,
+  beide sind
+
+  widerrufbar, und die `routine` hasht **Rolle, Read-only-Scope, Trigger und Takt**
+
+  (`approvals.ROUTINE_MANIFEST_FIELDS`). Genau diese vier Felder wären die Ableitungsquelle
+  für ein
+
+  Fristenregister, das fragt „wann muss der Auditor wieder laufen".'
+severity: medium
+hole_number: H111
+source: docs/holes/H111.md
+limits: 'die Freigabe-Art, auf der die Auditor-Routine laut aller drei Verfassungen
+  reitet (`routine`, ersatzweise `analysis`), hat in keinem Kit einen Erzeuger: `request-approval`
+  bietet neun Arten an, keine davon ist eine der beiden. Rolle, Trigger und Takt des
+  Auditors sind damit in eine Freigabe gehasht, die niemand anlegen kann. Folge für
+  diese Runde: das Fristenregister NENNT Rolle und Takt im Code, statt sie abzuleiten.
+  Kernel + Verfassungstexte, `FR-0038`'
+regression_tests:
+- tools/test_routine_feed.py::test_no_routine_approval_can_be_minted_in_any_kit_today
+status: VERIFIED
+revision: 1
+approval_ref: APR-0048
+created: '2026-09-05T20:26:08'
+approved_hash: 4c922080a47c05a2121f33df194a97b4d17f2892f0dc7f67c595a109d5c66efd
+closed_at: '2026-09-12T21:21:06'

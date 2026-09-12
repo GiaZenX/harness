@@ -1,0 +1,22 @@
+id: BUG-0177
+title: Was die Herkunfts- und Bündelprüfungen NICHT sehen — offen, gemessene Grenzen
+  (TSK-0100)
+related_pr: PR-0003
+observed: '**Anlass:** `FR-0068`/`FR-0070` (zwei fremde Skills unter Apache-2.0 übernommen)
+  und `FR-0045` (das
+
+  Bündelschema aus einem echten Claude-Design-Export).'
+severity: low
+hole_number: H85
+source: docs/holes/H85.md
+limits: Woher eine fremde Design-Vorlage stammt, prüft dieses Projekt an den Angaben
+  IN der Datei -- kein Test geht dafür ins Internet. Ändert jemand den Text an der
+  Quelle, ohne eine neue Fassung auszuweisen, sieht das hier niemand. Der Inhalt eines
+  Design-Systems wird ohnehin nicht bewertet; geprüft wird nur, dass Herkunft und
+  Lizenz dastehen.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0064
+created: '2026-09-05T20:25:19'
+approved_hash: f61b64f64a145417be789e17a6d90a0b907c1c3876ed124d4f5b6959406c4335
+closed_at: '2026-09-12T22:43:26'

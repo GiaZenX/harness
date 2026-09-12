@@ -1,0 +1,37 @@
+id: BUG-0165
+title: Was die Entscheidungs-zuerst-Runde NICHT misst — offen, drei gemessene Grenzen
+  (TSK-0089)
+related_pr: PR-0003
+observed: '**Anlass:** `FR-0052` bringt die Regel „erst die Entscheidungen, dann der
+  Code" in die Lead-Texte
+
+  aller drei Kits — auf die Fläche, die beim Antworten wirklich geladen ist, mit dem
+  ehrlichen Satz,
+
+  dass kein Hook das erzwingen kann (Freitext ist für Gates unsichtbar, `DEC-0029`/R2-Klasse).
+  Der
+
+  Prüfer hat den Wächter der Runde blind erwischt (ein 90-Zeichen-Fenster las fast
+  jede
+
+  Überbehauptung als verneint — geschlossen: Klauselgrenze statt Byte-Zahl, vier Rot-Formen
+
+  gemessen); was danach bleibt, jede Grenze gemessen:'
+severity: low
+hole_number: H73
+source: docs/holes/H73.md
+limits: 'vier gemessene Grenzen der Entscheidungs-zuerst-Runde, je im Eintrag: jede
+  Id in einem Begrenzer, der länger ist als sie selbst, bleibt ungeprüft (16 der 22
+  gequoteten Spannen sind Text, den jemand liest — 13 Kernel-Meldungen + 3 Handover-Literale;
+  Schließrichtung benannt, eigene Runde); der Regel-Test liest nur die zwei Anker,
+  nicht die Richtung (die Regel umgekehrt passiert ihn, gemessen); eine Überbehauptung
+  ohne Apparat-Wort fällt nicht auf — sichtbar macht sie nur der Abschnitts-Digest,
+  nicht die Byte-Identität; und der Klausel-Schnitt des Wächters liest `,` nicht und
+  `.`/`:` immer als Grenze — beide Fehlrichtungen gemessen, keine trifft den heutigen
+  Text'
+status: VERIFIED
+revision: 1
+approval_ref: APR-0056
+created: '2026-09-05T20:24:47'
+approved_hash: daf62d3414fc7c6c9b05bbac382a8e7744e8437f5b00c0342f6ef200dda5b6d3
+closed_at: '2026-09-12T21:26:02'

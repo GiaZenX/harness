@@ -1,0 +1,30 @@
+id: BUG-0147
+title: Die Alt-Bestand-Brücke läuft ohne gemintete Freigabe, und ein Subagent erreicht
+  sie — offen (neu, TSK-0081)
+related_pr: PR-0003
+observed: '**Mechanismus:** Im Alt-Bestand (bis Kit 2026.08.14-9) existiert die Freigabeart
+  `kit_update`
+
+  nicht — es gibt nichts zu minten, und kein Hook dort kann erzwingen, dass der PM
+  den Nutzer
+
+  fragt. Die Brücke (`~/agents-and-skills/update_kit.py`) liest ihren Aufrufer nicht,
+  weil ihre
+
+  Eingabe keine Payload trägt; das Alt-`gate_write_scope` verweigert Subagenten nur
+  die
+
+  **ordnenden** Kommandos, und eine Bootstrap-Zeile ist keines.'
+severity: medium
+hole_number: H55
+source: docs/holes/H55.md
+limits: Alte Installationen tragen eine Update-Brücke, die auf ein gesprochenes Ja
+  statt einer protokollierten Freigabe läuft; die Meldung sagt das jetzt. Geheilt
+  wird es erst mit dem Hochziehen auf das neue Kit, weil niemand eine Datei ändern
+  kann, die längst auf einem fremden Rechner liegt.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0065
+created: '2026-09-05T20:24:01'
+approved_hash: c238ecaede381c03f27242bb7c5c69ef5372e1e37ddadcefa7c32ab85bcb365f
+closed_at: '2026-09-12T22:44:06'

@@ -1,0 +1,35 @@
+id: BUG-0166
+title: Was die schnellere Gate-Suite NICHT schützt — offen, gemessene Grenzen (TSK-0090)
+related_pr: PR-0003
+observed: '**Anlass:** `FR-0011` wollte die Wandzeit je Runde runter, ohne eine Messung
+  zu verfälschen.
+
+  Geliefert: Prozessarten laufen gebündelt (−20…−27 % je Fenster, Spaltenauswahl Faktor
+  32–44),
+
+  die Frist-Phase kann **innerhalb eines pytest-Prozesses** strukturell keine Nachbarn
+  bekommen
+
+  (jeder Thread wird gejoint, jeder Pool schließt), und die geteilte Prüfkopie trägt
+  seit der
+
+  Abnahme einen Finalizer, der **jede** Bewegung in ihr rot macht — geändert, neu
+  und gelöscht,
+
+  alle drei Richtungen gemessen. Was bleibt, jede Grenze gemessen und im Messdokument
+
+  (`docs/reviews/2026-08-29-tsk0090-measurements.md`) geführt:'
+severity: low
+hole_number: H74
+source: docs/holes/H74.md
+limits: 'Die Messungen, mit denen die Testsuite schneller gemacht wurde, hängen an
+  der Auslastung dieses Rechners: läuft etwas anderes daneben, verschieben sich die
+  Zahlen. Ein Teil der damals gemessenen Beschleunigung war Wirtslast und nicht Code
+  -- die Beschleunigung selbst bleibt, nur ihr Faktor ist nicht so groß wie damals
+  notiert.'
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0064
+created: '2026-09-05T20:24:50'
+approved_hash: 82490d1027a1c692058ecef317de1c988de1ccced4fa8636064030340677fcc2
+closed_at: '2026-09-12T22:43:26'

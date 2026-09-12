@@ -1,0 +1,33 @@
+id: BUG-0055
+title: The scope manifest has no wireframe field -- a re-frozen wireframe invalidates
+  nothing, and nothing can check a UI scope names one (DEC before fix)
+related_pr: PR-0001
+observed: 'TSK-0069 side check N3b (live, shared measurement with BUG-0054 but a DIFFERENT
+  cause): _SCOPE_FIELDS (kernel/approvals.py:168-170) carries problem, goal, question,
+  motivation, acceptance_criteria, invariants, out_of_scope, design_refs -- NO wireframe
+  reference. Hence a newly frozen wireframe devalues nothing (E17) and nobody can
+  check whether a UI scope names a wireframe at all (E18).'
+expected: 'A DECISION comes first, and it is NOT the one approvals.py:550-554 discusses
+  (pre-minting in DRAFT -- a neighbour; in E16/E17 the approval was minted in the
+  right source status and merely survives a later change). To decide: does the scope
+  manifest gain a wireframe field (the comment at _SCOPE_FIELDS says why that is a
+  spec decision with a migration -- every stored hash would change and every live
+  approval would die), or is the II.2/II.12 wireframe duty carried another way? Without
+  the decision E17 and E18 are not closable.'
+repro: 'Freeze a wireframe twice against an APPROVED root: assert_apr_in_force STILL
+  IN FORCE both times, revision stays 1. The red test (probe_e17.py) can only be written
+  AFTER the decision, because its expected behaviour depends on it -- the reason a
+  DEC precedes this fix and not BUG-0054''s.'
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: a DEC records the chosen shape (wireframe field with migration, or another
+    carrier for the wireframe duty)
+- id: AC-2
+  text: the chosen shape is built and red-without-fix tested per the E17 probe
+status: VERIFIED
+revision: 1
+approval_ref: APR-0050
+created: '2026-08-16T14:04:58'
+approved_hash: ab5ec1ddf3ff9dc679019e97422190ff2abd2f6a0a57439377a2767641ae1190
+closed_at: '2026-09-12T21:22:31'

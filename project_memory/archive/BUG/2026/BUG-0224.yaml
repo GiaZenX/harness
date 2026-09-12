@@ -1,0 +1,38 @@
+id: BUG-0224
+title: Der Takt-Leser ist eine Aufzählung von Adverbien (neu, TSK-0118 Nacharbeit
+  1, N2)
+related_pr: PR-0003
+observed: '**Mechanismus.** `tools/test_parallel_streams.py::test_no_text_that_describes_the_audited_role_states_the_cadence_the_code_owns`
+
+  hält die Regel „der Takt steht im Code, nicht ein zweites Mal im Rollentext“. Ob
+  ein Satz
+
+  einen Takt nennt, entscheidet `_CADENCE_IN_PROSE` — eine Liste von Adverbien. Die
+  Klasse
+
+  „eine Periode, anders geschrieben“ steht nicht darin, und „ist dieser Satz eine
+
+  Taktangabe“ ist Weltwissen, das sich aus dem Baum nicht ableiten lässt.'
+severity: low
+hole_number: H141
+source: docs/holes/H141.md
+limits: '`tools/test_parallel_streams.py`s `_CADENCE_IN_PROSE` ist eine AUFZÄHLUNG
+  von Takt-Adverbien (`weekly`, `daily`, `monthly`, `every week` …). Ein Takt, der
+  anders geschrieben ist, ist ihr unsichtbar: als Zahl von Tagen, als Wochentag, als
+  Umschreibung, als Dauer-Token, oder deutsch gebeugt. Gemessen (`_round-scratch/TSK-0118/probe_h141.py`):
+  `weekly` **feuert**, während `runs once a week`, `on Mondays`, `every seven days`,
+  `runs each Monday morning`, `cadence: 7d` und `wöchentliche` **still** bleiben.
+  Begrenzt durch: der Leser trägt seine Grenze im eigenen Docstring und führt fünf
+  der sechs blinden Formen als eigene Testzeilen mit; das Subjekt ist EIN Rollentext
+  plus die Verfassungsblöcke, die ihn nennen, also eine kleine gelesene Fläche; und
+  „ist dieser Satz eine Taktangabe“ ist Weltwissen, keine Ableitung aus dem Baum —
+  ein Test, der es behäuptete, wäre die nächste Aufzählung'
+regression_tests:
+- tools/test_parallel_streams.py::test_no_text_that_describes_the_audited_role_states_the_cadence_the_code_owns
+- tools/test_routine_feed.py::test_a_run_in_an_earlier_week_leaves_the_routine_due
+status: VERIFIED
+revision: 1
+approval_ref: APR-0049
+created: '2026-09-05T20:27:29'
+approved_hash: 6842fde98498143e8ffd6ecfcb0c4ba0364f82c92bb1a5c146b190e9ad0cc479
+closed_at: '2026-09-12T21:21:59'

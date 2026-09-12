@@ -1,0 +1,32 @@
+id: BUG-0235
+title: Was der Leser nicht platzieren kann, und was er gar nicht erst sieht (neu,
+  TSK-0121; nach Prüfung 3 erweitert)
+related_pr: PR-0003
+observed: '**Mechanismus (a) — der Vorfilter.** Beide Hälften des Gates suchen zuerst
+  in der rohen Zeile (ohne
+
+  Quotierungszeichen) nach dem Namen eines erklärten Läufers. Das ist der Preis dafür,
+  dass das Gate
+
+  auf JEDER Shell-Zeile sitzt — in diesem Repo neben zwei anderen Lesern derselben
+  Zeile, im Kit neben
+
+  acht. Eine Zeile, die den Läufernamen erst zur Laufzeit herstellt (`$RUNNER tools/`,
+
+  `R=pytest; $R tools/`), passiert ihn und wird nicht beurteilt.'
+severity: medium
+hole_number: H153
+source: docs/holes/H153.md
+limits: 'Setzt eine Befehlszeile den Namen des Testläufers erst beim Ausführen zusammen,
+  sieht ihn die schnelle Vorprüfung nicht und die Zeile wird nicht beurteilt. In die
+  andere Richtung ist die Prüfung streng: ein Ziel, dessen Ort sie nicht bestimmen
+  kann, lehnt sie ab. Lieber eine Absage zu viel als eine zu wenig.'
+regression_tests:
+- .claude/hooks/test_gates.py::test_gate5_still_sees_a_link_from_outside_into_the_declared_surface
+- tools/test_hooks.py::test_gate_test_scope_still_sees_a_link_from_outside_into_the_declared_surface
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0062
+created: '2026-09-05T20:28:00'
+approved_hash: 7555d998ac4a7875fe19050d465d657cbaf2015b42596812906c50b122cb75bf
+closed_at: '2026-09-12T22:41:50'

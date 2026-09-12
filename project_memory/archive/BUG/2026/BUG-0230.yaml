@@ -1,0 +1,30 @@
+id: BUG-0230
+title: Welche Datums-Schreibweisen ein Meilenstein annimmt, entscheidet der Interpreter
+  (neu, TSK-0117 Nacharbeit 1, DEC-0064)
+related_pr: PR-0003
+observed: '**Mechanismus.** `state.capture_preflight` prüft ein Datumsfeld mit
+
+  `backlog_types.normalised_date`, und das ist `datetime.date.fromisoformat`. Welche
+  Formen diese
+
+  Funktion liest, hat sich über die Python-Versionen erweitert: `2026-10-01` liest
+  jede, die kompakte
+
+  Form `20261001` erst 3.11+. Dieselbe Erfassung wird also auf einer Maschine angenommen
+  und auf
+
+  einer anderen verweigert, ohne dass irgendetwas im Projekt sich geändert hätte.'
+severity: medium
+hole_number: H147
+source: docs/holes/H147.md
+limits: Welche Schreibweisen für ein Datum akzeptiert werden, hängt daran, welche
+  Version des Programmiersystems (Python) auf dem Rechner installiert ist -- nicht
+  an diesem Projekt.
+regression_tests:
+- tools/test_state.py::test_the_update_path_reads_a_date_field_exactly_as_capture_does
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0059
+created: '2026-09-05T20:27:46'
+approved_hash: 71bc1c561c4b9a580e90e78a120e704b7e9eab5f0bf7d22e3be5e7a098f4a3b3
+closed_at: '2026-09-12T22:30:37'

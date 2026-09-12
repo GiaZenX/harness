@@ -1,0 +1,45 @@
+id: BUG-0265
+title: Der Zeiger-Sweep liest in einem Projekt mit installiertem Kit die Skript-Verzeichnisse
+  gar nicht -- auch das eigene Skript des Projekts nicht
+related_pr: PR-0008
+observed: 'MECHANISM: `kernel.report.installed_kit_paths` derives kit material from
+  three readers the project holds (the shipped gate''s `_ENFORCEMENT_PATHS`, the project''s
+  `.claude/provider_artifacts.json`, the installer''s root files) plus one unavoidable
+  enumeration, `INSTALLER_SCRIPT_DIRS = ("scripts", "tools")`. The installer fills
+  both with kit-owned scripts and records them nowhere: MEASURED 2026-09-06 on real
+  scaffolds -- dev `scripts/` 9 files, office `scripts/` 8 + `tools/` 2, research
+  `scripts/`; the provider manifest names only `.codex/` and `.agents/skills/*`, and
+  `.claude/kit_state.json` carries a bundle hash and no file list. Excluding the two
+  directories is therefore the only reader available, and it over-excludes: a project
+  that puts ITS OWN scripts in `scripts/` or `tools/` has them unswept, and no finding
+  says so. The exclusion is conditional on the entry point being installed (`cli.ENTRY_POINT`),
+  so the kit''s own source repository keeps its `tools/` swept -- measured: unconditional
+  exclusion cost that repo 7 of its own findings.'
+expected: The installer records WHICH files it copied outside `.claude/` (a manifest
+  like `.claude/provider_artifacts.json` for the script templates), and the sweep
+  reads that instead of a directory name -- then a project's own script in the same
+  directory is swept and the kit's copy is not.
+repro: 'Scaffold any kit, put a file with a dead pointer in `scripts/` and one in
+  `src/`, run `python scripts/harness.py sweep-pointers`: the `src/` one is reported
+  and the `scripts/` one is not.'
+severity: low
+limits: 'What takes the place of it: the enumeration carries a tripwire at BOTH ends
+  in `tools/test_pointer_sweep.py::test_the_root_files_the_sweep_skips_are_installed_and_would_be_noisy`
+  -- every entry exists after a real scaffold of a kit AND reading it would really
+  produce findings -- and the first entry is asserted to BE the directory `cli.ENTRY_POINT`
+  names, so it cannot rot. The exclusion applies only where a kit is installed, so
+  the sweep of a repository without one is unaffected.'
+acceptance_criteria:
+- id: AC-1
+  text: A dead pointer in a project's OWN file under scripts/ or tools/ is reported,
+    while the kit's copies in the same directory are not
+- id: AC-2
+  text: Whatever decides that is a record the installer writes, not a directory name
+    in the kernel
+hole_number: H183
+status: VERIFIED
+revision: 1
+approval_ref: APR-0057
+created: '2026-09-06T07:41:51'
+approved_hash: 29df399ba8bb35817638da8a05bd42c20b6d048b4fad2a5e93c5859a54046678
+closed_at: '2026-09-12T21:26:32'

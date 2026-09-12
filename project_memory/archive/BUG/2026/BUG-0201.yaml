@@ -1,0 +1,36 @@
+id: BUG-0201
+title: 'Nichts startet den Generator: eine Buchung bewegt die Seite nicht (neu, TSK-0109,
+  FR-0032)'
+related_pr: PR-0003
+observed: '**Mechanismus.** Der Ledger hat keinen Kernel-Schreiber. Seine beiden Schreibwege
+  —
+
+  `scripts/ledger_add.py` und die erlaubte Handbearbeitung — kommen an genau einer
+  Stelle vorbei,
+
+  `gate_ledger_valid.handle_post_tool_use`, und die validiert die geänderte Datei
+  und tut sonst
+
+  nichts. `dashboards/finanzen.html` ist damit so aktuell wie sein letzter Lauf von
+  Hand — dieselbe
+
+  Grundlinie, die FR-0030 für das Dev-Dashboard gemessen hat („nichts lief es, also
+  war es
+
+  standardmäßig veraltet").'
+severity: low
+hole_number: H117
+source: docs/holes/H117.md
+limits: nichts startet den Generator nach einer Buchung; der Datenstand im Kopf trägt
+  das **nicht**, weil er nur das jüngste Ledgerdatum ist (ein Nachtrag lässt ihn byte-identisch,
+  gemessen). Begrenzt allein durch den Ordnerführer `dashboards/ABOUT.txt`, der den
+  Befehl nennt und die Lücke ausspricht; der Auslöser ist ein Seam-Item an Stream
+  G (`gate_ledger_valid.handle_post_tool_use`)
+regression_tests:
+- test_finance_dashboard.py::test_the_documented_command_passes_the_write_scope_gate
+status: VERIFIED
+revision: 1
+approval_ref: APR-0052
+created: '2026-09-05T20:26:24'
+approved_hash: af319fea53012b4721e0914b6c1a6e818a4990b6b48089b1919aa62f8ce6bcbf
+closed_at: '2026-09-12T21:23:57'

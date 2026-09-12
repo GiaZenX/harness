@@ -1,0 +1,46 @@
+id: BUG-0168
+title: Was der neue Dokument-Schreibweg NICHT bindet — offen, gemessene Grenzen (TSK-0092)
+related_pr: PR-0003
+observed: '**Anlass:** `BUG-0070/0071/0074` + `FR-0066` — vier Live-Funde in zwei
+  Tagen: der Nutzer tippte
+
+  dreimal YAML von Hand und verlor einmal drei Wireframes an ein Einfrieren, das den
+  ganzen
+
+  Vorschlagsbereich leerte. Die Runde baute die Routen (Regel-Listen-Erzeugung; das
+  generische
+
+  `apply-proposal` über die 18 schreiberlosen Kit-Dokumente; Freeze verzehrt nur noch
+  die eine
+
+  Datei; Web für den Produkt-Redakteur) und überlebte zwei harte Prüfrunden, in denen
+  der Prüfer
+
+  den neuen Hebel an seiner Naht traf: `compare` las strukturell, `apply` schrieb
+  byteweise —
+
+  Inline-Kommentare, eingeschleuste Prosa, Schlüssel-Umbau und der Ablageplan-Vorbeiweg
+  an der
+
+  strengen Route wurden alle geschlossen (Skelett-Prüfung: jeder Wert wird über die
+  Parser-Spannen
+
+  ausgeblendet, jede verbleibende Zeile muss in Reihenfolge überleben; neue Kommentare
+  und
+
+  Füllwerte stehen im **Wortlaut** in der Freigabekarte; ein Pfad, den ein benannter
+  Teilschreiber
+
+  besitzt, verweigert mit dessen Namen). Was bleibt, jede Grenze gemessen:'
+severity: low
+hole_number: H76
+source: docs/holes/H76.md
+limits: Derselbe falsche Weg-Text in allen Rollendateien fällt nicht auf, weil nur
+  Gleichheit geprüft wird, nicht Richtigkeit; und eine Freigabe deckt ein erneutes
+  Schreiben derselben Bytes innerhalb ihrer Stunde. Beides ist begrenzt und kein Angriffsweg.
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0065
+created: '2026-09-05T20:24:55'
+approved_hash: 2c0bcf13d381abf57aaaaece17b0349e4118eecc6e403700f29b4ff94a8d4b0c
+closed_at: '2026-09-12T22:44:06'

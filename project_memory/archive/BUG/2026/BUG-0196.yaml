@@ -1,0 +1,46 @@
+id: BUG-0196
+title: Der Laufdatensatz der Routine ist ein Nebenprodukt und sagt nicht, was er zu
+  sagen scheint (neu, TSK-0107, FR-0038)
+related_pr: PR-0003
+observed: '**Mechanismus.** FR-0038 verlangt „einen aufgezeichneten Zeitpunkt des
+  letzten Audit-Laufs und eine
+
+  Wochen-Id gegen Doppelläufe". Dieser Strom durfte keinen Hook registrieren
+
+  (`settings/settings.json` liegt außerhalb seines Bereichs) und keinen der gespiegelten
+  Hooks
+
+  ändern, die den `SubagentStop` sehen. Der Datensatz wird deshalb **abgeleitet**:
+  aus dem
+
+  `subagent_stop`-Ereignis, das `notify_agent_events` ohnehin nach
+
+  `project_memory/.audit/hook_events.jsonl` schreibt. Die Kette ist gemessen und nicht
+  angenommen —
+
+  `tools/test_routine_feed.py::test_the_routine_reads_the_run_record_the_shipped_hook_really_writes`
+
+  fährt genau diesen Hook als
+
+  Prozess und liest sein Ergebnis durch `_routine.last_run` zurück, damit eine Umbenennung
+  dort rot
+
+  wird statt blind zu machen.'
+severity: low
+hole_number: H112
+source: docs/holes/H112.md
+limits: 'der Laufdatensatz der Routine ist ein Nebenprodukt des Ereignis-Logs und
+  sagt „ein Subagent dieser Rolle hat aufgehört", nicht „ein Audit ist gelaufen".
+  Zwei Grenzen: eine rotierte Log-Generation liest sich als „nie gelaufen" (sichere
+  Richtung, rot gemessen), und ein AUFGEBENDER Lauf zählt als Lauf und unterdrückt
+  die Wochenmeldung (unsichere Richtung). Begrenzt durch: `gate_subagent_output` schreibt
+  `gave_up` ins selbe Log'
+regression_tests:
+- tools/test_routine_feed.py::test_the_routine_reads_the_run_record_the_shipped_hook_really_writes
+- tools/test_routine_feed.py::test_a_rotated_event_log_makes_the_routine_read_as_due_rather_than_as_run
+status: VERIFIED
+revision: 1
+approval_ref: APR-0054
+created: '2026-09-05T20:26:11'
+approved_hash: 1bf2af258c18bba1799cd234a48c546340c975cccd0f44c30e9c9663274521ad
+closed_at: '2026-09-12T21:25:11'

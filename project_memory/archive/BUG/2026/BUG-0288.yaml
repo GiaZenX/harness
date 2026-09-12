@@ -1,0 +1,44 @@
+id: BUG-0288
+title: 'H32 neu aufgelegt (Ausnahme nie freigegeben): Ein Befehl, den eine Ersetzung
+  einführt (neu, TSK-0019)'
+related_pr: PR-0012
+observed: 'Migrated 2026-09-05 as H32 into BUG-0124 with status ACCEPTED_EXCEPTION
+  and approval null -- the user never saw a question for it (measured 2026-09-12 over
+  archive/bug/*). Original finding: **Mechanismus:** eine **Kommandoersetzung** ist
+  ein eigener Befehl in einem Wort, und die Shell
+
+  führt ihn aus, bevor das Wort den Befehl erreicht, in dem es steht. Die Zerlegung
+  schnitt dort
+
+  nicht: sie kennt Listentrenner, Stufenschnitte und Klammern, und ein Befehl in einem
+  **Wort** kam in
+
+  ihr nicht vor. Damit war er beiden Gates unsichtbar — Gate 1 sah eine lesende Stufe
+  (`echo`), und
+
+  Gate 3 wirft die committende Stufe als Ganzes weg, in der die Ersetzung stand.'
+expected: 'CLOSED red-first by stream B with a test that NAMES this bug id (DEC-0100);
+  fix location: team-kits/*/hooks/gate_write_scope.py prose removal before the substitution
+  reader. If the attempt measures it unclosable here, the downgrade carries the measurement
+  and a plain-German sentence (never ''later'').'
+repro: 'read BUG-0124 (status ACCEPTED_EXCEPTION, approval: null); the mechanism:
+  docs/holes/H32.md'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the item ends VERIFIED on a passing test that names it, or ACCEPTED_EXCEPTION
+  on a request the user answered -- never on a migration'
+- 'AC-2: if an exception, its `limits` is the plain-German sentence a non-developer
+  understands'
+source: 'archive BUG-0124; staging/generation-6/refile_unclicked_exceptions.py (lead
+  classification: ja, stream B)'
+limits: 'geschlossen bis auf eine Hälfte, und die ist ein Sonderfall von H34: was
+  die Kits als Prosa entfernen, liest davor niemand. **Sozial** — Rollentrennung und
+  Item; die Reparaturstelle liegt im Kit'
+supersedes: BUG-0124
+hole_number: H204
+status: VERIFIED
+revision: 1
+approval_ref: APR-0052
+created: '2026-09-12T09:46:33'
+approved_hash: 3b65900a8e371e52930e374dd9e96805fe6dcc9a1023d9a8f74f105d873a8a80
+closed_at: '2026-09-12T21:24:15'

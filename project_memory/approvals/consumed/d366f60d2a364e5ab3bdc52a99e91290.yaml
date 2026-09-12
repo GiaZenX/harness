@@ -1,0 +1,62 @@
+request_id: d366f60d2a364e5ab3bdc52a99e91290
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0141
+    revision: 1
+    scope_hash: b3cb178312d0cb5972131eeb28531c2dc2845bf923f7dc8c9612192c1f3e37b1
+    bound: Wird ein Befehl einmal abgelehnt und der Nutzer lässt ihn trotzdem weiterlaufen,
+      markiert Claude Code diese Fortsetzung. Ein zweites Mal zu blockiere…
+  - item: BUG-0142
+    revision: 1
+    scope_hash: e194e779e3bb412e4ed04f775ba70d870bf9d295a925c55ece8d4f5a93c93f3e
+    bound: Wenn Claude Code nie meldet, dass ein Helfer-Agent fertig ist, gibt es
+      keinen Eintrag, aus dem dieses Projekt es ableiten könnte. Es fehlt die Nachri…
+  - item: BUG-0145
+    revision: 1
+    scope_hash: 86ed41d88de2f9a737a296e50e12e22dfff081f4fea1ca9f3caefa3ee473adc4
+    bound: Wie lange sich Claude Code merkt, dass der Nutzer einen abgelehnten Befehl
+      einmal durchgewinkt hat, steht in keiner Datei dieses Projekts und lässt s…
+  - item: BUG-0170
+    revision: 1
+    scope_hash: 5163bc26ba6acf8bd25588b74fa8bd1effa7f688b7efd54ca4b3ccb301b382fd
+    bound: Es gibt eine Startart von Claude Code, bei der die Projekteinstellungen
+      gar nicht geladen werden -- dann sind alle Schutzregeln dieses Projekts aus.…
+  - item: BUG-0198
+    revision: 1
+    scope_hash: 37bdc5bf87c7a92790abf1a5e5f656a8ae5d512d28a90e5b6b0b4668f98fe51f
+    bound: Wechselt man mitten in der Sitzung in einen anderen Projektordner, gelten
+      die Regeln des neuen Ordners, aber die Dateien des alten sind noch geladen.…
+  - item: BUG-0199
+    revision: 1
+    scope_hash: 845675003f4e6ae7f22254c5c59792c82b490cc6dd7a0569aace7ba7caef2494
+    bound: Ein Wechsel in einen anderen Projektordner bringt dessen Rollenliste nicht
+      mit, obwohl die Ankündigung des Herstellers das nahelegt. Auch das entsche…
+  - item: BUG-0251
+    revision: 1
+    scope_hash: 6497491b41a22830b21c13aaa014acaa24de3e1779d05d51feee7f9be3f52d87
+    bound: Der Befehl, mit dem ein Helfer-Agent gestartet wird, hat gar kein Feld
+      für die Denk-Intensität. Sie lässt sich also anzeigen, aber nicht erzwingen
+      --…
+  - item: BUG-0254
+    revision: 1
+    scope_hash: 46b08abd15449a96a92621b326e404d7f079f882369d5b626b3417cbc27e5298
+    bound: 'Wie hoch die Denk-Intensität auf der zweiten Arbeitsumgebung (Codex) gehen
+      kann, ist ungemessen: das Programm ist auf diesem Rechner nicht installier…'
+  - item: BUG-0255
+    revision: 1
+    scope_hash: f90682261d3153c3ba1d886d0664affa45fa6e70c3ebc331c893f81b641af560
+    bound: Auf der zweiten Arbeitsumgebung (Codex) lässt sich der Start eines Helfer-Agenten
+      nicht überwachen; der Hersteller hat die Anfrage danach abgelehnt.
+  - item: BUG-0293
+    revision: 1
+    scope_hash: ad8c49113a3626f6fc1e55cab2fe0150797a8056c9f591ed28c2e6c57a8f5b9a
+    bound: Claude Code liest die Liste seiner Schutzregeln mitten in der Sitzung neu
+      ein -- wann, entscheidet der Hersteller. Dieses Projekt kann den Zeitpunkt…
+subject_manifest_hash: 6a0eee942264d1f326e94e1e5db68c2a2ff6f5e3ca6d9696d34806501977fadd
+created: '2026-09-12T21:19:14'
+expires_at_epoch: 1789327154.8689933
+mint_code: faf7c1

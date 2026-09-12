@@ -1,0 +1,31 @@
+request_id: 75ebd48340a0449bb4a4c44aaf970564
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0106
+    revision: 1
+    scope_hash: 37858de660d7348980d85b6783d8450b9dd07ac89971b876f170258d84142b1b
+    bound: Die Schutzregel vor dem Speichern druckt selbst den Befehl, mit dem man
+      sie aufhebt -- und sie muss das, denn genau so wird das Urteil des Prüfers üb…
+  - item: BUG-0235
+    revision: 1
+    scope_hash: 402bfa38db6eb91c11cb0616db36657b4fbec6976cd012ae799b5817d681613c
+    bound: Setzt eine Befehlszeile den Namen des Testläufers erst beim Ausführen zusammen,
+      sieht ihn die schnelle Vorprüfung nicht und die Zeile wird nicht beur…
+  - item: BUG-0283
+    revision: 1
+    scope_hash: baaf8c2885cefe99f0e1dde12581875955a77df631cd95073cc826a570f65703
+    bound: Ein Unteragent könnte sich die Ausnahme der Startprüfung selbst eintragen;
+      die Stelle liegt in einer Schutzdatei dieses Projekts, die nur du von auße…
+  - item: BUG-0287
+    revision: 1
+    scope_hash: 688802bd3cc7235ba13082224aac43f8a1b3f30458dafba780bb342187f499ba
+    bound: Wer die Schutzdateien schreiben darf, kann auch die Frist hochsetzen, die
+      sich eine Prüfung selbst zugesteht; nur du kannst das von außen ändern.
+subject_manifest_hash: c18a9470e7e6491601ad4616562ebcedf21145126faf553e7f024ed2446ae25b
+created: '2026-09-12T21:19:16'
+expires_at_epoch: 1789327156.94569
+mint_code: 5e1694

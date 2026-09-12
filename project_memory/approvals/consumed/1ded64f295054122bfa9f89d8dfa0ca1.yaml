@@ -1,0 +1,61 @@
+request_id: 1ded64f295054122bfa9f89d8dfa0ca1
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0136
+    revision: 1
+    scope_hash: 3da3213b42ecfbfa5d7c4c666137eb39864c2ea29fc314f4ba0b49691e87e659
+    bound: Eine Nachbesserung an einem Ziel übernimmt nichts, was der Nutzer nicht
+      selbst unterschrieben hat; die vier benannten Grenzen sind gemessen und keine…
+  - item: BUG-0146
+    revision: 1
+    scope_hash: 47d2aad05d3c58f8b30ab291d99d1a28397905a2141ebdd4b65badc089ffe4de
+    bound: Ein Helfer, den niemand zuordnen konnte, wird als unverfolgt gemeldet —
+      schreiben durfte er ohnehin nichts.
+  - item: BUG-0148
+    revision: 1
+    scope_hash: 93222fed4657ffd73f6994d523c2217effa4ecc6a423ebc951adb69a51b9037d
+    bound: Wird das Hochziehen alter Projekte mittendrin abgebrochen, bleibt ein halb
+      umgestellter Stand liegen; ein zweiter Lauf räumt ihn sauber auf (gemessen…
+  - item: BUG-0178
+    revision: 1
+    scope_hash: 887aa9f368a25de3f3d1e45888bc616a35cdd5e15aa5a997cdc3708b3bd746d6
+    bound: Die Erkennung alter Datensätze hat drei gemessene Grenzen; sie zu schließen
+      hieße, eine zweite Definition von „alter Datensatz“ zu schreiben — genau…
+  - item: BUG-0194
+    revision: 1
+    scope_hash: b4ee438e519d6903612416978d0041264ae9692c35fd558597f7c2a155667ce5
+    bound: Einen Test in einer anderen Programmiersprache kann der Kern nicht lesen;
+      er sagt dann „weiß ich nicht“ statt den Merge zu sperren.
+  - item: BUG-0215
+    revision: 1
+    scope_hash: 48c8714ae94af672e0b9a97c0801f1480ffaa0cb3e98ca42b9847a327ee74a3c
+    bound: Eine Plan-Freigabe kann beliebig viele Ziele auf einmal freigeben; dafür
+      nennt die Frage jedes Ziel beim Namen, und ändert sich eines, fällt nur dies…
+  - item: BUG-0216
+    revision: 1
+    scope_hash: 005bbb09bc4a63450c372a4f6554f34c650e4d2aecb1212bba0db73c6ed9e0a8
+    bound: Wer das Paket in ein eigenes Programm einbaut, kann damit eine Freigabe
+      erzeugen — auf jedem solchen Datensatz steht aber, dass ein Programm geantwor…
+  - item: BUG-0217
+    revision: 1
+    scope_hash: d6abdd9133d4bdf984c6c5e799ef0bc2931967d55fabe6bc22614aa456c2d737
+    bound: Wenn jemand angibt, eine Prüfung sei blockiert gewesen, glaubt das System
+      den Grund — nachprüfen kann es ihn nicht; geliefert wird deswegen trotzdem…
+  - item: BUG-0239
+    revision: 1
+    scope_hash: f4b2efc533d2d9e6b274aab39d3ebbb52dfc16bce924c0f228b83c6d1398bf61
+    bound: Ob ein Arbeitsauftrag sinnvoll formuliert ist, liest kein Programm nach;
+      das bleibt die Aufgabe der Lesung, die im Arbeitsablauf steht.
+  - item: BUG-0261
+    revision: 1
+    scope_hash: 93ca25ffab5c82fbd78b9cd51087b5b67e5e6d46790cad73c21169c6c157ccd4
+    bound: Dass ein Test grün ist, heißt nicht, dass der Fehler weg ist — manche Tests
+      halten die Lücke fest. Das muss ein Mensch je Eintrag lesen; genau das ha…
+subject_manifest_hash: f5b3c9600ceece7d834d28b6c8ee3da33eeb0542b8a345d25ee1e96ee0186937
+created: '2026-09-12T21:19:17'
+expires_at_epoch: 1789327157.9778965
+mint_code: '678496'

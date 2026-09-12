@@ -1,0 +1,49 @@
+id: BUG-0251
+title: 'The EFFORT axis of the ladder (DEC-0077 (1)) is derived, written and shown
+  but never applied: the Agent tool has no per-spawn effort parameter, so the child
+  runs on its installed `effort:` pin (new, TSK-0130, PR-0010 AC-6)'
+related_pr: PR-0010
+severity: medium
+observed: '**Mechanism.** `kernel.dispatch.ladder_for_order` derives the effort per
+  order (dev/research `high`, `xhigh` when the goal''s `class` is large; office `medium`
+  / `high`; the filing floor `low`) and `create_lease` writes it on the lease, the
+  header and the task item. MEASURED 2026-09-05 21:39 (rig `_round-scratch/TSK-0130/probe-agent-model`,
+  a denying PreToolUse hook dumping the Agent tool''s `tool_input`): the payload carries
+  `model` when the lead passes it and no `effort` key although the prompt asked for
+  one; the model names the accepted parameters as description, prompt, subagent_type,
+  model, isolation, run_in_background. So nothing at the spawn can set the child''s
+  effort: it runs on the `effort:` its installed definition carries, which the scaffold
+  stamps from the kit''s `project_config.yaml` `effort_map` (dev/research `high` for
+  every role; office `high` for the specialists and `low` for the filing pair). The
+  `xhigh` of a large goal and the office `medium` exist on the lease and in the brief
+  seam only.'
+expected: Either the platform offers a per-spawn effort parameter (then `spawn_model_refusal`
+  grows a twin for it) or the derived effort is applied by the one lever that exists
+  -- the installed frontmatter -- through a user-approved restamp per goal class,
+  which no command offers today.
+repro: 'In a scaffolded dev pilot: capture a PR with class large, dispatch a builder
+  order, read the header (`effort: xhigh`), then spawn: the child''s frontmatter says
+  `effort: high` and no Agent parameter changes it (rig `_round-scratch/TSK-0130/pilot_rig.py`,
+  dev-team, TSK-0002 header effort xhigh; role file `.claude/agents/backend-developer.md`
+  effort high).'
+acceptance_criteria:
+- id: AC-1
+  text: a measurement of the Agent tool's parameters on the shipped platform version
+    shows an effort parameter, or the DEC that owns the two axes records the effort
+    axis as a recorded value with the restamp route as its application
+- id: AC-2
+  text: the constitutions' ladder paragraphs and the README say what applies the effort
+    and what only shows it (today they do)
+limits: Der Befehl, mit dem ein Helfer-Agent gestartet wird, hat gar kein Feld für
+  die Denk-Intensität. Sie lässt sich also anzeigen, aber nicht erzwingen -- das müsste
+  der Hersteller nachrüsten.
+regression_tests:
+- tools/test_ladder.py::test_the_effort_follows_the_goals_class_and_an_exception_fixes_it
+- tools/test_ladder.py::test_the_header_and_the_task_carry_the_rung_and_effort
+hole_number: H169
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0058
+created: '2026-09-05T22:20:19'
+approved_hash: 1516a18707680ccb112e0ea101d3a8010111b1cda305451e5518e70f5d706349
+closed_at: '2026-09-12T22:29:23'

@@ -1,0 +1,30 @@
+id: DEC-0103
+title: 'Goal size is a closed vocabulary: small / normal / large / technical_enabler
+  -- a foreign word is refused at capture (H155 / BUG-0237, the user''s answer A)'
+work: PR-0012
+context: 'H155/BUG-0237: the goal class (`class` on a PR) is free text, and the SR
+  duty and the architecture step hang on it; the store holds 12 goals in three spellings,
+  the suite knows more. TSK-0141 measured: nothing in the tree declares the set. Asked
+  the user 2026-09-12 ~21:5x with the three options and their costs (fixed list /
+  list that only reports / leave); answer: A.'
+decision: 'The vocabulary is exactly `small`, `normal`, `large`, `technical_enabler`,
+  declared ONCE in kernel/backlog_types.py with a two-ended tripwire (a word without
+  a reader red; a reader without a word red); `capture PR` and `update` refuse any
+  other word with a remedy naming the four and what each does (small = clear-cut change,
+  skips the architecture step; normal = ordinary product work; large = several building
+  blocks, architecture step first; technical_enabler = under-the-hood rework, skips
+  the architecture step because there is nothing to design). Migration: the 12 stored
+  goals of this project are mapped once through kernel/migrate.py (`technical_enabler`,
+  `normal`, `large` are already in the set); the suite''s strays (`feature`, `research`,
+  `exploratory`) are rewritten to the set.'
+alternatives: 'B (report only): nothing moves, the typo still costs the wrong round
+  -- rejected by the user. C (leave): the typo stays invisible -- rejected.'
+consequences: 'One order (in-repo): vocabulary + tripwire + refusal + migration +
+  the SR/architecture predicates reading the set instead of an exemption list; the
+  office kit is unaffected (no root type, DEC on H170 separate).'
+source: staging/TSK-0141/protocol.md 'DEC questions for the user' (Frage 1, rewritten);
+  the user's click 2026-09-12
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-12T22:48:25'
