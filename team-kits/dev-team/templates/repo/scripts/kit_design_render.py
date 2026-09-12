@@ -23,12 +23,15 @@ automatically checkable share" and nothing wider. Where a value cannot be decide
 over a background image, a semi-transparent layer — it is listed as UNDECIDED and is not a finding
 either way.
 
-NOTHING REFUSES A PRESENTATION OVER THESE FINDINGS. `gate_design_sighted` asks one question (was
-this draft rendered) and the record answers it, so a draft with findings still has provenance and
-still passes that gate; exit 3 and the printed findings are what reach the designer, and the
-record carries them for a reader that wants them later. That split is deliberate — DEC-0056 builds
-no new gate for an error class this repo has not measured live — and it is a named hole (`H138` in
-`docs/POST_V2_WISHLIST.md`), not a protection this file claims.
+THE FINDINGS ARE NOW REFUSED, and this paragraph used to say the opposite (`BUG-0294` / `H210`).
+`gate_design_sighted` asked one question -- was this draft rendered -- and the record answered it,
+so a draft with findings kept its provenance and passed the gate: measured, a draft with a
+contrast of 1.92:1 was renderer rc 3 and hook rc 0, and a role that ignored the exit code
+presented it. The hook reads the `conformance.findings` of the entry for THIS draft now and
+refuses on them. What it still does not read is `undecided`: that is this script's own word for a
+question it could not decide (text over a background image, a gradient, a translucent layer), and
+turning "I could not tell" into a refusal is what the printed NOT DECIDABLE line exists to
+prevent.
 
 WHY IT EXISTS: in a real project (Canyon, 2026-08-30) a design revision reached the user twice
 without anyone ever rendering it; both rounds were rejected on things only pixels show ("teilweise

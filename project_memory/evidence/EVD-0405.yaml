@@ -1,0 +1,17 @@
+id: EVD-0405
+kind: test
+related:
+- BUG-0271
+result: pass
+summary: 'Rework 3 F3: the card form assertion was a four-verb list behind a digit,
+  and both mutations of the original defect stayed green -- the singular as a main
+  clause and the plural with a fifth verb. It holds the shipped SUBJECT for both numbers
+  now, and both mutations are red. SUPERSEDES EVD-0402'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_light_kit.py::test_a_list_bound_question_reads_in_the_right_numerus_and_names_the_same_subject_as_its_card
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T13:48:54'

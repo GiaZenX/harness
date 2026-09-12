@@ -1,0 +1,16 @@
+id: EVD-0324
+kind: test
+related:
+- BUG-0173
+result: pass
+summary: 'H81 closed: _invoked_script_words reads a quoted span as ONE word (over-warning
+  half) and _runs_no_file refuses a resolvable path whose file is absent (under-warning
+  half); red-first in the rig on both halves'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_report.py::test_a_quoted_path_with_a_space_runs_and_a_named_missing_file_does_not
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:58:12'

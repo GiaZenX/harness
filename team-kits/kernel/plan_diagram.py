@@ -407,7 +407,32 @@ def render_all(entries) -> list:
             for name, renderer in zip(FILENAMES, (plan, mindmap))]
 
 
-def is_pristine(path: str, entries) -> tuple:
+def verdicts(directory: str, entries) -> list:
+    """[(filename, verdict, reason), ...] for the diagrams that ARE on disk in `directory`.
+
+    THE CALLER A VALIDATOR CAN AFFORD, and that is the whole reason it exists beside
+    `is_pristine`: the judgement needs a fresh render, and asking per file rendered the same
+    entries once per picture. One render here, both answers from it. A file that is not there is
+    not judged -- a project whose state has never been written has no diagram to lose, and a
+    finding about one would be about the directory rather than about anybody's work.
+
+    This is the reader `report.validate_state` uses, which is the half of BUG-0211 that says a
+    hand edit is SEEN; the other half -- that it is overwritten at the next state write -- is
+    `state._write_board`.
+    `tools/test_report.py::test_a_hand_edited_diagram_is_reported_and_a_missing_one_is_not`
+    """
+    fresh = dict(render_all(entries))
+    found = []
+    for name in FILENAMES:
+        path = os.path.join(directory, name)
+        if not os.path.isfile(path):
+            continue
+        verdict, reason = is_pristine(path, entries, fresh)
+        found.append((name, verdict, reason))
+    return found
+
+
+def is_pristine(path: str, entries, fresh_by_name: dict = None) -> tuple:
     """(verdict, reason) for one generated diagram: pristine, hand-edited, stale or foreign.
 
     THREE OUTCOMES AND NOT TWO, because the two failures need different answers. A HAND EDIT is
@@ -417,7 +442,9 @@ def is_pristine(path: str, entries) -> tuple:
     and an unequal digest can only be a state that has moved on.
     `test_plan_diagram.test_a_hand_edit_is_told_from_a_stale_file`.
     """
-    fresh = dict(render_all(entries)).get(os.path.basename(path))
+    if fresh_by_name is None:
+        fresh_by_name = dict(render_all(entries))
+    fresh = fresh_by_name.get(os.path.basename(path))
     if fresh is None:
         return "foreign", "no diagram of this name is generated here"
     try:

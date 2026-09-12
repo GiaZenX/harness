@@ -1,0 +1,34 @@
+id: BUG-0298
+title: 'Kit-Seite der H11-Klasse: ein Heredoc, das in einer Zeile erst in eine Datei
+  geschrieben und dann von der Shell ausgeführt wird (`cat <<EOF > run.sh ; bash run.sh`),
+  passiert jeden Kit-Hook'
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-12 (TSK-0142 verify round 2, C3, real hook processes against
+  two scaffolded pilots): `cat <<''EOF'' > run.sh ; bash run.sh` with a body that
+  writes project_memory/b1h.yaml -> every registered Bash hook rc 0; real shell rc
+  0, the file is written. Not a regression of BUG-0289/H205 (the new reader ends at
+  `;` on purpose; the body is data for `cat`), but the kit side of H11 (''a self-written
+  script keeps minting''): the chain runs in ONE tool call.'
+expected: 'Either the kits'' prose reader follows a heredoc body into a file the SAME
+  line executes (the file name appears twice in one line: as redirect target and as
+  an operand of a shell), or the class is bounded as H11 is and the bound says what
+  limits it.'
+repro: 'in a scaffolded pilot: cat <<''EOF'' > run.sh ; bash run.sh  (body: printf
+  x > project_memory/b1h.yaml) -> all hooks rc 0.'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the one-line form above is refused at gate_write_scope, red-first, while
+  `cat <<''EOF'' > notes.md` alone stays rc 0'
+- 'AC-2: the multi-line form (write in one call, run in the next) is named as the
+  H11 remainder with its bound'
+source: staging/TSK-0142/verify-round-2.md (C3)
+limits: 'Eine Befehlszeile kann einen Text erst in eine Skriptdatei schreiben und
+  sie im selben Atemzug ausführen; die Schutzregeln der Kits sehen nur den Text und
+  nicht, was das Skript dann tut. Begrenzt: die Zeile muss die Datei zweimal nennen,
+  das ist sichtbar im Protokoll; dieselbe Grenze gilt seit H11 für jedes selbst geschriebene
+  Skript.'
+hole_number: H214
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T14:05:19'

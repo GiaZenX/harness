@@ -1,0 +1,36 @@
+id: EVD-0391
+kind: test
+related:
+- BUG-0165
+result: pass
+summary: 'SUPERSEDES EVD-0377, which said H73 (a) CLOSED while two of the sixteen
+  sites that entry counts were still unread: the marker literals the INSTALLERS write
+  (team-kits/scaffold_team.sh and .ps1), which an ast reader never opens -- the verifier
+  of round 2 planted a dead id in scaffold_team.sh:284 and this file stayed GREEN.
+  Both halves are read now: _dec_citations_in_messages through ast for .py, and _dec_citations_in_shell_messages
+  as a BOUNDED reader for .sh/.ps1 (a quoted run inside one line; bash -n and the
+  PowerShell parser check syntax and hand back no literals, and that is said in the
+  docstring). No backtick exemption on the shell side, because there a backtick opens
+  a command substitution or escapes -- a property of the languages, not an omission.
+  Measured 2026-09-12: 69 message citations in the python sources and 4 in two shell
+  sources, all resolving. Red-first, three rows: the shell reader emptied -> 1 failed
+  on the drive ([] == [(1, ''DEC-9142'')]); the verifier''s own plant at scaffold_team.sh:284
+  -> 1 failed naming :284 and :923; the SAME plant with the shell branch of the sweep
+  switched off -> 1 PASSED, which is the defect. docs/holes/H73.md carries the closure.
+  9 passed in 91.26 s.'
+artifact_refs:
+- staging/TSK-0143/protocol.md
+run_command: python -B -m pytest "tools/test_repo_hygiene.py::test_no_tool_trace_lies_unaccounted_for_in_the_repo_root"
+  "tools/test_repo_hygiene.py::test_git_tracks_no_ignored_file_outside_canonical_state"
+  "tools/test_repo_hygiene.py::test_no_pairing_shift_blinds_the_pointer_sweep_for_the_rest_of_a_file"
+  "tools/test_repo_hygiene.py::test_every_test_pointer_this_repo_writes_resolves"
+  "tools/test_repo_hygiene.py::test_the_test_pointer_reader_reads_the_shapes_a_kit_file_writes"
+  "tools/test_repo_hygiene.py::test_a_suite_file_a_neighbour_is_saving_is_unreadable_and_not_a_dead_pointer"
+  "tools/test_repo_hygiene.py::test_a_decision_named_in_a_message_a_user_reads_is_one_that_resolves"
+  "tools/test_repo_hygiene.py::test_every_decision_pointer_in_a_shipped_kit_file_resolves"
+  "tools/test_repo_hygiene.py::test_the_decision_pointer_reader_can_tell_a_citation_from_a_literal"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:44:25'

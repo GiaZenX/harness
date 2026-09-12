@@ -595,13 +595,22 @@ def build_parser() -> argparse.ArgumentParser:
     # so a duty added here reaches only new records anyway. What the pair buys is read at the
     # merge -- a PASS declaring `selection` is not a delivery verdict -- and the kernel refuses
     # one of the two without the other, so a role cannot claim a scope without naming the run.
-    evidence.add_argument("--run-command", metavar="LINE",
+    # AND REQUIRED SINCE BUG-0192, both of them. The reading end cannot be tightened -- an `EVD`
+    # is immutable, so every record a project already holds would become a validator error no
+    # command can repair -- which leaves the surface that records NEW ones, and this is it: a run
+    # that does not say how much it covered counts as a full one, and that is a partial run
+    # opening a merge in silence. The pair is refused half-declared in `state.capture_preflight`,
+    # so requiring one and not the other would only move the refusal.
+    # `tools/test_hooks.py::test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requires`
+    # reads this parser's required set and holds it against every shipped text that spells the
+    # call out; those texts belong to the kit stream, so that node is RED until its half lands.
+    evidence.add_argument("--run-command", required=True, metavar="LINE",
                           help="the command line that produced this verdict, verbatim -- what an "
-                               "auditor re-runs (needs --run-scope)")
-    evidence.add_argument("--run-scope", choices=sorted(RUN_SCOPES),
+                               "auditor re-runs")
+    evidence.add_argument("--run-scope", required=True, choices=sorted(RUN_SCOPES),
                           help="whether that command covered the whole surface or a selection; a "
-                               "passing `selection` is recorded and does NOT open a merge "
-                               "(needs --run-command)")
+                               "passing `selection` is recorded and does NOT open a merge, and a "
+                               "record that declares nothing would count as a full run (BUG-0192)")
     # WHAT STOPPED A RUN THAT NEVER HAPPENED (FR-0082). Not `required` on the parser and not
     # optional in effect: the kernel refuses a `%s` result without it and refuses it under any
     # other result (`state.capture_preflight`), so argparse would have to know the value of

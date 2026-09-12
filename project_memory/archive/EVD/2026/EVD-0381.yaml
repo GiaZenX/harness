@@ -1,0 +1,20 @@
+id: EVD-0381
+kind: test
+related:
+- BUG-0278
+result: pass
+summary: 'H194 reworked (verifier B1+B2): the clausal deniers are a VOCABULARY held
+  at both ends -- nie, niemals and the nirgend inflections were missing, so a sentence
+  that DENIES a test bought the cheap rung -- and a prepositional negator now reads
+  a COMPLEMENT of at most three words, so the fronted form stops swallowing the main
+  clause. 27 measured rows, 0 wrong, 18 of them counterweights'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_ladder.py::test_a_german_acceptance_line_is_read_like_its_english_twin
+  tools/test_ladder.py::test_every_listed_denial_word_is_the_reason_its_sentence_is_refused
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:37:59'
+closed_at: '2026-09-12T13:20:59'

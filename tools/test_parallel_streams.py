@@ -233,9 +233,10 @@ def test_a_route_the_caller_named_has_to_resolve_and_one_nobody_named_does_not(t
     directory and an `--only` id no order carries are rc 1; a default root in a directory that is
     not a project is rc 0 and says NOTHING WAS COMPARED, never "disjoint".
 
-    The remaining half is named rather than closed (`H142`): a named route that DOES resolve and
-    still yields no pair -- `--only` with a single real id -- is rc 0, and the last case here is
-    that measurement.
+    THE OTHER HALF IS CLOSED SINCE BUG-0225: a named route that DOES resolve and still yields no
+    pair -- `--only` with a single real id -- is rc 1 as well, because `--only` is a request for a
+    COMPARISON and answering 0 tells a script the cut was checked. The run nobody narrowed keeps
+    its 0, which is the case two assertions above.
     """
     repo, _state, ids = orders_project(tmp_path, [(["src/**"], [])], files=["src/a.py"])
     state = str(repo / "project_memory")
@@ -264,9 +265,11 @@ def test_a_route_the_caller_named_has_to_resolve_and_one_nobody_named_does_not(t
     assert outside.returncode == 0, outside.stdout + outside.stderr
     assert "NOTHING WAS COMPARED" in outside.stdout, outside.stdout
 
-    # ...and the named route that resolves but cannot be a pair -- rc 0, the residue of `H142`
+    # ...and the named route that resolves but cannot be a pair -- rc 1 since BUG-0225, told apart
+    # from the refused cut's rc 2 and from the run nobody narrowed, which is rc 0 just above
     single = run("--root", state, "--only", ids[0])
-    assert single.returncode == 0 and "NOTHING WAS COMPARED" in single.stdout, single.stdout
+    assert single.returncode == 1, single.stdout + single.stderr
+    assert "NOTHING WAS COMPARED" in single.stdout and ids[0] in single.stdout, single.stdout
 
 
 def test_a_seam_that_swallows_an_orders_whole_ownership_is_refused(tmp_path):
@@ -331,6 +334,40 @@ def test_the_checker_leaves_no_bytecode_in_the_kit_tree_it_imports():
 
 
 # ================================================== 2. what the kernel now enforces (C-2/C-3)
+def test_the_lease_refusal_reaches_a_region_no_single_witness_reaches(tmp_path):
+    """BUG-0238 and BUG-0218 where they meet: the lease refusal inherits `kernel.scopes` whole.
+
+    The refusal is not a second reading of "do these two collide" -- it asks `scopes`, so a repair
+    there arrives here with no edit. This is that arrival, over the EMPTY tree: `a/*x` and `a/y*`
+    share `a/yx`, no single-entry witness lands in it, no such file exists, and the second lease is
+    refused naming the path. Before the pair witnesses it was granted, and the two builders met in
+    the merge.
+
+    WHAT STAYS OUTSIDE THE REFUSAL, and the second half of this test is what makes that a division
+    of labour rather than a gap: two READY orders that are never leased at the same time share no
+    lease, so nothing here sees them -- and `check-scopes` does, because it walks the OPEN orders.
+    Both are asserted, so neither can be claimed without the other.
+    """
+    from kernel import dispatch, scopes
+
+    _repo, state, ids = orders_project(
+        tmp_path, [(["a/*x"], []), (["a/y*"], [])], files=[], status="READY")
+    dispatch.create_lease(state, ids[0])
+    with pytest.raises(Exception) as refusal:
+        dispatch.create_lease(state, ids[1])
+    assert "a/yx" in str(refusal.value), refusal.value
+    assert ids[0] in str(refusal.value), refusal.value
+
+    # ...and the same two orders, with NO lease taken at all, are invisible to the refusal and
+    # visible to the check that walks open orders
+    _repo2, other, other_ids = orders_project(
+        tmp_path / "second", [(["a/*x"], []), (["a/y*"], [])], files=[], status="READY")
+    code, lines = scopes.check(other)
+    assert code == 2, lines
+    assert any("a/yx" in line for line in lines), lines
+    assert all(other.read_item(one)["status"] == "READY" for one in other_ids)
+
+
 def test_the_second_lease_is_refused_when_the_scopes_overlap(tmp_path):
     """PR-0005 AC-5 / stream D's C-2, and it replaces the sentence this file used to measure.
 
@@ -527,9 +564,15 @@ def test_the_parallel_procedure_is_declared_for_every_task_type():
 
 
 # ================================================== 4. N2 -- a cadence stated twice
+# THE WORDS A ROLE TEXT STATES A RHYTHM IN -- the vocabulary stands here ONCE and the pattern is
+# built from it, so the tripwire below can walk the entries instead of taking them apart again out
+# of a compiled regex. `BUG-0224` is the limit of the whole construction and it is measured in
+# `test_the_cadence_reader_is_an_enumeration_held_at_both_ends`, at both ends.
+_CADENCE_WORDS = ("weekly", "wöchentlich", "daily", "täglich", "nightly", "monthly", "monatlich",
+                  "quarterly", "every day", "every week", "every month", "every quarter",
+                  "each day", "each week", "each month", "each quarter")
 _CADENCE_IN_PROSE = re.compile(
-    r"\b(?:weekly|wöchentlich|daily|täglich|nightly|monthly|monatlich|quarterly|"
-    r"(?:every|each)\s+(?:day|week|month|quarter))\b", re.I)
+    r"\b(?:%s)\b" % "|".join(word.replace(" ", r"\s+") for word in _CADENCE_WORDS), re.I)
 
 
 def _blocks_naming(text, role):
@@ -541,6 +584,45 @@ def _blocks_naming(text, role):
     """
     pattern = re.compile(r"(?<![A-Za-z0-9_-])%s(?![A-Za-z0-9_-])" % re.escape(role))
     return [block for block in re.split(r"\n[ \t]*\n", text) if pattern.search(block)]
+
+
+def test_the_cadence_reader_is_an_enumeration_held_at_both_ends():
+    """BUG-0224: `_CADENCE_IN_PROSE` is a list of adverbs, and a list needs a tripwire at BOTH ends.
+
+    END ONE -- EVERY ENTRY EARNS ITS PLACE: for each word the vocabulary lists, a sentence built
+    from it fires, and the SAME sentence against a pattern built WITHOUT that entry does not. That
+    is the difference between "the word is there" and "the word is the reason": an entry another
+    entry already covers passes the first reading and fails this one.
+
+    END TWO -- THE BLIND SPELLINGS ARE ROWS AND NOT A DOCSTRING CLAIM, which is what this round
+    changed: the five forms measured silent in TSK-0118's probe stand here as assertions, so the
+    day somebody widens the reader they go RED and the limit is re-decided rather than drifting.
+    "Is this sentence a cadence" is world knowledge no derivation from this tree produces -- a test
+    that claimed otherwise would be the next enumeration -- so the blindness is DECLARED here
+    instead of repaired.
+
+    The cost, said plainly: a role text that writes the rhythm as `cadence: 7d` states it twice and
+    no test says so.
+    """
+    assert len(_CADENCE_WORDS) >= 8, _CADENCE_WORDS
+    for word in _CADENCE_WORDS:
+        sentence = "the auditor runs %s and reports" % word
+        assert _CADENCE_IN_PROSE.search(sentence), (
+            "%r is listed and fires for nothing -- a dead entry" % word)
+        without = re.compile(
+            r"\b(?:%s)\b" % "|".join(other.replace(" ", r"\s+")
+                                     for other in _CADENCE_WORDS if other != word), re.I)
+        assert not without.search(sentence), (
+            "%r is carried by another entry -- the sentence fires without it" % word)
+
+    for blind in ("the auditor runs once a week",
+                  "the auditor runs on Mondays",
+                  "the auditor runs every seven days",
+                  "the auditor runs each Monday morning",
+                  "cadence: 7d"):
+        assert not _CADENCE_IN_PROSE.search(blind), (
+            "%r is now READ -- BUG-0224's limit changed, and it has to be re-decided rather than "
+            "silently widened" % blind)
 
 
 def test_no_text_that_describes_the_audited_role_states_the_cadence_the_code_owns():

@@ -1,0 +1,26 @@
+id: EVD-0353
+kind: test
+related:
+- BUG-0137
+result: pass
+summary: 'H45 closed, both limits. (a) the session guard builds its watch list in
+  Python, so a host without a shell that reads this filesystem back no longer takes
+  the whole suite down -- red-first mutate bug_0137a with _posix_shells emptied: 1
+  failed. (b) _can_arbitrate is covered red-capably against a REAL shell of this host
+  (the WSL launcher, which runs every line and resolves an absolute path into its
+  own filesystem) -- red-first mutate bug_0137 (the pre-TSK-0063 form): 1 failed,
+  the launcher accepted as arbiter. 7 passed in 14.76 s.'
+artifact_refs:
+- staging/TSK-0143/protocol.md
+run_command: python -B -m pytest ".claude/hooks/test_gates.py::test_no_timed_span_here_pays_for_a_helper_that_reads_the_clock_itself"
+  ".claude/hooks/test_gates.py::test_the_session_guards_watch_list_is_built_without_a_shell"
+  ".claude/hooks/test_gates.py::test_the_arbiter_refuses_a_shell_that_runs_every_line_on_another_filesystem"
+  ".claude/hooks/test_gates.py::test_the_pointer_reader_answers_for_every_shape_a_statement_here_can_carry"
+  ".claude/hooks/test_gates.py::test_the_end_states_this_repo_reaches_are_measured_against_the_kernel"
+  ".claude/hooks/test_gates.py::test_every_check_this_apparatus_claims_in_its_own_prose_is_one_that_exists"
+  ".claude/hooks/test_gates.py::test_the_gate_table_of_this_file_is_the_registration_itself"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:04:02'

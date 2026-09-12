@@ -1,0 +1,24 @@
+id: EVD-0400
+kind: test
+related:
+- BUG-0183
+result: pass
+summary: 'H91 closed on the side that can be measured: scripts/filing_plan.py --tree
+  now names, beside the plan, every folder that EXISTS under the plan''s own roots
+  and that no rule describes -- a folder deeper than the template that matches it
+  included, its children not again, and a <placeholder> segment matching any name
+  (the property, not a vocabulary of placeholder spellings). tree_lines itself is
+  untouched, because process_doc.py renders the Verfahrensdokumentation from it and
+  that document describes the PLAN. Red-first in the pristine rig: the unplanned folder
+  was not in the output, the tidy-project direction already passed there. What this
+  does NOT do is compare plan and plate in the other direction (a rule whose folder
+  does not exist yet) -- that is the project-auditor''s check, as the item says.'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_a_folder_the_archive_really_has_and_no_rule_describes_is_named
+  tools/test_hooks.py::test_an_archive_that_matches_its_plan_is_reported_as_nothing
+  -q -p no:randomly
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T13:14:50'

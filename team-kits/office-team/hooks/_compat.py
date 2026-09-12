@@ -829,8 +829,30 @@ _HEREDOC_OPEN_RX = re.compile(
     r"<<-?[ \t]*(?P<esc>\\?)(?P<quote>['\"]?)(?P<delim>[A-Za-z_][\w.+-]*)(?P=quote)")
 # The programs that hand their STANDARD INPUT to a command parser — the same property `_SHELL_NAMES`
 # and `_EVAL_NAMES` already state for a quoted argument, asked here of a here-document instead.
-_STDIN_PARSER_RX = re.compile(r"(?<![\w.-])(?:%s|%s)(?![\w.-])" % (_SHELL_NAMES, _EVAL_NAMES),
-                              re.IGNORECASE)
+# THE DOT AND `source` ARE HERE and not in `_EVAL_NAMES`: those two READ a file and run it in the
+# CURRENT shell, so `. /dev/stdin <<'EOF'` is a body a parser is fed while nothing on the line is a
+# shell name. Measured by the verifier of TSK-0142: that line was rc 0 at all nine registered Bash
+# hooks of a scaffolded pilot and wrote a file under `project_memory/`. The dot is required to stand
+# as a WORD (a space or a tab behind it), or `./build.sh <<EOF` would match it.
+_SOURCE_NAMES = r"(?:source|\.(?=[ \t]))"
+# A PATCH APPLIER belongs in the same membership, and the property is what joins them rather than
+# the word "parser": for all of these the body is not DATA the program receives, it is what the
+# program DOES. A diff is a list of writes with the file names in it, so a body handed to `patch`
+# or `git apply` names the paths the stage writes. Measured on this tree before the line below
+# carried them: `git apply <<'EOF'` with a diff naming `.claude/hooks/gate_write_scope.py` was
+# rc 0 at the write-scope gate, because the body was removed as prose before the first reader
+# (`BUG-0286`, the "a patch file carries the path across the stage boundary" half of H22/H202).
+_PATCH_APPLIER_NAMES = r"(?:patch|git[ \t]+(?:apply|am))"
+_STDIN_PARSER_RX = re.compile(
+    r"(?<![\w.-])(?:%s|%s|%s|%s)(?![\w-])"
+    % (_SHELL_NAMES, _EVAL_NAMES, _SOURCE_NAMES, _PATCH_APPLIER_NAMES),
+    re.IGNORECASE)
+# WHERE THE PIPELINE OF THE OPENER ENDS, to its RIGHT. A `|` does NOT end it -- that is the whole
+# of this reader's second half: the parser that receives the body may stand in a LATER stage of the
+# same pipeline (`cat <<'EOF' | bash`). A `;`, a `&`, a `||` or a line break do end it, because the
+# body then reaches nothing on the far side of them. There is no bare `|` alternative below, so a
+# single pipe can never match.
+_PIPELINE_END_RX = re.compile(r";|\n|&|\|\|")
 
 
 @functools.lru_cache(maxsize=32)
@@ -839,15 +861,53 @@ def _heredoc_end_rx(delimiter):
     return re.compile(r"^[ \t]*%s[ \t]*$" % re.escape(delimiter), re.MULTILINE)
 
 
-def _fed_to_a_command_parser(text, position):
-    """Does the stage that opens a here-document at `position` PARSE what it reads?
+def _fed_to_a_command_parser(text, position, after=None):
+    """Does the PIPELINE that opens a here-document at `position` PARSE what it reads?
 
-    Read off the stage the operator belongs to — from the last command separator in front of it —
-    because that is where the program name stands. Unknown answers NO... which is the direction
-    that KEEPS a body, and therefore the fail-closed one for `literal_heredoc_free`.
+    THE PIPELINE AND NOT THE STAGE, and that correction is measured: the first cut read only the
+    text in FRONT of the opener, where the program name stands for `bash <<'EOF'`. A here-document
+    is the standard input of its stage, and a pipeline hands that input on -- so
+    `cat <<'EOF' | bash` fed a shell exactly the same body while this reader saw `cat` and answered
+    no. Both spellings were rc 0 at every registered Bash hook of a scaffolded pilot and wrote a
+    file under `project_memory/` (verifier round 1 of TSK-0142, B1); the rows are in
+    `tools/test_hooks.py::test_a_heredoc_body_handed_to_a_shell_is_judged_as_a_command`.
+
+    So the subject is the whole pipeline the opener stands in: from the last separator in front of
+    it -- where a `|` DOES end the left part, because a stage's own program name stands there -- to
+    the first `;`, `&`, `||` or line break behind it, where a `|` does NOT end it. Unknown answers
+    NO... which is the direction that KEEPS a body, and therefore the fail-closed one for
+    `literal_heredoc_free`.
     """
-    segment = re.split(r"[&|;\n]", join_line_continuations(text[:position]))[-1]
-    return _STDIN_PARSER_RX.search(segment) is not None
+    # `after` is the END of the opener where the caller knows it: the DELIMITER is part of the
+    # opener, and a here-document opened with `<<'sh'` would otherwise read as a shell of its own.
+    left = re.split(r"[&|;\n]", join_line_continuations(text[:position]))[-1]
+    right = _PIPELINE_END_RX.split(text[position if after is None else after:])[0]
+    return _names_a_stdin_parser(left) or _names_a_stdin_parser(right)
+
+
+def _names_a_stdin_parser(stage):
+    """Does this span of a pipeline name a program that PARSES what it reads?
+
+    THE REDIRECTIONS GO FIRST, and that is the correction of 2026-09-12: the membership was asked
+    of the RAW span, where a word can be anything -- a file NAME included. Measured through the
+    shipped gate as real processes, `cat > patch.diff <<'EOF'`, `cat > patch/notes.md <<'EOF'`,
+    `cat > bash.md <<'EOF'` and `cat > source.txt <<'EOF'` were all **rc 2**: writing a patch to a
+    file for review, or a note whose name begins with a member word, was refused as if the body
+    were applied. A redirection's target never reaches the program, and `_argument_scan` is this
+    file's one reader of that -- asking it here makes the membership a question about the COMMAND
+    instead of about the characters of the line.
+
+    WHAT IT STILL OVER-REFUSES, measured and written down rather than claimed away: an ordinary
+    OPERAND whose name begins with a member word (`cat patch.diff <<'EOF'`). A word in operand
+    position is not a program either, but telling the two apart needs the runner question --
+    `nohup bash <<'EOF'`, `timeout 5 bash <<'EOF'`, where the operand IS what executes -- and the
+    direction that keeps those refusing is the one this gate has to take. Both ends stand in
+    `tools/test_hooks.py::test_a_heredoc_body_handed_to_a_shell_is_judged_as_a_command`, and the
+    ledger gate's own reading of the same reader in
+    `tools/test_hooks_v2.py::test_a_heredoc_body_an_interpreter_executes_is_not_prose_here`.
+    """
+    text, _words = _argument_scan(stage)
+    return _STDIN_PARSER_RX.search(text) is not None
 
 
 def literal_heredoc_free(command):
@@ -887,6 +947,48 @@ def literal_heredoc_free(command):
     PROGRAMS execute their standard input, a question `_STDIN_PARSER_RX` answers only for shells and
     only because their membership is a closed set.
     """
+    return heredoc_free(command, lambda literal, fed, head: not literal or fed)
+
+
+def prose_heredoc_free(command):
+    """`command` with every here-document body removed EXCEPT one a command parser is fed.
+
+    THE OTHER QUESTION ABOUT THE SAME SPAN, and the two are not interchangeable. The reader above
+    asks what the SHELL EXPANDS, which is what a gate about a ledger path needs. A gate that judges
+    a COMMAND LINE asks something narrower: is this body a COMMAND? A body handed to `sh`, `bash`
+    or `eval` is -- that is the same `_fed_to_a_command_parser` membership -- and every other body
+    is data the program on the left receives, whatever its delimiter's quoting says about
+    expansion.
+
+    Measured, and it is why this exists beside its sibling rather than as a caller of it:
+    `gate_write_scope` removed every body unconditionally, so `bash <<'EOF'` with a write to
+    canonical state inside it was rc 0 (`BUG-0289`). Switching that gate to the sibling closed it
+    and broke the other end in the same move -- `cat > /tmp/notes.md <<EOF` with `project_memory`
+    in its PROSE became rc 2, because an unquoted delimiter means the shell expands the body and
+    the sibling therefore keeps it. Neither reader is wrong; they answer different questions
+    (`tools/test_hooks_v2.py::test_a_heredoc_body_is_prose`,
+    `tools/test_hooks.py::test_a_heredoc_body_handed_to_a_shell_is_judged_as_a_command`).
+    """
+    return heredoc_free(command, lambda literal, fed, head: fed)
+
+
+def heredoc_free(command, keep):
+    """`command` with the body of each here-document `keep(literal, fed, head)` rejects removed.
+
+    ONE SCANNER, and the CONDITION is the caller's. Three readers of the same span ask three
+    different questions of it -- what the shell expands, what is a command, and what a program
+    will EXECUTE -- and a scanner per question is three copies of the one subtlety this has: where
+    the scan resumes after a body it keeps. `keep` is handed
+
+      * `literal` -- the delimiter is quoted, so POSIX performs no expansion in the body;
+      * `fed` -- a command PARSER is on the left of the opener (`_fed_to_a_command_parser`);
+      * `head` -- the text of the line in front of the opener, so a caller can ask its OWN question
+        about the program that receives the body. `gate_ledger_valid` does: a body handed to a verb
+        that only reads is prose, and a body handed to anything else is a program that may write
+        the ledger's judge (`BUG-0149`) -- which is the question this module could not answer for
+        it, because "which programs execute their standard input" is not a property of a command
+        line and the ledger gate's own read-only classification is the nearest thing to one.
+    """
     text = command or ""
     out, index = [], 0
     while True:
@@ -899,7 +1001,8 @@ def literal_heredoc_free(command):
         end = _heredoc_end_rx(match.group("delim")).search(text, newline + 1)
         stop = len(text) if end is None else end.end()
         literal = bool(match.group("esc") or match.group("quote"))
-        if not literal or _fed_to_a_command_parser(text, match.start()):
+        head = text[text.rfind("\n", 0, match.start()) + 1:match.start()]
+        if keep(literal, _fed_to_a_command_parser(text, match.start(), match.end()), head):
             # the body STAYS — and the scan resumes AFTER its terminator, never inside it. Resuming
             # inside made a body its own hiding place: `sh <<EOF` whose first line merely PRINTS
             # `<<'X'` opened a here-document to this reader, and everything down to a line spelling
@@ -937,9 +1040,33 @@ def literal_heredoc_free(command):
 _SPAN_RX = re.compile(r"'[^']*'|\"(?:\\.|[^\"\\])*\"")
 _MASK = "\x01%d\x02"
 _MASK_RX = re.compile("\x01([0-9]+)\x02")
+# WHAT THE WORKSHOP'S OWN GATES BORROW FROM THIS MODULE, declared for the reason
+# `gate_write_scope.HARNESS_BORROWS` states beside its own list (`BUG-0107`): the borrowing is
+# deliberate -- a second answer to "which part of this word is quoted" is the drift this repository
+# has paid for -- and what it costs is a dependency on UNDERSCORED names that nothing declared.
+# Measured by the verifier of TSK-0142 (B4): renaming `_MASK_RX` here made `gate_lead_write_scope`
+# refuse EVERY Bash call of the session, fail-closed and unrepairable from inside, while the
+# tripwire stayed green because it read only the other module. The surface is now one declaration
+# per BORROWED MODULE, and the tripwire reads all of them
+# (`tools/test_hooks.py::test_the_harness_borrows_only_what_this_kit_declares`).
+HARNESS_BORROWS = ("_MASK_RX",)
 # The POSIX reading of a backslash: it protects the next character and is itself removed. Applied
 # to the MASKED token, so a backslash inside a quoted span — where the shell keeps it — is untouched.
 _POSIX_ESCAPE_RX = re.compile(r"\\(.)")
+_ESCAPE_RX_CACHE = {}
+
+
+def _escape_rx(escape):
+    """`<escape><character>` -> `<character>`, for ONE shell's escape character.
+
+    Built per character rather than written out per shell, because the set of escape characters is
+    already stated once (`_ESCAPE_CHARS`, with the measurement for why it has two entries) and a
+    second spelling of it is what left `shell_words` resolving only the backslash while its own
+    docstring promised every reading (`BUG-0158`).
+    """
+    if escape not in _ESCAPE_RX_CACHE:
+        _ESCAPE_RX_CACHE[escape] = re.compile(re.escape(escape) + r"(.)", re.DOTALL)
+    return _ESCAPE_RX_CACHE[escape]
 
 
 class ShellWord(str):
@@ -995,10 +1122,23 @@ def shell_words(text, split):
     out = []
     for token in split(_SPAN_RX.sub(mask, text or "")):
         kept = _MASK_RX.sub(unmask, token)
-        escaped = _MASK_RX.sub(unmask, _POSIX_ESCAPE_RX.sub(r"\1", token))
         word = ShellWord(kept)
         word.spliced = _MASK_RX.search(token) is not None
-        word.readings = (kept,) if escaped == kept else (kept, escaped)
+        # ONE READING PER ESCAPE CHARACTER, derived from `_ESCAPE_CHARS` rather than from the one
+        # spelling somebody built. The docstring above promised "every value an ordinary shell
+        # could hand the program" while only the POSIX backslash was resolved, so PowerShell's
+        # BACKTICK -- which takes the special meaning away from the next character exactly as the
+        # backslash does, and vanishes with it -- produced a path no reader ever saw: measured,
+        # `copy-item evil.py scr` + backtick + `ipts/ ; git commit -m x` was rc 0 at the office
+        # ledger gate while the same line without the backtick was rc 2 (`BUG-0158`). Deriving the
+        # readings from the constant is what makes the promise one the code keeps
+        # (`tools/test_hooks.py::test_every_escape_character_of_this_kit_gets_its_own_reading`).
+        readings = [kept]
+        for escape in _ESCAPE_CHARS:
+            resolved = _MASK_RX.sub(unmask, _escape_rx(escape).sub(r"\1", token))
+            if resolved not in readings:
+                readings.append(resolved)
+        word.readings = tuple(readings)
         out.append(word)
     return out
 

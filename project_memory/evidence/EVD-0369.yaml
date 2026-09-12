@@ -1,0 +1,18 @@
+id: EVD-0369
+kind: test
+related:
+- BUG-0032
+result: pass
+summary: 'Closed as stream C handed it over: the orphan heuristic asked the directory''s
+  NAME; it now asks the store''s references too, so a staging directory an ACTIVE
+  record points into through artifact_refs is not called an orphan. Live in this store
+  -- the generation-6 streams wrote staging/<task-id>/protocol.md into their evidence.
+  A mention in prose is deliberately not a reference'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_report.py::test_a_staging_dir_an_active_record_points_into_is_not_an_orphan
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:23:06'

@@ -91,11 +91,13 @@ WHAT THIS DOES NOT SEE, so each stays a decision rather than a discovery:
     measurement. What is NO LONGER in this list, because the stems are now read over every word of
     an invocation: a removal asked for with a FLAG (`find archive -name '*.pdf' -delete`,
     `tar --remove-files … archive/…`) and one asked for with a SUBCOMMAND (`git clean -fdx`);
-  * a copier flag that deletes in the DESTINATION rather than the source — `robocopy inbox archive/…
-    /MIR`, `rsync --delete inbox/ archive/2026/`. This is the part of `H123` that survives H125, and
-    the reason is the ORDER of the readings below: `_filing` reads those invocations as copies, so
-    the copy/move branch answers them before any destroying word is looked for, and a copy INTO the
-    archive is the kit's ordinary filing operation;
+  * (CLOSED, `BUG-0207`) a copier flag that deletes in the DESTINATION rather than the source —
+    `robocopy inbox archive/… /MIR`, `rsync --delete inbox/ archive/2026/`. It survived H125
+    because of the ORDER of the readings below: `_filing` reads those invocations as copies, so the
+    copy/move branch answered them and returned before any destroying word was looked for. The
+    branch no longer returns unconditionally — a copier that carries a destroying word and is NOT
+    relocating destroys in its DESTINATION, which is then the reach — and a word introduced with a
+    SLASH is read as the flag it is;
   * a token, or a `cd` argument, the shell rewrites before use — a variable, a glob, `~`. `_filing`
     resolves none of them and this guard blocks on none; uncertainty -> exit 0 is this guard's
     contract, and a guess about an unresolvable name would break it;
@@ -146,7 +148,8 @@ WHAT THIS DOES NOT SEE, so each stays a decision rather than a discovery:
     --remove-source-files` and its alias `--remove-sent-files`) makes `_filing.relocating` true, so
     emptying the archive with it is refused (BUG-0002, `SOURCE_DELETING_FLAGS`). What stays open is
     the neighbouring case that deletes in the DESTINATION rather than the source — `robocopy inbox
-    archive/… /MIR` (which /PURGEs the archive) is not a move OUT of it — that is the copier-flag
+    archive/… /MIR` (which /PURGEs the archive) is not a move OUT of it, and is refused as a DELETE
+    under the destination instead (`BUG-0207`) — that is the copier-flag
     residue named three bullets up, and it is one entry rather than two.
 """
 import os
@@ -210,7 +213,11 @@ PROTECTED_TRAYS = (_filing.ARCHIVE, INBOX)
 # is the whole of `git clean`.
 NAMING_DESTRUCTION = ("rm", "rmdir", "rd", "ri", "del", "erase", "unlink", "remove", "delete",
                       "clear", "clc", "shred", "truncate")
-SWEEPING_DESTRUCTION = ("clean", "purge", "wipe")
+# `mir`/`mirror` are here for the same reason `purge` is, and it is a fact about the operation and
+# not about a spelling: making a destination EQUAL to a source removes whatever the source does not
+# have, so a mirror destroys what it does not name -- which is exactly what "sweeping" means here.
+# `robocopy inbox archive/2026 /MIR` is the measured line (`H123`); it is `/PURGE` plus `/E`.
+SWEEPING_DESTRUCTION = ("clean", "purge", "wipe", "mir", "mirror")
 # THE WORKING DIRECTORY, WRITTEN AS THE PATH THAT NAMES IT. A sweeping destruction with no operand
 # and one whose operand is `.` are the same destruction -- measured with the command's own dry run,
 # `git clean -ndx` and `git clean -ndx .` printing character-identical output -- so they are asked
@@ -356,8 +363,16 @@ def destruction_of(tokens):
         text = str(token)
         if not index:
             said = says_destruction(_filing.command_name(text), True)
-        elif text.startswith("-"):
-            said = says_destruction(text.lstrip("-"), True)
+        elif text.startswith("-") or text.startswith("/"):
+            # A FLAG IS A WORD WITH A FLAG INTRODUCER, and the Windows family this kit gates spells
+            # one with a SLASH: `robocopy … /PURGE` and `/MIR` carried a destroying word that no
+            # position of this reader looked at -- not index 0, not a `-` flag, and not a bare word
+            # (`_BARE_WORD_RX` refuses the slash). That is the `H123` half the ORDER did not
+            # explain. What it costs is measured rather than argued: a POSIX ABSOLUTE PATH also
+            # begins with a slash, and stripping it leaves `archive/2026/x.pdf`, which carries no
+            # stem and is therefore no destruction -- only a word that IS a destroying stem after
+            # the slash is read as one.
+            said = says_destruction(text.lstrip("-/"), True)
         elif _BARE_WORD_RX.match(text):
             said = says_destruction(text, False)
         else:
@@ -773,6 +788,19 @@ def read_the_line(root, command, bases):
                                       % beyond[:100])
             if _filing.relocating(move) and move.destination:
                 moves += _move_readings(root, move)
+            elif move.destination and destruction_of(tokens) is not None:
+                # A COPIER THAT DESTROYS IN ITS DESTINATION (`H123`). `_filing` reads `robocopy
+                # inbox archive/2026 /MIR` and `rsync --delete inbox/ archive/2026/` as copies, and
+                # this branch used to answer them and return before any destroying word was looked
+                # for -- so a copy INTO the archive purged it and nothing noticed. The distinction
+                # that decides is the one `_filing` already makes: a RELOCATING flag deletes in the
+                # SOURCE and is the kit's ordinary filing move (`rsync --remove-source-files`,
+                # above); any other destroying word on a copier acts on the DESTINATION, so the
+                # destination is the reach
+                # (`tools/test_hooks.py::test_a_copier_that_destroys_in_its_destination_is_a_delete_there`).
+                placed = _protected_readings(root, current, move.destination)
+                if placed:
+                    deletes.append(placed)
             continue
         destruction = destruction_of(tokens)
         if destruction is not None:

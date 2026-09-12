@@ -21,7 +21,7 @@ from conftest import (  # noqa: E402 -- ONE mint helper for the suite
     satisfy_the_architect_step,
     walk_to_status,
 )
-from kernel import approvals, cli, dispatch, report, staging  # noqa: E402
+from kernel import approvals, board, cli, dispatch, plan_diagram, report, staging  # noqa: E402
 from kernel.hashing import hook_bundle_hash  # noqa: E402 -- THE definition of the bundle hash
 from kernel import state as kernel_state  # noqa: E402 -- the module, for its naming rule
 from kernel.backlog_types import (  # noqa: E402
@@ -439,6 +439,318 @@ def test_an_invariant_whose_check_this_kernel_cannot_read_blocks_nothing(tmp_pat
     item, resolved, reason = st.record_invariant_verification(inv["id"])
     assert item["status"] == "unverified", reason
     assert resolved is None, reason
+
+
+def test_a_check_whose_test_is_skipped_resolves_to_nothing_it_can_run(tmp_path):
+    """BUG-0193: a definition the runner is told not to execute counted as a check that exists.
+
+    Three readings in one test, because the whole point is WHO decides. A `skip` marker and a
+    parametrisation with no cases are decided by the SOURCE, so the check does not resolve and the
+    validator blocks -- and a module-level `pytestmark` carries the same declaration for every test
+    in the file. A `skipif` is decided by the runner when it evaluates the condition, so the answer
+    is the module's third one, undecided, and no merge is blocked on it. The counterweight is the
+    plain test in the same file: a reader that called everything unrunnable would satisfy the first
+    three assertions and break every project.
+    """
+    root = tmp_path / "project_memory"
+    root.mkdir()
+    st = ProjectState(str(root))
+    st.capture("PR", dict(PR_FIELDS))
+    (tmp_path / "tests").mkdir()
+
+    def write(body):
+        (tmp_path / "tests" / "test_rules.py").write_text(body, encoding="utf-8")
+
+    def resolution(ref):
+        return report.invariant_check_resolution(st, {"check": {"kind": "test", "ref": ref}})
+
+    write("import pytest\n\n\n"
+          "@pytest.mark.skip(reason='flaky')\n"
+          "def test_skipped():\n    pass\n\n\n"
+          "@pytest.mark.skipif(sys.platform == 'win32', reason='posix')\n"
+          "def test_conditional():\n    pass\n\n\n"
+          "@pytest.mark.parametrize('case', [])\n"
+          "def test_no_cases(case):\n    pass\n\n\n"
+          "def test_plain():\n    pass\n")
+    resolved, reason = resolution("tests/test_rules.py::test_skipped")
+    assert resolved is False and "skip" in reason, reason
+    resolved, reason = resolution("tests/test_rules.py::test_no_cases")
+    assert resolved is False and "empty case list" in reason, reason
+    resolved, reason = resolution("tests/test_rules.py::test_conditional")
+    assert resolved is None and "runner evaluates" in reason, reason
+    assert resolution("tests/test_rules.py::test_plain")[0] is True
+
+    # ...and the declaration that stands once for the whole file reaches every test in it
+    write("import pytest\n\npytestmark = pytest.mark.skip(reason='whole file')\n\n\n"
+          "def test_plain():\n    pass\n")
+    resolved, reason = resolution("tests/test_rules.py::test_plain")
+    assert resolved is False and "skip" in reason, reason
+
+    # ...and a decorator of the project's OWN that merely ends in the same word is not a marker
+    write("def skip(fn):\n    return fn\n\n\n@skip\ndef test_plain():\n    pass\n")
+    assert resolution("tests/test_rules.py::test_plain")[0] is True
+
+    inv = st.capture("INV", {"scope": "tests/", "source": "PR-0001", "text": "pure",
+                             "check": {"kind": "test", "ref": "tests/test_rules.py::test_plain"}})
+    write("import pytest\n\n\n@pytest.mark.skip\ndef test_plain():\n    pass\n")
+    blocking = [f for f in errors(report.validate_state(st)) if f["item"] == inv["id"]]
+    assert blocking and "does not execute" in blocking[0]["message"], report.validate_state(st)
+
+
+def test_a_hand_edited_diagram_is_reported_and_a_missing_one_is_not(tmp_path):
+    """BUG-0211: `plan_diagram.is_pristine` had no caller but its own test, so nobody was told.
+
+    Three states, three answers, in one test because a reader that reported everything would
+    satisfy the first two and make every project noisy. A freshly written store is SILENT; a hand
+    edit is a warning that says the next write takes it away; a picture rendered from a state that
+    has moved on is a warning of its own, because between two writes a reader is looking at a plan
+    the store no longer holds. Never an error: nothing about the STATE is wrong in either case.
+    """
+    root = tmp_path / "project_memory"
+    root.mkdir()
+    st = ProjectState(str(root))
+
+    # ...a store with no generated picture is not judged at all
+    assert [f for f in report.validate_state(st) if f["item"] == "generated"] == []
+
+    st.capture("PR", dict(PR_FIELDS))
+    assert [f for f in report.validate_state(st) if f["item"] == "generated"] == [], (
+        "a freshly written store is silent")
+
+    picture = os.path.join(st.generated_path(""), plan_diagram.PLAN_FILENAME)
+    with open(picture, encoding="utf-8") as handle:
+        rendered = handle.read()
+    with open(picture, "w", encoding="utf-8") as handle:
+        handle.write(rendered.replace("</svg>", "<!-- moved a box in draw.io --></svg>"))
+    edited = [f for f in report.validate_state(st) if f["item"] == "generated"]
+    assert len(edited) == 1 and edited[0]["severity"] == "warning", edited
+    assert "edited by hand" in edited[0]["message"] and "save the edit" in edited[0]["remedy"]
+
+    # ...and the same bytes against a state that has moved on are the OTHER warning
+    _rows, entries = st.board_entries()
+    with open(picture, "w", encoding="utf-8") as handle:
+        handle.write(dict(plan_diagram.render_all(entries))[plan_diagram.PLAN_FILENAME])
+    st.capture("PR", dict(PR_FIELDS))
+    with open(picture, "w", encoding="utf-8") as handle:
+        handle.write(dict(plan_diagram.render_all(entries))[plan_diagram.PLAN_FILENAME])
+    stale = [f for f in report.validate_state(st) if f["item"] == "generated"]
+    assert len(stale) == 1 and stale[0]["severity"] == "warning", stale
+    assert "older than the state it shows" in stale[0]["message"]
+    assert not errors(report.validate_state(st)), "neither verdict blocks a merge"
+
+
+def test_a_board_that_could_not_be_rewritten_is_reported_as_older_than_the_index(tmp_path):
+    """BUG-0140: a page the operating system would not let the kernel replace froze the display.
+
+    The write is fail-soft on purpose -- a viewer holding the file open must not fail a state
+    write -- and it says so ONCE, on stderr, in the session that hit it. This is the standing line
+    the item names as its closing direction, and it fails in the harmless direction: a warning, so
+    no merge is blocked on a picture.
+
+    The counterweight is the freshly written store in the same test: a reader that reported every
+    board would make every project noisy, and a store with no page at all is not judged.
+    """
+    root = tmp_path / "project_memory"
+    root.mkdir()
+    st = ProjectState(str(root))
+    st.capture("PR", dict(PR_FIELDS))
+    assert [f for f in report.validate_state(st) if f["item"] == "generated"] == [], (
+        "a board written with the index is silent")
+
+    page = st.generated_path(board.FILENAME)
+    index = st.generated_path("index.yaml")
+    os.utime(page, (os.path.getmtime(index) - 60, os.path.getmtime(index) - 60))
+    stale = [f for f in report.validate_state(st)
+             if f["item"] == "generated" and board.FILENAME in f["message"]]
+    assert len(stale) == 1 and stale[0]["severity"] == "warning", stale
+    assert "older than" in stale[0]["message"] and "index.yaml" in stale[0]["message"]
+    assert not errors(report.validate_state(st)), "a frozen display blocks no merge"
+
+    os.remove(page)
+    assert [f for f in report.validate_state(st)
+            if f["item"] == "generated" and board.FILENAME in f["message"]] == []
+
+
+def test_an_unreadable_file_in_the_archive_is_a_finding_and_not_a_silence(tmp_path):
+    """BUG-0236, second residue: a stored item whose YAML broke vanished from every reader.
+
+    The active walk reports a corrupt item and never reaches the archive; the walk that does reach
+    it is asked for ITEMS and skips what it cannot read. Measured on H156 with its YAML destroyed:
+    all three hole checkers exited 0 and said nothing.
+
+    The counterweight is the second half of the same test: a broken ACTIVE item is reported ONCE,
+    not twice, because the two walks would otherwise both claim it.
+    """
+    root = tmp_path / "project_memory"
+    root.mkdir()
+    st = ProjectState(str(root))
+    pr = st.capture("PR", dict(PR_FIELDS))
+    dec = st.capture("DEC", dict(DEC_FIELDS))
+    st.archive(dec["id"])
+
+    archived = [path for path in st._walk_stored_files() if os.path.basename(path).startswith("DEC")]
+    assert len(archived) == 1, archived
+    with open(archived[0], "w", encoding="utf-8") as handle:
+        handle.write("id: DEC-0001\n  broken: [unclosed\n")
+    found = [f for f in report.validate_state(st) if "does not read" in f["message"]]
+    assert len(found) == 1 and found[0]["severity"] == "error", report.validate_state(st)
+    assert "dec" in found[0]["message"].lower()
+
+    active = os.path.join(st.root, "product", "active", pr["id"] + ".yaml")
+    with open(active, "w", encoding="utf-8") as handle:
+        handle.write("id: PR-0001\n  broken: [unclosed\n")
+    about_the_root = [f for f in report.validate_state(st) if f["item"] == pr["id"]]
+    assert len(about_the_root) == 1, about_the_root
+    assert "corrupt item file" in about_the_root[0]["message"], about_the_root
+
+
+def test_an_item_file_too_big_to_open_is_reported_and_is_not_opened(tmp_path):
+    """The bound on the stored-file walk, at BOTH ends: not opened, and not silent either.
+
+    THE DEFECT THIS CLOSES was found by the generation-6 merge full run, one reader against
+    another: `state._walk_stored_files` opened EVERY stored `*.yaml` for
+    `unreadable_stored_files`, while the document scan in this same validator was refusing to open
+    the very same over-sized file and saying why -- so a business export in the state directory was
+    read in full on every merge, on a hook path with a time budget
+    (`tools/test_migrate.py::test_the_two_remedies_that_still_move_a_file_differ_in_whether_the_file_was_read`
+    is the node that caught it).
+
+    BOTH ENDS, because either alone is passed by a broken reader: the file is NOT opened (asked of
+    the walk itself, which is what does the opening), and it IS reported by name with the remedy the
+    bound implies -- a skip nobody reports is the silence the walk exists against. The subject is an
+    ARCHIVED item, because that is the one class no other reader of this validator reaches.
+    """
+    root = tmp_path / "project_memory"
+    root.mkdir()
+    st = ProjectState(str(root))
+    st.capture("PR", dict(PR_FIELDS))
+    dec = st.capture("DEC", dict(DEC_FIELDS))
+    st.archive(dec["id"])
+    archived = [path for path in st._walk_stored_files()
+                if os.path.basename(path).startswith("DEC")]
+    assert len(archived) == 1, archived
+    with open(archived[0], "a", encoding="utf-8") as handle:
+        handle.write("padding: |\n" + "  an export nobody meant to put here\n" * 60000)
+    assert os.path.getsize(archived[0]) > report.DOCUMENT_MAX_BYTES, os.path.getsize(archived[0])
+
+    assert archived[0] not in list(st._walk_stored_files()), (
+        "the walk that OPENS what it yields still yields a file over the bound")
+    assert [path for path, _size in st.oversized_stored_files()] == [archived[0]], \
+        st.oversized_stored_files()
+    reported = [f for f in report.validate_state(st) if "was NOT READ" in f["message"]]
+    assert len(reported) == 1 and reported[0]["severity"] == "error", report.validate_state(st)
+    assert dec["id"] in reported[0]["item"], reported[0]
+    assert "state directory" in reported[0]["remedy"], reported[0]
+
+
+def test_a_staging_dir_an_active_record_points_into_is_not_an_orphan(tmp_path):
+    """BUG-0032: the orphan heuristic asked the directory's NAME and not the store's references.
+
+    An Evidence's `artifact_refs` is where its raw proof lives -- the record IS the pointer -- so
+    reporting the directory as orphaned tells a reader to remove what the record stands for. The
+    case is live rather than hypothetical: the generation-6 streams wrote
+    `staging/<task-id>/protocol.md` into their evidence, and every one of those directories became
+    an "orphan" the moment its task closed.
+
+    THREE ROWS, because a reader that stopped warning would be as wrong as the one that warned at
+    everything: a directory nobody points into is still an orphan, a directory whose item is active
+    is silent as before, and a directory an ACTIVE record points into is silent with the pointer as
+    the reason. A mention in PROSE is deliberately not a reference -- the last row holds that end.
+    """
+    root = tmp_path / "project_memory"
+    root.mkdir()
+    st = ProjectState(str(root))
+    pr = st.capture("PR", dict(PR_FIELDS))
+
+    def orphans():
+        return sorted(f["item"] for f in report.validate_state(st) if "orphaned staging" in f["message"])
+
+    for key in ("TSK-0999", "TSK-0998", "TSK-0997"):
+        os.makedirs(os.path.join(st.staging_root(), key), exist_ok=True)
+    assert orphans() == ["staging/TSK-0997", "staging/TSK-0998", "staging/TSK-0999"]
+
+    st.capture("EVD", {"kind": "test", "related": [pr["id"]], "result": "pass",
+                       "summary": "the round's protocol",
+                       "artifact_refs": ["staging/TSK-0999/protocol.md"]})
+    assert orphans() == ["staging/TSK-0997", "staging/TSK-0998"], "the pointer holds the directory"
+
+    st.capture("EVD", {"kind": "test", "related": [pr["id"]], "result": "pass",
+                       "summary": "names staging/TSK-0998/protocol.md in prose only",
+                       "artifact_refs": ["staging/TSK-0999/protocol.md"]})
+    assert orphans() == ["staging/TSK-0997", "staging/TSK-0998"], (
+        "a mention in prose is not a reference")
+
+
+def test_the_brief_counts_the_qa_runs_by_the_scope_they_declare(tmp_path):
+    """BUG-0190: "how often did the suite run, and over how much" was prose in a role text.
+
+    The reason given for leaving it there was that an `EVD` is immutable -- true of the RECORD, and
+    nothing about a ROLLUP. Every record already declares its run scope (`RUN_SCOPES`), so the
+    number is a derivation over what the store holds, exactly like every other rollup this module
+    makes, and it lands where a lead and the user meet the project: the session brief.
+
+    THREE BUCKETS AND THE THIRD IS THE POINT: a record that declares NO scope is counted apart
+    rather than folded into `full`, because that silence is BUG-0192 and a rollup that hid it would
+    be the second place where an undeclared run counts as a whole one. The counterweight is the
+    AUDIT evidence in the same store: it judges the project and not a delivery, so it is not a QA
+    run and must not be counted.
+    """
+    root = tmp_path / "project_memory"
+    root.mkdir()
+    st = ProjectState(str(root))
+    pr = st.capture("PR", dict(PR_FIELDS))
+
+    def evidence(**overrides):
+        body = {"kind": "test", "related": [pr["id"]], "result": "pass", "summary": "a run",
+                "artifact_refs": ["staging/x/report.md"]}
+        body.update(overrides)
+        st.capture("EVD", body)
+
+    evidence(run_command="pytest tools/", run_scope="full")
+    evidence(run_command="pytest tools/", run_scope="full")
+    evidence(run_command="pytest tools/test_report.py::test_x", run_scope="selection")
+    evidence()
+    evidence(kind="audit", summary="a project audit")
+
+    brief = yaml.safe_load(open(report.generate_session_brief(st, "dev-team", "x", "hard"),
+                                encoding="utf-8"))
+    assert brief["budget_status"]["qa_runs"] == {"full": 2, "selection": 1, "undeclared": 1}, brief
+
+
+def test_no_new_evidence_can_stay_silent_about_the_run_it_records(tmp_path, capsys):
+    """BUG-0192: an Evidence that declares no run scope counts as a full run, in silence.
+
+    The READING end cannot be tightened: an `EVD` is immutable, so demanding the declaration of
+    records a project already holds turns each of them into a validator error no command can
+    repair. What is left is the surface that records NEW ones, and that is the parser -- a partial
+    run can no longer open a merge by saying nothing, because it can no longer be recorded saying
+    nothing.
+
+    THE SHIPPED PARSER IS WHAT IS ASKED, not a copy of its argument list: `build_parser` is the
+    object argparse evaluates, and the run below drives `cli.main` so the refusal measured is the
+    one a role meets. The counterweight is the second half: the same call WITH both flags is
+    accepted, so this is a duty and not a wall.
+    """
+    required = {action.option_strings[0]
+                for action in cli.build_parser()._subparsers._group_actions[0]
+                .choices["evidence"]._actions if action.option_strings and action.required}
+    assert {"--run-command", "--run-scope"} <= required, required
+
+    root = tmp_path / "project_memory"
+    root.mkdir()
+    st = ProjectState(str(root))
+    pr = st.capture("PR", dict(PR_FIELDS))
+    silent = ["--root", st.root, "evidence", "--kind", "test", "--result", "pass",
+              "--related", pr["id"], "--summary", "a run", "--artifact-ref", "staging/x/report.md"]
+
+    with pytest.raises(SystemExit) as refused:
+        cli.main(list(silent))
+    assert refused.value.code != 0
+    assert "--run-scope" in capsys.readouterr().err
+
+    assert cli.main(silent + ["--run-command", "pytest tools/test_report.py::test_x",
+                              "--run-scope", "selection"]) == 0
+    assert "EVD-0001" in capsys.readouterr().out
 
 
 def test_one_scan_parses_each_test_file_once(tmp_path, monkeypatch):
@@ -1888,6 +2200,41 @@ def test_the_mint_is_wired_by_the_registration_and_not_by_the_file_lying_there(t
     assert report.approval_mint_is_wired(repo) is False, "the verifying event never mints"
     _register_approval_hook(repo, event=approvals.APPROVAL_MINT_EVENT)
     assert report.approval_mint_is_wired(repo) is True
+
+
+def test_a_quoted_path_with_a_space_runs_and_a_named_missing_file_does_not(tmp_path):
+    """BUG-0173, both directions: the mint reader read a quoted path wrong and a missing file wrong.
+
+    The two halves fail in OPPOSITE directions, so they are asserted together: a registration
+    written out as a quoted absolute path with a space in it mints (over-warning if read `False`),
+    and a registration whose path this reader can resolve to a file that is not there mints nothing
+    (under-warning if read `True`). The counterweight in the same test is the word this reader
+    must NOT judge -- a path behind a variable it cannot resolve keeps its `True`, because a wrong
+    "missing" suppresses the warning at a project that really mints.
+    """
+    spaced = tmp_path / "a directory with spaces"
+    hook = spaced / approvals.APPROVAL_HOOK
+    os.makedirs(str(spaced), exist_ok=True)
+    with open(str(hook), "w", encoding="utf-8") as handle:
+        handle.write("# a file is not a registration\n")
+    repo = str(tmp_path)
+
+    _register_approval_hook(repo, event=approvals.APPROVAL_MINT_EVENT,
+                            command='python -B "%s"' % str(hook).replace("\\", "/"))
+    assert report.approval_mint_is_wired(repo) is True, "a quoted path with a space still runs"
+    assert report._invoked_scripts('python -B "%s"' % str(hook).replace("\\", "/")) == [
+        approvals.APPROVAL_HOOK], "the quoted span is ONE word"
+
+    _register_approval_hook(repo, event=approvals.APPROVAL_MINT_EVENT,
+                            command='python -B "$CLAUDE_PROJECT_DIR/nowhere/%s"'
+                                    % approvals.APPROVAL_HOOK)
+    assert report.approval_mint_is_wired(repo) is False, (
+        "a path that resolves to no file starts nothing, and the reader must say so")
+
+    _register_approval_hook(repo, event=approvals.APPROVAL_MINT_EVENT,
+                            command='python -B "$SOME_OTHER_ROOT/%s"' % approvals.APPROVAL_HOOK)
+    assert report.approval_mint_is_wired(repo) is True, (
+        "a variable this reader cannot resolve is not judged -- a wrong 'missing' is reassuring")
 
 
 def test_the_entry_point_warns_before_the_question_is_put_to_the_user(state, tmp_path, capsys):

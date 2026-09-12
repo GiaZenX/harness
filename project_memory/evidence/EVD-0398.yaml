@@ -1,0 +1,21 @@
+id: EVD-0398
+kind: test
+related:
+- BUG-0208
+result: pass
+summary: 'Supersedes EVD-0390, whose run command named a whole file and no node id,
+  so naming_tests.coverage_blocker could not read it. Same measurement, same tree:
+  business_profile.yaml gains business.timezone and _duties.business_today reads it
+  in three states -- no declaration, a resolvable IANA name, and a name this machine
+  cannot resolve (the machine''s date PLUS a line that reaches the session-start paragraph).
+  Red-first in the rig by mutating the fix: two projects 25 hours apart came back
+  with the same day. The session-over-midnight half stays open and is named in the
+  reader''s own docstring.'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_office_duties.py::test_the_register_reads_the_business_time_zone_and_names_one_it_cannot_resolve
+  -q -p no:randomly
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T13:08:39'

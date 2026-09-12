@@ -2242,3 +2242,129 @@ def test_every_kit_lead_pins_the_rung_its_own_planning_class_starts_on():
             % (name, pinned))
         judged += 1
     assert judged == len(_kit_dirs()) >= 3, judged
+
+
+def test_the_report_writer_is_told_the_command_that_files_its_render():
+    """BUG-0186: the render HAS a write path, and the text the Report-Writer reads now names it.
+
+    The kit built `freeze-report` in TSK-0106 and measured it, and no shipped text said so. The
+    role's own page told it the opposite -- render into staging, hand the paths back, and "report
+    the missing promotion step as the infrastructure defect it is" -- so a Report-Writer either
+    found the command in the kernel's `--help` or filed a defect report about a command that
+    existed. Constitution section 17 makes the rendered report a completeness condition and section
+    0 refuses every tool write under the state directory, which is what left the role with no
+    route it could read.
+
+    WHERE IT STANDS IS MEASURED, not chosen: the research LEAD PACKAGE is at its recorded ceiling
+    (`tools/validate.py` spec II.5; the number lives in `tools/lead_package_sizes.json` and nowhere
+    else, so a re-measurement moves it in one place), so the constitution cannot carry one more
+    sentence without a raised record -- and the role's own SKILL is where a Report-Writer looks
+    anyway. That is the second half of this test: the skill names it, and the false sentence is
+    gone.
+
+    BOTH ENDS, and neither is a string search for a slogan: the command is read off the SHIPPED
+    PARSER (`kernel.cli`), so renaming it there is red here.
+    """
+    sys.path.insert(0, TEAM_KITS)
+    from kernel import cli
+
+    surface = set(cli.build_parser()._subparsers._group_actions[0].choices)
+    assert "freeze-report" in surface, sorted(surface)
+
+    # BOTH PAGES THE ROLE READS, and the role file first: it is INJECTED at every spawn while the
+    # skill is registered-not-injected (the role file says so itself). The verifier of TSK-0142
+    # measured the first cut of this test reading only the skill, while `agents/report-writer.md`
+    # still told the role to stage the render and "report that gap" (B3) -- the withdrawn sentence
+    # standing exactly where the role looks first.
+    for relative in (("skills", "report-writer", "SKILL.md"), ("agents", "report-writer.md")):
+        path = os.path.join(TEAM_KITS, "research-team", *relative)
+        with io.open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        where = "/".join(relative)
+        assert "freeze-report" in text, (
+            "%s names no command that files a render" % where)
+        for withdrawn in ("the missing promotion step as the infrastructure defect",
+                          "report that gap"):
+            assert withdrawn not in text, (
+                "%s still calls the built route a missing step (%r)" % (where, withdrawn))
+
+
+def _roles_that_type_an_approval_value():
+    """[(kit, role file path, the manifest keys its own text types)] -- read off both running ends.
+
+    WHICH KEYS a role could type comes from the kernel (`LINE_MANIFEST_BUILDERS` minus the ones
+    `LINE_MANIFEST_RESOLVERS` derives, which is the same derivation `_value_language_anchors` uses
+    for the lead); WHICH ROLES type one comes from the shipped role pages, by the option spelling
+    the page really carries. Neither end is a list here: a kind that grows a new typed key, and a
+    role page that starts telling its role to request an approval, both arrive in this test.
+    """
+    sys.path.insert(0, TEAM_KITS)
+    from kernel import approvals, cli
+    typed = {key for builder in approvals.LINE_MANIFEST_BUILDERS.values()
+             for key in cli.manifest_parameters(builder)
+             if key not in cli.LINE_MANIFEST_RESOLVERS}
+    assert typed, "no approval value is typed on the line -- this reader stopped matching"
+    found = []
+    for kit in _kit_dirs():
+        folder = os.path.join(kit, "agents")
+        for name in sorted(os.listdir(folder) if os.path.isdir(folder) else []):
+            path = os.path.join(folder, name)
+            with io.open(path, encoding="utf-8") as handle:
+                text = handle.read()
+            if "request-approval" not in text:
+                continue
+            keys = sorted(key for key in typed
+                          if re.search(r"--%s\b" % re.escape(key.replace("_", "-")), text))
+            if keys:
+                found.append((os.path.basename(kit), path, keys))
+    assert found, "no role page types an approval value -- this reader stopped matching"
+    return found
+
+
+def test_every_role_that_types_an_approval_value_carries_the_language_rule():
+    """BUG-0169 (H77): the value-language rule stood on the LEAD surfaces only, while four other
+    role pages tell their role to type a free value into an approval card the user then signs.
+
+    MEASURED on the shipped tree, 2026-09-12, by the derivation below: the office `records-clerk`
+    types `--reason` (plus two paths) on a `filing_correction`, and the `project-auditor` of ALL
+    THREE kits types `--trigger`, `--cadence`, `--role` and `--scope` on a routine. `BUG-0169`
+    named the records-clerk alone; the auditors came out of the derivation, which is the reason it
+    is one.
+
+    THE RULE IS ONE TEXT, not a retelling per page. What this asks of a role page is a contiguous
+    span it SHARES with the rule the leads carry -- so a page whose copy drifts goes red here
+    rather than teaching a second rule -- plus a section of its own naming the command and one of
+    the values IT types, because a rule the reader cannot connect to their own line is a rule about
+    somebody else's work.
+
+    WHAT IT CANNOT DO is what the lead's own test says of itself: it reads PROSE, so it measures
+    that the rule is in front of the role and never that the role obeyed it. No gate can read a
+    value's language (`test_the_value_language_rule_claims_no_enforcement_it_does_not_have`).
+    """
+    import difflib
+    shared = None
+    for kit in _kit_dirs():
+        blocks = {block for path in lead_package.files(kit)
+                  for block in _answering_sections(path, _value_language_anchors())}
+        shared = blocks if shared is None else (shared & blocks)
+    assert shared, "the kits' loaded lead texts share no value-language rule to hold anyone to"
+    rule = max(shared, key=len)
+
+    for kit, path, keys in _roles_that_type_an_approval_value():
+        with io.open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        if any(block in shared for block in _markdown_sections(text)):
+            continue                      # this IS a lead surface: its own test holds it
+        match = difflib.SequenceMatcher(None, rule, text, autojunk=False).find_longest_match(
+            0, len(rule), 0, len(text))
+        assert match.size >= 300, (
+            "%s/%s types %s into an approval card and shares only %d characters with the rule the "
+            "leads carry -- the value-language rule is not on the page that writes the value"
+            % (kit, os.path.basename(path), keys, match.size))
+        sections = [block for block in _markdown_sections(text)
+                    if "request-approval" in block and "`BUG-0073`" in block
+                    and any(re.search(r"`-?-?%s`" % re.escape(key.replace("_", "-")), block)
+                            for key in keys)]
+        assert sections, (
+            "%s/%s carries the rule's words but no section that names `request-approval`, its "
+            "occasion and one of its OWN values %s" % (kit, os.path.basename(path), keys))

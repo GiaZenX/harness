@@ -1,0 +1,16 @@
+id: EVD-0337
+kind: test
+related:
+- BUG-0285
+result: pass
+summary: 'gate_write_scope (all three kits, mirrored byte-identical): directory-verb
+  mapping, substitution bodies judged as commands, heredoc body handed to a command
+  parser kept, borrowed surface declared; measured as real hook processes, red-first
+  in the pristine rig'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_hooks.py::test_every_directory_verb_moves_this_gates_base_and_no_other_word_does
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:34:08'

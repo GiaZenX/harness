@@ -1,0 +1,17 @@
+id: EVD-0336
+kind: test
+related:
+- BUG-0236
+result: pass
+summary: 'H154 second residue closed: state.unreadable_stored_files reports what _iter_every_stored_item
+  skips, and report.validate_state turns it into an error for the files the active
+  walk never opens -- an archived hole with broken YAML is no longer silent in all
+  three checkers'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_report.py::test_an_unreadable_file_in_the_archive_is_a_finding_and_not_a_silence
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:28:52'

@@ -1,0 +1,16 @@
+id: EVD-0340
+kind: test
+related:
+- BUG-0107
+result: pass
+summary: 'gate_write_scope (all three kits, mirrored byte-identical): directory-verb
+  mapping, substitution bodies judged as commands, heredoc body handed to a command
+  parser kept, borrowed surface declared; measured as real hook processes, red-first
+  in the pristine rig'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_hooks.py::test_the_harness_borrows_only_what_this_kit_declares
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:34:13'

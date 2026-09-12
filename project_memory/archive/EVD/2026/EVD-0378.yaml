@@ -1,0 +1,31 @@
+id: EVD-0378
+kind: test
+related:
+- BUG-0263
+result: pass
+summary: 'SUPERSEDES EVD-0359, whose summary carried a figure that is not a measurement:
+  ''150 -> 654'' took 150 from the OLD assertion floor, not from a count. Measured
+  2026-09-12 12:0x through both readers over the SAME corpus: the reader before this
+  change 625, the fenced-block reader 680 in 172 files, 15 files change and NONE loses
+  a citation; docs/office-kit-from-field.md goes 0 -> 14 (its first fence opens in
+  line 23). The verifier of round 1 counted 617/672 twenty minutes earlier -- three
+  builders write this tree, so the figure moves and the direction does not. Everything
+  else in EVD-0359 stands: the fence-aware reader, the three citations that surfaced
+  and were repaired, and the red-first pair (the item''s own repro planted below a
+  fence is 1 failed with the fix and 1 PASSED with the fence-blind reader). The count
+  now lives in ONE place, the test''s docstring. 7 passed in 2.63 s.'
+artifact_refs:
+- staging/TSK-0143/protocol.md
+run_command: python -B -m pytest "tools/test_repo_hygiene.py::test_no_tool_trace_lies_unaccounted_for_in_the_repo_root"
+  "tools/test_repo_hygiene.py::test_git_tracks_no_ignored_file_outside_canonical_state"
+  "tools/test_repo_hygiene.py::test_no_pairing_shift_blinds_the_pointer_sweep_for_the_rest_of_a_file"
+  "tools/test_repo_hygiene.py::test_the_test_pointer_reader_reads_the_shapes_a_kit_file_writes"
+  "tools/test_repo_hygiene.py::test_a_decision_named_in_a_message_a_user_reads_is_one_that_resolves"
+  "tools/test_repo_hygiene.py::test_every_decision_pointer_in_a_shipped_kit_file_resolves"
+  "tools/test_repo_hygiene.py::test_the_decision_pointer_reader_can_tell_a_citation_from_a_literal"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:07:34'
+closed_at: '2026-09-12T13:20:56'

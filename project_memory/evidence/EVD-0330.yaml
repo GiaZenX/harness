@@ -1,0 +1,17 @@
+id: EVD-0330
+kind: test
+related:
+- BUG-0160
+result: pass
+summary: 'office gate_ledger_valid: over-refusal/under-refusal closed, measured as
+  real hook processes against a scaffolded office repo; red-first in the pristine
+  rig copy'
+artifact_refs:
+- staging/TSK-0142/run-ledger-gate.log
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_hooks_v2.py::test_a_quoted_separator_is_argument_text_and_a_substitution_still_cuts
+  tools/test_hooks_v2.py::test_what_a_neighbour_of_a_vouched_run_may_do_with_a_decoy_validator
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:10:42'

@@ -28,10 +28,17 @@ exist. The check therefore asks it twice over the same predicate:
     `src/**` today, so the tree half is blind to two orders that both claim an empty directory;
     the witness half is not.
 
-Neither half is complete on its own, and the incompleteness is measured rather than assumed: the
-witness of `a/*x` does not match `a/y*` although `a/yx` lies in both, so a pair whose entries
-overlap only in a region no witness lands in and no file exists in yet passes here (`H135` in
-`docs/POST_V2_WISHLIST.md`, with the chain).
+Neither half is complete on its own, and the incompleteness is measured rather than assumed -- but
+the class it consists of is NOT the one this paragraph named until BUG-0218 was closed. The pair
+`a/*x` x `a/y*`, which no single-entry filling reached, is found now (`pair_witnesses` unifies the
+two entries and yields `a/yx`); what remained after that was a different class, measured by brute
+force over every path up to five segments against the SHIPPED predicate, 6 pairs -- and its
+mechanism is one sentence: an entry WITHOUT a wildcard is a DIRECTORY PREFIX to the gate (it owns
+everything under it) and was a literal path to `_unify`, so every pairing of a wildcard-free entry
+with a glob one was blind over an empty tree (`a/b` x `a/**/c`, whose real shared path is `a/b/c`).
+That is closed too: `pair_witnesses` offers the wildcard-free entry in BOTH readings.
+What no witness half can reach is a pair whose shared region needs a path shape neither entry
+states; the tree half answers those from the first file that lands there.
 
 WHAT THIS REFUSES: nothing. It is a check a caller runs before it hands out work, and its answer is
 an exit code. The refusals at dispatch time live in `kernel.dispatch` and read what this leaves
@@ -187,11 +194,138 @@ def in_scope(matches, order: dict, path: str) -> bool:
 def witnesses(entries) -> list:
     """One concrete path per scope entry -- what the entry would own if the tree were empty.
 
-    THE LIMIT, because a witness is a sample and not the language: `a/*x` yields `a/_x`, which no
-    longer matches `a/y*` although `a/yx` satisfies both. Two orders overlapping only in such a
-    region, over files that do not exist yet, pass this half (`H135`).
+    ONE HALF OF THE WITNESS QUESTION and the older one: it fills each entry ALONE, so it answers
+    "what would this entry own" and not "what could these two share". The second half is
+    `pair_witnesses`, and BUG-0218 is the case that needs it -- `a/*x` yields `a/_x`, which no
+    longer matches `a/y*` although `a/yx` satisfies both.
     """
     return [re.sub(r"\*+", PLACEHOLDER, entry) for entry in entries]
+
+
+# HOW A SCOPE ENTRY IS READ WHEN A WITNESS IS BUILT FOR A PAIR. Three wildcards and a literal, and
+# the difference that matters is whether the wildcard crosses a path separator: `**` does, `*` and
+# `?` do not. Nothing here decides ownership -- `in_scope` does, with the GATE's own predicate --
+# so a token read too generously costs a candidate that is thrown away, never a wrong verdict.
+_ANY_SEGMENTS, _ANY_RUN, _ANY_CHAR = "**", "*", "?"
+
+
+def _tokens(entry: str) -> list:
+    """A scope entry as the tokens `_unify` walks: `**`, `*`, `?`, or one literal character."""
+    found, index = [], 0
+    while index < len(entry):
+        if entry.startswith(_ANY_SEGMENTS, index):
+            found.append(_ANY_SEGMENTS)
+            index += 2
+        elif entry[index] in (_ANY_RUN, _ANY_CHAR):
+            found.append(entry[index])
+            index += 1
+        else:
+            found.append(entry[index])
+            index += 1
+    return found
+
+
+def _nullable(tokens, index: int) -> bool:
+    """Can the rest of this pattern match the empty string -- i.e. is it wildcards all the way?"""
+    return all(token in (_ANY_SEGMENTS, _ANY_RUN) for token in tokens[index:])
+
+
+def _unify(left, right, i: int, j: int, seen: dict):
+    """A concrete path both token lists accept, or None -- a joint walk, not a sample of each.
+
+    THE PROPERTY, and it is why this is a search and not a substitution: a witness for a PAIR has
+    to satisfy two patterns at once, so the character a wildcard stands for is chosen by the OTHER
+    pattern wherever that one is literal. `a/*x` and `a/y*` have no common filling under
+    `witnesses`, and `a/yx` under this one.
+
+    Memoised on (i, j) -- the same pair of positions is reached by many wildcard splits, and
+    without the table two long `**` entries walk exponentially.
+    `tools/test_parallel_scopes.py::test_two_orders_that_share_only_a_region_no_single_witness_reaches_collide`
+    """
+    if (i, j) in seen:
+        return seen[(i, j)]
+    seen[(i, j)] = None                   # a cycle through two wildcards contributes nothing
+    found = None
+    if i >= len(left) and j >= len(right):
+        found = ""
+    elif i >= len(left):
+        found = "" if _nullable(right, j) else None
+    elif j >= len(right):
+        found = "" if _nullable(left, i) else None
+    else:
+        head_left, head_right = left[i], right[j]
+        wild = (_ANY_SEGMENTS, _ANY_RUN)
+        # A wildcard may stand for nothing at all -- try that first, it is the shortest witness.
+        for skip_i, skip_j in ((i + 1, j) if head_left in wild else (None, None), \
+                               (i, j + 1) if head_right in wild else (None, None)):
+            if found is None and skip_i is not None:
+                found = _unify(left, right, skip_i, skip_j, seen)
+        if found is None:
+            # ...otherwise it stands for ONE character, and which character is the other side's say
+            letter = _one_character(head_left, head_right)
+            if letter is not None:
+                rest = _unify(left, right,
+                              i if head_left in wild else i + 1,
+                              j if head_right in wild else j + 1, seen)
+                if rest is not None:
+                    found = letter + rest
+    seen[(i, j)] = found
+    return found
+
+
+def _one_character(head_left, head_right):
+    """The character these two tokens can BOTH consume here, or None when they cannot.
+
+    `**` is the only token that may consume a separator; `*`, `?` and a literal `/` may not meet it
+    on the other side, which is what keeps a witness inside the segment its pattern describes.
+    """
+    wildcards = (_ANY_SEGMENTS, _ANY_RUN, _ANY_CHAR)
+    literals = {token for token in (head_left, head_right) if token not in wildcards}
+    if len(literals) > 1:
+        return None                        # two different literals cannot be one character
+    letter = literals.pop() if literals else PLACEHOLDER
+    if letter == "/" and any(token in (_ANY_RUN, _ANY_CHAR)
+                             for token in (head_left, head_right)):
+        return None                        # only `**` crosses a separator
+    return letter
+
+
+def pair_witnesses(first: dict, second: dict) -> list:
+    """One candidate path per pair of allowed entries -- what the two orders COULD share.
+
+    CANDIDATES AND NOT A VERDICT. Everything this returns is handed to `in_scope` with the gate's
+    own predicate, exactly like the file list and the single-entry witnesses, so a candidate this
+    builder gets wrong is a path that fails the predicate and disappears -- it can widen what the
+    check SEES, never what it claims. That is what makes closing BUG-0218 safe on a reader
+    `dispatch` refuses leases with.
+    """
+    found = []
+    for left in _readings(first["allowed"]):
+        for right in _readings(second["allowed"]):
+            path = _unify(_tokens(left), _tokens(right), 0, 0, {})
+            if path:
+                found.append(path)
+    return found
+
+
+def _readings(entries) -> list:
+    """Every way the GATE reads these entries -- a wildcard-free one is also a directory prefix.
+
+    THE SECOND READING IS NOT A SECOND SPELLING, it is what the gate already does: an entry with no
+    wildcard matches the path itself AND everything under it, while `_unify` treats it as a literal
+    and can then unify it with nothing that goes deeper. Measured by brute force over every path up
+    to five segments against the shipped predicate: 6 pairs shared a real path and produced no
+    witness at all, every one of them a wildcard-free entry against a glob (`a/b` x `a/**/c`).
+    Offering both readings costs a candidate `in_scope` throws away when the gate disagrees, which
+    is the same trade the rest of this builder makes.
+    `tools/test_parallel_scopes.py::test_a_wildcard_free_entry_is_offered_as_the_directory_prefix_the_gate_reads`
+    """
+    found = []
+    for entry in entries:
+        found.append(entry)
+        if not set("*?") & set(entry):
+            found.append("%s/**" % entry.rstrip("/"))
+    return found
 
 
 def tracked_files(tree: str) -> list:
@@ -460,6 +594,22 @@ def owns_anything_outside(matches, order: dict, files, seam) -> bool:
     return False
 
 
+def _spelled_apart(matches, first: dict, second: dict, shared) -> list:
+    """The paths BOTH orders declare as a seam in different WORDS -- BUG-0231's second residue.
+
+    `pair_seam` intersects the two declarations as STRINGS while the gate compares FILE SETS, so
+    `docs/` and `docs/**` are one set to the predicate and two entries to the intersection: the
+    pair is then refused with the ordinary OVERLAP message, which is fail-closed and a worse
+    answer -- the caller reads "these two collide" where the truth is "you spelled one seam twice".
+    This is the answer, not a change of verdict: the paths are named, and the remedy is to write
+    the entry the same way on both orders.
+    `tools/test_parallel_scopes.py::test_two_spellings_of_one_seam_are_named_as_such_and_not_as_a_collision`
+    """
+    return sorted(path for path in shared
+                  if any(matches(path, entry) for entry in first["seam"])
+                  and any(matches(path, entry) for entry in second["seam"]))
+
+
 def overlaps(matches, orders, files, declared=()) -> list:
     """[{a, b, files, witnesses, seam, swallowed}] for every pair that shares a path.
 
@@ -480,7 +630,8 @@ def overlaps(matches, orders, files, declared=()) -> list:
             swallowed = [order["id"] for order in (first, second)
                          if seam and not owns_anything_outside(matches, order, files, seam)]
             effective = () if swallowed else seam
-            universe = list(files) + witnesses(first["allowed"] + second["allowed"])
+            universe = (list(files) + witnesses(first["allowed"] + second["allowed"])
+                        + pair_witnesses(first, second))
             shared_files, shared_witnesses, shared_seam = set(), set(), set()
             for path in universe:
                 if not (in_scope(matches, first, path) and in_scope(matches, second, path)):
@@ -494,7 +645,10 @@ def overlaps(matches, orders, files, declared=()) -> list:
             if shared_files or shared_witnesses or shared_seam:
                 found.append({"a": first["id"], "b": second["id"],
                               "files": sorted(shared_files), "witnesses": sorted(shared_witnesses),
-                              "seam": sorted(shared_seam), "swallowed": swallowed})
+                              "seam": sorted(shared_seam), "swallowed": swallowed,
+                              "spelled_apart": _spelled_apart(
+                                  matches, first, second,
+                                  sorted(shared_files | shared_witnesses))})
     return found
 
 
@@ -505,12 +659,25 @@ def check(state: ProjectState, only=None, declared=()) -> tuple:
     state directory, a task tray with one open order and a mistyped `--root` all land there, so the
     line says that nothing was measured rather than that everything was fine
     (`tools/test_parallel_scopes.py::test_a_state_with_nothing_to_compare_never_says_disjoint`).
+
+    AND WHAT THE CALLER SPELLED OUT HAS TO BE ANSWERABLE, not merely resolvable (BUG-0225). An
+    `--only` that names ids is a request for a COMPARISON; when it resolves to fewer than two open
+    orders there is no comparison to be had, and answering 0 tells a script the cut was checked.
+    That is rc 1 -- a usage answer, told apart from the refused cut's rc 2. A run nobody narrowed
+    keeps its 0: the tool run with no arguments outside a project is how
+    `tools/test_hooks_v2.py::test_a_repo_tool_that_imports_the_kit_tree_leaves_no_bytecode_in_it`
+    drives it, and that run asked for nothing.
     """
     matches, gate = matcher()
     orders = open_orders(state, set(only or ()) or None)
     if len(orders) < 2:
-        return 0, ["%d open work order(s) under %s -- NOTHING WAS COMPARED."
-                   % (len(orders), state.root)]
+        line = ("%d open work order(s) under %s -- NOTHING WAS COMPARED."
+                % (len(orders), state.root))
+        if only:
+            return 1, [line + " You named %s, and a comparison needs two open orders; drop "
+                              "--only, or name the order this one should be compared against."
+                       % ", ".join(sorted(str(one) for one in only))]
+        return 0, [line]
     tree = os.path.dirname(os.path.abspath(state.root))
     files = tracked_files(tree)
     lines = ["matcher: %s | %d open orders | %d files in the tree"
@@ -532,6 +699,10 @@ def check(state: ProjectState, only=None, declared=()) -> tuple:
                          % path)
         for path in pair["seam"][:PATHS_SHOWN]:
             lines.append("    seam      %s  (declared by BOTH orders -- applied in the merge round)"
+                         % path)
+        for path in pair.get("spelled_apart", [])[:PATHS_SHOWN]:
+            lines.append("    spelled apart  %s  (BOTH orders declare it as a seam, in different "
+                         "words -- write the entry identically on both and it stops colliding)"
                          % path)
         for order_id in pair["swallowed"]:
             lines.append("    NOT A SEAM: the declaration leaves %s owning nothing of its own, so "

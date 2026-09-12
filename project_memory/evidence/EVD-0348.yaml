@@ -1,0 +1,20 @@
+id: EVD-0348
+kind: test
+related:
+- BUG-0271
+result: pass
+summary: 'Measured 2026-09-12: all three ACs of BUG-0271 are built and held. AC-1/AC-2
+  by test_no_approval_question_shows_an_english_enum_word_a_hash_or_a_path (every
+  kind rendered, no English enum word, no hash, no path in the sentence; the hash
+  and the path in the compared option description), AC-3 by test_every_approval_kind_has_one_plain_word_label_and_no_label_is_orphaned
+  (two-sided). Red-first: the sentence rebuilt with the raw kind and the sha256 prefix
+  -> the first node FAILED'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_light_kit.py::test_no_approval_question_shows_an_english_enum_word_a_hash_or_a_path
+  tools/test_light_kit.py::test_every_approval_kind_has_one_plain_word_label_and_no_label_is_orphaned
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:47:19'

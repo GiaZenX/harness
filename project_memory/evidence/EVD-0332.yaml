@@ -1,0 +1,15 @@
+id: EVD-0332
+kind: test
+related:
+- BUG-0201
+result: pass
+summary: office gate_ledger_valid.handle_post_tool_use now starts tools/finance_dashboard.py
+  after a ledger change; real hook process, page appears and follows a second booking;
+  whole reading suite tools/test_finance_dashboard.py 53 passed 67s
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_finance_dashboard.py::test_a_ledger_write_renders_the_finance_page
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:14:58'

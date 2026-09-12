@@ -1405,12 +1405,12 @@ def test_a_gate_that_does_not_compile_still_blocks(tmp_path, kit):
     write(str(hooks / "gate_truncated.py"), "import os\nif True:\n")   # cut mid-write
     payload = json.dumps({"tool_name": "Write", "tool_input": {}, "cwd": str(tmp_path)})
     direct = subprocess.run([sys.executable, str(hooks / "gate_truncated.py")],
-                            input=payload, capture_output=True, text=True)
+                            input=payload, capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
     assert direct.returncode == 1, (
         "the premise of this test: a broken gate run directly exits 1, which Claude Code reads as "
         "ALLOW (got %d)" % direct.returncode)
     launched = subprocess.run([sys.executable, str(hooks / "_gate.py"), "gate_truncated.py"],
-                              input=payload, capture_output=True, text=True)
+                              input=payload, capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
     assert launched.returncode == 2, launched.stdout + launched.stderr
     assert "does not compile" in launched.stderr
 
@@ -1571,7 +1571,7 @@ def test_the_launcher_runs_nothing_but_a_sibling_gate(tmp_path, argument):
     write(str(hooks / "sub" / "evil.py"), decoy)
     write(str(hooks / "notes.txt"), "not a gate\n")
     argv = [sys.executable, str(hooks / "_gate.py")] + ([argument] if argument else [])
-    proc = subprocess.run(argv, input="{}", capture_output=True, text=True)
+    proc = subprocess.run(argv, input="{}", capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
     assert proc.returncode == 2, proc.stdout + proc.stderr
     assert "DECOY RAN" not in proc.stderr, "%s escaped the hooks directory" % argument
 
@@ -1591,7 +1591,8 @@ def test_a_working_gate_behaves_the_same_through_the_launcher(tmp_path, kit):
           "sys.exit(2 if data.get('tool_name') == 'Write' else 0)\n")
     for tool, expected in (("Write", 2), ("Read", 0)):
         proc = subprocess.run([sys.executable, str(hooks / "_gate.py"), "gate_probe.py"],
-                              input=json.dumps({"tool_name": tool}), capture_output=True, text=True)
+                              input=json.dumps({"tool_name": tool}), capture_output=True, text=True,
+                              env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
         assert proc.returncode == expected, (tool, proc.stdout, proc.stderr)
         assert "gate_probe.py" in proc.stderr
 
@@ -2283,7 +2284,7 @@ def test_the_launcher_makes_the_gate_the_real___main__(tmp_path):
           "m = sys.modules['__main__']\n"
           "sys.exit(0 if getattr(m, '__file__', '').endswith('gate_probe.py') else 3)\n")
     proc = subprocess.run([sys.executable, str(hooks / "_gate.py"), "gate_probe.py"],
-                          input="{}", capture_output=True, text=True)
+                          input="{}", capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
@@ -2317,7 +2318,8 @@ def test_the_launcher_chain_stops_at_the_first_refusal(tmp_path):
     hooks = _chain_hooks(tmp_path)
     proc = subprocess.run([sys.executable, str(hooks / "_gate.py"),
                            "gate_a.py", "gate_b.py", "gate_c.py"],
-                          input=json.dumps({"tool_name": "Agent"}), capture_output=True, text=True)
+                          input=json.dumps({"tool_name": "Agent"}), capture_output=True, text=True,
+                          env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
     assert proc.returncode == 2, proc.stdout + proc.stderr
     assert "a saw 'Agent'" in proc.stderr and "b saw 'Agent'" in proc.stderr
     assert "c saw" not in proc.stderr, "the chain ran past a refusal: %s" % proc.stderr
@@ -2329,7 +2331,8 @@ def test_every_gate_of_a_chain_reads_the_same_payload(tmp_path):
     i.e. ALLOW. A chain that disarms its own second half is worse than no chain."""
     hooks = _chain_hooks(tmp_path)
     proc = subprocess.run([sys.executable, str(hooks / "_gate.py"), "gate_a.py", "gate_c.py"],
-                          input=json.dumps({"tool_name": "Agent"}), capture_output=True, text=True)
+                          input=json.dumps({"tool_name": "Agent"}), capture_output=True, text=True,
+                          env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert proc.stderr.count("saw 'Agent'") == 2, proc.stderr
 
@@ -2343,7 +2346,8 @@ def test_a_four_link_chain_hands_the_same_payload_to_its_last_gate(tmp_path):
           .replace("'a saw", "'d saw").replace("gate_a.py", "gate_d.py"))
     proc = subprocess.run([sys.executable, str(hooks / "_gate.py"),
                            "gate_a.py", "gate_c.py", "gate_d.py"],
-                          input=json.dumps({"tool_name": "Agent"}), capture_output=True, text=True)
+                          input=json.dumps({"tool_name": "Agent"}), capture_output=True, text=True,
+                          env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert proc.stderr.count("saw 'Agent'") == 3, proc.stderr
 
@@ -2365,7 +2369,7 @@ def test_a_chain_carries_a_payload_of_megabytes_to_its_last_gate(tmp_path):
     payload = json.dumps({"tool_name": "Write",
                           "tool_input": {"content": "x" * (4 * 1024 * 1024)}})
     proc = subprocess.run([sys.executable, str(hooks / "_gate.py"), "gate_big.py", "gate_big2.py"],
-                          input=payload, capture_output=True, text=True, timeout=300)
+                          input=payload, capture_output=True, text=True, timeout=300, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
     assert proc.returncode == 0, proc.stdout + proc.stderr[:2000]
     lines = [line for line in proc.stderr.splitlines() if line]
     assert len(lines) == 2 and lines[0] == lines[1], lines
@@ -2392,7 +2396,7 @@ def test_an_oversized_payload_still_stops_the_chain_at_its_first_gate(tmp_path):
     payload = json.dumps({"tool_name": "Write", "tool_input": {"content": "x" * (limit * 2)}})
     proc = subprocess.run([sys.executable, str(hooks / "_gate.py"),
                            "gate_small.py", "gate_after.py"],
-                          input=payload, capture_output=True, text=True, timeout=120)
+                          input=payload, capture_output=True, text=True, timeout=120, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
     assert proc.returncode == 2, proc.stdout + proc.stderr
     assert "stdin bound" in proc.stderr, proc.stderr
     assert "after ran" not in proc.stderr, "the chain ran on past an uninspectable payload"
@@ -2410,7 +2414,8 @@ def test_a_gate_that_crashes_stops_the_chain_rather_than_letting_it_finish(tmp_p
           "import sys\nsys.stderr.write('after ran\\n')\nsys.exit(0)\n")
     proc = subprocess.run([sys.executable, str(hooks / "_gate.py"),
                            "gate_a.py", "gate_boom.py", "gate_after.py"],
-                          input=json.dumps({"tool_name": "Agent"}), capture_output=True, text=True)
+                          input=json.dumps({"tool_name": "Agent"}), capture_output=True, text=True,
+                          env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
     assert proc.returncode == 2, proc.stdout + proc.stderr
     assert "a saw 'Agent'" in proc.stderr          # the control: the chain did start
     assert "after ran" not in proc.stderr, "the chain ran on past a gate that crashed"
@@ -2444,7 +2449,8 @@ def test_a_gate_that_drains_stdin_itself_breaks_the_chain_fail_closed(tmp_path):
           "sys.exit(0)\n")
     proc = subprocess.run([sys.executable, str(hooks / "_gate.py"),
                            "gate_raw.py", "gate_needs.py"],
-                          input=json.dumps({"tool_name": "Agent"}), capture_output=True, text=True)
+                          input=json.dumps({"tool_name": "Agent"}), capture_output=True, text=True,
+                          env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
     assert "raw drained" in proc.stderr, proc.stderr
     assert proc.returncode == 2, proc.stdout + proc.stderr
     assert "could not be read or parsed" in proc.stderr, proc.stderr
@@ -4465,7 +4471,7 @@ def _fake_bundle(tmp_path, state, request, extra=""):
             "mint(ProjectState(%r), %r, approve_label(%r))\n"
             % (state.root, request["request_id"], request["mint_code"]))
     return subprocess.run([sys.executable, str(fake / "gate_approval.py")],
-                          capture_output=True, text=True, timeout=120)
+                          capture_output=True, text=True, timeout=120, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path)))
 
 
 def test_a_same_named_script_without_a_loaded_bridge_is_refused(tmp_path):
@@ -9147,6 +9153,37 @@ def test_a_malformed_existing_row_stops_the_write(tmp_path):
     assert open(str(tmp_path / "ledger" / "2026.csv"), encoding="utf-8").read() == before
 
 
+def test_a_row_with_too_FEW_columns_stops_the_write_as_well(tmp_path):
+    """The other arm of `is_malformed`, and it was uncovered until the verifier cut it (round 1, R2).
+
+    `csv.DictReader` answers a broken row in TWO shapes and the predicate calls them one question:
+    the OVERFLOW of an unquoted comma lands under the `None` KEY, a row that is too SHORT is padded
+    with `None` VALUES. The neighbour above measures the first; cutting the second arm
+    (`None in row.values()`) out of the shipped script left that neighbour GREEN, so the docstring's
+    "one question" was true of the code and untrue of what any test had seen.
+
+    THE SUBJECT IS `--validate` AND NOT THE APPEND, and that is measured rather than chosen: the
+    append refuses a short row through a SECOND reader of its own, so it answers rc 1 with the same
+    sentence whether or not this arm exists -- a test written on that path would have stayed green
+    under the cut and proved nothing (measured while writing this). On `--validate` the sentence
+    appears only through `is_malformed`: with the arm, "line 2 (L2026-0001): wrong number of
+    columns"; with it cut, that line is gone and only the per-field complaints remain.
+
+    BOTH READERS ARE STILL ASSERTED, because the append is the path a role really walks: it refuses,
+    and the file on disk is byte-identical afterwards -- a validator that refuses and writes anyway
+    is the failure this pair exists against.
+    """
+    ledger_project(tmp_path, "L2026-0001,2026-01-05,2026-01-07,expense,invoice,ACME,R-1,100.00\n")
+    before = open(str(tmp_path / "ledger" / "2026.csv"), encoding="utf-8").read()
+    judged = validate(tmp_path)
+    assert judged.returncode == 1, judged.stdout + judged.stderr
+    assert "wrong number of columns" in (judged.stdout + judged.stderr), \
+        judged.stdout + judged.stderr
+    result = book(tmp_path, **{"--invoice-no": "R-5"})
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert open(str(tmp_path / "ledger" / "2026.csv"), encoding="utf-8").read() == before
+
+
 # -- round 4: what the markdown family and the shrink allowance opened -------
 
 @pytest.mark.parametrize("existing,new", [(".markdown", ".md"), (".mdx", ".md"),
@@ -9301,6 +9338,45 @@ def test_a_long_real_world_url_is_still_exempt(tmp_path):
     assert run_budget(tmp_path, payload).returncode == 0
 
 
+# HOW MANY TIMES THE SCAN HAS TO STAND CLEAR OF THE NOISE for its reading to mean anything. One
+# constant, beside the one reader that uses it: a difference of two noisy numbers can be anything.
+_STABILITY_MARGIN = 5
+
+
+def _skip_unless_the_stability_reading_can_be_taken(near, jitter, size):
+    """SKIP -- not fail -- when the two series were too unstable for their difference to mean
+    anything. Its own function so a test can drive the decision instead of the clock."""
+    if near <= _STABILITY_MARGIN * jitter:
+        pytest.skip(
+            "the scan at %d B costs %.3f s and its two series were only stable to %.3f s, so this "
+            "difference is the host and no ratio over it means anything -- the reading could not "
+            "be TAKEN, which is not the same as the scan having stopped being linear"
+            % (size, near, jitter))
+
+
+def test_a_timing_reading_that_cannot_be_taken_skips_and_does_not_fail():
+    """BUG-0262: an unreadable stability figure is a SKIP with both numbers, never a red.
+
+    Measured 2026-09-06: `test_the_id_scan_is_linear_on_the_worst_legal_input` was red inside a
+    31m56s two-suite run ("0.2055 > 5 * 0.0523") and passed solo on the same tree minutes later, in
+    7.54 s. A red that means "something else was running on this host" teaches a reader to re-run
+    rather than to look, and it turns a delivery run red for a reason that is not the code.
+
+    The DECISION is driven here rather than the clock, which is what makes this able to fail: the
+    shipped branch is called with a reading that cannot be taken and with one that can, and both
+    directions are asserted -- so removing the skip, or skipping always, is red.
+    """
+    # `BaseException` and not `Exception`: pytest's own outcome classes descend from the former, so
+    # the narrower spelling lets the skip PROPAGATE and this very test skips instead of measuring
+    # anything -- which it did on the first run of this line.
+    with pytest.raises(BaseException) as raised:
+        _skip_unless_the_stability_reading_can_be_taken(0.2055, 0.0523, 51200)
+    assert raised.typename == "Skipped", raised.typename
+    assert "0.205" in str(raised.value) and "0.052" in str(raised.value), str(raised.value)
+    # ...and a reading that CAN be taken returns, so the linearity assertion behind it still runs
+    assert _skip_unless_the_stability_reading_can_be_taken(0.2055, 0.0001, 51200) is None
+
+
 def test_the_id_scan_is_linear_on_the_worst_legal_input(tmp_path):
     """A gate that cannot answer inside the host's budget is a gate that ALLOWS (spec II.4).
 
@@ -9351,8 +9427,15 @@ def test_the_id_scan_is_linear_on_the_worst_legal_input(tmp_path):
     survives a loaded machine: process time is bounded BELOW by the work and has only upward noise,
     so the minimum of five is the estimator and the gap to the SECOND fastest is how stable that
     estimator was on this run. A difference of two noisy numbers can be anything, so the small
-    size's scan cost has to stand clear of that gap — where it does not, this FAILS with that
-    reading instead of asserting on noise.
+    size's scan cost has to stand clear of that gap -- where it does not, this SKIPS with both
+    figures in the message.
+
+    BUG-0262: it used to FAIL there, and that is a different sentence than the one a red from this
+    test should say. Measured 2026-09-06: inside a 31m56s two-suite run this test was red with
+    "0.2055 > 5 * 0.0523"; solo on the same tree minutes later, 1 passed in 7.54 s. A reading that
+    could not be TAKEN is not a scan that stopped being linear, and a delivery run that goes red
+    because something else was running teaches a reader to re-run instead of to look. The
+    linearity assertion below keeps failing loudly -- only the missing-reading case skips.
     """
     import time as _time
 
@@ -9381,9 +9464,7 @@ def test_the_id_scan_is_linear_on_the_worst_legal_input(tmp_path):
     small, large = 50 * 1024, 200 * 1024
     near, jitter = scan_cost(small)
     far, _jitter = scan_cost(large)
-    assert near > 5 * jitter, (
-        "the scan at %d B costs %.3f s and its two series were only stable to %.3f s, so this "
-        "difference is the host and no ratio over it means anything" % (small, near, jitter))
+    _skip_unless_the_stability_reading_can_be_taken(near, jitter, small)
     assert far / large < 2 * (near / small), (
         "the scan costs %.6f s per byte at %d B and %.6f at %d B — it is not linear in the input"
         % (near / small, small, far / large, large))
@@ -10873,7 +10954,13 @@ _VOUCHING_RUN_PATTERNS = (
 # every validator mention on its stage in order to REFUSE one that carries a directory part. Named
 # here so the check below can be an equality instead of a subset — a subset is satisfied by any
 # pattern that arrives later.
-_REFUSING_PATTERNS_OF_THE_EXEMPTION = ("_ANY_VALIDATOR_PATH_RX",)
+# ...and the patterns the exemption consults because it has to CUT its input before it can judge
+# it: `_cut` finds the stage boundaries in `_syntax_view`, which is where the quoted spans are.
+# None of them vouches for anything and none of them refuses anything either -- they decide where a
+# stage ENDS -- but the reader below takes the union of "consulted" and "called", so they have to
+# be named or the equality is not an equality.
+_REFUSING_PATTERNS_OF_THE_EXEMPTION = ("_ANY_VALIDATOR_PATH_RX", "_STAGE_CUT_RX",
+                                       "_SUBSTITUTION_OPEN_RX", "_QUOTED_SPAN_RX")
 
 
 def _patterns_within(value, depth=4):
@@ -11084,12 +11171,15 @@ def _may_open_a_vouched_stage(gate, char, run):
     way to a stage never reaches this position from any caller, so whatever the pattern answers for
     it is unobservable — and an expectation that pins that answer pins a fiction. That is how `\\r`
     came to be fixed here as a legal opening at the very moment PowerShell was reading it as a
-    statement separator. So the cut is asked (`_normalise_pipeline`, `_SEGMENT_SPLIT_RX`, the stage
-    split) instead of being assumed.
+    statement separator. So the CUT is asked -- `_normalise_pipeline` and then the gate's own
+    `_cut` over `_COMMAND_CUT_RX` and `_STAGE_CUT_RX` -- instead of being assumed. Asking it
+    through the shipped function rather than through the patterns is what keeps this honest now
+    that the cut is quote-aware: a plain `split` here would have answered for a decomposition the
+    gate stopped making.
     """
     stages = [stage
-              for segment in gate._SEGMENT_SPLIT_RX.split(gate._normalise_pipeline(char + run))
-              for stage in segment.split("|")]
+              for segment in gate._cut(gate._normalise_pipeline(char + run), gate._COMMAND_CUT_RX)
+              for stage in gate._cut(segment, gate._STAGE_CUT_RX)]
     return (char.isspace() or char == "(") and char + run in stages
 
 
@@ -11230,31 +11320,36 @@ def test_a_carriage_return_does_not_tear_a_command_off_its_own_flag(tmp_path):
     assert result.returncode == 0, "%r was refused:\n%s" % (allowed, result.stderr)
 
 
-# WHAT A NEIGHBOUR OF A VOUCHED RUN MAY DO WITH A DECOY VALIDATOR, and the two conditions that
-# decide it. `alone` carries no blocked operation and no ledger path; `blocked` adds the commit;
-# `ledger` adds a ledger path to the vouched run as well.
+# WHAT A NEIGHBOUR OF A VOUCHED RUN MAY DO WITH A DECOY VALIDATOR. `alone` carries no blocked
+# operation and no ledger path; `blocked` adds the commit; `ledger` adds a ledger path to the
+# vouched run as well -- three lines that used to give three different answers for the same
+# neighbour, which is what BUG-0159 and BUG-0154 were between them.
 _DECOY_NEIGHBOURS = (
     ("writes the decoy", "tee tools/ledger_add.py", 2, 2, 2),
-    ("runs the decoy", "python tools/ledger_add.py", 0, 2, 2),
-    ("only reads the decoy", "cat tools/ledger_add.py", 0, 0, 2),
+    ("runs the decoy", "python tools/ledger_add.py", 2, 2, 2),
+    ("only reads the decoy", "cat tools/ledger_add.py", 0, 0, 0),
 )
 
 
 @pytest.mark.parametrize("what,neighbour,alone,blocked,ledger", _DECOY_NEIGHBOURS)
-def test_a_decoy_run_beside_a_vouched_run_is_refused_only_with_a_blocked_op(
+def test_what_a_neighbour_of_a_vouched_run_may_do_with_a_decoy_validator(
         tmp_path, what, neighbour, alone, blocked, ledger):
-    """The announced price of `H62`, measured instead of described — and the three rows do not
-    share one answer.
+    """BUG-0159 and BUG-0154 in one matrix: what a neighbour does to the decoy decides the answer,
+    and nothing else on the line does.
 
-    Writing the decoy is refused whatever else the line does: `_writes_protected` is asked of every
-    shell line. RUNNING it is not a write, so the only reader that sees it is the decoy check in
-    `_a_reading_writes_the_ledger`, which `handle_pre_tool_use` asks under `blocked_op` — without a
-    commit/push/report in the same line the run is rc 0. Reading it goes the same way one step
-    later, once a ledger path puts the per-segment decoy check in play at all.
+    Each row is ONE answer across all three lines now, and that is the repair. Writing the decoy
+    was already refused whatever else the line did (`_writes_protected` is asked of every shell
+    line). RUNNING it was rc 0 unless a commit stood beside it, because the only reader that saw it
+    was a loop inside `_writes_ledger` and `handle_pre_tool_use` asked that one under `blocked_op`
+    -- so the attacker's validator ran and the gain became effective on a second, then-checked line
+    (BUG-0159). READING it was refused as soon as the line also named a ledger path, because the
+    same question was asked a second time without the read-only condition its own reader carries
+    (BUG-0154). The first is now `gate_ledger_valid.uses_an_unguarded_validator`, put to every
+    shell call; the second is gone, and the one reader decides all three lines.
 
-    This is here because the gate's own paragraph said "writes or runs it is refused" for a round,
-    while all three of `… --help | python tools/ledger_add.py` and its sisters were rc 0 — an
-    over-alarming claim in the very paragraph whose job is to say what is NOT bought.
+    This matrix is also where the gate's own paragraph is held: it said "writes or runs it is
+    refused" for a round while `… --help | python tools/ledger_add.py` was rc 0 -- an over-alarming
+    claim in the very paragraph whose job is to say what is NOT bought.
     """
     ledger_repo(tmp_path)
     lines = (("python scripts/ledger_add.py --help | %s" % neighbour, alone),
@@ -11265,6 +11360,117 @@ def test_a_decoy_run_beside_a_vouched_run_is_refused_only_with_a_blocked_op(
         result = run_ledger(tmp_path, shell(tmp_path, command))
         assert result.returncode == want, "%r: rc %d, wanted %d\n%s" % (
             command, result.returncode, want, result.stderr)
+
+
+def test_an_unguarded_validator_is_refused_without_a_blocked_operation(tmp_path):
+    """BUG-0159: running a second `ledger_add.py` is refused on its own, not only beside a commit.
+
+    Measured at the base as real gate processes: `python tools/ledger_add.py` was rc 0 and
+    `python tools/ledger_add.py && git commit -m x` was rc 2 -- the decoy question lived inside
+    `_writes_ledger`, which `handle_pre_tool_use` only asks when the line also carries a commit, a
+    push or a report. The attacker's validator therefore ran, and its gain became effective with a
+    SECOND line that was then checked against a ledger it had already judged.
+
+    READING one is still not a refusal, and that half is what keeps the remedy reachable: the same
+    file under `cat` is rc 0, and so is the canonical validator by every spelling the kit
+    sanctions.
+    """
+    ledger_repo(tmp_path)
+    refused = ("python tools/ledger_add.py",
+               "python tools/ledger_add.py --help",
+               "python scripts/ledger_add.py.bak ledger/2026.csv",
+               "python scripts/ledger_add.py --help | python tools/ledger_add.py")
+    for command in refused:
+        result = run_ledger(tmp_path, shell(tmp_path, command))
+        assert result.returncode == 2, "%r was allowed\n%s" % (command, result.stderr)
+    allowed = ("cat tools/ledger_add.py",
+               "python scripts/ledger_add.py --validate ledger/2026.csv",
+               "cd scripts && python ledger_add.py --validate ../ledger/2026.csv")
+    for command in allowed:
+        result = run_ledger(tmp_path, shell(tmp_path, command))
+        assert result.returncode == 0, "%r was refused\n%s" % (command, result.stderr)
+
+
+def test_a_decoy_path_in_a_reading_stage_is_prose(tmp_path):
+    """BUG-0154: a decoy path named by a stage that only READS is prose, ledger path or not.
+
+    The decoy question was asked twice in `_a_reading_writes_the_ledger` -- once with the read-only
+    condition and once, in the branch a ledger path opens, without it. The stricter answer won
+    wherever the line happened to name a ledger file, so `grep "tools/ledger_add.py"
+    ledger/2026.csv && git commit -m x` was rc 2 for a line that reads two files and writes none.
+    Measured rc 2 at the base, rc 0 here.
+
+    The direction this must NOT buy is measured in the same breath: the moment the neighbour stops
+    reading, the refusal is back.
+    """
+    ledger_repo(tmp_path)
+    prose = ('grep "tools/ledger_add.py" ledger/2026.csv && git commit -m x',
+             'cat ledger/2026.csv | grep "tools/ledger_add.py" && git commit -m x',
+             "cat tools/ledger_add.py ledger/2026.csv")
+    for command in prose:
+        result = run_ledger(tmp_path, shell(tmp_path, command))
+        assert result.returncode == 0, "%r was refused\n%s" % (command, result.stderr)
+    for command in ("tee tools/ledger_add.py < ledger/2026.csv",
+                    "cat ledger/2026.csv | python tools/ledger_add.py"):
+        result = run_ledger(tmp_path, shell(tmp_path, command))
+        assert result.returncode == 2, "%r was allowed\n%s" % (command, result.stderr)
+
+
+def test_a_quoted_redirection_sign_in_argument_prose_is_not_a_redirect(tmp_path):
+    """BUG-0156: a `>` the shell hands to the program as text is not a redirection into the books.
+
+    `_redirect_targets` read the raw segment, so every `>` of a segment counted -- including one
+    inside a quoted argument -- and the line was refused as soon as the word behind it was a
+    ledger path. Measured at the base: `grep -n "row > ledger/2026.csv" ledger/2026.csv && git
+    commit -m x` rc 2, both quotings, and the same prose in the validator's own `--note`.
+
+    A REAL redirection is the same measurement in the other direction, including one whose target
+    is quoted, which is where a length-preserving syntax view earns its keep.
+    """
+    ledger_repo(tmp_path)
+    prose = ('grep -n "row > ledger/2026.csv" ledger/2026.csv && git commit -m x',
+             "grep -n 'row > ledger/2026.csv' ledger/2026.csv && git commit -m x",
+             'python scripts/ledger_add.py --validate ledger/2026.csv '
+             '--note "row > ledger/2026.csv" && git commit -m x')
+    for command in prose:
+        result = run_ledger(tmp_path, shell(tmp_path, command))
+        assert result.returncode == 0, "%r was refused\n%s" % (command, result.stderr)
+    for command in ("echo x > ledger/2026.csv && git commit -m x",
+                    'echo x > "ledger/2026.csv" && git commit -m x',
+                    "cat ledger/2026.csv > /tmp/a > ledger/2026.csv && git commit -m x"):
+        result = run_ledger(tmp_path, shell(tmp_path, command))
+        assert result.returncode == 2, "%r was allowed\n%s" % (command, result.stderr)
+
+
+def test_a_quoted_separator_is_argument_text_and_a_substitution_still_cuts(tmp_path):
+    """BUG-0160: a quoted `;` or `|` is data, and BUG-0065 stays closed while it is.
+
+    The cut that finds a gate's segments and stages ran over the plain text, so a semicolon or a
+    pipe inside argument prose tore the command apart and the half that kept the ledger path got a
+    verb no read-only table knows: `grep "a; b" ledger/2026.csv && git commit -m x` was rc 2 at the
+    base. The reason it could not simply be made quote-aware is the second half of this test -- the
+    substitution opening used to be REWRITTEN into a separator inside what is then a quoted span,
+    so a quote-aware cut swallowed it and let `echo "$(tar -xf evil.tar -C scripts/)" && git
+    commit` through. It is a member of the cut pattern now, and `_syntax_view` never fills it,
+    which is a property of characters and not of a span.
+
+    THE SECOND HALF IS THE ONE THAT MUST NOT ROT: it is the attack the first half's repair
+    reopened once already, in this very round, and it was caught here before anything else ran.
+    """
+    ledger_repo(tmp_path)
+    prose = ('grep "a; b" ledger/2026.csv && git commit -m x',
+             'grep "a|b" ledger/2026.csv && git commit -m x',
+             'python scripts/ledger_add.py --validate ledger/2026.csv '
+             '--summary "reversed; see scripts/ledger_add.py"')
+    for command in prose:
+        result = run_ledger(tmp_path, shell(tmp_path, command))
+        assert result.returncode == 0, "%r was refused\n%s" % (command, result.stderr)
+    executed = ('echo "$(tar -xf evil.tar -C scripts/)" && git commit -m x',
+                'echo "%star -xf evil.tar -C scripts/%s" && git commit -m x' % (chr(96), chr(96)),
+                'git commit -m "$(sed -i s/119/150/ ledger/2026.csv)"')
+    for command in executed:
+        result = run_ledger(tmp_path, shell(tmp_path, command))
+        assert result.returncode == 2, "%r was allowed\n%s" % (command, result.stderr)
 
 
 # Lines the two shells this kit gates read DIFFERENTLY, which is what makes the monotonicity check
@@ -14385,7 +14591,7 @@ def test_running_the_enforcement_layer_writes_no_bytecode_into_it(tmp_path, kit)
     assert _install_from(staging, repo, kit).returncode == 0
     claude = str(repo / ".claude")
     hooks = os.path.join(claude, "hooks")
-    env = dict(os.environ)
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(repo))
     env.pop("PYTHONPYCACHEPREFIX", None)
     env.pop("PYTHONDONTWRITEBYTECODE", None)
     payload = json.dumps({"cwd": str(repo), "tool_name": "Agent", "tool_input": {}})
@@ -16087,3 +16293,118 @@ def test_a_docker_command_too_long_to_read_is_not_read_as_harmless(tmp_path):
     assert "too long" not in refused.stderr and "past the" in refused.stderr
     assert run_hygiene(work, "echo " + padding + " ; docker ps -a").returncode == 2
     assert run_hygiene(work, "echo " + padding + " ; ls -la").returncode == 0
+
+
+NL = chr(10)  # a newline, spelled rather than written into the strings below
+
+
+def test_a_heredoc_body_an_interpreter_executes_is_not_prose_here(tmp_path):
+    """BUG-0149: a here-document body handed to a program that does not only READ stays in the view.
+
+    This gate took `_compat.literal_heredoc_free` up in TSK-0081, and that reader answers a
+    different question: what does the SHELL EXPAND. A literally quoted delimiter means it expands
+    nothing, so the body of `python <<'EOF'` was removed -- and a body handed to an INTERPRETER is
+    a program. Measured at the base: such a body rewriting `scripts/ledger_add.py` into a stub was
+    rc 0, after which the commit check runs the validator that stands there and a broken ledger
+    reaches HEAD.
+
+    THE QUESTION IS THIS GATE'S OWN and had to be, because no general one exists: `_compat` cannot
+    decide which PROGRAMS execute their standard input, and the nearest thing to that on a command
+    line is the read-only classification this gate already carries. A body handed to `cat` is
+    prose and goes, which is what keeps the pilot-4 case (`P4-12`) allowed; a body handed to
+    anything else stays.
+    """
+    ledger_repo(tmp_path)
+    executed = ["python <<'EOF'" + NL
+                + "open('scripts/ledger_add.py','w').write('import sys')" + NL + "EOF",
+                "perl <<'EOF'" + NL + "open(F,'>scripts/ledger_add.py')" + NL + "EOF",
+                "python <<'EOF'" + NL + "open('ledger/2026.csv','w').write('x')" + NL + "EOF"
+                + NL + "git commit -m x",
+                # THE PARSER MAY STAND LATER IN THE PIPELINE, and the shared reader now looks
+                # there: `cat` only reads, so the first cut called this body prose and the write
+                # inside it was invisible here as well as at the write-scope gate. Measured as a
+                # real gate process against the pristine base: rc 0, against this tree rc 2
+                # (verifier round 1 of TSK-0142, B1).
+                "cat <<'EOF' | bash" + NL + "sed -i s/a/b/ ledger/2026.csv" + NL + "EOF"
+                + NL + "git commit -m x",
+                ". /dev/stdin <<'EOF'" + NL + "sed -i s/a/b/ ledger/2026.csv" + NL + "EOF"
+                + NL + "git commit -m x"]
+    for command in executed:
+        result = run_ledger(tmp_path, shell(tmp_path, command))
+        assert result.returncode == 2, "%r was allowed" % command
+    prose = ('git commit -m "$(cat <<' + chr(39) + "EOF" + chr(39) + NL
+             + "bookkeeper booked ledger entry L2025-0001" + NL + "EOF" + NL + ')"')
+    assert run_ledger(tmp_path, shell(tmp_path, prose)).returncode == 0, prose
+    # THE PROMISE ROW of 2026-09-12: a body handed to `cat` is prose whatever the FILE it is
+    # written to is called. The membership was asked of the raw span, so a redirection target
+    # beginning with a member word (`patch.diff`, `bash.md`) turned an ordinary "save this patch
+    # for review" into rc 2 at the shipped gates -- measured as real processes before
+    # `_compat._names_a_stdin_parser` put `_argument_scan` in front of the question.
+    for target in ("patch.diff", "bash.md"):
+        saved = ("cat > " + target + " <<'EOF'" + NL + "sed -i s/a/b/ ledger/2026.csv" + NL
+                 + "EOF" + NL + "git commit -m x")
+        assert run_ledger(tmp_path, shell(tmp_path, saved)).returncode == 0, (
+            "a body written to a FILE was read as a command: " + saved)
+
+
+# SEGMENTS THE FREEING QUESTION IS PUT TO. Not a corpus of ATTACKS -- the point is to reach every
+# arm of the exemption with stages that are ordinary, so a stage freed by something nobody named
+# stands out. The last entries are deliberately foreign programs: an exemption written for one of
+# them is exactly the shape `BUG-0162` says the pattern readers cannot see.
+_FREEING_PROBES = tuple(
+    (segment, inside_scripts)
+    for segment in ("cat notes.md",
+                    "tee scripts/ledger_add.py",
+                    "python scripts/harness.py doctor",
+                    "python scripts/ledger_add.py --validate ledger/2026.csv",
+                    "python ledger_add.py --validate ../ledger/2026.csv",
+                    "python scripts/ledger_add.py --help | cat",
+                    "python scripts/harness.py doctor | tee scripts/ledger_add.py",
+                    "deno run --allow-write x.ts",
+                    "node tools/x.js | cat",
+                    "bash -c 'echo hi'")
+    for inside_scripts in (False, True))
+
+
+def test_every_stage_the_exemption_frees_is_freed_by_a_named_exemption():
+    """BUG-0162: the question is WHICH STAGE IS FREED, and an exemption that consults no pattern is
+    invisible to a reader that asks about patterns.
+
+    `test_every_vouching_run_pattern_is_named_here` asks two pattern questions and takes their
+    union, so a fourth exemption that asks NO `re.Pattern` -- `stage.strip().startswith("deno ")`
+    was the measured mutant, independently by implementer and verifier -- frees a stage while both
+    readers stay green. That is a gap in the instrument and not in the product, and the repair is
+    to ask the OUTCOME instead of the means.
+
+    HOW: for each probe the stages the cut produces are compared with the stages
+    `_stages_beside_the_vouched_runs` hands back. Every stage that DISAPPEARED has to be claimed by
+    one of the three exemptions this suite names, asked one at a time. A fourth exemption of any
+    shape -- pattern, literal, predicate, table -- drops a stage none of the three claims, and this
+    is red on it.
+
+    The counter-end is in the same assertion: a stage no exemption claims must SURVIVE, so an
+    exemption that simply returned nothing would be red here too.
+    """
+    gate = load_hook_module("gate_ledger_valid", OFFICE_HOOKS)
+
+    def claimed_by_a_named_exemption(stage, inside_scripts):
+        return bool(gate._ENTRY_POINT_RUN_RX.search(stage)
+                    or gate._LEDGER_ADD_RUN_RX.search(stage)
+                    or (inside_scripts and gate._only_the_bare_validator(stage)))
+
+    unexplained, wrongly_kept = [], []
+    for segment, inside_scripts in _FREEING_PROBES:
+        cut = [stage for stage in gate._cut(segment, gate._STAGE_CUT_RX) if stage.strip()]
+        kept = gate._stages_beside_the_vouched_runs(segment, inside_scripts)
+        for stage in cut:
+            if stage in kept:
+                if claimed_by_a_named_exemption(stage, inside_scripts):
+                    wrongly_kept.append((segment, inside_scripts, stage))
+            elif not claimed_by_a_named_exemption(stage, inside_scripts):
+                unexplained.append((segment, inside_scripts, stage))
+    assert not unexplained, (
+        "a stage was freed that none of the exemptions this suite names claims -- there is a "
+        "fourth exemption in `_stages_beside_the_vouched_runs`: %s" % unexplained)
+    assert not wrongly_kept, (
+        "a stage a named exemption claims was NOT freed -- the list here and the function "
+        "disagree: %s" % wrongly_kept)

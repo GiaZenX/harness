@@ -1,0 +1,3 @@
+{
+  "limits": "Die Messungen, mit denen die Testsuite schneller gemacht wurde, hängen an der Auslastung dieses Rechners: läuft etwas anderes daneben, verschieben sich die Zahlen. Ein Teil der damals gemessenen Beschleunigung war Wirtslast und nicht Code -- die Beschleunigung selbst bleibt, nur ihr Faktor ist nicht so groß wie damals notiert."
+}

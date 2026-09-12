@@ -1,0 +1,15 @@
+id: EVD-0374
+kind: test
+related:
+- BUG-0294
+result: pass
+summary: gate_design_sighted reads the render record's conformance.findings and refuses
+  a draft that has them, never its undecided list; renderer, skill and ENFORCEMENT
+  row rewritten to what is built; red-first in the pristine rig (gate rc 0)
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_design_conformance.py::test_a_draft_with_conformance_findings_is_refused_and_an_undecided_one_is_not
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:54:16'

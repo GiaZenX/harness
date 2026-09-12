@@ -502,7 +502,8 @@ def test_e2e_the_merge_gate_opens_on_evidence_a_role_produced_and_shuts_on_a_fre
             [sys.executable, os.path.join(*cli.ENTRY_POINT.split("/")), "evidence",
              "--kind", kind, "--result", result, "--related", task["id"],
              "--summary", "Rechnungsübersicht geprüft", "--artifact-ref",
-             "staging/%s/lauf.log" % task["id"]],
+             "staging/%s/lauf.log" % task["id"],
+             "--run-command", "python scripts/quality.py", "--run-scope", "full"],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             env=dict(os.environ, HARNESS_KERNEL_PATH=os.path.join(ROOT, "team-kits")),
             cwd=str(tmp_path), timeout=120)

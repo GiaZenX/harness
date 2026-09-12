@@ -1,0 +1,26 @@
+id: EVD-0354
+kind: test
+related:
+- BUG-0133
+result: pass
+summary: 'H41 closed, all four measured limits: (a) SPELLINGS_OF_A_POINTER is measured
+  against the LIVING corpus of this directory, (b) a span is closed up only where
+  an editor broke a line, (c) a statement with an odd backtick count is read under
+  both pairings, (d) a node id naming another file is resolved in THAT file -- two
+  such pointers stand in gate_test_scope.py and are now judged by the sweep instead
+  of by hand. Red-first: mutate bug_0133a/b/c/d, each 1 failed with the direction
+  it restores. 7 passed in 14.76 s.'
+artifact_refs:
+- staging/TSK-0143/protocol.md
+run_command: python -B -m pytest ".claude/hooks/test_gates.py::test_no_timed_span_here_pays_for_a_helper_that_reads_the_clock_itself"
+  ".claude/hooks/test_gates.py::test_the_session_guards_watch_list_is_built_without_a_shell"
+  ".claude/hooks/test_gates.py::test_the_arbiter_refuses_a_shell_that_runs_every_line_on_another_filesystem"
+  ".claude/hooks/test_gates.py::test_the_pointer_reader_answers_for_every_shape_a_statement_here_can_carry"
+  ".claude/hooks/test_gates.py::test_the_end_states_this_repo_reaches_are_measured_against_the_kernel"
+  ".claude/hooks/test_gates.py::test_every_check_this_apparatus_claims_in_its_own_prose_is_one_that_exists"
+  ".claude/hooks/test_gates.py::test_the_gate_table_of_this_file_is_the_registration_itself"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:04:05'

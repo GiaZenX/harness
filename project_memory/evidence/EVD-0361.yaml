@@ -1,0 +1,17 @@
+id: EVD-0361
+kind: test
+related:
+- BUG-0242
+result: blocked
+summary: 'H160: the naming half is written (the memory-tree test now names BUG-0242
+  with the three measured reasons for the NON-removal), but it cannot be measured
+  in this working tree'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+blocked_reason: the node scaffolds a real kit through the shipped installer, and the
+  installer refuses because the kit source no longer hashes to the content in its
+  own VERSION -- three builders edit kit files in one tree and the stamp belongs to
+  the merging item, so nothing was checked here
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:06:15'

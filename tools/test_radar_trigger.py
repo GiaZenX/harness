@@ -293,6 +293,66 @@ SUNDAYS = ("2026-09-06-claude-by-codex.md", "2026-09-13-claude-by-codex.md")
 MONDAYS = ("2026-09-07-codex-by-codex.md", "2026-09-14-codex-by-codex.md")
 
 
+_BULLET_END = "(?=" + chr(92) + "n" + chr(92) + "s*" + chr(92) + "n)"
+_REJECTED_BULLET_RX = re.compile(r"^- \*\*The rejected alternative\*\*.*?" + _BULLET_END,
+                                 re.MULTILINE | re.DOTALL)
+_BOLD_SPAN_RX = re.compile(r"\*\*(.+?)\*\*", re.DOTALL)
+
+
+def names_the_rejected_bullet_writes(text):
+    """Every name `radar/README.md`'s rejected-alternative bullet writes for the option.
+
+    MARKED BY THE TEXT ITSELF, because deciding which noun phrase of a paragraph IS a name for a
+    mechanism is world knowledge and not a derivation from this tree. The bullet writes each name
+    in bold; its own lead-in is bold too and is dropped, being the heading of the bullet and not a
+    name. Backticks stay free for code (`cloud_option`, `--describe`), so marking a name cannot
+    collide with naming a field.
+    """
+    bullet = _REJECTED_BULLET_RX.search(text)
+    if bullet is None:
+        return None
+    spans = [" ".join(span.split()) for span in _BOLD_SPAN_RX.findall(bullet.group(0))]
+    return sorted({span.lower() for span in spans[1:]})
+
+
+def test_the_names_of_the_rejected_option_are_the_ones_its_bullet_writes():
+    """BUG-0274 / H190: the names of the not-built cloud option are measured at BOTH ends against
+    the bullet that describes it -- a name the shipped text writes and the declaration does not
+    publish let a sentence promoting the rejected option through the claim reader.
+
+    THE OCCASION IS MEASURED (TSK-0133 verify round 2, N1): with one sentence inserted into
+    `radar/README.md`, "The hosted code routine of the platform starts the radar-watcher every
+    Friday from the Desktop." and its sandbox twin were GREEN over the whole of this file, while
+    the same sentence with `claude.ai` in it was red -- because the three names the declaration
+    published were a list nothing measured, and the README described the very same option in two
+    words the list did not carry.
+
+    BOTH ENDS: a name the bullet writes and the declaration does not publish is red (the shape
+    above), and an entry the declaration publishes that the bullet never writes is red too -- a
+    dead name is a reader nobody can reach. And each published name is driven through the claim
+    reader, so the list is not merely equal to the text but really refuses a sentence.
+    """
+    described = mechanism_description()
+    published = sorted({name.lower() for name in described["cloud_option"]["named_as"]})
+    assert published, "the declaration publishes no name for the rejected option at all"
+    written = names_the_rejected_bullet_writes(read(RADAR_README))
+    assert written is not None, (
+        "%s carries no bullet beginning `- **The rejected alternative**`, so the second source "
+        "this list is measured against is gone" % RADAR_README)
+    assert written == published, (
+        "the names %s writes for the rejected option and the ones the declaration publishes have "
+        "drifted apart -- written %s, published %s. A name only the text has passes the claim "
+        "reader; a name only the declaration has is one nobody can reach."
+        % (RADAR_README, written, published))
+    for name in published:
+        sentence = ("The %s starts the claude-watcher every Friday from the Desktop task."
+                    % name)
+        offence = schedule_claim_offence(sentence, described)
+        assert offence and "not built" in offence, (
+            "a sentence promoting the rejected option as %r is not refused (%r), although the "
+            "declaration lists it as not built" % (name, offence))
+
+
 def test_the_runner_vocabulary_is_the_ladders_provider_vocabulary():
     """The RUNNERS table is an enumeration, so both its ends are held against the ladder (DEC-0090).
 

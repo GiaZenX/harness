@@ -1,0 +1,15 @@
+id: EVD-0373
+kind: test
+related:
+- BUG-0259
+result: pass
+summary: correspondence.yaml ships address, closing and offer.valid_days EMPTY; the
+  rule is derived from letter_draft.a_term's own call sites, so a term added there
+  is under it the day it ships; office package + neutrality suites 79 passed
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_kit_neutrality.py::test_every_term_the_letter_writer_reads_ships_empty
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:46:15'

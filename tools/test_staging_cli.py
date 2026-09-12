@@ -17,7 +17,7 @@ from conftest import walk_to_status  # noqa: E402
 from kernel.backlog_types import ACTIVE_DIRS, TransitionError  # noqa: E402
 from kernel.schemas import SchemaError  # noqa: E402
 from kernel.staging import StagingError  # noqa: E402
-from kernel.state import ProjectState  # noqa: E402
+from kernel.state import ProjectState, StateError  # noqa: E402
 
 
 PR_FIELDS = {
@@ -391,7 +391,7 @@ def test_cli_evidence_captures_a_typed_item_the_merge_gate_can_read(state, capsy
     pr = state.capture("PR", dict(PR_FIELDS))
     assert run_cli(state, "evidence", "--kind", "test", "--result", "pass",
                    "--related", pr["id"], "--summary", "full suite green",
-                   "--artifact-ref", "staging/TSK-0001/coverage.html") == 0
+                   "--artifact-ref", "staging/TSK-0001/coverage.html", "--run-command", "pytest -q", "--run-scope", "selection") == 0
     out = capsys.readouterr().out
     assert "EVD-0001" in out and "pass" in out
     path = os.path.join(state.root, *ACTIVE_DIRS["EVD"].split("/"), "EVD-0001.yaml")
@@ -524,23 +524,37 @@ def test_capture_shows_the_outline_when_a_body_invents_a_new_level(state, capsys
     assert "at most 2" in printed.err
 
 
-def test_cli_evidence_records_the_run_behind_the_verdict_or_neither_half_of_it(state, capsys):
-    """FR-0040 at the surface a role types: `--run-command` and `--run-scope`, together or not.
+def test_cli_evidence_records_the_run_behind_the_verdict_and_refuses_a_half_of_it(state, capsys):
+    """FR-0040 at the surface a role types, and BUG-0192 made both halves required there.
 
     The pair is the statement -- the scope is what the merge reads and the command is what an
-    auditor re-runs it against -- so half of it is refused, and the refusal names the missing
-    half rather than dying inside the item write. What the declaration then BUYS is measured one
+    auditor re-runs it against. Since BUG-0192 the parser demands BOTH: a record that declared
+    nothing counted as a full run, so a partial run opened a merge in silence, and the reading end
+    could not be tightened (an `EVD` is immutable). What the declaration then BUYS is measured one
     layer down, in `test_report.test_a_pass_from_a_partial_run_is_not_merge_evidence_and_a_fail_
     still_is`; here the question is only whether the surface carries it at all.
 
-    The legal call runs after the refusal for the reason its neighbour below states: a bare
-    "it exited non-zero" would be satisfied by argparse rejecting the whole subcommand.
+    THREE ROWS AND EACH ONE A DIFFERENT REFUSER: the parser refuses a call that declares NEITHER
+    half; the KERNEL still refuses a half-declared pair, which is what keeps the rule for a caller
+    that does not come through this parser; and a declared run is recorded with both keys. The
+    legal call runs after each refusal for the reason its neighbour below states -- a bare "it
+    exited non-zero" would be satisfied by argparse rejecting the whole subcommand.
     """
     pr = state.capture("PR", dict(PR_FIELDS))
     common = ("evidence", "--kind", "test", "--result", "pass", "--related", pr["id"],
               "--summary", "suite green", "--artifact-ref", "staging/TSK-0001/run.log")
-    assert run_cli(state, *common, "--run-scope", "full") == 1
-    assert "run_command" in capsys.readouterr().err
+
+    with pytest.raises(SystemExit):
+        run_cli(state, *common)
+    printed = capsys.readouterr().err
+    assert "--run-command" in printed and "--run-scope" in printed, printed
+
+    # ...the kernel's own half of the rule, for a caller that never met the parser
+    with pytest.raises(StateError) as refused:
+        state.capture("EVD", {"kind": "test", "related": [pr["id"]], "result": "pass",
+                              "summary": "suite green", "artifact_refs": ["staging/x/run.log"],
+                              "run_scope": "full"})
+    assert "run_command" in str(refused.value), refused.value
 
     assert run_cli(state, *common, "--run-scope", "selection",
                    "--run-command", "python -m pytest tools/ -k checkout") == 0
@@ -550,31 +564,6 @@ def test_cli_evidence_records_the_run_behind_the_verdict_or_neither_half_of_it(s
         item = yaml.safe_load(handle)
     assert item["run_scope"] == "selection"
     assert item["run_command"] == "python -m pytest tools/ -k checkout"
-
-    # ...and a record that declares nothing carries neither key, rather than two nulls that would
-    # read as an answered question
-    assert run_cli(state, *common) == 0
-    with open(os.path.join(state.root, *ACTIVE_DIRS["EVD"].split("/"), "EVD-0002.yaml"),
-              encoding="utf-8") as handle:
-        plain = yaml.safe_load(handle)
-    assert "run_scope" not in plain and "run_command" not in plain
-
-
-def test_cli_evidence_refuses_a_verdict_outside_the_vocabulary(state, capsys):
-    """`--result passed` must not become a value the gate reads as "not a fail".
-
-    The refusal is checked by its REASON, and the legal spelling is run right after it: a bare
-    `pytest.raises(SystemExit)` would be satisfied just as well by argparse rejecting the whole
-    subcommand, so deleting the command entirely would leave this green (measured).
-    """
-    state.capture("PR", dict(PR_FIELDS))
-    with pytest.raises(SystemExit):     # argparse rejects it before the kernel is touched
-        run_cli(state, "evidence", "--kind", "test", "--result", "passed",
-                "--related", "PR-0001", "--summary", "s", "--artifact-ref", "staging/x.log")
-    assert "--result" in capsys.readouterr().err
-    assert run_cli(state, "evidence", "--kind", "test", "--result", "pass",
-                   "--related", "PR-0001", "--summary", "s",
-                   "--artifact-ref", "staging/x.log") == 0
 
 
 def test_cli_evidence_will_not_record_a_verdict_with_nothing_to_point_at(state, capsys):
@@ -593,7 +582,7 @@ def test_cli_evidence_will_not_record_a_verdict_with_nothing_to_point_at(state, 
     assert "--artifact-ref" in capsys.readouterr().err
     assert run_cli(state, "evidence", "--kind", "test", "--result", "pass",
                    "--related", "PR-0001", "--summary", "sieht gut aus",
-                   "--artifact-ref", "staging/TSK-0001/suite.log") == 0
+                   "--artifact-ref", "staging/TSK-0001/suite.log", "--run-command", "pytest -q", "--run-scope", "selection") == 0
 
 
 def test_cli_evidence_refuses_a_binding_that_names_nothing(state, capsys):
@@ -601,7 +590,7 @@ def test_cli_evidence_refuses_a_binding_that_names_nothing(state, capsys):
     state.capture("PR", dict(PR_FIELDS))
     assert run_cli(state, "evidence", "--kind", "test", "--result", "pass",
                    "--related", "PR-0099", "--summary", "s",
-                   "--artifact-ref", "staging/x.log") == 1
+                   "--artifact-ref", "staging/x.log", "--run-command", "pytest -q", "--run-scope", "selection") == 1
     assert "does not exist" in capsys.readouterr().err
 
 
@@ -1431,22 +1420,56 @@ def test_a_design_ref_cannot_leave_the_state_root_through_a_link(state, tmp_path
     assert not dispatch._design_ref_resolves(state, ACTIVE_DIRS["DSN"] + "/out/settings.json")
 
 
-def test_a_wireframe_directory_is_not_a_design_reference(state):
-    """`frozen_design_dirs` was wider than any producer.
+def test_a_frozen_wireframe_is_a_design_reference_the_scope_hash_moves_on(state):
+    """BUG-0055: `freeze_wireframe` wrote a file nothing referred to.
 
-    `freeze_wireframe` never touches `design_refs` -- only `freeze_design` appends, and it appends
-    under `ACTIVE_DIRS[DESIGN_REF_TYPE]`. A real file under `design/wireframes/` used to resolve,
-    which is a rule about a shape nothing produces. Spec II.2 does expect approved wireframes among
-    the design references (II.6a); that the producer is missing is the open gap, named in
-    `staging.DESIGN_REF_TYPE`, and this test is what turns red the day it is closed there.
+    `design_refs` is what the scope manifest hashes (`approvals._SCOPE_FIELDS`) and what
+    `HASHED_FIELDS` bumps a revision on, and the wireframe freeze never touched it. Two measured
+    consequences, E17 and E18: a SECOND freeze of the same wireframe invalidated no approval, and
+    "does this UI scope name a wireframe at all" was a question with no field to read. The producer
+    is what was missing -- `staging.DESIGN_REF_TYPE`'s own note said so, and said that the day the
+    freeze appends, the resolver follows.
+
+    NOT BY WIDENING `_SCOPE_FIELDS`, which is one of the two shapes the item's `expected` offers:
+    that tuple is a spec decision with a migration attached -- every stored hash would change and
+    every live approval would die -- and nothing of the sort is needed, because `design_refs` is
+    already in it. The chosen shape is the PRODUCER, and this is the measurement of it.
+
+    THE COUNTERWEIGHT is the freeze with no product root to write to: `derives_from` naming none
+    leaves every item alone rather than inventing a reference, and the frozen file is still
+    written -- a wireframe under a non-root parent is not an error.
     """
-    wireframes = os.path.join(state.root, *ACTIVE_DIRS["WFR"].split("/"))
-    os.makedirs(wireframes, exist_ok=True)
-    with open(os.path.join(wireframes, "WFR-0001.r01.drawio.svg"), "w", encoding="utf-8") as h:
-        h.write("<svg/>")
-    assert staging.frozen_design_dirs() == (ACTIVE_DIRS[staging.DESIGN_REF_TYPE],)
-    assert not dispatch._design_ref_resolves(
-        state, ACTIVE_DIRS["WFR"] + "/WFR-0001.r01.drawio.svg")
+    pr = state.capture("PR", dict(PR_FIELDS))
+    # PAST DRAFT FIRST: a draft is still being written, so a hashed-field change there is not a
+    # revision anybody signed away -- the bump this test is about is the one that DROPS a scope
+    # approval, and that needs an item that has one.
+    walk_to_status(state, pr, "APPROVED")
+    before = state.read_item(pr["id"])["revision"]
+
+    stage_file(state, pr["id"], "WFR-0001.drawio.svg")
+    first = staging.freeze_wireframe(state, pr["id"], "WFR-0001", "APR-0001", [pr["id"]], "t")
+    updated = state.read_item(pr["id"])
+    assert ACTIVE_DIRS["WFR"] in " ".join(updated["design_refs"]), updated["design_refs"]
+    assert dispatch._design_ref_resolves(state, updated["design_refs"][-1]), updated["design_refs"]
+    assert updated["revision"] > before, "a new design reference is a hashed-field change"
+    assert first["root"]["id"] == pr["id"]
+
+    # ...and a SECOND freeze of the same wireframe adds its own revision to the list, so what the
+    # scope hash covers really moved -- E17. MEASURED, and it narrows the claim honestly: the
+    # revision number does not climb a second time, because the first bump already took the item
+    # out of the status a scope approval stands in, which is the effect E17 asked for.
+    stage_file(state, pr["id"], "WFR-0001.drawio.svg")
+    staging.freeze_wireframe(state, pr["id"], "WFR-0001", "APR-0001", [pr["id"]], "t")
+    refreshed = state.read_item(pr["id"])
+    assert len(refreshed["design_refs"]) == len(updated["design_refs"]) + 1, refreshed["design_refs"]
+    assert refreshed["design_refs"][-1].endswith("WFR-0001.r02.drawio.svg"), refreshed["design_refs"]
+
+    # ...and a freeze whose named root is not IN this store writes the file and touches no item.
+    # Measured while writing this: the companion schema already refuses a `derives_from` that is
+    # not a product id at all, so the reachable shape of "no root" is a root that does not exist.
+    stage_file(state, pr["id"], "WFR-0002.drawio.svg")
+    orphan = staging.freeze_wireframe(state, pr["id"], "WFR-0002", "APR-0001", ["PR-0099"], "t")
+    assert orphan["root"] is None and os.path.isfile(orphan["frozen"])
 
 
 def test_a_probe_failure_cannot_take_the_whole_command_surface_down(state, monkeypatch, capsys):
@@ -1674,7 +1697,7 @@ def test_a_bug_cannot_be_verified_without_the_regression_evidence(state, capsys)
 
     assert run_cli(state, "evidence", "--kind", "test", "--result", "fail",
                    "--related", bug["id"], "--summary", "red",
-                   "--artifact-ref", "staging/x/run.log") == 0
+                   "--artifact-ref", "staging/x/run.log", "--run-command", "pytest -q", "--run-scope", "selection") == 0
     capsys.readouterr()
     with pytest.raises(TransitionError) as still:
         state.transition(bug["id"], "VERIFIED")
@@ -1682,14 +1705,14 @@ def test_a_bug_cannot_be_verified_without_the_regression_evidence(state, capsys)
 
     assert run_cli(state, "evidence", "--kind", "review", "--result", "pass",
                    "--related", bug["id"], "--summary", "looks fine",
-                   "--artifact-ref", "staging/x/review.md") == 0
+                   "--artifact-ref", "staging/x/review.md", "--run-command", "pytest -q", "--run-scope", "selection") == 0
     capsys.readouterr()
     with pytest.raises(TransitionError):
         state.transition(bug["id"], "VERIFIED")
 
     assert run_cli(state, "evidence", "--kind", "test", "--result", "pass",
                    "--related", bug["id"], "--summary", "regression green",
-                   "--artifact-ref", "staging/x/run2.log") == 0
+                   "--artifact-ref", "staging/x/run2.log", "--run-command", "pytest -q", "--run-scope", "selection") == 0
     capsys.readouterr()
     assert state.transition(bug["id"], "VERIFIED")["status"] == "VERIFIED"
 

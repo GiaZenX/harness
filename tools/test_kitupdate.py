@@ -212,6 +212,40 @@ def ran(project):
 
 # -- what it refuses before anything moves ------------------------------------------------------
 
+def test_a_pending_list_that_cannot_be_read_at_all_is_unknown_and_not_a_crash(tmp_path, monkeypatch):
+    """BUG-0163: the reader caught `OSError` alone, so anything else aborted `update-kit`.
+
+    The three answers are the whole design -- `[]` no such list, `None` it exists and could not be
+    read, a list of entries otherwise -- and the third one only held for the failures the reader
+    had thought of. A `ValueError` out of a codec is the reachable one, and it arrived AFTER the
+    installer had already moved the tree: the hook around this call was guarded, the command was
+    not.
+
+    Both readers of the merge backlog are asserted, because they carry the same third answer for
+    the same reason, and the counterweights are in the same test: a list that is simply absent is
+    still `[]` and a readable one still returns its entries -- a reader that answered `None` to
+    everything would nag for ever.
+    """
+    from kernel import kitupdate
+
+    listed = tmp_path / "pending.txt"
+    listed.write_text("- scripts/harness.py\n- AGENTS.md\n", encoding="utf-8")
+    assert kitupdate.pending_entries(str(listed)) == ["scripts/harness.py", "AGENTS.md"]
+    assert kitupdate.pending_entries(str(tmp_path / "nothing.txt")) == []
+
+    real_open = open
+
+    def refuse(path, *args, **keywords):
+        if str(path).endswith("pending.txt"):
+            raise ValueError("a codec said no")
+        return real_open(path, *args, **keywords)
+
+    monkeypatch.setattr("builtins.open", refuse)
+    assert kitupdate.pending_entries(str(listed)) is None, "not read is not empty"
+    assert kitupdate._same_but_for_line_endings(str(listed), str(listed)) is None, (
+        "not compared is not 'differs'")
+
+
 def test_a_kit_update_needs_a_user_approval_before_anything_moves(project):
     """No approval, no installer -- and the refusal names the line that opens the question.
 
@@ -956,7 +990,14 @@ def test_a_memory_tree_that_cannot_be_listed_is_never_reported_as_nothing(tmp_pa
 
 
 def test_the_update_report_names_a_memory_tree_no_installed_role_declares(tmp_path):
-    """BUG-0088 on a real pilot: the scaffold installs, a tree is left, and the USER is told.
+    """BUG-0088 and BUG-0242 on a real pilot: the scaffold installs, a tree is left, the USER is told.
+
+    BUG-0242 is the other half of the same sentence and it is a NON-removal with three measured
+    reasons: whether a provider still loads a tree whose role no longer declares `memory:` is
+    unmeasured, the only recoverable quarantine belongs to the `scaffold_team` twins, and the
+    content is the user's own craft knowledge (DEC-0056 (c)). So the report is the whole of the
+    answer, and this test is what holds it -- if the sentence stops naming the tree, nothing else
+    ever mentions it again.
 
     The same real run as `test_a_lead_can_update_the_kit_end_to_end` -- this repo's kits staged in a
     fake home, the PowerShell scaffold, the shipped entry point, the real approval hook -- with two
@@ -1134,6 +1175,15 @@ def test_a_stock_without_update_kit_is_lifted_by_the_bootstrap_and_told_about_it
     lifted = _run_bridge(repo, environment)
     assert lifted.returncode == 0, lifted.stderr + lifted.stdout
     assert "RESTART REQUIRED" in lifted.stdout, lifted.stdout
+    # `BUG-0147`/`H55`, the half this repository can reach: the lift itself rides on a SPOKEN yes,
+    # because the old stock has no approval kind to mint -- so the one thing the bridge can do is
+    # SAY that, where the PM reads it and relays it. Measured on the real stdout of the real lift;
+    # the world limit beside it (a copy already on somebody's disk) is unchanged and named in the
+    # item's `limits`.
+    assert "NO APPROVAL COVERS THIS ONE LIFT" in lifted.stdout, lifted.stdout
+    assert kitupdate.KIND in lifted.stdout, (
+        "the sentence has to name the approval kind that does not exist there, or a reader cannot "
+        "tell which record is missing: %s" % lifted.stdout)
     assert _read(str(repo / ".claude" / "kit_version")) == staged
     assert os.path.exists(str(repo / kitupdate.HANDOVER_MARKER)), (
         "the session was not stopped after its kit changed underneath it")
@@ -2231,7 +2281,13 @@ def test_neither_twin_replays_a_snapshot_that_points_out_of_the_repository(tmp_p
     assert victim.is_file(), "the rollback deleted a file outside the repository"
     assert _read(str(victim)) == "a file outside the repository\n"
     assert refused.returncode != 0, refused.stdout + refused.stderr
-    assert "escapes the repository" in (refused.stdout + refused.stderr), \
+    # THE OFFENDING LINE IS NAMED, and that is the assertion rather than a sentence: until
+    # generation 6 this asked for the words "escapes the repository", and `BUG-0180` replaced the
+    # refusal with one that judges every SEGMENT of a manifest line and names the line it rejected.
+    # The words moved, the property did not -- a reader who meets this has to learn WHICH line to
+    # look at, in either twin (measured 2026-09-12, both directions: the new text names
+    # `../victim.txt`, the old phrase appears in neither).
+    assert "../victim.txt" in (refused.stdout + refused.stderr), \
         refused.stdout + refused.stderr
 
 

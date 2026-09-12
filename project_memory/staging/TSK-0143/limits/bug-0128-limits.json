@@ -1,0 +1,3 @@
+{
+  "limits": "Ein einzelner Arbeitsschritt, der tief im Programmiersystem selbst läuft, gibt die Kontrolle bis zu seinem Ende nicht zurück -- solange kann ihn nichts abbrechen. Das entscheidet dieses Programmiersystem (Python) und nicht dieses Projekt."
+}

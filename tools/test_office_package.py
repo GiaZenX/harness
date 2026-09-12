@@ -517,44 +517,38 @@ def test_the_euer_rollup_reads_the_chart_and_prints_a_disagreement(tmp_path):
 
 
 # ---------------- AC-4 / FR-0002: the verdict table answers for itself --------------------------
-# A FENCE-BLIND SPAN READER, and it exists only because the repo-wide one is fence-BLINDED.
-# `test_repo_hygiene._CODE_SPAN_RX` pairs single backticks running across a whole file; a fenced
-# block is an odd number of backticks, so from the first fence on it pairs the GAPS between spans.
-# `docs/office-kit-from-field.md` fences in line 23 and contributes 0 of its citations -- measured,
-# with the repo-wide numbers, in `BUG-0263` (`H181`). This blanks fenced blocks (keeping offsets)
-# and then asks the SAME question through the SAME resolver, so only the blanking is new. It is a
-# second copy of a definition and it is meant to die: closing H181 deletes it (that item's AC-4).
-_FENCE_RX = re.compile(r"(?m)^[ \t]*(```+|~~~+).*?$.*?^[ \t]*\1[ \t]*$", re.DOTALL)
-# The two documents this package WRITES that answer for a judgement by naming a test, with the
-# number of citations each must still carry. Both fence before they cite: the field report in
-# line 23, the contract page in its §2 example -- which is why the repo-wide reader sees
-# neither (`BUG-0263` / `H181`). The floor is what keeps the test from passing on a document
-# whose citations somebody removed rather than repaired.
+# THE FENCE-BLIND SPAN READER THAT STOOD HERE IS GONE (`BUG-0263` AC-4). It existed because the
+# repo-wide reader was fence-BLINDED -- `_CODE_SPAN_RX` pairs single backticks across a whole file,
+# a fenced block is an odd number of them, and from the first fence on it paired the GAPS instead of
+# the spans, so `docs/office-kit-from-field.md` (which fences in line 23) contributed 0 of its
+# citations. `test_repo_hygiene._without_fenced_blocks` is that rule now, applied inside
+# `_test_citations` itself, and a second copy of a definition is what this item asked to be deleted
+# once the one reader carried it. The floor below is what remains: it keeps this test from passing
+# on a document whose citations somebody removed rather than repaired.
 FENCED_DOCUMENTS = (("docs/office-kit-from-field.md", 8),
                     ("docs/office/invoice-app-docking-point.md", 9))
 
 
-def _outside_fences(text):
-    return _FENCE_RX.sub(lambda hit: re.sub(r"[^\n]", " ", hit.group(0)), text)
-
-
 @pytest.mark.parametrize("document, floor", FENCED_DOCUMENTS)
 def test_every_test_the_field_report_verdicts_name_is_one_that_exists(document, floor):
-    """The two documents of this package answer for judgements by NAMING tests; each name resolves.
+    """BUG-0263 AC-4 measured from this side: the duplicate fenced-block reader is gone and the ONE
+    reader still finds every citation of these two documents, each of which resolves.
 
     A named test is a claim like any other (DEC-0070): AC-4's whole verdict table rests on one set
     of them, and the contract page's §6 promises an application project that every "refused" and
     "accepted" above it is held by one. Measured 2026-09-06 by the verifier: the repo-wide pointer
     check stayed GREEN with a planted `test_this_name_resolves_to_nothing_at_all` in the field
     report, because it never sees a citation below a code fence -- and both documents fence early.
-    So this reads them with fences blanked and resolves every node id through
-    `test_repo_hygiene._defined_in` -- parsed, never grepped.
+    That reader carries the fence rule itself now (`test_repo_hygiene._without_fenced_blocks`), so
+    this asks it directly and resolves every node id through `test_repo_hygiene._defined_in` --
+    parsed, never grepped. The floor is what keeps the removal honest: if the one reader ever stops
+    seeing these citations, this goes red on the count before any assertion below it is vacuous.
     """
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     import test_repo_hygiene as hygiene
     with open(os.path.join(ROOT, *document.split("/")), encoding="utf-8") as handle:
         text = handle.read()
-    citations = hygiene._test_citations(_outside_fences(text))
+    citations = hygiene._test_citations(text)
     assert len(citations) >= floor, ("only %d citations read in %s -- the reader stopped seeing "
                                      "them and every assertion below is vacuous"
                                      % (len(citations), document))
@@ -1181,12 +1175,37 @@ LADDER = ('reminders:\n'
           '- level: 3\n  title: "2. Mahnung"\n  days_after_due: 28\n  fee: 0.00\n')
 
 
+# The business's OWN letter terms. The kit ships every one of them empty -- the lists for FR-0028
+# and the SCALARS for `BUG-0259`, on the same argument: a value a customer reads is one the user
+# chose. A pilot therefore declares them through the DOCUMENT, which is what a real project does;
+# the script has no default and refuses with the route until they are there.
+DECLARED_TERMS = (("address:", 'address: "Sie"'),
+                  ("closing:", 'closing: "Mit freundlichen Grüßen"'),
+                  ("valid_days:", "valid_days: 14"))
+
+
+def declare_the_terms(repo):
+    """The three scalar terms of `correspondence.yaml`, as a business would record them."""
+    document = repo / "project_memory" / "correspondence.yaml"
+    text = read(document)
+    # IDEMPOTENT, because two callers reach it (a test directly, and `declare_the_ladder`): a
+    # second blind replace produced `address: "Sie" "Sie"` and a YAML parse error in the script
+    # under test, which reads as the script crashing rather than as the fixture doing it.
+    for empty, declared in DECLARED_TERMS:
+        if declared in text:
+            continue
+        assert empty in text, "%s is not in the shipped template any more" % empty
+        text = text.replace(empty, declared, 1)
+    write(document, text)
+
+
 def declare_the_ladder(repo):
-    """The business's own dunning steps -- the kit ships none (FR-0028), so a pilot declares them."""
+    """The business's own dunning steps AND its letter terms -- the kit ships none (FR-0028)."""
     document = repo / "project_memory" / "correspondence.yaml"
     text = read(document)
     assert "reminders: []\n" in text
     write(document, text.replace("reminders: []\n", LADDER, 1))
+    declare_the_terms(repo)
 
 
 def outbox_drafts(repo):
@@ -1286,6 +1305,10 @@ def test_a_reminder_the_data_does_not_carry_is_refused(tmp_path):
     repo = pilot_project(tmp_path)
     write(repo / "ledger" / "2026.csv", LEDGER_HEADER + income_row(1, 1)
           + income_row(2, 2, paid="", gross="1190.00", net="1000.00"))
+    # ...with the three SCALAR terms declared, because they are refused first now and this row is
+    # about the LADDER. The kit ships them empty for the same reason it ships the ladder empty
+    # (`BUG-0259`), and the refusal order is not this test's subject.
+    declare_the_terms(repo)
     no_ladder = script(repo, "letter_draft.py", "reminder", "--entry", "L2026-0002")
     assert no_ladder.returncode == 1, no_ladder.stdout + no_ladder.stderr
     assert "carries no `reminders` ladder" in no_ladder.stderr, no_ladder.stderr
@@ -1382,7 +1405,7 @@ def test_a_ledger_date_the_reminder_cannot_read_is_refused(tmp_path):
      ["offer", "--to", "Kunde", "--line", "A;1;100.00"], "carries no `address`"),
     ("no closing line", ('closing: "Mit freundlichen Grüßen"', "closing:"),
      ["offer", "--to", "Kunde", "--line", "A;1;100.00"], "carries no `closing`"),
-    ("no offer validity", ("offer:\n  valid_days: 14", "offer:\n  valid_days:"),
+    ("no offer validity", ("valid_days: 14", "valid_days:"),
      ["offer", "--to", "Kunde", "--line", "A;1;100.00"], "carries no `valid_days`"),
     ("no title on the ladder step", ('  title: "1. Mahnung"\n', "  title:\n"),
      ["reminder", "--entry", "L2026-0002"], "carries no `title`"),
@@ -1539,3 +1562,32 @@ def test_a_series_the_intake_cannot_order_is_refused_and_never_crashes(tmp_path,
     assert "Traceback" not in result.stderr, (planted, result.stderr)
     for name in names:
         assert name in result.stderr, (planted, name, result.stderr)
+
+
+NL = chr(10)  # a newline, spelled rather than written into the CSV rows below
+
+
+def test_one_voucher_booked_twice_without_an_invoice_number_is_refused(tmp_path):
+    """BUG-0182: two rows that differ in nothing but their id are one voucher booked twice.
+
+    The duplicate rule of `validate_cross` needed `invoice_no`, which a receipt, a fee or a bank
+    charge often does not carry -- and `gate_second_booking` pairs its readings on `source`, so
+    BOTH rows were covered by ONE reading pair. Every layer therefore let the double booking
+    through, and the quarter reported the amount twice.
+
+    THE COUNTER-END, because a rule that simply refused equal-looking rows would be useless to a
+    business with two real positions on one voucher: the same two rows told apart in `note` are
+    accepted, which is the route the finding names.
+    """
+    repo = pilot_project(tmp_path)
+    row = ("L2026-%04d,2026-02-01,2026-02-01,expense,fee,Tankstelle,,50.00,19.00,59.50,"
+           "standard,fahrzeug,archive/t.pdf,,%s" + NL)
+    write(repo / "ledger" / "2026.csv", LEDGER_HEADER + (row % (1, "")) + (row % (2, "")))
+    done = script(repo, "ledger_add.py", "--validate", "ledger/2026.csv")
+    assert done.returncode != 0, done.stdout + done.stderr
+    assert "differs only in its id" in (done.stdout + done.stderr), done.stdout + done.stderr
+
+    write(repo / "ledger" / "2026.csv",
+          LEDGER_HEADER + (row % (1, "Hinfahrt")) + (row % (2, "Rueckfahrt")))
+    told_apart = script(repo, "ledger_add.py", "--validate", "ledger/2026.csv")
+    assert told_apart.returncode == 0, told_apart.stdout + told_apart.stderr

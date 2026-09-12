@@ -22,11 +22,17 @@
 # `receivables.payment_terms_days`) ran out; the script picks the highest level whose days have
 # passed, and `--level` overrides it.
 
-address: "Sie"                  # Sie | du — one form for every letter; the script refuses a mix
-closing: "Mit freundlichen Grüßen"
+# EVERY TERM HERE SHIPS EMPTY, for the reason the ladder below does (BUG-0259): each of them is
+# read verbatim into a letter a CUSTOMER reads, and a value the kit chose is a value nobody in the
+# business decided. `scripts/letter_draft.py` refuses each one until it is declared and its refusal
+# names the route, exactly as the reminder branch does. Fill them through the manager's proposal +
+# `apply-proposal` (or `revise-document` for a change), on the user's approval.
+
+address:                        # Sie | du — one form for every letter; the script refuses a mix
+closing:                        # the last line of every letter, e.g. "Mit freundlichen Grüßen"
 
 offer:
-  valid_days: 14                # how long an offer stands from its date
+  valid_days:                   # how long an offer stands from its date -- a commitment, so yours
 
 reminders: []
 #- level: 1

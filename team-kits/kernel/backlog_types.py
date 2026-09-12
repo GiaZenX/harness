@@ -35,11 +35,25 @@ def _edges(chain, terminal_from):
 
 
 class _Automaton:
-    def __init__(self, chain, terminals, terminal_from, extra_edges=(), extra_states=()):
+    def __init__(self, chain, terminals, terminal_from, extra_edges=(), extra_states=(),
+                 done_states=()):
         self.chain = tuple(chain)
         self.terminals = frozenset(terminals)
+        # A STATE THAT IS A LIFE END WITHOUT BEING A TERMINAL (BUG-0281 / H197). The two are not
+        # the same question: a terminal has no outgoing edge, while a DONE state is one the item
+        # reaches and stays in because its work is over -- `SR` is accepted and then simply holds.
+        # Read "is this item still work" as `is_finished`, never as `is_terminal` alone: read that
+        # way, an accepted system requirement carried open work for ever, which is what Gate 4 of
+        # this repository measured. The declaration is checked against the automaton below, so a
+        # done state that is not a state, or one that is really a terminal, fails at import.
+        self.done_states = frozenset(done_states)
         self.states = frozenset(chain) | self.terminals | frozenset(extra_states)
         self.allowed = _edges(chain, terminal_from) | set(extra_edges)
+        for state in self.done_states:
+            if state in self.terminals:
+                raise AssertionError("%r is a terminal already -- do not declare it done" % state)
+            if state not in self.states:
+                raise AssertionError("done state %r is not a state of this automaton" % state)
         # construction-time self-checks (Fable-Check 5): terminals never have
         # outgoing edges, and every edge endpoint is a registered state -- a
         # typo in an edge fails loudly here instead of becoming a dead edge
@@ -107,6 +121,10 @@ AUTOMATA = {
         chain=("PROPOSED", "ACCEPTED"),
         terminals=("SUPERSEDED",),
         terminal_from={"SUPERSEDED": ("PROPOSED", "ACCEPTED")},
+        # The natural end of a system requirement is ACCEPTED: it is agreed and then it holds, and
+        # only a LATER requirement supersedes it. It cannot be a terminal -- the edge to SUPERSEDED
+        # leaves it -- which is exactly why `done_states` exists (BUG-0281).
+        done_states=("ACCEPTED",),
     ),
     "TSK": _Automaton(
         chain=("DRAFT", "READY", "LEASED", "IN_PROGRESS", "SUBMITTED", "DONE", "VALIDATED"),
@@ -244,6 +262,26 @@ def initial_status(item_type: str) -> str:
 
 def is_terminal(item_type: str, status: str) -> bool:
     return status in AUTOMATA[item_type].terminals
+
+
+def is_finished(item_type: str, status: str) -> bool:
+    """Is this item's work over -- terminal, OR in a state it reaches and holds (BUG-0281 / H197)?
+
+    THE QUESTION EVERY "IS THIS STILL OPEN" READER MEANS, and `is_terminal` is only half of it: a
+    terminal has no outgoing edge, a DONE state is a life end that still has one. `SR` reaches
+    ACCEPTED and stays, so a reader asking `is_terminal` alone counted every agreed system
+    requirement as open work for ever -- which is how BUG-0281 was measured against this
+    repository's own Gate 4.
+
+    WHAT DOES NOT READ THIS YET, written here rather than left to be found: the enforcement layer's
+    own reader, `.claude/hooks/_harness.py::Reference.terminal`, still asks `is_terminal`, and that
+    file is closed to every role in this repository -- the patch is in this stream's protocol under
+    "Seam handoffs" for the user to apply from a shell outside Claude Code. Until then this
+    function is the kernel's answer and the gate's answer is the older one.
+    `tools/test_backlog_types.py::test_an_accepted_system_requirement_is_finished_without_being_terminal`
+    """
+    automaton = AUTOMATA[item_type]
+    return status in automaton.terminals or status in automaton.done_states
 
 
 # THE STATUS VOCABULARY OF THE TYPES THAT CARRY ONE WITHOUT AN AUTOMATON (spec II.2). Written out
@@ -1364,7 +1402,14 @@ V1_STATUS_MAPPING = {
     # finished and `VALIDATED` means QA confirmed it; V1 collected no such confirmation, so mapping
     # on to it would be the import inventing a statement about quality that nobody ever made.
     ("TSK", "DONE"): ("TSK", "DONE", True),
-    ("TSK", "VALIDATED"): ("TSK", "VALIDATED", True),
+    # AND THE V1 `VALIDATED` ROW LANDS AT `DONE` TOO SINCE BUG-0150 -- the migration that change
+    # owed. `DONE -> VALIDATED` now demands the Evidence `CONFIRMING_EVIDENCE` names, and the
+    # import carries none: a V1 store recorded a word, not a verdict with a run behind it. Writing
+    # `VALIDATED` here would be the import satisfying a duty by walking around it, which is the
+    # shape the paragraph above already refuses for the plain `DONE` row. Nothing is lost: the V1
+    # word rides into the archive in the legacy field (`legacy_status: VALIDATED`), and a project
+    # that wants the V2 status records the run and walks the edge.
+    ("TSK", "VALIDATED"): ("TSK", "DONE", True),
     # V1 REJECTED is a task QA turned down -- a work order that ended without being delivered.
     # V2's `FAILED` is NOT that: it is a live retry state a task comes back out of. `CANCELLED` is
     # the terminal that means "this work order was not delivered", so that is the row.

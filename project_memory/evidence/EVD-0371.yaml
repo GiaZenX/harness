@@ -1,0 +1,15 @@
+id: EVD-0371
+kind: test
+related:
+- BUG-0277
+result: pass
+summary: both scaffold launchers refuse a staging whose kit carries no write_kit_state.py,
+  BEFORE anything is copied; the same staging with the recorder back is not refused
+  by that rule; red-first in the pristine rig (rc 0 install)
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_hooks.py::test_a_staging_without_its_trust_recorder_is_refused_before_anything_is_installed
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:28:08'

@@ -1,0 +1,19 @@
+id: EVD-0360
+kind: test
+related:
+- BUG-0210
+result: pass
+summary: 'H126 measured and its stale claim corrected: the expiry RULE is no longer
+  copied (approvals.has_expired / open_requests, which already carries the optional
+  now the seam asked for); what is left is the two clocks, deliberate so the page
+  stays a pure function of the state it was rendered from, and the parity test asks
+  both readers in ONE moment. The test docstring claiming the copy still stood and
+  the seam was another stream''s was replaced'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_board.py::test_the_board_and_the_session_brief_agree_on_the_open_requests
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:06:12'

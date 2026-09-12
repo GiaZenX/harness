@@ -1,0 +1,16 @@
+id: EVD-0409
+kind: test
+related:
+- BUG-0169
+result: pass
+summary: 'H77 (the records-clerk sub-limit): the value-language rule now stands on
+  every role page that types a free approval value -- derived, and the derivation
+  found three more than the item named (the project-auditor of all three kits)'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_role_contracts.py::test_every_role_that_types_an_approval_value_carries_the_language_rule
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T14:27:43'

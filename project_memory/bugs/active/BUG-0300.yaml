@@ -1,0 +1,29 @@
+id: BUG-0300
+title: Der Stopper-Leser des Beweis-Vokabular-Tests begründet seine Unterscheidung
+  (kann nicht zurückkehren vs. endet irgendwo) mit einer Zählung, die kein roter Test
+  hält
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-12 (TSK-0144 verify round 1, R3): tools/test_hooks.py:9131-9137
+  justifies `_cannot_return` over `_names_that_stop_the_role` with ''45 vs 3 names'';
+  a faithful first-version mutation (46 vs 3 in .claude/hooks, 55 vs 15 in the dev
+  bundle) leaves test_the_refusal_reader_finds_a_stopper_this_repos_own_gates_spell
+  GREEN -- the synthetic bundle has no function that refuses in one branch and returns
+  in the other. (Cutting arm 2 goes red correctly.)'
+expected: A row in the naming test with a function that refuses in one branch and
+  returns in another, so the distinction the docstring claims is measured, red-first.
+repro: mutate `_cannot_return` to 'exits somewhere' in a copy; run the node -> green
+  (should be red).
+severity: low
+acceptance_criteria:
+- 'AC-1: the mutation above turns the node red'
+- 'AC-2: the docstring''s numbers become a pointer to the measured row, not a count'
+source: staging/TSK-0144/verify-round-1.md (R3)
+limits: 'Ein Prüfleser unterscheidet Funktionen, die eine Rolle sicher stoppen, von
+  solchen, die nur manchmal enden -- die Begründung dafür steht als Zahl im Text,
+  aber kein Test würde rot, wenn die Unterscheidung wegfiele. Begrenzt: der Leser
+  selbst funktioniert (nachgemessen), nur seine Begründung ist unbewacht.'
+hole_number: H216
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T21:05:08'

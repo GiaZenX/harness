@@ -104,6 +104,50 @@ tax:
 
 # ------------------------------------------------------------------ FR-0034: the tax rhythm
 
+def test_the_register_reads_the_business_time_zone_and_names_one_it_cannot_resolve(tmp_path):
+    """BUG-0208: whose day a deadline is due on was the machine's, and nothing declared it.
+
+    `_duties` read `datetime.date.today()`, so two machines in two zones answered the same question
+    with two different dates and neither of them was the BUSINESS's. `business.timezone` in the
+    profile is that declaration. The two zones below are 25 hours apart (UTC+14 and UTC-11), so
+    their dates differ at every instant -- a pair chosen for that, not for the place.
+
+    THE THIRD ANSWER IS THE ONE THAT MUST NOT BE SILENT: a zone this machine cannot resolve falls
+    back to the machine's date AND says so, and the sentence has to reach the briefing a session
+    really receives -- a fallback nobody is told about is the quiet wrong answer this register
+    exists to avoid.
+
+    What this does NOT measure, because there is nothing to measure: the register is computed once
+    per SessionStart, so a session running past midnight keeps its answer. That half of H124 has no
+    second occasion to be read at.
+    """
+    zoneinfo = pytest.importorskip("zoneinfo")
+    duties = duties_module()
+
+    def with_zone(name, zone):
+        return project(tmp_path / name, profile="business:\n  name: Probe\n  timezone: %s\n" % zone)
+
+    east = with_zone("east", "Pacific/Kiritimati")     # UTC+14
+    west = with_zone("west", "Pacific/Niue")           # UTC-11
+    east_day, east_problem = duties.business_today(str(east))
+    west_day, west_problem = duties.business_today(str(west))
+    assert east_problem is None and west_problem is None, (east_problem, west_problem)
+    assert east_day == datetime.datetime.now(zoneinfo.ZoneInfo("Pacific/Kiritimati")).date()
+    assert west_day == datetime.datetime.now(zoneinfo.ZoneInfo("Pacific/Niue")).date()
+    assert east_day != west_day, (
+        "two projects 25 hours apart were given the same day -- the zone is not being read")
+
+    silent = project(tmp_path / "silent", profile="business:\n  name: Probe\n")
+    assert duties.business_today(str(silent)) == (datetime.date.today(), None)
+
+    broken = with_zone("broken", "Mars/Olympus_Mons")
+    day, problem = duties.business_today(str(broken))
+    assert day == datetime.date.today(), "an unresolvable zone must not invent a date"
+    assert problem and "Mars/Olympus_Mons" in problem, problem
+    assert "Mars/Olympus_Mons" in duties.briefing(str(broken)), (
+        "the fallback was silent in the paragraph the session receives")
+
+
 def test_the_session_start_hook_names_the_tax_deadline_the_profile_declares(tmp_path):
     """End to end, as the manager receives it: the rhythm is the USER's declaration and the hook
     prints the period that just closed with the date it is due and the basis it rests on.

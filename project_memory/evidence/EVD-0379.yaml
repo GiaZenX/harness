@@ -1,0 +1,20 @@
+id: EVD-0379
+kind: test
+related:
+- BUG-0222
+result: pass
+summary: 'B3, the remaining BUILD half of FR-0077: colour literals are judged on the
+  stylesheets the project itself wrote (kit_checks._frontend_sources, dist/node_modules/vendor
+  skipped), with the browser CSS parser as the judge, on a blank page per sheet so
+  the served third-party CSS is never the subject. Red-first in the rig by mutating
+  the fix (the judging call removed): B3 came back OK on a sheet carrying a literal.
+  Mirrored dev=research 9ec41b20adde.'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_a_colour_literal_in_the_projects_own_stylesheet_is_a_build_finding
+  tools/test_hooks.py::test_the_build_half_leaves_out_the_rules_the_served_document_cannot_answer
+  -q -p no:randomly
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:33:01'

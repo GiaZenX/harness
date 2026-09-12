@@ -1,0 +1,34 @@
+id: EVD-0377
+kind: test
+related:
+- BUG-0165
+result: pass
+summary: 'H73 (a) CLOSED -- the one gap that entry itself calls real, and its own
+  closing direction: a decision id inside a PYTHON string literal is now judged, because
+  in a source the double quote is the language''s delimiter and what stands inside
+  is text the program hands to a USER at the moment a gate refuses. Read through `ast`,
+  not through quote characters; a DOCSTRING stays out (documentation may exhibit an
+  id -- the memory-budget guard shows DEC-2100 as its own false positive) and so does
+  an id inside a backtick span in the message (the data marker these kits already
+  use). Measured 2026-09-12: 69 such citations in the shipped tree, all resolving.
+  Red-first in a .git-less copy: with the reader disabled the drive is 1 failed ([]
+  == [(1, ''DEC-9142'')]); with a dead id planted in a real kernel refusal (dispatch.py:1560)
+  the sweep is 1 failed and names file and line, while the SAME plant under the sweep
+  as it stood before this change is 1 PASSED -- the defect itself. (b)(c)(d) of H73
+  are the honestly declared limits of a prose test and are not touched. 7 passed in
+  2.63 s.'
+artifact_refs:
+- staging/TSK-0143/protocol.md
+run_command: python -B -m pytest "tools/test_repo_hygiene.py::test_no_tool_trace_lies_unaccounted_for_in_the_repo_root"
+  "tools/test_repo_hygiene.py::test_git_tracks_no_ignored_file_outside_canonical_state"
+  "tools/test_repo_hygiene.py::test_no_pairing_shift_blinds_the_pointer_sweep_for_the_rest_of_a_file"
+  "tools/test_repo_hygiene.py::test_the_test_pointer_reader_reads_the_shapes_a_kit_file_writes"
+  "tools/test_repo_hygiene.py::test_a_decision_named_in_a_message_a_user_reads_is_one_that_resolves"
+  "tools/test_repo_hygiene.py::test_every_decision_pointer_in_a_shipped_kit_file_resolves"
+  "tools/test_repo_hygiene.py::test_the_decision_pointer_reader_can_tell_a_citation_from_a_literal"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:07:33'
+closed_at: '2026-09-12T13:20:54'

@@ -1,0 +1,3 @@
+{
+  "limits": "Ohne die Versionsverwaltung (git) kann die Buchungsprüfung nicht unterscheiden, welche Zeilen im Kassenbuch schon vorher dastanden und welche neu sind. Sie tritt dann zurück, statt sicherheitshalber alles abzulehnen."
+}

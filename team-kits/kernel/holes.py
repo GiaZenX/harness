@@ -181,6 +181,88 @@ def cited_tests(body):
     return names
 
 
+def test_modules_under(repo: str):
+    """Every file a runner would collect as a test module, as repo-relative paths.
+
+    A DEFINITION AND NOT A LIST OF DIRECTORIES: pytest's own rule is the file NAME, so this is that
+    rule applied to the tree. The directories that hold no tests of a project -- its git store, its
+    TOOL LEFTOVERS, its dependency tree -- are skipped because walking them answers nothing and
+    costs the whole disk. The leftovers are asked of `hashing.is_transient`, the kernel's ONE answer
+    to "is this a tool's cache", rather than spelled out here: the second spelling of that list was
+    short by three names and looked exactly as authoritative as the complete one
+    (`tools/test_hooks_v2.py::test_no_shipped_script_knows_about_only_some_tool_caches` is what
+    caught it, and the day a fifth cache kind ships this walk moves with it).
+    """
+    from .hashing import is_transient
+    found = []
+    for directory, subdirectories, names in os.walk(repo):
+        subdirectories[:] = [one for one in subdirectories
+                             if one not in (".git", "node_modules") and not is_transient(one)]
+        for name in sorted(names):
+            if name.startswith("test_") and name.endswith(".py"):
+                found.append(os.path.relpath(os.path.join(directory, name), repo)
+                             .replace(os.sep, "/"))
+    return found
+
+
+def citation_resolution(repo: str, citation: str):
+    """Every test declaration this citation names -- [] when it names none, several when ambiguous.
+
+    THE READER IS `kernel.naming_tests`, the one this repository already decides "does this test
+    name that item" with, so "a test exists" cannot mean two things. A citation carrying a FILE is
+    resolved in that file alone; a bare name is searched over every test module, which is what
+    makes "more than one" a possible answer at all.
+    `tools/test_migrate_holes.py::test_a_citation_that_names_no_test_stops_the_run_before_it_writes`
+    """
+    from . import naming_tests
+
+    path, _sep, name = str(citation or "").strip().rpartition("::")
+    name = name.split("[")[0].strip().strip("`*_.,;:()")
+    if not name:
+        return []
+    if path:
+        node = "%s::%s" % (path.replace("\\", "/"), name)
+        return [node] if naming_tests.declares(repo, node) else []
+    return [node for node in
+            ("%s::%s" % (module, name) for module in test_modules_under(repo))
+            if naming_tests.declares(repo, node)]
+
+
+def _assert_every_citation_resolves(repo: str, name: str, tests) -> None:
+    """Refuse BEFORE the item is written when a cited test names no test, or more than one.
+
+    THE DEFECT WAS THE ORDER AND NOT THE COLLECTION (BUG-0246). `cited_tests` reads a code span the
+    prose wrote, and a MODULE name in backticks looks exactly like a test name to it; the judge that
+    notices lives downstream and runs AFTER the item is in the store -- and this migration is
+    idempotent, so a second run reports "already in the store" and repairs nothing. Asking the same
+    question here, in front of the write, turns a record that has to be repaired by hand into a run
+    that stops with the citation in its message.
+
+    A BARE NAME MATCHING SEVERAL MODULES IS ALSO A REFUSAL, and for the same reason: the item would
+    claim a regression test the reader cannot point at, and which of them it meant is a question
+    only the author can answer.
+
+    A CHECKOUT THAT DECLARES NO TEST MODULE AT ALL IS NOT ASKED, and that is the same third answer
+    the rest of this kernel gives: in such a tree every citation resolves to nothing, so a refusal
+    would be a statement about the checkout rather than about the document -- and it is what keeps
+    this from refusing a migration run over a synthetic tree.
+    """
+    if not test_modules_under(repo):
+        return
+    broken = []
+    for citation in tests:
+        found = citation_resolution(repo, citation)
+        if len(found) != 1:
+            broken.append("%s -> %s" % (citation, ", ".join(found) if found else "no test"))
+    if broken:
+        raise SystemExit(
+            "%s cites a test this checkout cannot resolve to exactly one declaration: %s. A hole "
+            "item that names a test nobody can run claims a cover it does not have, and this "
+            "migration is idempotent -- written once, a second run will not repair it. Remedy: "
+            "write the node id the runner prints (`<file>::<test>`), or drop the citation."
+            % (name, "; ".join(broken)))
+
+
 def _assert_the_verdict_map_fits(rows):
     """No row this run would have to GUESS a status for -- the one direction that is a refusal.
 
@@ -386,6 +468,10 @@ def migrate(state, doc, related_pr, holes_dir=DEFAULT_HOLES_DIR, apply=False):
         verdict, limit = rows[name]
         prose_rel = "%s/%s.md" % (holes_dir, name)
         fields, status = item_body(name, title, body, verdict, limit, related_pr, prose_rel)
+        # BEFORE THE WRITE, never after it -- see `_assert_every_citation_resolves` (BUG-0246).
+        # Asked on the DRY RUN too, because a dry run that says "this would be written" about a
+        # record the real run refuses is worse than no dry run.
+        _assert_every_citation_resolves(repo, name, fields.get(HOLE_TEST_FIELD) or ())
         existing = state.hole_by_number(name)
         if existing is not None:
             _assert_it_is_the_same_hole(name, existing, fields)

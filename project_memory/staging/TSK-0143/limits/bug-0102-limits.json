@@ -1,0 +1,3 @@
+{
+  "limits": "WIR HABEN UNS ENTSCHIEDEN, DIESE ZEIT NICHT AUSZUGEBEN -- das ist keine Grenze der Technik, sondern eine Entscheidung, und du sollst sie treffen können. Es geht um eine lückenlose Suche nach Code-Stellen, die von keinem Test unterschieden werden: gemessen sind 405 solche Stellen in den sieben Schutzdateien, und jede einzelne verlangt, sie zu verändern und danach die ganze Testsuite mit 553 Tests laufen zu lassen. Zwei gefundene Stellen sind geschlossen und je durch einen Test gedeckt. Sag Bescheid, wenn du diese Suche als eigene Runde willst."
+}

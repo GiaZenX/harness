@@ -1,0 +1,3 @@
+{
+  "limits": "Der Hinweis auf Dokumente, die niemand mehr liest, fragt die Versionsverwaltung, welche Dateien zum Projekt gehören. Absichtlich ignorierte Dateien -- Zwischenspeicher von Werkzeugen -- zählt er nicht mit; auf diesem Stand sind das 104424 Dateien, praktisch alles Zwischenspeicher, und sie alle zu lesen würde jeden Lauf um Minuten verlängern. Der Hinweis warnt nur und blockiert nie."
+}

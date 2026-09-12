@@ -70,6 +70,7 @@ from .backlog_types import (
     QA_EVIDENCE_KINDS,
     REFERENCE_LIST_FIELDS,
     ROOT_TYPE_BY_KIT,
+    RUN_SCOPES,
     STATUS_DEPENDENT_FIELDS,
     TRIAGE_RESULT_LINK,
     confirming_edge,
@@ -338,6 +339,8 @@ def generate_session_brief(
 ) -> str:
     with state.lock:
         roots, tasks, decs = [], [], {}
+        qa_runs = {scope: 0 for scope in sorted(RUN_SCOPES)}
+        qa_runs["undeclared"] = 0
         for item_type, stem, item, _path, exc in _iter_active(state):
             if exc or not isinstance(item, dict):
                 continue
@@ -370,6 +373,17 @@ def generate_session_brief(
                 tasks.append(row)
             elif item_type == "DEC":
                 decs[item.get("id", stem)] = item
+            elif item_type == "EVD" and item.get("kind") in QA_EVIDENCE_KINDS:
+                # THE COUNT NOBODY COULD GIVE (BUG-0190). "How often did the suite run, and over
+                # how much of it" was prose in a role text, and the reason given for leaving it
+                # there was that an `EVD` is immutable -- which is true of the RECORD and says
+                # nothing about a ROLLUP. Every record already declares its scope (`RUN_SCOPES`),
+                # so the number is a derivation over what is in the store, exactly like every
+                # other rollup this module makes. Counted in the walk the brief already does.
+                # An `EVD` that declares NO scope is its own bucket rather than folded into
+                # `full`: that silence is BUG-0192, and a rollup that hid it would be the second
+                # place where an undeclared run counts as a whole one.
+                qa_runs[str(item.get("run_scope") or "undeclared")] += 1
         pending, expired_requests = [], 0
         pending_dir = os.path.join(state.root, "approvals", "pending")
         if os.path.isdir(ext_path(pending_dir)):
@@ -422,6 +436,8 @@ def generate_session_brief(
                 "validator_errors": sum(1 for f in findings if f["severity"] == "error"),
                 "validator_warnings": sum(1 for f in findings if f["severity"] == "warning"),
                 "expired_requests": expired_requests,
+                # `tools/test_report.py::test_the_brief_counts_the_qa_runs_by_the_scope_they_declare`
+                "qa_runs": qa_runs,
             },
         }
         validate(brief, "session_brief")
@@ -471,9 +487,16 @@ def validate_state(state: ProjectState, _locked: bool = False) -> list:
     seen_ids = {}
     active_items = {}
     opened_paths = []
+    diagram_entries = []
     for item_type, stem, item, path, exc in _iter_active(state):
         rel = os.path.relpath(path, state.root)
         opened_paths.append(path)
+        # THE SAME WALK, IN THE SAME ORDER, is what the generated pictures are rendered from, so
+        # the rows for them are collected HERE and not by a second walk of the store (BUG-0211;
+        # `ProjectState.board_row` carries the measurement that decided it). Before the corrupt
+        # branch below, because the renderer has a row for that case too.
+        diagram_entries.append((state.board_row(item_type, stem, item),
+                                item if isinstance(item, dict) else None))
         if exc or not isinstance(item, dict):
             findings.append(_finding(
                 "error", stem, "corrupt item file (%s)" % (exc or "non-mapping"),
@@ -642,6 +665,10 @@ def validate_state(state: ProjectState, _locked: bool = False) -> list:
     findings.extend(_check_tasks_under_an_inbox_item(active_items))
     findings.extend(_check_bug_system_link(state, active_items))
     findings.extend(_check_invariant_checks(state, active_items))
+    findings.extend(_check_generated_diagrams(state, diagram_entries))
+    findings.extend(_check_board_is_as_fresh_as_the_index(state))
+    findings.extend(_check_filing_coverage_was_compared(state))
+    findings.extend(_check_every_stored_file_reads(state, opened_paths))
     findings.extend(_check_accepted_tasks_carry_a_verdict(state, active_items))
     findings.extend(_check_confirmations_agree_with_the_verdicts(state, active_items))
     findings.extend(_check_experiment_reports(active_items))
@@ -665,12 +692,23 @@ def validate_state(state: ProjectState, _locked: bool = False) -> list:
             if not os.path.isdir(ext_path(os.path.join(staging_dir, entry))):
                 continue
             opened_paths.append(os.path.join(staging_dir, entry))
-            if entry not in active_items:
-                findings.append(_finding(
-                    "warning", "staging/%s" % entry,
-                    "orphaned staging dir (no active task or root item)",
-                    "promote, archive or remove via the kernel staging lifecycle",
-                ))
+            if entry in active_items:
+                continue
+            # AND AN ACTIVE RECORD POINTING INTO IT IS NOT AN ORPHAN EITHER (BUG-0032). An
+            # Evidence's `artifact_refs` is where its raw proof lives -- the record IS the pointer,
+            # and "remove it" would destroy what the record stands for. Measured in this store: the
+            # generation-6 streams wrote `staging/<task-id>/protocol.md` into their evidence, so
+            # every one of those task directories was reported as orphaned the moment the task
+            # closed. Asked of the REFERENCES the store carries, not of the directory's name.
+            holders = _items_pointing_into_staging(active_items, entry)
+            if holders:
+                continue
+            findings.append(_finding(
+                "warning", "staging/%s" % entry,
+                "orphaned staging dir (no active task or root item, and no active record points "
+                "into it)",
+                "promote, archive or remove via the kernel staging lifecycle",
+            ))
     # lease hygiene
     lease_dir = os.path.join(state.root, "tasks", "leases")
     if os.path.isdir(ext_path(lease_dir)):
@@ -848,6 +886,81 @@ def similar_items(state: ProjectState, item_type: str, fields: dict,
 INVARIANT_REF_SEPARATOR = "::"
 
 
+def _marker_chain(node) -> list:
+    """The dotted name a decorator (or a `pytestmark` value) is written as, outermost last.
+
+    `pytest.mark.skip` and `pytest.mark.skip(reason=...)` are the same marker to this reader: the
+    call wrapper is unwrapped, so what is compared is the NAME and never the spelling.
+    """
+    target = node.func if isinstance(node, ast.Call) else node
+    parts = []
+    while isinstance(target, ast.Attribute):
+        parts.append(target.attr)
+        target = target.value
+    if isinstance(target, ast.Name):
+        parts.append(target.id)
+    return list(reversed(parts))
+
+
+def _marker_verdict(node):
+    """(verdict, why) for ONE marker, or None when this marker says nothing about execution.
+
+    THE RULE IS ABOUT WHO DECIDES, not about a list of marker names. `skip` is decided by the
+    source and the answer is `False`. `skipif` is decided by the RUNNER when it evaluates the
+    condition, so the source cannot answer and the verdict is the module's third answer, `None`.
+    A `parametrize` with no cases generates no test at all, which the source does decide.
+    Only markers written under `mark` count -- a decorator of the project's own that happens to
+    end in the same word is not a pytest marker, and reading it as one would refuse a check that
+    runs perfectly well.
+    `tools/test_report.py::test_a_check_whose_test_is_skipped_resolves_to_nothing_it_can_run`
+    """
+    chain = _marker_chain(node)
+    if "mark" not in chain[:-1]:
+        return None
+    marker = chain[-1]
+    if marker == "skip":
+        return False, "carries a `skip` marker"
+    if marker == "skipif":
+        return None, ("carries a `skipif` marker whose condition the runner evaluates, which this "
+                      "kernel does not")
+    if marker == "parametrize" and isinstance(node, ast.Call) and len(node.args) >= 2:
+        cases = node.args[1]
+        if isinstance(cases, (ast.List, ast.Tuple, ast.Set)) and not cases.elts:
+            return False, "is parametrised with an empty case list, so no test is generated"
+    return None
+
+
+def _unrunnable_tests(tree) -> dict:
+    """{test name: (verdict, why)} for every definition this file tells the runner not to execute.
+
+    The companion of the name scan in `invariant_check_resolution`: the name says the definition
+    is there, this says whether it would RUN. A module-level `pytestmark` is read too, because it
+    carries the same declaration for every test in the file.
+    `tools/test_report.py::test_a_check_whose_test_is_skipped_resolves_to_nothing_it_can_run`
+    """
+    module_wide = None
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(isinstance(target, ast.Name) and target.id == "pytestmark"
+                   for target in node.targets):
+            continue
+        values = (node.value.elts if isinstance(node.value, (ast.List, ast.Tuple))
+                  else [node.value])
+        for value in values:
+            module_wide = _marker_verdict(value) or module_wide
+    found = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        verdict = module_wide
+        for decorator in getattr(node, "decorator_list", []):
+            verdict = _marker_verdict(decorator) or verdict
+        if verdict is not None:
+            found[node.name] = verdict
+    return found
+
+
 def invariant_check_resolution(state: ProjectState, item: dict, parsed_names: dict = None):
     """(resolved, reason) for one INV's `check` -- does it point at a test that EXISTS?
 
@@ -870,9 +983,14 @@ def invariant_check_resolution(state: ProjectState, item: dict, parsed_names: di
     no command that could clear it -- and a rule nobody can satisfy is worked around, not met.
     `H110` in `docs/POST_V2_WISHLIST.md` carries that limit with its measurement.
 
-    THE COST OF THE PARSING CHOICE, named because it is a real gap and not a rounding error: a
-    test that exists but is skipped, parametrised away or excluded by the runner's own
-    configuration counts as resolved here. `H109` there carries it.
+    AND A DEFINITION THE RUNNER IS TOLD NOT TO EXECUTE IS NOT A CHECK (BUG-0193). The same parse
+    that finds the name reads what stands ON it: a `skip` marker, or a parametrisation with no
+    cases, means the test is there and never runs, and that is `False` with its own sentence. A
+    `skipif` is the third answer instead, because its condition is evaluated by the runner and the
+    source does not decide it. What stays out of reach is what is not in the file at all -- a
+    marker the project's own configuration deselects -- and the reason is the same one this
+    function gives everywhere: the runner's configuration is a fact about the project.
+    `_unrunnable_tests` is where that reading lives.
 
     The path is read relative to the PROJECT root -- the directory the state tree sits in, which is
     where a role runs the test runner from. Every outcome gets its own sentence, because the
@@ -912,18 +1030,187 @@ def invariant_check_resolution(state: ProjectState, item: dict, parsed_names: di
         except (OSError, SyntaxError, ValueError) as exc:
             cached = type(exc).__name__
         else:
-            cached = {node.name for node in ast.walk(tree)
-                      if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))}
+            cached = ({node.name for node in ast.walk(tree)
+                       if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))},
+                      _unrunnable_tests(tree))
         if parsed_names is not None:
             parsed_names[key] = cached
     if isinstance(cached, str):
         return None, ("check ref %r names %s, which this kernel cannot read as a test file (%s) -- "
                       "it resolves a check by PARSING it, and that reaches Python. Whether this "
                       "test exists is a question for the project's own runner" % (ref, head, cached))
-    defined = cached
+    defined, unrunnable = cached
     if name not in defined:
         return False, "check ref %r names %s, which %s does not define" % (ref, name, head)
+    verdict, why = unrunnable.get(name, (True, None))
+    if verdict is not True:
+        return verdict, ("check ref %r names %s, which %s defines and %s -- a definition the "
+                         "runner does not execute checks nothing" % (ref, name, head, why))
     return True, "%s defines %s" % (head, name)
+
+
+def _items_pointing_into_staging(active_items: dict, key: str) -> list:
+    """The active items whose `artifact_refs` name a path under `staging/<key>/` -- BUG-0032.
+
+    ONE FIELD AND NOT EVERY STRING IN THE STORE: `artifact_refs` is the field whose whole purpose
+    is to point at a file outside the item ("evidence references its artefacts, never inlines
+    them", `evidence --artifact-ref`), so it is the field that can hold a staging directory alive.
+    A mention in prose is not a reference and is deliberately not read -- that would make any item
+    that discussed a directory keep it.
+
+    The comparison is on the KEY, i.e. the first segment after `staging/`, because that is what a
+    staging directory IS; a reference to a file deeper inside holds the directory just as much.
+    `tools/test_report.py::test_a_staging_dir_an_active_record_points_into_is_not_an_orphan`
+    """
+    prefix = "%s/%s/" % (STAGING_DIRNAME, key)
+    holders = []
+    for item_id, (_item_type, item) in sorted(active_items.items()):
+        for reference in field_elements(item.get("artifact_refs")):
+            spelled = str(reference).replace("\\", "/").lstrip("./")
+            if spelled.startswith(prefix):
+                holders.append(item_id)
+                break
+    return holders
+
+
+def _check_every_stored_file_reads(state: ProjectState, opened_paths: list) -> list:
+    """BUG-0236, second residue: an ARCHIVED item with broken YAML was silent in every reader.
+
+    The active walk above reports a corrupt item file, and it never reaches the archive -- while
+    `state._iter_every_stored_item`, which does, skips what it cannot read because it is asked for
+    items. Measured on H156 with its YAML destroyed: all three hole checkers exited 0.
+
+    ONLY THE FILES THE ACTIVE WALK DID NOT OPEN, so one broken item is one finding: the walk that
+    already reported it passes its paths in.
+    """
+    already = {os.path.abspath(path) for path in opened_paths}
+    findings = []
+    for path, why in state.unreadable_stored_files():
+        if os.path.abspath(path) in already:
+            continue
+        findings.append(_finding(
+            "error", os.path.splitext(os.path.basename(path))[0],
+            "stored file %s does not read (%s) -- every reader over the store skips it in silence"
+            % (os.path.relpath(path, state.root).replace(os.sep, "/"), why),
+            "repair the YAML (it is under git: `git diff` shows what happened to it) or remove the "
+            "file; a record nothing can read is a record nothing counts"))
+    # THE OTHER HALF OF THAT WALK'S BOUND. It refuses to OPEN a stored file over
+    # `DOCUMENT_MAX_BYTES` -- this validator runs on a hook path with a time budget -- and a skip
+    # nobody reports is the silence the walk above exists against.
+    #
+    # ONLY FOR AN ITEM FILE, and the line that decides is `parse_id` rather than a directory list:
+    # an over-sized DOCUMENT is already reported by the bounded document scan in this same
+    # validator, by path and with this same remedy, so a second finding about it would be one file
+    # told to a reader twice. What that scan does NOT reach is an ITEM file -- an archived record
+    # nothing else opens -- and that is the one this reports.
+    for path, size in state.oversized_stored_files():
+        if os.path.abspath(path) in already:
+            continue
+        try:
+            parse_id(os.path.splitext(os.path.basename(path))[0])
+        except ValueError:
+            continue
+        findings.append(_finding(
+            "error", os.path.splitext(os.path.basename(path))[0],
+            "stored file %s was NOT READ: it is %d bytes and this validator opens at most %d bytes "
+            "of one stored file, so whether it holds a record is unknown -- unknown is not empty"
+            % (os.path.relpath(path, state.root).replace(os.sep, "/"), size, DOCUMENT_MAX_BYTES),
+            "split the file or take it out of the state directory (an editor or shell outside the "
+            "session -- an export of this size is a business record, not project state), then run "
+            "`python scripts/harness.py validate` again"))
+    return findings
+
+
+def _check_filing_coverage_was_compared(state: ProjectState) -> list:
+    """BUG-0152: an interview nobody walked read exactly like a plan that covers everything.
+
+    `filing.uncovered_document_sources` answers "which sources have no rule", and it answers the
+    empty list both when every source is covered and when there was nothing to compare at all. The
+    third answer lives in `filing.coverage_not_compared`; this is what says it out loud, so the
+    silence stops being a pass. A WARNING: the plan may be perfectly good, and what is missing is
+    an ANSWER about it -- `gate_filing` is what fails closed on a plan with no rules.
+
+    A project with no profile is not judged at all: the file belongs to the office kit.
+    """
+    from . import filing                  # lazy: `filing` imports `approvals`, which imports this
+    try:
+        reason = filing.coverage_not_compared(state)
+    except Exception as exc:              # noqa: BLE001 -- a validator never fails on its reader
+        reason = "the filing profile could not be read (%s: %s)" % (type(exc).__name__, exc)
+    if not reason:
+        return []
+    return [_finding(
+        "warning", "filing", "the filing plan's coverage was not compared: %s" % reason,
+        "walk the onboarding interview with the user and record what the business receives in "
+        "`business_profile.yaml` -- until then nothing here can say whether the plan covers it")]
+
+
+def _check_board_is_as_fresh_as_the_index(state: ProjectState) -> list:
+    """BUG-0140: a board that could not be rewritten froze the DISPLAY and said so once, on stderr.
+
+    `state._write_board` is fail-soft on purpose -- a file the operating system will not let it
+    replace (the page open in a viewer is the measured case) must not fail the state write itself.
+    It prints one line at the moment it happens, and the session that reads the page an hour later
+    saw nothing. This is the standing line the item names as its closing direction.
+
+    MTIME AND NOT THE TIMESTAMP INSIDE THE PAGE, because the two files are written in one call from
+    one clock reading: the index goes first, the board second, so a board OLDER than the index is
+    exactly a write that did not happen. Reading the stamp out of the rendered HTML would be a
+    second reader of a format `kernel.board` owns.
+    A board that is not there at all is not judged -- a store nobody has written has no stale page.
+    `tools/test_report.py::test_a_board_that_could_not_be_rewritten_is_reported_as_older_than_the_index`
+    """
+    from . import board                   # lazy: `board` imports this module's neighbours
+    index = ext_path(state.generated_path("index.yaml"))
+    page = ext_path(state.generated_path(board.FILENAME))
+    if not (os.path.isfile(index) and os.path.isfile(page)):
+        return []
+    if os.path.getmtime(page) >= os.path.getmtime(index):
+        return []
+    return [_finding(
+        "warning", "generated",
+        "%s is older than %s -- the last state write could not replace the page, so what it shows "
+        "is not what the store holds" % (board.FILENAME, "index.yaml"),
+        # NO PATH INSIDE THE STATE DIRECTORY IN A REMEDY (DEC-0024): a name a reader takes from a
+        # remedy is one they picked, and it can already be taken. The index is named by its role.
+        "close whatever holds the file open (a viewer locks it on this platform) and run any "
+        "kernel command that writes state; until one succeeds, the generated index beside it is "
+        "the current record and this page is not")]
+
+
+def _check_generated_diagrams(state: ProjectState, entries: list) -> list:
+    """BUG-0211: a hand edit to a generated diagram was seen by nobody until it was overwritten.
+
+    A WARNING AND NOT AN ERROR, and the two verdicts are warnings for different reasons. A HAND
+    EDIT is work somebody is about to lose at the next state write, and the remedy is to save it
+    elsewhere -- nothing about the state is wrong, so blocking a merge on it would punish the
+    wrong thing. A STALE picture is nobody's mistake and repairs itself at the next write; it is
+    reported because between the two writes a reader is looking at a plan that is not the store's.
+    A file that is not on disk is not judged at all -- see `plan_diagram.verdicts`.
+
+    `foreign` is deliberately silent: it is the answer for a name this renderer does not produce,
+    and `verdicts` only ever asks about the names it does.
+    """
+    from . import plan_diagram          # lazy: the renderer imports nothing of this module's
+    findings = []
+    try:
+        judged = plan_diagram.verdicts(state.generated_path(""), entries)
+    except Exception as exc:            # noqa: BLE001 -- a validator never fails on its own reader
+        return [_finding("warning", "generated", "the generated diagrams could not be judged "
+                                                 "(%s: %s)" % (type(exc).__name__, exc),
+                         "run any kernel write to rebuild them, then validate again")]
+    for name, verdict, reason in judged:
+        if verdict == "hand-edited":
+            findings.append(_finding(
+                "warning", "generated", "%s was edited by hand (%s)" % (name, reason),
+                # No path inside the state directory in a remedy (DEC-0024) -- see the board check.
+                "the next state write regenerates it -- save the edit outside the state directory "
+                "now, or change the items the picture is rendered from"))
+        elif verdict == "stale":
+            findings.append(_finding(
+                "warning", "generated", "%s is older than the state it shows (%s)" % (name, reason),
+                "run any kernel command that writes state; the picture is rebuilt with the index"))
+    return findings
 
 
 def _check_invariant_checks(state: ProjectState, active_items: dict) -> list:
@@ -1952,8 +2239,9 @@ def _check_confirmations_agree_with_the_verdicts(state: ProjectState, active_ite
             % (active_items[item_id][1].get("status"), ", ".join(failing)),
             "decide which of the two is true and make the store say it: record the re-run that "
             "passes (`python scripts/harness.py evidence --kind <kind> --result pass --related %s "
-            "--summary ... --artifact-ref <staged proof>`), or archive the verdict that no longer "
-            "applies -- never by editing the Evidence, which is immutable" % item_id,
+            "--summary ... --artifact-ref <staged proof> --run-command \"<the line you ran>\" "
+            "--run-scope <full|selection>`), or archive the verdict that no longer applies -- "
+            "never by editing the Evidence, which is immutable" % item_id,
         )
         for item_id, failing in sorted(contradicted_confirmations(state, active_items).items())
     ]
@@ -2214,8 +2502,10 @@ SCAFFOLDED_ROOT_FILES = ("AGENTS.md", "AGENTS.override.md", "CLAUDE.md")
 # entry point moves this with it. The rest is the same unavoidable enumeration as the line above and
 # carries the same two-ended tripwire in the same test: every entry is written by at least one kit's
 # real scaffold (not dead) and reading it would really report the kit's own citations (not
-# needless). WHAT IT COSTS, named rather than implied: a project that puts its OWN scripts in one of
-# these directories has them unswept, and that limit is `H183`.
+# needless). SINCE `BUG-0265` THIS IS THE FALLBACK AND NOT THE ANSWER: where the installer wrote
+# `.claude/kit_repo_files.json`, `installed_kit_paths` skips the FILES that record names and the
+# project's own script beside them is swept again. The enumeration still answers for a project
+# installed before that record existed, which is the only place its cost (`H183`) is still paid.
 INSTALLER_SCRIPT_DIRS = ("scripts", "tools")
 
 # A citation is a BACKTICK SPAN -- the same thing this kit's source repository reads in its own
@@ -2289,8 +2579,14 @@ def installed_kit_paths(repo_root: str) -> set:
       * THE PROVIDER LAYER, as the PROJECT records it: `.claude/provider_artifacts.json` names every
         `dirs`/`files` entry the generator wrote. A provider layer that gains a directory therefore
         moves this reader without anyone editing it.
-      * THE INSTALLER'S ROOT FILES AND SCRIPT DIRECTORIES: `SCAFFOLDED_ROOT_FILES` and
-        `INSTALLER_SCRIPT_DIRS`, the two enumerations with their two-ended tripwire.
+      * THE INSTALLER'S OWN RECORD OF WHAT IT PLACED: `.claude/kit_repo_files.json` names every
+        file a kit copied OUTSIDE the hook bundle, so the sweep skips those files and reads the
+        project's own script in the same directory again (`BUG-0265`/`H183`, AC-1; the writing end
+        is `tools/test_hooks.py::test_the_installer_records_which_files_it_places_outside_the_hook_bundle`,
+        the reading end `tools/test_pointer_sweep.py::test_a_projects_own_script_is_swept_while_the_kits_copy_beside_it_is_not`).
+      * THE INSTALLER'S ROOT FILES, and the SCRIPT DIRECTORIES only where that record is absent:
+        `SCAFFOLDED_ROOT_FILES` and `INSTALLER_SCRIPT_DIRS`, the two enumerations with their
+        two-ended tripwire.
 
     A MISSING READER IS NOT SILENCE: a project with no gate beside its kernel and no manifest still
     gets the two enumerations, and the sweep then reports what it reports -- the caller sees the
@@ -2303,8 +2599,9 @@ def installed_kit_paths(repo_root: str) -> set:
     `.codex/` on its own -- and only dropping BOTH brings the 41 back. So neither is individually
     necessary today and no test can show one going red without the other; they are defence in depth,
     and what each buys is a project where the OTHER is absent (a kit that ships no provider layer,
-    a project whose gate is missing). The third group, the two enumerations, IS individually
-    load-bearing and its tripwire shows it.
+    a project whose gate is missing). The last group, the two enumerations, IS individually
+    load-bearing and its tripwire shows it -- for `SCAFFOLDED_ROOT_FILES` in every project, for
+    `INSTALLER_SCRIPT_DIRS` only in one installed before the installer wrote its record.
     """
     prefixes = set(SCAFFOLDED_ROOT_FILES)
     # THE SCRIPT DIRECTORIES ONLY WHERE A KIT IS INSTALLED, and the condition is the installer's own
@@ -2314,7 +2611,16 @@ def installed_kit_paths(repo_root: str) -> set:
     # seven of its own findings.
     from .cli import ENTRY_POINT   # local: `cli` imports this module, so the pair is a cycle
     if os.path.isfile(ext_path(os.path.join(repo_root, *ENTRY_POINT.split("/")))):
-        prefixes |= set(INSTALLER_SCRIPT_DIRS)
+        shipped = os.path.join(repo_root, ".claude", "kit_repo_files.json")
+        try:
+            with open(ext_path(shipped), encoding="utf-8-sig") as handle:
+                named = {str(one).replace("\\", "/").strip("/")
+                         for one in (json.load(handle).get("repo_files") or [])}
+        except Exception:  # noqa: BLE001 -- see "A MISSING READER IS NOT SILENCE" above
+            named = set()
+        # A project installed BEFORE the installer wrote this record has none, and dropping the
+        # directories there would un-exclude every kit script at once.
+        prefixes |= named or set(INSTALLER_SCRIPT_DIRS)
     try:
         from .scopes import _hooks_dir
         hooks = _hooks_dir()
@@ -2779,9 +3085,10 @@ def _check_accepted_tasks_carry_a_verdict(state: ProjectState, active_items: dic
             "nothing in the project measured it"
             % (active_items[task_id][1].get("status"), ", ".join(missing)),
             "run the quality role and record its run: `python scripts/harness.py evidence --kind "
-            "<%s> --result <pass|fail> --related %s --summary ... --artifact-ref <staged proof>`; "
-            "the same records are what open the merge and what carry the task to its confirmed "
-            "status" % ("|".join(missing), task_id),
+            "<%s> --result <pass|fail> --related %s --summary ... --artifact-ref <staged proof> "
+            "--run-command \"<the line you ran>\" --run-scope <full|selection>`; the same records "
+            "are what open the merge and what carry the task to its confirmed status"
+            % ("|".join(missing), task_id),
         )
         for task_id, missing in sorted(accepted_without_a_verdict(state, active_items).items())
     ]
@@ -3436,8 +3743,49 @@ def _swallows_exit_code(command: str) -> bool:
     return bool(_SWALLOW_RX.search(command or ""))
 
 
+# ONE SHELL WORD that ends in `.py`. The WORD -- not the run of non-blank characters -- is the
+# unit, because a shell ends a word at whitespace or at a separator only while no quote is open: a
+# quoted span is one word however many spaces it carries. Both cases stand as ONE sub-pattern
+# rather than as two readers, and that is what closes the over-warning half of BUG-0173 --
+# `python -B "C:/Offline Repos/p/.claude/hooks/gate_approval.py"` yielded nothing here while the
+# very same registration minted.
+# `tools/test_report.py::test_a_quoted_path_with_a_space_runs_and_a_named_missing_file_does_not`
+_SCRIPT_WORD = r"""(?:"([^"\n]*\.py)"|'([^'\n]*\.py)'|([^\s"';|&]+\.py))"""
+
+
+def _script_basename(raw) -> str:
+    """The file name a matched `_SCRIPT_WORD` names -- quoting removed, separators normalised.
+
+    Quoting is removed character-wise, the way a shell removes it, so `"a"/b.py` and `a/b.py` are
+    one word to this reader.
+    """
+    return os.path.basename(_script_word(raw).replace("\\", "/"))
+
+
+def _script_word(raw) -> str:
+    """A matched `_SCRIPT_WORD` with its quoting removed and its path left alone."""
+    return str(raw or "").replace('"', "").replace("'", "")
+
+
+def _first_alternative(groups) -> str:
+    """The one alternative of a `_SCRIPT_WORD` that matched; the other two are None by construction."""
+    for one in groups:
+        if one:
+            return one
+    return ""
+
+
 def _invoked_scripts(command: str) -> list:
-    """The `.py` files this command RUNS, as opposed to merely mentions.
+    """The base NAMES of the `.py` files this command runs -- `_invoked_script_words` decides."""
+    return [_script_basename(word) for word in _invoked_script_words(command)]
+
+
+def _invoked_script_words(command: str) -> list:
+    """The `.py` WORDS this command RUNS, as opposed to merely mentions.
+
+    THE WORD AND NOT THE BASE NAME, because two different questions are asked of the same match:
+    the base name answers "which gate is this", and only the word answers "which file is this", so
+    only the word can be asked whether that file is there (`_runs_no_file`, BUG-0173).
 
     The script must follow an INTERPRETER (or be the command word itself). Extracting every `.py`
     token counted `echo "see gate_dispatch.py for details"` as a registration of that gate — which
@@ -3450,17 +3798,21 @@ def _invoked_scripts(command: str) -> list:
     the previous version of this function collected findings for exactly as long as it enumerated
     shapes instead of stating what "runs" means.
     """
-    names = []
+    words, names = [], []
+
+    def remember(raw):
+        base = _script_basename(raw)
+        if base and base not in names:
+            names.append(base)
+            words.append(_script_word(raw))
+
     for match in re.finditer(
             r"(?:^|[;&|(]|\bsh\s+-c\s+[\"']?)\s*[\"']?"
             r"(?:(?:[^\s\"';|&]*[/\\])?(?:python[0-9.]*|py|pypy[0-9.]*)(?:\.exe)?[\"']?"
-            r"(?:\s+-[^\s\"']+)*\s+[\"']?([^\s\"';|&]+\.py)"
-            r"|([^\s\"';|&]+\.py))",
+            r"(?:\s+-[^\s\"']+)*\s+" + _SCRIPT_WORD +
+            r"|" + _SCRIPT_WORD + r")",
             command or "", re.IGNORECASE):
-        token = match.group(1) or match.group(2)
-        base = os.path.basename(token.replace("\\", "/"))
-        if base and base not in names:
-            names.append(base)
+        remember(_first_alternative(match.groups()))
     # ...then follow the launcher chain: `A.py B.py` runs B as well, and `A.py B.py C.py` both.
     #
     # THE SECOND SCRIPT IS MATCHED IN A LOOKAHEAD, so consecutive pairs OVERLAP. Without it
@@ -3472,15 +3824,46 @@ def _invoked_scripts(command: str) -> list:
     for _pass in range(8):
         grew = False
         for match in re.finditer(
-                r"([^\s\"';|&]+\.py)[\"']?\s+(?=[\"']?([^\s\"';|&]+\.py))", command or ""):
-            first = os.path.basename(match.group(1).replace("\\", "/"))
-            second = os.path.basename(match.group(2).replace("\\", "/"))
-            if first in names and second not in names:
-                names.append(second)
+                _SCRIPT_WORD + r"[\"']?\s+(?=" + _SCRIPT_WORD + r")", command or ""):
+            first = _script_basename(_first_alternative(match.groups()[:3]))
+            second = _first_alternative(match.groups()[3:])
+            if first in names and _script_basename(second) not in names:
+                remember(second)
                 grew = True
         if not grew:
             break
-    return names
+    return words
+
+
+# THE ONE VARIABLE this reader can resolve without a shell, named ONCE and spelled by derivation:
+# the provider substitutes the project directory itself, so its value is known here -- every other
+# variable belongs to a shell state this process does not have. The three spellings below are the
+# three shells' syntax for the SAME name and not three cases to keep in step.
+_PROJECT_DIR_VARIABLE = "CLAUDE_PROJECT_DIR"
+_PROJECT_DIR_RX = re.compile(r"\$\{?%s\}?|%%%s%%" % (_PROJECT_DIR_VARIABLE, _PROJECT_DIR_VARIABLE))
+
+
+def _runs_no_file(command: str, repo_root: str, name: str) -> bool:
+    """Does this command start `name` from a path that RESOLVES here and holds no file?
+
+    The under-warning half of BUG-0173: a registration whose path resolves and whose file is not
+    there starts nothing, and every reader of this module said it minted. Only a word this
+    function can resolve WITHOUT a shell is judged; one that still carries a variable or a tilde
+    after the project directory is substituted is left alone, because a wrong "the file is
+    missing" suppresses a warning at a project that really mints -- the reassuring direction, and
+    the one this module's own docstrings call as wrong as the alarming one.
+
+    `tools/test_report.py::test_a_quoted_path_with_a_space_runs_and_a_named_missing_file_does_not`
+    """
+    located = []
+    for word in _invoked_script_words(command):
+        if _script_basename(word) != name:
+            continue
+        resolved = _PROJECT_DIR_RX.sub(repo_root.replace("\\", "/"), word)
+        if "$" in resolved or "%" in resolved or "~" in resolved:
+            continue                       # a shell's state decides this one, and we are not it
+        located.append(os.path.isfile(os.path.join(repo_root, resolved)))
+    return bool(located) and not any(located)
 
 
 def _matches_tool(matcher, tools) -> bool:
@@ -3542,22 +3925,14 @@ def approval_mint_is_wired(repo_root: str) -> bool:
     approval hook rather than merely naming it (`_invoked_scripts`) -- that list, and nothing more
     generous.
 
-    WHERE THIS READER IS STILL WRONG, IN BOTH DIRECTIONS, measured 2026-08-31 rather than reasoned
-    about (an earlier version of this paragraph claimed every remaining doubt fell towards `True`,
-    and neither half of that held):
-      * a command line this reader cannot DECOMPOSE falls to `False` -- an over-warning. The
-        reachable shape is a quoted absolute path containing a SPACE: `_invoked_scripts` yields
-        nothing for it, and the same registration mints (item at `APPROVED`). It does not arise
-        from a kit, which registers through `$CLAUDE_PROJECT_DIR` and so carries no space in the
-        line; it arises when somebody writes the path out. `H81` in `docs/POST_V2_WISHLIST.md`
-        carries the chain and the reason the fix is not made here: `_invoked_scripts` is also the
-        reader behind `capability_matrix`, so widening it moves what `doctor` reports for every
-        project and needs its own round.
-      * a resolvable path whose FILE IS MISSING falls to `True` -- an under-warning, and the one
-        `_wired_hooks` would have caught. Nothing runs, and no sentence says so.
-    Both are recorded rather than implied, because this function's consumer is a sentence a role
-    acts on and the cost of each direction is different: the first stalls a round that could have
-    proceeded, the second stays silent about one that cannot.
+    BOTH DIRECTIONS THIS READER USED TO GET WRONG ARE CLOSED (BUG-0173, and the round that closed
+    them is the one this sentence was written in): a quoted absolute path containing a SPACE is one
+    word to `_invoked_script_words` and reads `True`, and a path that RESOLVES to a file which is
+    not there reads `False` through `_runs_no_file` instead of claiming a mint nothing performs.
+    What stays undecided is stated where it is decided: a word carrying a variable other than the
+    project directory belongs to a shell state this process does not have, and `_runs_no_file`
+    leaves it alone rather than guess -- the cost of each direction differs, an over-warning stalls
+    a round that could have proceeded and an under-warning stays silent about one that cannot.
 
     WHAT IT DOES NOT ANSWER, said because the name invites the wider reading: whether `mint` is
     reachable at all. It is not the same question -- the hook can be run by hand with a payload
@@ -3583,8 +3958,12 @@ def approval_mint_is_wired(repo_root: str) -> bool:
             for hook in entry.get("hooks") or []:
                 if not isinstance(hook, dict) or hook.get("type", "command") != "command":
                     continue
-                if APPROVAL_HOOK in _invoked_scripts(str(hook.get("command") or "")):
-                    return True
+                command = str(hook.get("command") or "")
+                if APPROVAL_HOOK not in _invoked_scripts(command):
+                    continue
+                if _runs_no_file(command, repo_root, APPROVAL_HOOK):
+                    continue
+                return True
     return False
 
 

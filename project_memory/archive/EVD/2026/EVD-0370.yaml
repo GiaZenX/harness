@@ -1,0 +1,15 @@
+id: EVD-0370
+kind: test
+related:
+- BUG-0186
+result: pass
+summary: the research constitution names freeze-report in both sections that own the
+  rendered report; the command is read off the shipped parser, not off a list
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_role_contracts.py::test_the_research_constitution_names_the_command_that_files_a_rendered_report
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:24:31'
+closed_at: '2026-09-12T13:20:57'

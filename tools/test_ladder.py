@@ -460,16 +460,158 @@ def test_the_acceptance_reader_reads_a_test_and_not_the_word():
          {"acceptance_criteria": [{"id": "AC-1", "text": "no test goes red after this rename"}]}),
         ({"acceptance_refs": ["AC-1"]},
          {"acceptance_criteria": [{"id": "AC-1", "text": "kein Test schlaegt fehl nach dem Rename"}]}),
-        # THE COMPOUND, refused ON PURPOSE and measured rather than claimed: a German compound
-        # tail cannot be told from `latest` by any rule this reader could carry, and the direction
-        # it fails in is the expensive one -- the order keeps the default rung.
+        # THE ENGLISH TAIL-COLLISIONS, which is what the compound rule has to keep out: a
+        # lower-case `latest`/`protest` carries no capital and a stem of two or three characters.
+        # The German compound itself is GRANTED since BUG-0278 -- that row lives in
+        # `test_a_german_acceptance_line_is_read_like_its_english_twin` with the rest of its family.
         ({"acceptance_refs": ["AC-1"]},
-         {"acceptance_criteria": [{"id": "AC-1", "text": "der Regressionstest wird rot"}]}),
+         {"acceptance_criteria": [{"id": "AC-1", "text": "the latest run passes"}]}),
+        ({"acceptance_refs": ["AC-1"]},
+         {"acceptance_criteria": [{"id": "AC-1", "text": "der protest schlaegt fehl"}]}),
     ]
     for task, root in grants:
         assert dispatch.acceptance_is_test_shaped(task, root), (task, root)
     for task, root in refusals:
         assert not dispatch.acceptance_is_test_shaped(task, root), (task, root)
+
+
+def test_a_german_acceptance_line_is_read_like_its_english_twin():
+    """BUG-0278: the reader claimed both kit languages and was built on English word boundaries.
+
+    EIGHT measured classes, four rounds of verification deep, and every one of them GRANTED the
+    cheap rung on a sentence that denies a test -- the direction this module's own comment calls
+    the wrong one. `ohne` read as a clausal negator; a German compound invisible to a
+    word-boundary matcher; the German twins of `never`/`none` missing; a complement read to the end
+    of the clause, which in the FRONTED form swallows the main clause; `nothing` and the
+    correlative `neither ... nor` / `weder ... noch` missing; a complement read as three WORDS,
+    which let every longer noun phrase escape; each HALF of a correlative standing alone; and a
+    noun phrase POSTMODIFIED by a second one -- a German genitive or an English `of`-phrase --
+    ending the complement before the test word.
+
+    THE COUNTERWEIGHTS ARE HALF THIS TEST, because widening a reader is how a grant becomes free:
+    a preposition whose COMPLEMENT is the test still denies, however long the phrase; both fronted
+    forms stay promises; `noch` stays a plain adverb ("noch ein Test wird rot" promises a second
+    test, and the German closing half is deliberately not a denier); and the English words that
+    merely end in the same four letters (`latest`, `protest`) buy nothing.
+    """
+    def reads(text):
+        return dispatch.acceptance_is_test_shaped(
+            {"acceptance_refs": ["AC-1"]},
+            {"acceptance_criteria": [{"id": "AC-1", "text": text}]})
+
+    for text in ("ein Test wird rot, ohne den Fix",
+                 "a test goes red without the fix",
+                 "Ohne den Fix wird ein Test rot.",
+                 "Without the fix a test goes red.",
+                 "der Regressionstest schlaegt fehl",
+                 "der Regressionstest schlägt fehl",
+                 "der Unittest wird rot",
+                 "noch ein Test wird rot"):
+        assert reads(text) is True, text
+
+    for text in (# a correlative, whole and in halves
+                 "Neither the test nor the probe goes red",
+                 "Weder ein Test noch ein Nachweis wird rot",
+                 "Neither of the tests goes red after the rename",
+                 "No fix ships; nor does a test go red",
+                 "Nothing makes a test go red",
+                 # ...a noun phrase that carries a second one inside it
+                 "Das Ergebnis wird ohne die Hilfe eines Tests rot",
+                 "Das Ergebnis wird ohne den Nachweis eines Tests rot",
+                 "The result goes red without the help of a test",
+                 "The result goes red without the support of any regression test",
+                 # ...a complement is as long as its noun phrase, not three words
+                 "Das Ergebnis wird ohne einen einzigen neuen Test rot",
+                 "Das Ergebnis wird ohne jeden weiteren neuen Regressionstest rot",
+                 "The result goes red without any new regression test",
+                 "The rename passes without a single new unit test",
+                 "Das Ergebnis wird ohne einen neuen Test rot",
+                 # ...and everything the earlier rounds already held
+                 "Ein Test wird niemals rot",
+                 "Ein Test wird nie rot",
+                 "Ein Test wird nirgends rot",
+                 "Ein Test wird nirgendwo rot",
+                 "die Abnahme erfolgt ohne Test, der Name bleibt",
+                 "das Ergebnis wird ohne Regressionstest rot",
+                 "the result goes red without a regression test",
+                 "kein Test schlaegt fehl nach dem Rename",
+                 "tests are not required here",
+                 "the rename is done; no test goes red after it",
+                 "the latest run passes",
+                 "der protest schlaegt fehl"):
+        assert reads(text) is False, text
+
+
+def test_every_listed_denial_word_is_the_reason_its_sentence_is_refused():
+    """BUG-0278's enumeration, held at BOTH ends -- and it is the list that fails DANGEROUSLY.
+
+    `_CLAUSAL_DENIERS` is what tells a sentence that DENIES a test from one that promises one, and
+    a word missing from it does not cost a refusal: it GRANTS the cheap rung on a sentence saying
+    the test never goes red. Three rounds of this item's verification found a hole in it three
+    times -- `nie`/`niemals`/`nirgend*`, then `nothing`, then each half of a correlative -- which
+    is why both ends are mechanical here.
+
+    END ONE -- EVERY ENTRY EARNS ITS PLACE: a sentence built from it carries a test word AND a
+    verdict, so it is refused ONLY because the entry denies; against a reader built WITHOUT that
+    entry the same sentence is granted. `nie` and `niemals` therefore both earn their place, since
+    a word boundary keeps `nie` out of `niemals`.
+
+    END TWO -- NO CORRELATIVE IS HALF COVERED: for every pair in `_CORRELATIVE_DENIERS` the OPENING
+    half must be a listed denier, because a half of a correlative is an ordinary negation. The
+    CLOSING half is not symmetric and is not derivable, so it carries a measured row per pair:
+    English `nor` denies alone and is listed, German `noch` does not ("noch ein Test wird rot"
+    promises a second test) and is absent.
+
+    WHAT THIS CANNOT SEE, and it is the reason the list keeps needing rounds: a word that is NOT in
+    it. No tripwire over a vocabulary finds the entry nobody wrote; that is what a reader with a
+    sentence in hand is for.
+    """
+    import re as _re
+
+    sentences = {"no": "no test goes red",
+                 "not": "a test does not go red",
+                 "never": "a test never goes red",
+                 "none": "none of the tests goes red",
+                 "nothing": "nothing makes a test go red",
+                 "neither": "neither of the tests goes red after the rename",
+                 "nor": "the fix ships; nor does a test go red",
+                 "nicht": "ein Test wird nicht rot",
+                 "nie": "ein Test wird nie rot",
+                 "niemals": "ein Test wird niemals rot",
+                 "kein*": "kein Test wird rot",
+                 "nirgend*": "ein Test wird nirgends rot",
+                 "weder": "weder ein Test wird rot"}
+    assert set(sentences) == set(dispatch._CLAUSAL_DENIERS), (
+        "a denial word without a measured sentence is an entry nothing holds: %s"
+        % (set(sentences) ^ set(dispatch._CLAUSAL_DENIERS)))
+
+    for word, sentence in sorted(sentences.items()):
+        assert dispatch._sentence_names_a_test(sentence) is False, (word, sentence)
+        without = _re.compile(
+            r"(?<![a-z0-9])(?:%s)(?![a-z0-9])"
+            % dispatch._word_alternation([one for one in dispatch._CLAUSAL_DENIERS if one != word]),
+            _re.IGNORECASE)
+        kept = dispatch._DENIES_RX
+        try:
+            dispatch._DENIES_RX = without
+            assert dispatch._sentence_names_a_test(sentence) is True, (
+                "%r is carried by another entry -- the sentence is refused without it" % word)
+        finally:
+            dispatch._DENIES_RX = kept
+
+    # ...and no correlative is half covered: the OPENING half of every pair is a listed denier.
+    closing = {("neither", "nor"): ("the fix ships; nor does a test go red", False),
+               ("weder", "noch"): ("noch ein Test wird rot", True)}
+    assert set(closing) == set(dispatch._CORRELATIVE_DENIERS), (
+        set(closing) ^ set(dispatch._CORRELATIVE_DENIERS))
+    for (opening, second), (sentence, promises) in sorted(closing.items()):
+        assert opening in dispatch._CLAUSAL_DENIERS, (
+            "%r opens a correlative and is not a listed denier, so the construction is only half "
+            "covered" % opening)
+        assert dispatch._sentence_names_a_test(sentence) is promises, (second, sentence)
+        assert (second in dispatch._CLAUSAL_DENIERS) is not promises, (
+            "%r is listed as a denier although it promises on its own, or the other way round"
+            % second)
 
 
 def test_the_acceptance_reader_needs_a_verdict_word_and_every_listed_one_earns_its_place():

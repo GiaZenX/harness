@@ -109,7 +109,18 @@ STAGING_DIRNAME = "staging"
 # rule the kernel enforces -- `gate_git` demands the same Evidence at the MERGE, which is a
 # different moment. Adding a row is all it takes; inventing one for a type whose required proof no
 # shipped text states would be the kernel making up policy.
-CONFIRMING_EVIDENCE = {"BUG": "test"}
+# WHICH TYPES OWE A PROOF ON THEIR CONFIRMING EDGE, and what kind of Evidence that proof is.
+#
+# `TSK` SINCE BUG-0150. The edge `DONE -> VALIDATED` says QA confirmed the work, and it demanded
+# nothing: a task could be validated with no verdict anywhere, and what stood in its place was a
+# validator WARNING -- a finding nobody is stopped by. The reason recorded for leaving it that way
+# was the V1 import (`V1_STATUS_MAPPING` maps `("TSK","VALIDATED")` onto itself) and a second
+# hole this would open in `migration_writable_statuses`; both are measured and both are answered.
+# The import does not walk the edge at all -- it writes through the migration door, which is why
+# the SECOND half had to be built in the same breath: that door now reads this map too, so the
+# guard cannot be walked around instead of met.
+# `tools/test_state.py::test_a_validated_task_owes_the_verdict_its_edge_says_it_has`
+CONFIRMING_EVIDENCE = {"BUG": "test", "TSK": "test"}
 
 # HOW THE KERNEL NAMES A FILE IT STORES PER REVISION -- composed and read back in ONE place.
 #
@@ -251,15 +262,15 @@ def migration_writable_statuses(item_type: str) -> frozenset:
         `approvals.required_approval_kinds` refuses an unapproved transition from;
       * the TSK RETRY rule -- `RETRY_APPROVAL_EDGE`, one datum read by this walk and by the
         transition path, rather than a condition spelled twice.
-    THE FOURTH IS NOT READ, AND WHAT THAT COSTS IS MEASURED RATHER THAN ASSUMED EITHER WAY:
-    `_assert_confirmed` demands the proof `CONFIRMING_EVIDENCE` names on a type's confirming edge,
-    and this walk does not consult it. On the shipped maps that costs NOTHING -- the only type
-    `CONFIRMING_EVIDENCE` covers is `BUG`, whose confirming edge ends at `VERIFIED`, and `VERIFIED`
-    already lies behind the `BUG` scope approval, so the approval bolt excludes it first. So this
-    is a guard that is not read rather than a status that escapes, and the difference matters:
-    adding a type to `CONFIRMING_EVIDENCE` whose confirming target IS reachable here would turn it
-    into the second thing without a line of this file changing.
-    `test_state.test_the_migration_write_set_reads_three_of_the_four_edge_guards` is what measures
+      * the CONFIRMING EVIDENCE -- `CONFIRMING_EVIDENCE` read as an edge set, since BUG-0150. It
+        used NOT to be read, and the note here said what that cost: nothing, because the only type
+        covered was `BUG` and its confirming target lay behind an approval anyway -- and that
+        "adding a type whose confirming target IS reachable here would turn a guard that is not
+        read into a status that escapes, without a line of this file changing". `TSK` is that type:
+        its confirming edge is `DONE -> VALIDATED`, and `VALIDATED` is reachable from `DRAFT`
+        without meeting an approval edge. So the fourth guard is read now, and the sentence above
+        became a built rule instead of a warning about one.
+    `test_state.test_the_migration_write_set_reads_all_four_edge_guards` is what measures
     that, in both directions, so this paragraph cannot quietly stop matching the maps.
 
     REACHABILITY RATHER THAN THE EDGE'S OWN TARGET, and that is the correction of 2026-08-04: this
@@ -300,6 +311,8 @@ def migration_writable_statuses(item_type: str) -> frozenset:
              if owner == item_type}
     if RETRY_APPROVAL_EDGE[0] == item_type:
         gated.add(RETRY_APPROVAL_EDGE[1:])
+    if item_type in CONFIRMING_EVIDENCE:
+        gated.add(confirming_edge(item_type))   # the fourth guard -- see the paragraph above
     reached, frontier = {automaton.initial}, [automaton.initial]
     while frontier:
         current = frontier.pop()
@@ -948,19 +961,87 @@ class ProjectState:
                 highest = max(highest, int(number[1:]))
         return highest
 
+    def _walk_stored_files(self, bounded=True):
+        """Every `*.yaml` under this state root -- active and archive alike, in a stable order.
+
+        THE ONE WALK both questions below share: "which items are stored here" and "which stored
+        files do not read". Two walks would answer the second about a tree the first had not seen.
+
+        BOUNDED BY THE SAME NUMBER THE DOCUMENT SCAN IS BOUNDED BY, and that was measured rather
+        than reasoned: this walk OPENS what it yields, `report.validate_state` asks it, and that
+        validator is reached by gates on a hook path with a time budget -- so a single business
+        export sitting in the state directory would be read in full on every merge. Over
+        `report.DOCUMENT_MAX_BYTES` a file is not yielded here; `oversized_stored_files` is the
+        other half, so it is not silent either
+        (`tools/test_migrate.py::test_the_two_remedies_that_still_move_a_file_differ_in_whether_the_file_was_read`
+        is what caught the unbounded first cut -- the over-sized document was opened by this walk
+        while the scan beside it was refusing to open it for exactly that reason).
+        """
+        from .report import DOCUMENT_MAX_BYTES    # local: `report` imports this module
+        # The walk runs over the EXTENDED path (Windows' long-path form) and yields the plain one:
+        # `ext_path` is how this kernel reaches a deep tree at all, and a caller that took the
+        # extended spelling home could not `os.path.relpath` it against the root -- measured as a
+        # `ValueError: path is on mount '\\\\?\\C:', start on mount 'C:'`.
+        base = ext_path(self.root)
+        for directory, _dirs, names in os.walk(base):
+            for name in sorted(names):
+                if not name.endswith(".yaml"):
+                    continue
+                path = os.path.join(self.root, os.path.relpath(directory, base), name)
+                if bounded and self._stored_size(path) > DOCUMENT_MAX_BYTES:
+                    continue
+                yield path
+
+    def _stored_size(self, path) -> int:
+        """This file's size, or 0 where it cannot be asked -- 0 keeps an unaskable file IN."""
+        try:
+            return os.path.getsize(ext_path(path))
+        except OSError:
+            return 0
+
+    def oversized_stored_files(self) -> list:
+        """[(path, size), ...] for every stored `*.yaml` the walk above refuses to OPEN.
+
+        THE OTHER HALF OF THE BOUND, so skipping is never silence: `report.validate_state` turns
+        each of these into its own finding, with the remedy the bound implies (split the file or
+        take it out of the state directory) rather than the one an unreadable file gets.
+        """
+        from .report import DOCUMENT_MAX_BYTES    # local: `report` imports this module
+        return [(path, self._stored_size(path))
+                for path in self._walk_stored_files(bounded=False)
+                if self._stored_size(path) > DOCUMENT_MAX_BYTES]
+
     def _iter_every_stored_item(self):
-        """Every readable item file under this state root -- active and archive alike."""
-        for base in (self.root,):
-            for directory, _dirs, names in os.walk(ext_path(base)):
-                for name in sorted(names):
-                    if not name.endswith(".yaml"):
-                        continue
-                    try:
-                        item = self._read_yaml(os.path.join(directory, name))
-                    except Exception:  # noqa: BLE001 -- an unreadable file is the validator's finding
-                        continue
-                    if isinstance(item, dict) and item.get("id"):
-                        yield item
+        """Every READABLE item file under this state root -- active and archive alike.
+
+        An unreadable file is skipped here and reported by `unreadable_stored_files`, which the
+        validator asks. Skipping it silently was the second residue of BUG-0236: an ARCHIVED hole
+        item with broken YAML vanished from all three hole checkers at once, and the active walk
+        that reports such a file never reaches the archive.
+        """
+        for path in self._walk_stored_files():
+            try:
+                item = self._read_yaml(path)
+            except Exception:  # noqa: BLE001 -- reported by `unreadable_stored_files`
+                continue
+            if isinstance(item, dict) and item.get("id"):
+                yield item
+
+    def unreadable_stored_files(self) -> list:
+        """[(path, why), ...] for every stored `*.yaml` this kernel cannot read.
+
+        BUG-0236's second residue: the item readers swallow the exception because they are asked
+        for items, and nobody asked the other half of the question. `report.validate_state` does
+        now, for the files its own active walk never opens.
+        `tools/test_report.py::test_an_unreadable_file_in_the_archive_is_a_finding_and_not_a_silence`
+        """
+        found = []
+        for path in self._walk_stored_files():
+            try:
+                self._read_yaml(path)
+            except Exception as exc:  # noqa: BLE001 -- the finding IS the exception
+                found.append((path, "%s: %s" % (type(exc).__name__, exc)))
+        return found
 
     def next_hole_number(self) -> str:
         """The number the next hole would get -- the same answer `capture(hole=True)` stamps."""
@@ -1550,8 +1631,8 @@ class ProjectState:
             "is what turns a fix into a verification -- without it the status says the bug is gone "
             "and nothing measured that. Remedy: run the test that fails before the fix and passes "
             "after it, then record the run: `python scripts/harness.py evidence --kind %s "
-            "--result pass --related %s --summary ... --artifact-ref <path to the raw proof>`, "
-            "from the project root."
+            "--result pass --related %s --summary ... --artifact-ref <path to the raw proof> "
+            "--run-command \"<the line you ran>\" --run-scope selection`, from the project root."
             % (item_id, from_status, to_status, kind, item_id,
                "the current %r verdict is %r" % (kind, verdict.get("result")) if verdict
                else "there is none",
@@ -1614,6 +1695,24 @@ class ProjectState:
         The item BODIES this loop already reads travel to the renderer, so the second reader the
         board would otherwise need does not exist and the two cannot report different states.
         """
+        rows, entries = self.board_entries()
+        # ONE timestamp for both files, so "the board is as old as the index" is a fact a reader can
+        # check rather than a claim: two calls to the clock would differ by a second often enough.
+        generated_at = _now_iso()
+        index_path = self.generated_path("index.yaml")
+        self._write_yaml_atomic(index_path, {"generated_at": generated_at, "items": rows})
+        self._write_board(entries, generated_at)
+        return index_path
+
+    def board_entries(self) -> tuple:
+        """(rows, entries) -- the one reading of the store both the index and the pictures use.
+
+        PUBLIC BECAUSE A SECOND CALLER ASKS THE SAME QUESTION: `report.validate_state` judges the
+        generated diagrams against the state they were rendered from (BUG-0211), and a reader of
+        its own would be a second answer to "what is in this store" -- the defect this method's own
+        loop already carries a note about.
+        `tools/test_report.py::test_a_hand_edited_diagram_is_reported_and_a_missing_one_is_not`
+        """
         rows = []
         entries = []
         for item_type in sorted(ACTIVE_DIRS):
@@ -1625,30 +1724,36 @@ class ProjectState:
                     item = self._read_yaml(path)
                 except Exception:
                     item = None
-                if not isinstance(item, dict):
-                    row = {"id": stem, "type": item_type, "corrupt": True}
-                    rows.append(row)
-                    entries.append((row, None))
-                    continue
-                row = {
-                    "id": item.get("id", stem),
-                    "type": item_type,
-                    "title": item.get("title"),
-                    "status": item.get("status"),
-                    "revision": item.get("revision"),
-                    "approval_ref": item.get("approval_ref"),
-                }
-                if item.get("blocked_by"):
-                    row["blocked_by"] = item["blocked_by"]
+                row = self.board_row(item_type, stem, item)
                 rows.append(row)
-                entries.append((row, item))
-        # ONE timestamp for both files, so "the board is as old as the index" is a fact a reader can
-        # check rather than a claim: two calls to the clock would differ by a second often enough.
-        generated_at = _now_iso()
-        index_path = self.generated_path("index.yaml")
-        self._write_yaml_atomic(index_path, {"generated_at": generated_at, "items": rows})
-        self._write_board(entries, generated_at)
-        return index_path
+                entries.append((row, item if isinstance(item, dict) else None))
+        return rows, entries
+
+    @staticmethod
+    def board_row(item_type: str, stem: str, item) -> dict:
+        """The index/board row for ONE item -- the single definition of that shape.
+
+        A SECOND CALLER WITH THE SAME READING: `report.validate_state` walks every active item
+        already, so judging the generated pictures (BUG-0211) needs no second walk of the store --
+        measured on this repository's own state, 0.65 s for 642 items, which is what a walk of its
+        own would have added to the validator every merge gate waits for. What it must NOT have is
+        a second copy of the row shape: the digest the pictures carry is taken over these rows, so
+        two shapes would read every picture as hand-edited.
+        `tools/test_report.py::test_a_hand_edited_diagram_is_reported_and_a_missing_one_is_not`
+        """
+        if not isinstance(item, dict):
+            return {"id": stem, "type": item_type, "corrupt": True}
+        row = {
+            "id": item.get("id", stem),
+            "type": item_type,
+            "title": item.get("title"),
+            "status": item.get("status"),
+            "revision": item.get("revision"),
+            "approval_ref": item.get("approval_ref"),
+        }
+        if item.get("blocked_by"):
+            row["blocked_by"] = item["blocked_by"]
+        return row
 
     def _write_board(self, entries: list, generated_at: str) -> None:
         """Render `generated/<board.FILENAME>` -- and never let it fail a state write.

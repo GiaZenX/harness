@@ -67,10 +67,11 @@ Das dev-Kit trifft das nie: dort ist jeder Aufgaben-Ursprung genau eine Ebene un
 (`PR → SR → TSK`, `PR → BUG`, `PR → CR`). Das research-Kit ist das einzige ausgelieferte Kit, dessen
 Kette tief genug ist, dass die beiden Leser auseinanderfallen — deshalb hat es nie ein Test gesehen.
 
-Nicht behoben (Kernel gehört nicht diesem Stream). Als laufende Messung festgehalten in
-`tools/test_research_chain.py::test_a_task_on_an_experiment_cannot_name_the_question_the_experiment_hangs_from`;
-der Test wird laut, sobald die Lücke geschlossen ist (gemessen: mit transitiver Auflösung im Klon
-fällt er mit `assert 0 == 1`).
+Nicht behoben in DIESER Runde (Kernel gehört nicht diesem Stream). Der Test, der die Stelle
+hält, ist `tools/test_research_chain.py::test_a_task_may_name_an_experiment_two_levels_under_the_question_it_serves`
+-- er maß damals das Gegenteil als geltendes Verhalten und sagte im eigenen Docstring, dass er am
+Tag der transitiven Auflösung umzudrehen sei; mit `BUG-0083` ist das geschehen, und der Name, den
+dieser Bericht am 2026-09-01 nannte, gibt es seither nicht mehr.
 
 ## R2 — Der Ausweg, den die Verweigerung nennt, endet zwei Schritte später in einer Sackgasse
 

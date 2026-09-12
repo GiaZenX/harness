@@ -1,0 +1,19 @@
+id: EVD-0382
+kind: test
+related:
+- BUG-0218
+result: pass
+summary: 'H135 reworked (verifier B3): the remaining class the verifier measured by
+  brute force -- a wildcard-free entry is a DIRECTORY PREFIX to the gate and was a
+  literal to _unify, so every pairing of it with a glob entry was blind over an empty
+  tree -- is closed by offering both readings; all six measured pairs now yield a
+  witness, three disjoint pairs still yield none, and the live cut is still disjoint.
+  The header paragraph claiming the old class was replaced'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_parallel_scopes.py::test_a_wildcard_free_entry_is_offered_as_the_directory_prefix_the_gate_reads
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:38:13'

@@ -1,0 +1,20 @@
+id: EVD-0395
+kind: test
+related:
+- BUG-0186
+result: pass
+summary: 'REWORK (verifier B3): the withdrawn sentence stood in research-team/agents/report-writer.md,
+  the page that is INJECTED at every spawn, while the correction lived in the skill,
+  which the same file calls registered-not-injected. The role file now names freeze-report
+  as the only route into reports/, and the contract test reads BOTH pages plus the
+  shipped parser. Red-first in the rig with the skill fixed and the role file pristine:
+  1 failed naming agents/report-writer.md. EVD-0376 stands for the skill half; this
+  records the page the role reads first.'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_role_contracts.py::test_the_report_writer_is_told_the_command_that_files_its_render
+  -q -p no:randomly
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T13:07:10'

@@ -13,12 +13,20 @@ Rebuild it with:
 Then open dashboards/finanzen.html by double-click. The page needs no network and no server; it
 carries its own style and its one script.
 
-IT DOES NOT REBUILD ITSELF YET. Nothing runs that command for you today, so after a booking the
-page is as old as its last run, and NOTHING ON THE PAGE RELIABLY SAYS SO. The masthead prints the
-youngest date the ledger carries ("Datenstand"), which moves only when the new booking is younger
-than everything before it: enter a June receipt in September and the page is stale with an
-unchanged masthead (measured 2026-09-02). So the rule is the run, not the reading: run the command
-after a booking session, or whenever the numbers should be current.
+IT REBUILDS ITSELF AFTER A BOOKING, and only then. The kit's ledger hook runs the command above
+for you as soon as a tool call has changed a ledger file — a booking through
+scripts/ledger_add.py, a shell line that writes the file, or a direct edit of it. That is the
+whole trigger: a change made OUTSIDE a tool call (the file opened in a spreadsheet and saved
+there, a pull that brings someone else's rows in) starts nothing, and then the page is as old as
+its last run. Nothing on the page reliably says so either — the masthead prints the youngest date
+the ledger carries ("Datenstand"), which moves only when the new booking is younger than
+everything before it: enter a June receipt in September and the page is stale with an unchanged
+masthead (measured 2026-09-02). So for anything that did not come through a tool call, the rule is
+still the run and not the reading.
+
+If the rebuild itself fails — no Python, a renderer that errors, a machine too busy to finish it
+within the hook's own 20 s — the hook says so in its note and leaves the old page standing. It
+never blocks the booking for it.
 
 EDITING THE PAGE IS POINTLESS AND WORSE THAN POINTLESS: the next run overwrites it, and a
 hand-edited figure would be a number in this project that no ledger row backs. Change the data, or

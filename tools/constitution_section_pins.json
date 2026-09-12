@@ -179,7 +179,7 @@
         "hooks": []
       },
       "1. What each mechanism refuses": {
-        "digest": "48d7a6b773681d17",
+        "digest": "70f10c9a1b051e53",
         "hooks": [
           "clear_handover_marker",
           "format_on_write",

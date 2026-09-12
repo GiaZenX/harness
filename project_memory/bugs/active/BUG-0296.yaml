@@ -1,0 +1,36 @@
+id: BUG-0296
+title: Der mehrdeutige deutsche Genitivartikel (`der`, `einer`) beendet ein Präpositionskomplement
+  zu früh -- eine so formulierte Verneinung kauft die billige Sprosse
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-12 (TSK-0141 verify round 4): `acceptance_is_test_shaped(''Das
+  Ergebnis wird ohne den Nachweis der Tests rot'') = True` -- read as a promise although
+  the sentence denies a test. kernel/dispatch.py:2956-2961 declares the remainder
+  at the rule, dangerous direction first: the complement runs on through an unambiguous
+  genitive article (`des`, `eines`, `dessen`, `deren`) and through English `of`, but
+  `der`/`einer` are also nominative/dative and nothing here can decide the case. Direction:
+  the cheap rung is granted (dangerous). The four-round history of this reader (H194/BUG-0278:
+  niemals/nirgends, neither/nor, of-postmodifier, now this) is the class signal: a
+  word inventory over a natural language never finishes; the two-ended tripwire cannot
+  see a MISSING word.'
+expected: 'Either a case reading that resolves `der`/`einer` from context (measured,
+  not guessed) or the acceptance-line reader stops deciding rungs on natural-language
+  negation at all and asks for the test-shaped form explicitly (DEC-first: the class
+  question, DEC-0070 (2)).'
+repro: PYTHONPATH=team-kits python -c "from kernel import dispatch; print(dispatch.acceptance_is_test_shaped('Das
+  Ergebnis wird ohne den Nachweis der Tests rot'))" -> True
+severity: low
+acceptance_criteria:
+- 'AC-1: the sentence above is refused, red-first, without turning ''Ohne den Fix
+  wird ein Test rot'' into a refusal'
+- 'AC-2: the decision whether the reader keeps judging natural language is recorded
+  as a DEC before any further word is added'
+source: staging/TSK-0141/verify-round-4.md (remainder 1); kernel/dispatch.py:2956
+limits: 'Ein Satz, der eine Prüfung mit einem doppeldeutigen deutschen Artikel verneint
+  („ohne den Nachweis der Tests“), wird als Zusage gelesen und bekommt die günstigere
+  Modellstufe. Begrenzt: der Auftrag läuft dann nur auf einer billigeren Stufe, nichts
+  wird geschrieben oder freigegeben; die Stelle steht im Code benannt.'
+hole_number: H212
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T14:03:16'

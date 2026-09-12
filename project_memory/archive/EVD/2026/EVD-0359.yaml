@@ -1,0 +1,25 @@
+id: EVD-0359
+kind: test
+related:
+- BUG-0263
+result: pass
+summary: 'H181 closed: fenced blocks are blanked to spaces of the same length before
+  single backticks are paired, so one fence no longer hides every citation below it.
+  Judged corpus 150 -> 654 over this tree, and exactly the THREE citations the item
+  predicted surfaced and were repaired. Red-first: mutate bug_0263 (readable = text)
+  1 failed on the drive; and the item''s own repro -- a node id below the fence of
+  docs/office-kit-from-field.md replaced by a name no suite defines -- is 1 failed
+  with the fix and 1 PASSED in 87.19 s with the defect. 5 passed in 114.05 s.'
+artifact_refs:
+- staging/TSK-0143/protocol.md
+run_command: python -B -m pytest "tools/test_repo_hygiene.py::test_no_tool_trace_lies_unaccounted_for_in_the_repo_root"
+  "tools/test_repo_hygiene.py::test_git_tracks_no_ignored_file_outside_canonical_state"
+  "tools/test_repo_hygiene.py::test_no_pairing_shift_blinds_the_pointer_sweep_for_the_rest_of_a_file"
+  "tools/test_repo_hygiene.py::test_every_test_pointer_this_repo_writes_resolves"
+  "tools/test_repo_hygiene.py::test_the_test_pointer_reader_reads_the_shapes_a_kit_file_writes"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:04:20'
+closed_at: '2026-09-12T13:20:53'

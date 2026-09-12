@@ -1,0 +1,18 @@
+id: EVD-0386
+kind: test
+related:
+- BUG-0150
+result: pass
+summary: 'H58 built with its migration (the lead''s rework order): TSK joins CONFIRMING_EVIDENCE,
+  so DONE to VALIDATED owes the test verdict its edge claims; migration_writable_statuses
+  reads that fourth guard now, so the door cannot be walked around; and the V1 row
+  that mapped VALIDATED onto itself lands at DONE with the V1 word in the legacy field
+  -- the import states no verdict nobody made'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_state.py::test_a_validated_task_owes_the_verdict_its_edge_says_it_has
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:38:41'

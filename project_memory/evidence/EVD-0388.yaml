@@ -1,0 +1,18 @@
+id: EVD-0388
+kind: test
+related:
+- BUG-0192
+result: pass
+summary: 'H108 parser half applied (S2): --run-command and --run-scope are required
+  on the evidence surface, so no NEW record can stay silent about the run it reports;
+  the reading end stays untouched because an EVD is immutable. Stream B added the
+  pair to its 17 kit call sites and I added the two spelled-out calls in kernel/staging.py
+  and kernel/state.py -- the reading test is green again'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_report.py::test_no_new_evidence_can_stay_silent_about_the_run_it_records
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:38:45'

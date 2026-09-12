@@ -1236,6 +1236,163 @@ def test_a_filing_rule_is_written_only_when_the_user_approved_exactly_it(tmp_pat
     assert len(filing.existing_rules(state)) == 1
 
 
+def test_a_filing_rule_with_no_countable_retention_can_be_asked_for(tmp_path):
+    """BUG-0213: the plan's second honest retention was unreachable through the sanctioned route.
+
+    `filing.retention_refusal` allows two forms -- a span the deadline register can count, and NONE
+    at all for a drawer whose clock does not start at the end of a year -- and the plan's own
+    header documents both. The manifest builder in front of it read "empty" as "not said" and
+    refused the QUESTION, so no approval for the second form could ever be minted and only a
+    hand-written rule could carry it.
+
+    NOT SAID AND SAID-TO-BE-EMPTY ARE THE TWO ANSWERS, and the counterweight is in the same test:
+    the flag nobody typed (`None`) is still refused, because the point of that refusal is that the
+    kernel must not fill in a decision the user owes. And the question has to READ like a decision:
+    an empty retention renders as words, never as the `?` a missing answer gets.
+    """
+    import sys as _sys
+
+    _sys.path.insert(0, TEAM_KITS_DIR)
+    from kernel import approvals
+
+    fields = dict(rule_id="FP-900", path_template="archive/<Jahr>",
+                  document_types=["contract"], filename_template="<Datum>-<Titel>.pdf",
+                  reason="Verträge ohne zählbare Frist")
+
+    manifest = approvals.filing_rule_subject_manifest(retention="", **fields)
+    assert manifest["retention"] == "", manifest
+    with pytest.raises(approvals.ApprovalError) as refused:
+        approvals.filing_rule_subject_manifest(retention=None, **fields)
+    assert "retention" in str(refused.value), refused.value
+
+    question = approvals._filing_rule_target_form(manifest)
+    assert "keine zählbare Frist" in question, question
+    assert "Aufbewahrung: ?" not in question, question
+
+
+def test_a_citation_that_names_no_test_stops_the_run_before_it_writes(tmp_path, monkeypatch):
+    """BUG-0246: the defect was the ORDER -- the judge ran after the item was already in the store.
+
+    `holes.cited_tests` reads a code span the prose wrote, so a name that looks like a test buys an
+    entry a `regression_tests` line. The judge that notices lives downstream, and this migration is
+    IDEMPOTENT: once written, a second run answers "already in the store" and repairs nothing, so
+    the record had to be repaired by hand. The question is asked in front of the write now.
+
+    MEASURED WHILE BUILDING THIS, and it narrows the item: the module-name case the entry names
+    (`tools/test_one.py` in backticks) is ALREADY dropped by `cited_tests` -- its citation splitter
+    leaves the tail `py`, which does not start with `test_`. What still gets through is a plain
+    name that resolves to no test at all, or to several; both are rows below.
+
+    THE ORDER IS WHAT IS MEASURED, not the message: `capture_migrated_hole` is replaced by one that
+    fails if it is ever reached, and the run stops with the citation in its refusal. The
+    counterweights are in the same test -- a citation that resolves to exactly one test writes, and
+    a bare name that matches SEVERAL modules is refused for the same reason a name that matches
+    none is (the item would claim a cover no reader can point at).
+    """
+    import sys as _sys
+
+    _sys.path.insert(0, TEAM_KITS_DIR)
+    from kernel import holes
+    from kernel.state import ProjectState
+
+    repo = tmp_path / "repo"
+    (repo / "tools").mkdir(parents=True)
+    (repo / "other").mkdir()
+    (repo / "tools" / "test_one.py").write_text(
+        "def test_only_here():\n    pass\n\n\ndef test_in_both():\n    pass\n", encoding="utf-8")
+    (repo / "other" / "test_two.py").write_text(
+        "def test_in_both():\n    pass\n", encoding="utf-8")
+
+    assert holes.citation_resolution(str(repo), "test_only_here") == ["tools/test_one.py::test_only_here"]
+    assert holes.citation_resolution(str(repo), "tools/test_one.py::test_only_here") == [
+        "tools/test_one.py::test_only_here"]
+    assert holes.citation_resolution(str(repo), "tools/test_one.py") == []
+    assert len(holes.citation_resolution(str(repo), "test_in_both")) == 2
+
+    holes._assert_every_citation_resolves(str(repo), "H1", ["test_only_here"])
+    for citation in ("tools/test_one.py", "test_in_both", "test_not_anywhere"):
+        with pytest.raises(SystemExit) as refused:
+            holes._assert_every_citation_resolves(str(repo), "H1", [citation])
+        assert citation in str(refused.value), refused.value
+
+    # ...and a checkout that declares no test module at all is not asked, because there every
+    # citation resolves to nothing and a refusal would be about the checkout
+    holes._assert_every_citation_resolves(str(tmp_path / "empty"), "H1", ["test_not_anywhere"])
+
+    # ...and the ORDER: the run stops before anything is captured
+    (repo / "project_memory").mkdir()
+    state = ProjectState(str(repo / "project_memory"))
+    document = repo / "WISHLIST.md"
+    document.write_text(
+        "## 12. Loecher\n\n"
+        "| H1 | offen | keine |\n\n"
+        "### H1 -- eine Luecke\n\n"
+        "Mechanismus: irgendetwas, rot ohne den Fix in `test_not_anywhere`.\n",
+        encoding="utf-8")
+
+    def refuse_to_be_reached(*_args, **_keywords):
+        raise AssertionError("the item was written before its citations were judged")
+
+    monkeypatch.setattr(ProjectState, "capture_migrated_hole", refuse_to_be_reached)
+    with pytest.raises(SystemExit) as stopped:
+        holes.migrate(state, str(document), "PR-0001", apply=True)
+    assert "test_not_anywhere" in str(stopped.value), stopped.value
+
+
+def test_a_filing_profile_that_answers_nothing_is_told_apart_from_full_coverage(tmp_path):
+    """BUG-0152: an interview nobody walked read exactly like a plan that covers everything.
+
+    `uncovered_document_sources` answers "which sources have no rule", and it answered the EMPTY
+    LIST both when every source was covered and when there was nothing to compare -- so the office
+    session briefing said nothing at a project whose profile named no source at all. The third
+    answer is the one this kernel gives everywhere else, and `kitupdate.pending_entries` was given
+    exactly it in the same round: not read is not empty.
+
+    FOUR ROWS, and the last two are the counterweights: a profile that names sources AND a plan
+    that covers them is compared and silent, so the finding cannot be read as "always noisy"; and a
+    project with NO profile at all is not judged, because the file belongs to the office kit and a
+    dev project has no interview to walk.
+    """
+    import sys as _sys
+
+    _sys.path.insert(0, TEAM_KITS_DIR)
+    from kernel import filing, report
+    from kernel.state import ProjectState
+
+    root = _office_state(tmp_path)
+    state = ProjectState(root)
+    profile = os.path.join(root, filing.PROFILE)
+    # A PLAN WITH RULES FIRST, because the bound is part of the answer: a fresh project ships plan
+    # and profile both empty, the interview fills both, and `gate_filing` fails closed on a
+    # ruleless plan at the first document. The state this finding is about is documents being
+    # filed under real rules while nobody recorded what the business receives.
+    filing.apply(state, _approved_rule(state, retention="8y (§ 147 AO)"))
+
+    def told():
+        return [f["message"] for f in report.validate_state(state)
+                if f["item"] == "filing" and "not compared" in f["message"]]
+
+    with open(profile, "w", encoding="utf-8") as handle:
+        handle.write("company: Muster GmbH\n")
+    assert filing.coverage_not_compared(state), "a profile naming no source compares nothing"
+    assert len(told()) == 1, report.validate_state(state)
+
+    with open(profile, "w", encoding="utf-8") as handle:
+        handle.write("company: Muster GmbH\n  broken: [\n")
+    assert "does not read" in (filing.coverage_not_compared(state) or ""), "an unreadable profile"
+    assert len(told()) == 1
+
+    with open(profile, "w", encoding="utf-8") as handle:
+        handle.write("%s:\n  - what: Eingangsrechnungen\n    %s: [invoice]\n"
+                     % (filing.SOURCES, filing.RULE_TYPES))
+    assert filing.coverage_not_compared(state) is None, "a walked interview IS compared"
+    assert told() == [], report.validate_state(state)
+
+    os.remove(profile)
+    assert filing.coverage_not_compared(state) is None, "no profile, no interview, no finding"
+    assert told() == []
+
+
 def test_a_retention_the_deadline_register_cannot_read_is_refused_before_it_reaches_the_plan(
         tmp_path):
     """F6 of TSK-0113: `add-filing-rule` used to take any retention text and write it.
@@ -1273,14 +1430,15 @@ def test_a_retention_the_deadline_register_cannot_read_is_refused_before_it_reac
     filing.apply(state, _approved_rule(state, retention="8y (\u00a7 147 AO)"))
     assert [rule["retention"] for rule in filing.existing_rules(state)] == ["8y (\u00a7 147 AO)"]
 
-    # THE SECOND HONEST FORM IS UNREACHABLE THROUGH THIS ROUTE, and that is measured rather than
-    # assumed: the reader accepts an empty retention (the plan's own header calls it legitimate for
-    # a tray), but `approvals.filing_rule_subject_manifest` refuses to even ASK for a rule without
-    # one, so no approval can exist for it and `filing.apply` is never reached. That is a residual
-    # of this round (`H130` in docs/POST_V2_WISHLIST.md), owned by a file this stream may not write.
+    # THE SECOND HONEST FORM IS REACHABLE SINCE BUG-0213: the reader accepts an empty retention
+    # (the plan's own header calls it legitimate for a tray whose clock does not start at the end
+    # of a year), and the manifest builder now tells "the flag nobody typed" from "the flag typed
+    # empty" instead of reading both as falsy. The whole route, including the question, is measured
+    # in `test_a_filing_rule_with_no_countable_retention_can_be_asked_for`.
     assert filing.retention_refusal("") is None and filing.retention_refusal(None) is None
-    with pytest.raises(approvals.ApprovalError):
-        approvals.filing_rule_subject_manifest(**_rule_flags(retention=""))
+    assert approvals.filing_rule_subject_manifest(**_rule_flags(retention=""))["retention"] == ""
+    filing.apply(state, _approved_rule(state, retention="", rule_id="FP-901"))
+    assert "" in [rule["retention"] for rule in filing.existing_rules(state)]
 
 
 def _draft_retention_placeholder():

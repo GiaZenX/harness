@@ -1,0 +1,3 @@
+{
+  "limits": "Der Leser der drei Rollentexte prüft seit dieser Runde auch Pfade: zeigt ein Satz auf eine Datei, die es nicht gibt, wird er rot. Was er weiter nicht sieht: einen Testnamen, den niemand als Code markiert hat, und eine Behauptung, die gar keinen Test nennt. Beides mit Absicht -- ein Leser ohne diese Markierung würde bei normalem Fließtext Alarm schlagen."
+}

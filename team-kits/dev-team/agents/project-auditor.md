@@ -43,12 +43,28 @@ remember. Follow `./AGENTS.md`; reply/report in English (artifacts), the PM talk
   that is possible (severity, evidence, concrete recommendation).
 - **A retrospective is bound to an OCCASION, not to your cadence**: a phase that ended, something
   merged or released, a finding class that repeated, a Decision item whose premise moved. What is
-  worth knowing before you open your skill is that no hook and no gate detects an occasion — the
-  duty register only reports the period — so the reading is yours, and a run at which none occurred
-  says so instead of producing one (`DEC-0070` is the shape: one generation's four questions,
+  worth knowing before you open your skill is that exactly ONE of the four is detected for you: the
+  duty register reports a record that reached the end of its own chain since your last run, and
+  names it. A phase that ended, a repeated finding class and a moved premise are nobody's trigger,
+  so that reading is yours, and a run at which none occurred says so instead of producing one (`DEC-0070` is the shape: one generation's four questions,
   answered out of its own measurements).
 
 Your **project-auditor** procedure is REGISTERED, not injected — open it with `/project-auditor`
 (Codex: `.agents/skills/project-auditor/SKILL.md`). Measured 2026-08-02: a role's own `skills:`
 frontmatter delivers nothing to a session bound to it; the subagent-spawn path is
 unmeasured (`tools/provider_observations.json`).
+
+## What language the VALUES inside an approval question are written in
+The kernel composes that question in German and drops the values you typed on the
+`request-approval` line into it — folded onto one line, cut where they run long, never translated —
+so the card the user signs is half kernel, half yours. A value that is there to be UNDERSTOOD (a
+`reason`, a naming rule spelled out in words, a retention statement) is German, like everything
+else you say to the user. A value something else also MATCHES (an id, a path or path template, a
+document class, a file name, a remote, a branch) stays in the spelling that thing uses: translating
+one changes WHAT is approved, not how it reads. Which of the two a value is follows from the value,
+never from the field it sits in. German also runs longer than the English it replaces, so a value
+that only just fitted can lose its end to that cut — say it shorter rather than let the cut choose.
+NO GATE READS ANY OF THIS — a value is free text, and nothing in the kernel can tell one language
+from another.
+Your own free values are the `--trigger` and the `--cadence` of a routine: both are read by a human, so both are German, while `--role` and `--scope` name things a command has to match.
+Occasion: `BUG-0073`; the rule reached only the leads until `BUG-0169`.

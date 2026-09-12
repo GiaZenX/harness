@@ -147,6 +147,39 @@ def _read_yaml(path):
 _duty = _routine.duty
 
 
+def business_today(root):
+    """(date, unreadable-line) — today in the BUSINESS's own time zone (BUG-0208).
+
+    Until this existed the register read `datetime.date.today()`, so the answer belonged to whatever
+    machine the session ran on: two machines in two zones answered the same question with two
+    different dates, and nothing declared whose day was meant. `business.timezone` in the profile is
+    that declaration, and it is the user's own field like every other source this register reads.
+
+    THREE ANSWERS, and the third is the one that must not be silent: no declaration -> this
+    machine's zone (the usual case, and the profile's comment says so); a resolvable IANA name ->
+    that zone's date; a name this machine cannot resolve -> this machine's date PLUS a line for
+    `unreadable`, because a deadline computed against a clock nobody asked for is exactly the
+    quiet wrong answer the register exists to avoid.
+
+    WHAT THIS DOES NOT MOVE, said here rather than left to be found: the register is computed once,
+    at SessionStart, so a session that runs past midnight keeps the answer it started with. That is
+    a property of the event and not of this reader -- there is no second occasion to read the clock
+    at.
+    """
+    profile = _read_yaml(os.path.join(_state_dir(root), PROFILE))
+    section = (profile or {}).get("business") if isinstance(profile, dict) else None
+    zone = str((section or {}).get("timezone") or "").strip() if isinstance(section, dict) else ""
+    if not zone:
+        return datetime.date.today(), None
+    try:
+        from zoneinfo import ZoneInfo  # noqa: PLC0415 — stdlib since 3.9; the kit runs on 3.8 too
+        return datetime.datetime.now(ZoneInfo(zone)).date(), None
+    except BaseException as exc:  # noqa: BLE001 — an unresolvable zone is a reported fact
+        return datetime.date.today(), (
+            "%s declares business.timezone %r, which this machine cannot resolve (%s), so every "
+            "date in this register is this machine's own" % (PROFILE, zone, exc.__class__.__name__))
+
+
 def is_overdue(duty, today):
     return duty["due"] is not None and duty["due"] < today
 
@@ -511,9 +544,12 @@ def register(root, today=None, budget=None):
     Every duty carries the `feed` that found it, which is what lets `_named_fairly` share the
     briefing's slots out by source rather than by date.
     """
-    today = today or datetime.date.today()
-    deadline = time.monotonic() + (TOTAL_BUDGET if budget is None else budget)
     duties, unreadable = [], []
+    if today is None:
+        today, zone_problem = business_today(root)
+        if zone_problem:
+            unreadable.append(zone_problem)
+    deadline = time.monotonic() + (TOTAL_BUDGET if budget is None else budget)
     for feed in FEEDS:
         if time.monotonic() > deadline:
             unreadable.append(
@@ -570,8 +606,14 @@ def briefing(root, today=None):
     decides whether it may act — and every other feed of this kit that names a deadline is an
     approval-before-action surface too.
     """
-    today = today or datetime.date.today()
+    # THE CLOCK IS READ ONCE per briefing and handed down: two reads could fall on either side of a
+    # midnight, and then the paragraph would call a duty overdue that its own list dates tomorrow.
+    zone_problem = None
+    if today is None:
+        today, zone_problem = business_today(root)
     duties, unreadable = register(root, today)
+    if zone_problem:
+        unreadable.insert(0, zone_problem)
     if not duties and not unreadable:
         return ""
     parts = []

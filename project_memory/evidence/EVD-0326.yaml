@@ -1,0 +1,17 @@
+id: EVD-0326
+kind: test
+related:
+- BUG-0211
+result: pass
+summary: 'H127 closed: report.validate_state now judges the generated diagrams through
+  plan_diagram.verdicts -- hand-edited and stale are warnings with their own remedies,
+  a missing file is not judged; the rows come from the walk validate_state already
+  does (ProjectState.board_row), measured 0.65 s saved on 642 items'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_report.py::test_a_hand_edited_diagram_is_reported_and_a_missing_one_is_not
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:08:50'

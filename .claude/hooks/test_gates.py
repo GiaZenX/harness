@@ -123,6 +123,30 @@ def _reader():
     return _harness
 
 
+def _a_sandbox_as_a_line_leaves_it(base):
+    """`(the probe tree, the relative paths it holds)` -- the watch list, built WITHOUT a shell.
+
+    BOTH FILES ARE MADE HERE, IN PYTHON, and that is the whole of BUG-0137 (a): `_sandbox` makes
+    the free file, and the protected one used to be made by handing an EMPTY line (`:`) to an
+    arbitrated shell. The line did nothing -- the helper writes the file before it runs anything --
+    so a guard that runs no line of its own made the entire suite depend on this host carrying a
+    shell that reads this filesystem back. Measured by the verifier of TSK-0063 on a PATH without
+    Git: rc 1 with four ERRORs, and those four were the registration checks, which read
+    `.claude/settings.json` and nothing else. The shell requirement belongs where a line really
+    runs, and there it stands (`_can_arbitrate`).
+
+    Held by `test_the_session_guards_watch_list_is_built_without_a_shell`.
+    """
+    probe = _sandbox(base, 0)
+    subject = os.path.join(probe, *RELATIVE_TARGET.split("/"))
+    os.makedirs(os.path.dirname(subject), exist_ok=True)
+    with open(subject, "w", encoding="utf-8") as handle:
+        handle.write("a")
+    return probe, sorted(
+        os.path.relpath(os.path.join(root, name), probe).replace("\\", "/")
+        for root, _dirs, names in os.walk(probe) for name in names)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def the_repo_is_not_a_sandbox(tmp_path_factory):
     """This suite runs REAL shell lines, and every one of them names its target RELATIVELY.
@@ -145,20 +169,11 @@ def the_repo_is_not_a_sandbox(tmp_path_factory):
     suite runs -- this repo is worked on by more than one agent. The message says both; either way
     the run measured a tree that moved under it.
     """
-    probe = _sandbox(str(tmp_path_factory.mktemp("canary")), 0)
-    shell = next((candidate for candidate in _posix_shells()
-                  if _sees_this_filesystem(candidate, probe)), None)
-    assert shell is not None, (
-        "no shell on this host reads back a file this process writes (%s), so the line below never "
-        "runs and the walk after it finds a list this guard did not build" % (_posix_shells(),))
-    # `_sandbox` makes the FREE file; the protected one is made by the helper that runs a line
-    # in it, so the list is taken after both have had their say. Without this the walk found
-    # only `docs/note.md`, which this repo does not have -- measured 2026-08-07, the guard was
-    # green while the escaping run really rewrote the tree.
-    _changes_the_protected_file(shell, probe, ":")
-    watched = sorted(
-        os.path.relpath(os.path.join(root, name), probe).replace("\\", "/")
-        for root, _dirs, names in os.walk(probe) for name in names)
+    # BOTH FILES A SANDBOX HOLDS, and why neither of them is left to a shell, is
+    # `_a_sandbox_as_a_line_leaves_it`. Without the second file the walk found only `docs/note.md`,
+    # which this repo does not have -- measured 2026-08-07, the guard was green while the escaping
+    # run really rewrote the tree.
+    _probe, watched = _a_sandbox_as_a_line_leaves_it(str(tmp_path_factory.mktemp("canary")))
     before = {relative: _digest(os.path.join(ROOT, *relative.split("/")))
               for relative in watched}
     assert [relative for relative in watched if before[relative] is not None], (
@@ -444,6 +459,19 @@ EXPECTED_TOOLS = {
 WRITE_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
 SHELL_TOOLS = {"Bash", "PowerShell"}
 
+# WHAT A RECORDED VERDICT OWES SINCE GENERATION 6, in ONE place because nine calls in this file
+# make it. `kernel.cli evidence` requires `--run-command` and `--run-scope`: an evidence that does
+# not say what was run records a verdict nobody can repeat, and `naming_tests.coverage_blocker`
+# reads exactly that field when a batch tries to close a defect on it. Measured when the flags
+# became required and this file had not followed: `-k commit` was 3 failed / 31 errors, all of them
+# the kernel refusing the call these fixtures make.
+#
+# THESE ARE REVIEW VERDICTS OF A WORKING TREE AT A NAMED DIGEST, so the pair says that and nothing
+# grander: what a reviewer runs to see such a tree is `git diff`, and it covers this one tree --
+# a `selection`, never a declared surface. A fixture that claimed a full run here would be the
+# same lie the gate it drives exists against.
+REVIEWED_BY = ("--run-command", "git diff", "--run-scope", "selection")
+
 
 def _refusable(project, script, tool):
     """A payload `script` must refuse, shaped as tool `tool` would deliver it."""
@@ -536,8 +564,12 @@ def test_the_gate_table_of_this_file_is_the_registration_itself():
 
     BOTH ENDS, because either alone rots: a gate registered out of `.claude/hooks/` with no row is
     a gate the overview hides, and a row for a script nothing registers is a gate that does not
-    run. The count itself is no longer anywhere in the prose -- that was the thing that aged -- so
-    this table is the one place that says how many there are.
+    run. The count is what aged, so this table is the one place in `CLAUDE.md` that says how many
+    there are. ONE count still stands elsewhere in this layer and it is already wrong: the docstring
+    of `_harness._expands_a_tilde` calls the registration "the registration of all four gates"
+    (measured 2026-09-12, five are registered). That file is forbidden to every role of this
+    repository, so the one-word repair is in the user's shell patch; until it is applied, a
+    tripwire over the whole layer would be red for a line nobody here may write.
 
     THE PARSED SIDES, not a substring search over either file: the registration comes from the JSON
     the provider reads (`_registered`, the same reader the contract test uses), and the rows come
@@ -1092,6 +1124,77 @@ def test_a_users_answer_can_mint_in_this_repo_and_the_kernel_says_so(tmp_path):
         "event -- then its True above says nothing either")
 
 
+def _reachable_without(automaton, closed):
+    """Every status an automaton reaches from its initial one when no edge INTO `closed` is walkable.
+
+    A WALK OVER THE EDGES THE KERNEL DECLARES, so what this repo can and cannot reach is derived
+    from the automaton rather than listed here: a chain that grew a state, or a guard that stopped
+    closing one, changes this answer without anything being edited.
+    """
+    seen, frontier = {automaton.initial}, [automaton.initial]
+    while frontier:
+        here = frontier.pop()
+        for source, target in automaton.allowed:
+            if source == here and target not in closed and target not in seen:
+                seen.add(target)
+                frontier.append(target)
+    return seen
+
+
+def test_the_end_states_this_repo_reaches_are_measured_against_the_kernel(tmp_path):
+    """BUG-0290 / H206: which end states this workshop can honestly reach is MEASURED here -- the
+    approval half was an unreachability until TSK-0098 and is one no longer, the lease half is a
+    decision (DEC-0041) and not a gap, and both are read off the running kernel.
+
+    THE APPROVAL HALF. `BUG TRIAGED -> APPROVED` is bound to an approval in force, and an approval
+    is minted by the kits' hook on the answer event. Until TSK-0098 this repo registered only its
+    own gates, so the remedy printed at that refusal had no listener here. It registers the hook
+    now, and `report.approval_mint_is_wired` is the reader that says so.
+
+    THE LEASE HALF. A lease-bearing status is established by a real dispatch lease, never by a
+    status write (DEC-0038/BUG-0010), and this repo runs no dispatch (DEC-0003: it installs no kit).
+    So the question is a graph one: with the edges into those statuses closed, which terminals does
+    each automaton still reach? For `TSK` that is `CANCELLED` and not `DONE`/`VALIDATED` -- which is
+    exactly how this project's generations have been closed, and DEC-0041 is where that was decided.
+
+    BOTH ENDS: the same walk with nothing closed has to reach `DONE`, so the closure above is about
+    the lease and not about an automaton that leads nowhere; and the guard itself is driven in both
+    directions, on a status it must refuse and one it must let through.
+    """
+    sys.path.insert(0, TEAM_KITS)
+    from kernel import backlog_types, dispatch, report
+    from kernel import state as kernel_state
+    assert report.approval_mint_is_wired(ROOT) is True, (
+        "this repo registers no approval hook on the minting event, so the edge into APPROVED is "
+        "unreachable here and no BUG can be walked to its end state at all")
+    closed = frozenset(dispatch.LEASE_BEARING_STATUSES)
+    assert closed, "the kernel names no lease-bearing status, so nothing here is closed at all"
+    empty = kernel_state.ProjectState(str(tmp_path / "no-dispatch-here"))
+    for status in sorted(closed):
+        with pytest.raises(dispatch.DispatchError):
+            dispatch.assert_lease_backed_transition_locked(empty, "TSK-0001", status)
+    open_status = next(status for status in backlog_types.AUTOMATA["TSK"].chain
+                       if status not in closed)
+    dispatch.assert_lease_backed_transition_locked(empty, "TSK-0001", open_status)
+    tasks = backlog_types.AUTOMATA["TSK"]
+    here = _reachable_without(tasks, closed)
+    everywhere = _reachable_without(tasks, frozenset())
+    assert tasks.terminals & everywhere, (
+        "the task automaton reaches no terminal even with every edge open, so this walk measures "
+        "the reader and not the workshop")
+    assert tasks.terminals - here, (
+        "every task terminal is reachable without a dispatch, so the lease guard closes nothing "
+        "and DEC-0041 describes a workshop that does not exist")
+    assert tasks.terminals & here, (
+        "no task terminal at all is reachable here, so a task of this project could not even be "
+        "closed as cancelled -- and every generation of it has been")
+    defects = backlog_types.AUTOMATA["BUG"]
+    assert defects.terminals <= _reachable_without(defects, closed), (
+        "a defect of this project cannot be walked to %s without a dispatch lease, so DEC-0100's "
+        "'a bug closes on a passing test that names it' has no end state to close into"
+        % sorted(defects.terminals - _reachable_without(defects, closed)))
+
+
 @pytest.mark.parametrize("caller", ["lead", "subagent"])
 def test_gate1_refuses_a_hook_started_as_the_verb_itself(project, caller):
     """The start position that needs no interpreter in front of it.
@@ -1451,12 +1554,22 @@ def test_gate3_refuses_a_verb_it_cannot_read_without_asking_about_evidence(proje
 
 
 def test_gate3_remedy_is_executable_and_opens_the_commit(project, tmp_path, open_item):
-    """The refusal's own command, run as printed, must make the next call pass.
+    """The remedy's own SHAPE, run against the real kernel, must make the next call pass.
 
     THIS IS THE TEST THAT KEEPS THE GATE HONEST. A gate whose remedy cannot be executed locks the
-    repo out of its own history, and this one is on `git commit`. So the digest is read out of the
-    refusal, handed to `kernel.cli evidence` exactly as the text spells it, and the same call is
-    repeated. Against a COPY of the project, because recording evidence changes it.
+    repo out of its own history, and this one is on `git commit`. The digest is read out of the
+    refusal and handed to `kernel.cli evidence`, and the same call is repeated. Against a COPY of
+    the project, because recording evidence changes it.
+
+    WHAT IT DOES NOT DO, and the sentence that stood here said it did: the argv below is BUILT, not
+    parsed out of the printed text. So this measures that the kernel accepts the shape the remedy
+    describes -- it does not measure that the LINE the gate prints is the line that runs. Today
+    those two differ by exactly the pair `--run-command`/`--run-scope`: the kernel made them
+    required this generation, the calls here carry them (`REVIEWED_BY`), and the gate's remedy text
+    does not yet -- the repair is the user's shell patch, `project_memory/staging/TSK-0141/
+    s4-gate-commit-evidence-patch.md`, because `.claude/hooks/gate_commit_evidence.py` is refused to
+    every role here. A check that really executes the printed line is the strengthening that closes
+    the difference, and it can only be green AFTER that patch is applied.
     """
     import re
     work = str(tmp_path / "remedy")
@@ -1470,7 +1583,7 @@ def test_gate3_remedy_is_executable_and_opens_the_commit(project, tmp_path, open
         [sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory", "evidence",
          "--kind", "review", "--result", "pass", "--related", open_item,
          "--summary", "verifier PASS for " + digest,
-         "--artifact-ref", "staging/verdict.md"],
+         "--artifact-ref", "staging/verdict.md", *REVIEWED_BY],
         cwd=work, env=environment, capture_output=True, text=True)
     assert done.returncode == 0, "the remedy command failed: %s" % done.stderr[-800:]
     rc, err = run(work, "gate_commit_evidence.py", payload)
@@ -1493,7 +1606,7 @@ def test_gate3_verdict_stops_covering_a_tree_that_moved(project, tmp_path, open_
     subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory",
                     "evidence", "--kind", "review", "--result", "pass", "--related", open_item,
                     "--summary", "verifier PASS for " + digest,
-                    "--artifact-ref", "staging/verdict.md"],
+                    "--artifact-ref", "staging/verdict.md", *REVIEWED_BY],
                    cwd=work, env=dict(os.environ, PYTHONPATH=os.path.join(work, "team-kits")),
                    check=True, capture_output=True, text=True)
     assert run(work, "gate_commit_evidence.py", payload)[0] == 0
@@ -1525,7 +1638,7 @@ def test_gate3_sees_a_file_git_does_not_track_yet(project, tmp_path, open_item):
     subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory",
                     "evidence", "--kind", "review", "--result", "pass", "--related", open_item,
                     "--summary", "verifier PASS for " + digest,
-                    "--artifact-ref", "staging/verdict.md"],
+                    "--artifact-ref", "staging/verdict.md", *REVIEWED_BY],
                    cwd=work, env=dict(os.environ, PYTHONPATH=os.path.join(work, "team-kits")),
                    check=True, capture_output=True, text=True)
     assert run(work, "gate_commit_evidence.py", payload)[0] == 0, "wrong precondition"
@@ -1550,7 +1663,7 @@ def test_gate3_reads_the_digest_in_any_field_of_the_record(project, tmp_path, op
     subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory",
                     "evidence", "--kind", "review", "--result", "pass", "--related", open_item,
                     "--summary", "verifier PASS",
-                    "--artifact-ref", "staging/%s.md" % digest],
+                    "--artifact-ref", "staging/%s.md" % digest, *REVIEWED_BY],
                    cwd=work, env=dict(os.environ, PYTHONPATH=os.path.join(work, "team-kits")),
                    check=True, capture_output=True, text=True)
     rc, err = run(work, "gate_commit_evidence.py", payload)
@@ -1568,7 +1681,7 @@ def test_gate3_reads_the_verdict_and_not_merely_the_record(project, tmp_path, op
     subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory",
                     "evidence", "--kind", "review", "--result", "fail", "--related", open_item,
                     "--summary", "verifier FAIL for " + digest,
-                    "--artifact-ref", "staging/verdict.md"],
+                    "--artifact-ref", "staging/verdict.md", *REVIEWED_BY],
                    cwd=work, env=dict(os.environ, PYTHONPATH=os.path.join(work, "team-kits")),
                    check=True, capture_output=True, text=True)
     assert run(work, "gate_commit_evidence.py", payload)[0] == 2, (
@@ -1889,7 +2002,7 @@ def test_gate3_refuses_a_line_that_moves_the_tree_before_it_commits(project, tmp
     subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory",
                     "evidence", "--kind", "review", "--result", "pass", "--related", open_item,
                     "--summary", "verifier PASS for " + digest,
-                    "--artifact-ref", "staging/verdict.md"],
+                    "--artifact-ref", "staging/verdict.md", *REVIEWED_BY],
                    cwd=work, env=dict(os.environ, PYTHONPATH=os.path.join(work, "team-kits")),
                    check=True, capture_output=True, text=True)
     assert run(work, "gate_commit_evidence.py", payload)[0] == 0, "wrong precondition"
@@ -1976,7 +2089,7 @@ def test_gate3_sees_what_the_kits_classification_calls_a_write_and_no_more(proje
     subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory",
                     "evidence", "--kind", "review", "--result", "pass", "--related", open_item,
                     "--summary", "verifier PASS for " + digest,
-                    "--artifact-ref", "staging/verdict.md"],
+                    "--artifact-ref", "staging/verdict.md", *REVIEWED_BY],
                    cwd=work, env=dict(os.environ, PYTHONPATH=os.path.join(work, "team-kits")),
                    check=True, capture_output=True, text=True)
     assert run(work, "gate_commit_evidence.py", payload)[0] == 0, "wrong precondition"
@@ -2462,7 +2575,7 @@ def test_gate3_leaves_an_environment_prefix_in_front_of_a_commit(project, tmp_pa
     subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory",
                     "evidence", "--kind", "review", "--result", "pass", "--related", open_item,
                     "--summary", "verifier PASS for " + digest,
-                    "--artifact-ref", "staging/verdict.md"],
+                    "--artifact-ref", "staging/verdict.md", *REVIEWED_BY],
                    cwd=work, env=dict(os.environ, PYTHONPATH=os.path.join(work, "team-kits")),
                    check=True, capture_output=True, text=True)
     assert run(work, "gate_commit_evidence.py", payload)[0] == 0, "wrong precondition"
@@ -4061,6 +4174,78 @@ def test_the_arbiter_is_a_shell_that_reads_back_what_this_process_writes(tmp_pat
         "and that is what let a shell on another filesystem arbitrate")
 
 
+def _runs_a_line(shell):
+    """Does this candidate run a line at all -- the question the selection BEFORE BUG-0051 asked."""
+    try:
+        return subprocess.run([shell, "-c", ":"], stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
+                              timeout=120).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def test_the_session_guards_watch_list_is_built_without_a_shell(tmp_path, monkeypatch):
+    """BUG-0137 / H45 (a): the session guard runs no line of its own, so its watch list must not
+    need a shell -- it used to, and on a host without one the whole suite fell over, registration
+    checks included.
+
+    THE HOST WITHOUT A SEEING SHELL IS MADE HERE rather than waited for: the candidate list the
+    guard would ask is emptied, which is what the verifier of TSK-0063 produced with a PATH without
+    Git (rc 1, four ERRORs -- the four checks that read `.claude/settings.json` and nothing else).
+
+    BOTH FILES, because the list is what the guard compares against this repo: the free one and the
+    protected one both have to stand in it, so a preparation that stops making either is red here
+    instead of silently watching a shorter tree.
+    """
+    monkeypatch.setattr(sys.modules[__name__], "_posix_shells", lambda: [])
+    probe, watched = _a_sandbox_as_a_line_leaves_it(str(tmp_path))
+    assert RELATIVE_TARGET in watched, (
+        "the protected file is not in the watch list built under %s: %s -- the guard would not "
+        "notice a run that rewrote it here" % (probe, watched))
+    assert [entry for entry in watched if entry != RELATIVE_TARGET], (
+        "the watch list holds nothing but the protected file, so the free file a shape writes "
+        "first is gone and the shapes that need it measure nothing: %s" % watched)
+
+
+def test_the_arbiter_refuses_a_shell_that_runs_every_line_on_another_filesystem(tmp_path):
+    """BUG-0137 / H45 (b): `_can_arbitrate` itself had no cover that could go red -- the verifier of
+    TSK-0063 put the previous form back in a clone and the eight tests around it stayed green.
+
+    WHAT THE PREVIOUS FORM MISSED, and it is the case this host really carries: a launcher that runs
+    every line, translates a RELATIVE word onto this tree through its `cwd` and resolves an
+    ABSOLUTELY spelled one into a filesystem of its own. Such a shell passes "it runs a line", it
+    passes a `cd` probe, and it performs the relative write -- so a selection built out of those
+    calls it an arbiter, and every check set whose reach is spelled absolutely then runs, reports
+    nothing wrong and never arrives (BUG-0051).
+
+    THE SUBJECT IS A REAL SHELL OF THIS HOST AND NOT A STAND-IN: one is taken from `_posix_shells`
+    that runs a line and does NOT read this filesystem back. A host without one cannot show the
+    property and is skipped with that sentence rather than passing quietly.
+
+    BOTH ENDS: the shell this suite really arbitrates with has to come back True from the same
+    predicate, so a `_can_arbitrate` that turned into one refusing everything fails here too.
+    """
+    sandbox = _sandbox(str(tmp_path), 0)
+    candidates = _posix_shells()
+    assert candidates, "this host carries no POSIX shell at all, so nothing here can be measured"
+    elsewhere = [candidate for candidate in candidates
+                 if _runs_a_line(candidate) and not _sees_this_filesystem(candidate, sandbox)]
+    seeing = next((candidate for candidate in candidates
+                   if _can_arbitrate(candidate, sandbox)), None)
+    assert seeing is not None, (
+        "no shell of %s arbitrates over %s, so the predicate refuses everything and every "
+        "measurement standing on it is vacuous" % (candidates, sandbox))
+    if not elsewhere:
+        pytest.skip(
+            "not measured here: no shell of %s runs a line while resolving %s into another "
+            "filesystem, so the case BUG-0051 was measured on is absent from this host"
+            % (candidates, sandbox))
+    for shell in elsewhere:
+        assert not _can_arbitrate(shell, sandbox), (
+            "%s runs every line and does not read %s back, yet it is accepted as this suite's "
+            "arbiter -- which is the selection that cost BUG-0051 its control" % (shell, sandbox))
+
+
 # WHAT A SHELL ON THIS HOST WAS MEASURED TO READ A DIRECTORY BACK OUT OF -- a fact about shells,
 # and it is stated HERE rather than taken from `_sandbox` on purpose. A measurement whose hostile
 # environment comes out of the module under test cannot fail when that module DROPS a name: it then
@@ -5084,13 +5269,46 @@ def _undecorated(text):
     return head
 
 
+def _spans(said):
+    """The backtick spans of a statement -- under EVERY pairing an unpaired backtick leaves open.
+
+    `re.findall` pairs from the left, so ONE stray backtick in front of a real pointer shifts every
+    pair behind it: the name is then neither read nor reported, which is the silent direction
+    (BUG-0133 (c) / H41; inventory 2026-08-14: 15 statements with an odd count in this directory,
+    all of them code string literals, none with a test name behind the stray one).
+
+    WHICH BACKTICK IS THE STRAY ONE IS NOT DECIDABLE, so this does not guess: a statement with an
+    odd count is read under BOTH pairings and the readings are unioned -- the reader answers for
+    every name the statement could be claiming. A statement with an even count has one pairing and
+    this costs it nothing.
+    """
+    found = list(re.findall(r"`([^`]+)`", said, re.DOTALL))
+    if said.count("`") % 2:
+        found += re.findall(r"`([^`]+)`", said[said.find("`") + 1:], re.DOTALL)
+    return found
+
+
+def _glued(span):
+    """A span with the breaks an EDITOR put in it closed up -- and nothing else.
+
+    ONLY WHERE A LINE ENDED. A long test name wraps across lines, and a comment continues the next
+    line with its own marker; a name read as two halves resolves to nothing, which would make the
+    check depend on where an editor happened to break the line rather than on what the statement
+    claims.
+
+    A SPACE INSIDE ONE LINE IS A SPACE SOMEBODY TYPED, and closing that up too invented pointers:
+    a span of prose beginning with the collection prefix glued into an identifier this file never
+    defines and was reported as a rotten pointer -- a false-alarm class against honest text
+    (BUG-0133 (b) / H41).
+    """
+    return re.sub(r"\s*\n[\s#]*", "", span.strip())
+
+
 def _points_into_this_file(said):
     """Every name of this file a statement points at -- read out of its backtick spans.
 
-    GLUED BEFORE IT IS READ, and the whitespace is not the only thing taken out: a long test name
-    wraps across lines, and a comment continues the next line with its own marker. A name read as
-    two halves resolves to nothing, which would make this check depend on where an editor happened
-    to break the line rather than on what the statement claims.
+    HOW A SPAN IS FOUND AND HOW IT IS CLOSED UP are `_spans` and `_glued`, each with the direction
+    it was measured wrong in.
 
     THE DECORATION AROUND A NAME IS NOT PART OF IT, and taking it off is a definition rather than a
     list of the spellings somebody tried: a character that cannot occur in an identifier at all
@@ -5112,8 +5330,8 @@ def _points_into_this_file(said):
     classes -- and reading it would mean this reader deciding which half of a path is the name.
     """
     out = set()
-    for span in re.findall(r"`([^`]+)`", said, re.DOTALL):
-        glued = _undecorated(re.sub(r"[\s#]+", "", span))
+    for span in _spans(said):
+        glued = _undecorated(_glued(span))
         if glued in THIS_FILE_ITSELF:
             continue
         qualified = False
@@ -5145,6 +5363,70 @@ SPELLINGS_OF_A_POINTER = {
     "as a pytest node id with parameters": "`" + THIS_FILE + "::%s[Bash]`",
     "qualified with this module": "`" + POINTER_PREFIXES[1] + "%s`",
 }
+
+# A NODE ID THAT NAMES A FILE, which is how this apparatus points at a check in ANOTHER suite. The
+# name is the second half; what stands in front of it is a path, and a path is what makes the
+# pointer followable at all.
+_NODE_IN_ANOTHER_FILE = re.compile(r"([\w./\\-]+\.py)::([A-Za-z_]\w*)")
+
+
+def _points_into_another_file(said):
+    """Every `<path>.py::<test>` a statement points at, as sorted `(path, name)` pairs.
+
+    THE OTHER HALF OF THE SAME DUTY (BUG-0133 (d) / H41): a pointer at a check in a neighbouring
+    suite was skipped by `_points_into_this_file` -- it carries a dot, and a dot could be a file
+    name -- so nobody looked it up. Measured 2026-08-14 over the H43 entry: seven such pointers,
+    `set()` back from the reader, all seven resolved BY HAND; three more came with H44 and one with
+    H70, eleven in all, still by hand. What is outside a watcher's reach accumulates.
+
+    THIS FILE'S OWN UNQUALIFIED PREFIX IS NOT READ HERE, because `_points_into_this_file` already
+    answers for it and a bare `test_gates.py` names no path this repo carries.
+    """
+    out = set()
+    for span in _spans(said):
+        match = _NODE_IN_ANOTHER_FILE.search(_glued(span))
+        if not match:
+            continue
+        path = match.group(1).replace("\\", "/")
+        if path in THIS_FILE_ITSELF:
+            continue
+        out.add((path, match.group(2)))
+    return sorted(out)
+
+
+def _tests_declared_in(relative):
+    """The test names a file of this repo declares, or None when there is no such file to ask.
+
+    PARSED, never searched, and asked of the FILE the pointer names: a node id is a claim that this
+    exact path declares this exact test, and only the path's own source can answer it.
+    """
+    path = os.path.join(ROOT, *relative.split("/"))
+    try:
+        with open(path, encoding="utf-8") as handle:
+            tree = ast.parse(handle.read())
+    except (OSError, SyntaxError):
+        return None
+    return {node.name for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+
+
+def _decoration_of(span, name):
+    """The SHAPE a pointer span is written in: the name replaced by `%s`, a case id emptied.
+
+    WHAT IS SHAPE AND WHAT IS DATA: pytest's case id is data -- which row of a parametrised test a
+    statement means -- so `[Bash]` and `[Write]` are one spelling. Everything else around the name
+    is the spelling itself, and that is what `SPELLINGS_OF_A_POINTER` has to carry.
+    """
+    return re.sub(r"\[[^\]]*\]", "[]", span.replace(name, "%s"))
+
+
+def _shapes_the_table_carries():
+    """The spellings `SPELLINGS_OF_A_POINTER` declares, as spans -- the table read as its own claim."""
+    out = set()
+    for value in SPELLINGS_OF_A_POINTER.values():
+        for span in re.findall(r"`([^`]+)`", value):
+            out.add(_decoration_of(span, "%s"))
+    return out
 
 
 def test_every_check_this_apparatus_claims_in_its_own_prose_is_one_that_exists():
@@ -5211,6 +5493,107 @@ def test_every_check_this_apparatus_claims_in_its_own_prose_is_one_that_exists()
         "no file under %s except %s points at a check any more, so the gates' own prose claims "
         "nothing this run could follow -- and case (b) is exactly what that prose owes"
         % (HOOKS, THIS_FILE))
+
+
+def _said_in_the_hook_sources():
+    """`(file, statement)` for every statement the `.py` sources of this directory make."""
+    for entry in sorted(os.listdir(HOOKS)):
+        if not entry.endswith(".py"):
+            continue
+        with open(os.path.join(HOOKS, entry), encoding="utf-8") as handle:
+            source = handle.read()
+        for said in _said_in(source):
+            yield entry, said
+
+
+def test_the_pointer_reader_answers_for_every_shape_a_statement_here_can_carry():
+    """BUG-0133 / H41: the four measured limits of the pointer watcher, each driven in the
+    direction it was silent in -- the table against a second source, prose that is not a name, a
+    stray backtick, and a pointer at a check in ANOTHER file.
+
+    (a) THE TABLE AGAINST A SECOND SOURCE. `SPELLINGS_OF_A_POINTER` drives its own watcher: a
+    shape deleted from it takes the check for that shape with it and the run stays green. So the
+    LIVING corpus is the second source -- every decoration a statement in this directory really
+    writes a resolved pointer in has to be one the table declares. Shrink the table below what
+    people write, and this is red.
+
+    (b) PROSE IS NOT A NAME. A span that begins with the collection prefix and continues in words
+    used to be closed up into an identifier nobody defines and reported as rotten -- a false alarm
+    against honest text. Only a break an EDITOR made is closed up now (`_glued`).
+
+    (c) A STRAY BACKTICK HID A POINTER. Pairing runs from the left, so one unpaired backtick in
+    front of a real pointer made it invisible -- neither read nor reported, which is the silent
+    direction. Both pairings are answered now (`_spans`).
+
+    (d) A POINTER AT A CHECK IN ANOTHER FILE IS RESOLVED IN THAT FILE. It carries a dot, so the
+    reader for this file's own names skipped it and nobody looked it up; eleven such pointers were
+    resolved by hand across three hole entries. Measured here 2026-09-12: the `.py` sources of this
+    directory carry two of them, both in `gate_test_scope.py` and both resolving -- and they were
+    found by this sweep, not by hand.
+    """
+    defined = _defined_here()
+    real = sorted(name for name in defined if name.startswith("test_"))[0]
+
+    # (b)
+    prose = "`%s and then some more words` says nothing about a name" % real
+    assert not _points_into_this_file(prose), (
+        "a span of words beginning with the collection prefix is closed up into a name and "
+        "reported: %r -> %s" % (prose, sorted(_points_into_this_file(prose))))
+    wrapped = "`%s\n    #  %s`" % (real[:8], real[8:])
+    assert _points_into_this_file(wrapped) == {real}, (
+        "a name an editor broke across a line is no longer read as one, so this check would "
+        "depend on where the line happened to break: %r" % wrapped)
+
+    # (c)
+    hidden = "a stray ` and then `%s`" % real
+    assert _points_into_this_file(hidden) == {real}, (
+        "one unpaired backtick in front of a pointer hides it from the reader -- neither read nor "
+        "reported, which is the direction nobody notices: %r" % hidden)
+
+    # (d)
+    neighbour = next(((relative, name) for relative in sorted(globmodule.glob(
+        os.path.join(ROOT, "tools", "test_*.py")))
+        for name in sorted(_tests_declared_in("tools/" + os.path.basename(relative)) or ())
+        if name.startswith("test_")), None)
+    assert neighbour, "this repo declares no test under tools/, so (d) has nothing to resolve"
+    relative, name = "tools/" + os.path.basename(neighbour[0]), neighbour[1]
+    assert _points_into_another_file("`%s::%s`" % (relative, name)) == [(relative, name)], (
+        "a node id naming another file of this repo is not read as a pointer at all")
+    assert name in (_tests_declared_in(relative) or set()), (
+        "the node the drive is built from does not resolve, so this drive proves nothing")
+    invented = name + "_and_nothing_of_that_name"
+    assert invented not in (_tests_declared_in(relative) or set()), (
+        "the name built to stand for one that does not exist is declared after all")
+    assert _tests_declared_in(relative + ".not-a-file") is None, (
+        "a path this repo does not carry answers with a set of names, so a pointer at a file that "
+        "was deleted would resolve")
+
+    # (d), the sweep over this directory's own prose
+    unresolved = []
+    for entry, said in _said_in_the_hook_sources():
+        for relative, cited in _points_into_another_file(said):
+            declared = _tests_declared_in(relative)
+            if declared is None or cited not in declared:
+                unresolved.append("%s points at `%s::%s`, which resolves to nothing: %r"
+                                  % (entry, relative, cited, said[:160]))
+    assert not unresolved, (
+        "these statements point at a check in another file that is not there:\n%s"
+        % "\n".join(unresolved))
+
+    # (a)
+    declared_shapes, uncovered = _shapes_the_table_carries(), []
+    for entry, said in _said_in_the_hook_sources():
+        for span in _spans(said):
+            glued = _undecorated(_glued(span))
+            if glued not in defined or not glued.startswith("test_"):
+                continue
+            shape = _decoration_of(_glued(span), glued)
+            if shape not in declared_shapes:
+                uncovered.append("%s writes a pointer as %r, which %s does not declare"
+                                 % (entry, shape, "SPELLINGS_OF_A_POINTER"))
+    assert not uncovered, (
+        "the table of spellings drives its own watcher, and the corpus writes shapes it does not "
+        "carry -- so the watcher is not measuring those:\n%s" % "\n".join(sorted(set(uncovered))))
 
 
 # -- a citation names the record that is IN FORCE (BUG-0035) -------------------
@@ -5697,9 +6080,13 @@ def test_gate1_answers_before_its_registration_however_long_the_line_takes_to_re
     work = str(tmp_path / "deadline-reading")
     shutil.copytree(project, work)
     _set_registered_timeout(work, seconds)
+    # THE LINE IS BUILT BEFORE THE CLOCK STARTS (BUG-0243), for the reason its gate-3 twin below
+    # carries with the measurement: sizing reads the clock itself, and work no gate process ever
+    # does must not be charged to the gate's registration. Held by
+    # `test_no_timed_span_here_pays_for_a_helper_that_reads_the_clock_itself`.
+    payload = bash_payload(work, _a_line_too_long_to_read_in(harness, seconds))
     started = time.monotonic()
-    rc, err = run(work, "gate_lead_write_scope.py",
-                  bash_payload(work, _a_line_too_long_to_read_in(harness, seconds)))
+    rc, err = run(work, "gate_lead_write_scope.py", payload)
     elapsed = time.monotonic() - started
     assert rc == 2, (
         "a line this gate could not read inside its budget was waved through: rc=%d after %.2fs"
@@ -5715,6 +6102,213 @@ def test_gate1_answers_before_its_registration_however_long_the_line_takes_to_re
         "under the same registration the gate stopped protecting anything")
     assert run(work, "gate_lead_write_scope.py", write_payload(work, "docs/note.md"))[0] == 0, (
         "under the same registration the gate turned into one that refuses everything")
+
+
+CLOCK_MODULE = "time"
+
+
+def _clock_names(tree):
+    """`(the module names, the bare names)` this source reaches the clock through -- its IMPORTS.
+
+    THE NAMES COME FROM THE FILE AND NOT FROM A PREFIX, and that correction is the verifier's F1 of
+    round 1: the reader below asked for `time.<something>` while its docstring claimed a
+    definition, so a source writing `from time import monotonic` or `import time as clock` was read
+    as carrying no clock at all -- measured end to end, the H161 defect restored in the first of
+    those spellings left this check GREEN while the same defect spelled `time.x` was red. An
+    import statement is where a source says how it reaches a module, so that is where this asks.
+
+    BOTH SHAPES, because both reach the same clock: `import time [as x]` binds a MODULE (an
+    attribute of it is the reading), `from time import y [as z]` binds the reading directly.
+    """
+    modules, bare = set(), set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == CLOCK_MODULE or alias.name.startswith(CLOCK_MODULE + "."):
+                    modules.add(alias.asname or alias.name.split(".")[0])
+        elif isinstance(node, ast.ImportFrom) and node.module == CLOCK_MODULE:
+            for alias in node.names:
+                bare.add(alias.asname or alias.name)
+    return modules, bare
+
+
+def _reads_the_clock(node, clock):
+    """Is this expression a reading of the clock, under the names this source imports it by?"""
+    modules, bare = clock
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+        return node.value.id in modules
+    if isinstance(node, ast.Name):
+        return node.id in bare
+    return False
+
+
+def _touches_the_clock(name, defined, clock, seen=None):
+    """Does this file's function `name` reach the clock -- itself or through a call?
+
+    A DEFINITION AND NOT A LIST OF CLOCK FUNCTIONS: anything in `time` is about time, so a helper
+    that reaches that module at all has a cost or a behaviour the clock decides. Naming
+    `monotonic` and `perf_counter` instead would be an enumeration that goes silent the day a
+    helper sizes itself with a third one -- and the NAMES the module is reached by come off the
+    source's own imports (`_clock_names`), so the three spellings a file can use are one question.
+    The question is asked transitively, because the defect this reads for hides one call deep --
+    the sizing helper reads the clock in a nested function.
+    """
+    seen = set() if seen is None else seen
+    if name in seen or name not in defined:
+        return False
+    seen.add(name)
+    node = defined[name]
+    for inner in ast.walk(node):
+        if _reads_the_clock(inner, clock):
+            return True
+        if isinstance(inner, ast.Call) and isinstance(inner.func, ast.Name) \
+                and _touches_the_clock(inner.func.id, defined, clock, seen):
+            return True
+    return False
+
+
+def _spans_that_pay_for_a_clock_reading(source):
+    """Every measured span in `source` that calls a helper of the same file which reads the clock.
+
+    A SPAN IS FOUND BY ITS SHAPE, not by the name of the test that holds it: a statement binds a
+    clock reading to a name, a later statement in the SAME block subtracts that name from a second
+    reading. That is what a measurement looks like in this file and in any other, so a test that
+    starts timing something tomorrow is read without being added anywhere.
+
+    WHAT IT REPORTS: the helpers called BETWEEN the two readings that reach into `time` themselves.
+    Their own cost lands in a quantity whose name says it is the subject's -- and a quantity that
+    is not what its name says is not made honest by a wider margin (BUG-0033's measurement on the
+    gate-3 twin, BUG-0243 on the gate-1 one).
+    """
+    tree = ast.parse(source)
+    clock = _clock_names(tree)
+    defined = {node.name: node for node in tree.body
+               if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    found = []
+    for holder in ast.walk(tree):
+        for field in ("body", "orelse", "finalbody"):
+            block = getattr(holder, field, None)
+            if not isinstance(block, list) or not block or not isinstance(block[0], ast.stmt):
+                continue
+            for opened, statement in enumerate(block):
+                started = _name_bound_to_a_clock_reading(statement, clock)
+                if started is None:
+                    continue
+                closed = _statement_that_closes_the_span(block, opened, started, clock)
+                if closed is None:
+                    continue
+                for between in block[opened + 1:closed]:
+                    for call in ast.walk(between):
+                        if not isinstance(call, ast.Call) or not isinstance(call.func, ast.Name):
+                            continue
+                        if _touches_the_clock(call.func.id, defined, clock):
+                            found.append("line %d: the span opened at line %d calls `%s`, which "
+                                         "reads the clock itself"
+                                         % (between.lineno, statement.lineno, call.func.id))
+    return sorted(set(found))
+
+
+def _name_bound_to_a_clock_reading(statement, clock):
+    """`x` for `x = <a clock reading>()`, else None -- the statement that OPENS a measured span.
+
+    WHICH CALLS ARE READINGS is `_clock_names`' answer and not a prefix, for the reason that
+    function carries.
+    """
+    if not isinstance(statement, ast.Assign) or len(statement.targets) != 1:
+        return None
+    target, value = statement.targets[0], statement.value
+    if not isinstance(target, ast.Name) or not isinstance(value, ast.Call):
+        return None
+    return target.id if _reads_the_clock(value.func, clock) else None
+
+
+def _statement_that_closes_the_span(block, opened, started, clock):
+    """The index of the statement that subtracts `started` from a second clock reading, or None."""
+    for index in range(opened + 1, len(block)):
+        for node in ast.walk(block[index]):
+            if not isinstance(node, ast.BinOp) or not isinstance(node.op, ast.Sub):
+                continue
+            if not isinstance(node.right, ast.Name) or node.right.id != started:
+                continue
+            if isinstance(node.left, ast.Call) and _reads_the_clock(node.left.func, clock):
+                return index
+    return None
+
+
+def test_no_timed_span_here_pays_for_a_helper_that_reads_the_clock_itself():
+    """BUG-0243 / H161: a test that times a gate must not build its own probe inside the span it
+    measures -- the sizing reads the clock, and its cost is then charged to the subject.
+
+    THE OCCASION IS MEASURED ON THE TWIN: the gate-3 deadline test built its line inside the span
+    and ran 4.54-4.62 s against a 4.50 s registration on this host, while the same gate answered in
+    3.26-3.31 s with the line built outside (BUG-0033). The gate-1 sibling kept the same shape at a
+    tenth of the price, which is a defect that has not fired yet rather than one that is absent --
+    a number this small is a property of today's sizing helper, not of the form.
+
+    BOTH ENDS, AND NEITHER OF THEM IS THIS FILE'S GREEN STATE: the reader is driven over a source
+    that carries the defect and has to report it, and over one that does not and has to stay
+    silent -- so a reader that stopped finding spans fails here instead of passing an empty sweep.
+
+    EVERY SPELLING A SOURCE CAN IMPORT THE CLOCK BY, and that is the verifier's F1 of round 1: the
+    reader asked for `time.<x>` and its docstring promised a definition, so the same defect written
+    with `from time import monotonic` came back GREEN. The three shapes are driven below, and the
+    reader reads the names off the source's own import statements (`_clock_names`).
+    """
+    spellings = {
+        "the module, imported plainly": ("import time", "time.monotonic"),
+        "the module under another name": ("import time as clock", "clock.monotonic"),
+        "the reading imported by name": ("from time import monotonic", "monotonic"),
+    }
+    for label, (imported, reading) in sorted(spellings.items()):
+        defect = textwrap.dedent('''
+            %s
+
+            def _size():
+                begin = %s()
+                return %s() - begin
+
+            def test_subject():
+                started = %s()
+                rc = run(_size())
+                elapsed = %s() - started
+        ''' % (imported, reading, reading, reading, reading))
+        assert _measured_spans_in(defect) == 2, (
+            "the reader finds %d measured spans where the clock is reached %s, and there are two"
+            % (_measured_spans_in(defect), label))
+        assert _spans_that_pay_for_a_clock_reading(defect), (
+            "the reader is silent on a span that calls a clock-reading helper between its two "
+            "readings when the clock is reached %s, so the defect could hide in that spelling"
+            % label)
+        assert not _spans_that_pay_for_a_clock_reading(
+            defect.replace("rc = run(_size())", "rc = run(built)")), (
+            "the reader reports a span that calls nothing timing at all (%s), so every timed test "
+            "here would be red for the shape rather than for the defect" % label)
+    with open(os.path.join(HOOKS, THIS_FILE), encoding="utf-8") as handle:
+        source = handle.read()
+    assert _measured_spans_in(source) >= 2, (
+        "this file holds fewer than two measured spans, so the sweep below has nothing to be "
+        "about -- the reader's shape and the file have drifted apart")
+    paying = _spans_that_pay_for_a_clock_reading(source)
+    assert not paying, (
+        "these measured spans charge the subject for work no gate process does:\n%s"
+        % "\n".join(paying))
+
+
+def _measured_spans_in(source):
+    """How many measured spans `source` holds -- the count that keeps the sweep from being empty."""
+    tree, spans = ast.parse(source), 0
+    clock = _clock_names(tree)
+    for holder in ast.walk(tree):
+        for field in ("body", "orelse", "finalbody"):
+            block = getattr(holder, field, None)
+            if not isinstance(block, list) or not block or not isinstance(block[0], ast.stmt):
+                continue
+            for opened, statement in enumerate(block):
+                started = _name_bound_to_a_clock_reading(statement, clock)
+                if started is not None and _statement_that_closes_the_span(
+                        block, opened, started, clock) is not None:
+                    spans += 1
+    return spans
 
 
 def test_gate1_answers_before_the_shortest_registration_that_applies(project, tmp_path,
@@ -6339,7 +6933,7 @@ def certified_project(outside_the_home_directory, project, open_item):
     done = subprocess.run(
         [sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory", "evidence",
          "--kind", "review", "--result", "pass", "--related", open_item,
-         "--summary", "verifier PASS for " + digest, "--artifact-ref", "staging/verdict.md"],
+         "--summary", "verifier PASS for " + digest, "--artifact-ref", "staging/verdict.md", *REVIEWED_BY],
         cwd=work, env=dict(os.environ, PYTHONPATH=os.path.join(work, "team-kits")),
         capture_output=True, text=True)
     assert done.returncode == 0, done.stderr[-600:]

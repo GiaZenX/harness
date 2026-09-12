@@ -461,10 +461,18 @@ def _assert_no_running_lease_owns_the_same_file_locked(state: ProjectState, task
     of `scopes.tracked_files` -- sits behind the early return below, so the ordinary single-stream
     dispatch does not pay for it.
 
-    WHAT IT DOES NOT REACH is `scopes`' own limit and not a second one: a region no witness lands
-    in and no file exists in yet (`H135` in `docs/POST_V2_WISHLIST.md`), and a seam narrower than
-    the overlap (`H143`).
+    WHAT IT DOES NOT REACH is `scopes`' own limit and not a second one, and one of the two it used
+    to inherit is gone: since BUG-0218 the witness half also works on the PAIR, so a region no
+    single-entry filling reached -- `a/*x` against `a/y*` -- is refused here too, with no file in
+    the tree. What remains inherited is a seam narrower than the overlap (BUG-0226), which is a
+    DECLARATION both orders made and the merge round applies.
+
+    AND ONLY AGAINST LEASES, which is the division of labour and not a gap (BUG-0238): two READY
+    orders that never run at the same time share no lease and collide only in the merge. That is
+    what `check-scopes` is for -- it walks the OPEN orders (`scopes.open_orders` reads
+    `is_terminal`, not the lease state) and DEC-0070 (1) makes running it before a cut the rule.
     `tools/test_parallel_streams.py::test_the_second_lease_is_refused_when_the_scopes_overlap`
+    `tools/test_parallel_streams.py::test_the_lease_refusal_reaches_a_region_no_single_witness_reaches`
     """
     running = sorted({str(lease["task_id"]) for lease in running_leases(state, except_task=task_id)})
     if not running:
@@ -1849,8 +1857,14 @@ def record_child_end(state: ProjectState, agent_id: str = None, agent_type: str 
                     "agent_id -- refusing to guess which of them ended, because recording the end "
                     "against the wrong task reports a specialist that is still working as idle. "
                     "Remedy: dispatch tasks of the SAME role sequentially; different roles in "
-                    "parallel are unaffected."
-                    % (len(owners), agent_type, ", ".join(sorted(row[0] for row in owners))))
+                    "parallel are unaffected. AND IF ONE OF THEM IS A CORPSE (BUG-0144): a "
+                    "dispatch whose run is over for good stops competing as soon as its TASK "
+                    "moves -- the lease is released with the status -- so transition the finished "
+                    "one and the next stop of this role is attributed again. Each candidate with "
+                    "what its lease knows about its child: %s"
+                    % (len(owners), agent_type, ", ".join(sorted(row[0] for row in owners)),
+                       ", ".join("%s (%s)" % (row[0], row[2].get("agent_id") or "no child bound")
+                                 for row in sorted(owners, key=lambda one: one[0]))))
             candidates = [row for row in owners if row[2].get("agent_id")]
         else:
             candidates = []
@@ -2870,11 +2884,111 @@ _VERDICT_WORDS = ("red", "green", "rot", "gruen", "grün", "fail", "fails", "fai
 _VERDICT_RX = re.compile(r"(?<![a-z0-9])(?:%s)(?![a-z0-9])"
                          % "|".join(word.replace(" ", r"\s+") for word in _VERDICT_WORDS),
                          re.IGNORECASE)
-# A SENTENCE THAT DENIES. Read per SENTENCE and not per criterion, so a text that owes a test in
-# one sentence is not excused by a disclaimer in the next -- the shape
-# `tools/test_hooks.py::_team_size_questions` uses for the same reason.
-_DENIES_RX = re.compile(r"(?<![a-z0-9])(?:no|not|never|none|kein|keine|keinen|keiner|nicht|ohne)"
-                        r"(?![a-z0-9])", re.IGNORECASE)
+# A SENTENCE THAT DENIES, AND THE TWO GRAMMATICAL CLASSES ARE READ DIFFERENTLY -- BUG-0278. A
+# CLAUSAL negator denies the clause it stands in, so "kein Test wird rot" and "tests are not
+# required here" are refusals whatever else the sentence says. A PREPOSITIONAL one denies only its
+# own COMPLEMENT, which is why one list would not do: read as clausal, `ohne` refused this
+# repository's own red-first formula -- "ein Test wird rot, ohne den Fix" -- while its English twin
+# was granted, because `without` was in neither list.
+#
+# A VOCABULARY AND NOT A PATTERN, so the tripwire below can walk it: an entry ending in `*` stands
+# for the word AND its inflections (`kein*` is keine/keinen/keiner), which is the one spelling
+# convention here. The list is held at BOTH ends by
+# `tools/test_ladder.py::test_every_listed_denial_word_is_the_reason_its_sentence_is_refused` --
+# every entry is the SOLE reason one sentence is refused, and no entry is carried by a neighbour.
+# It is an enumeration that fails in the DANGEROUS direction when it is short: a missing word makes
+# a sentence that denies a test read as one that promises one, and that GRANTS the cheap rung.
+# Round 1 of this item's verification measured exactly that gap -- `never` and `none` were listed
+# and their German twins `nie`/`niemals`/`nirgend*` were not, so "Ein Test wird niemals rot" bought
+# the cheap rung.
+_CLAUSAL_DENIERS = ("no", "not", "never", "none", "nothing", "neither", "nor",
+                    "nicht", "nie", "niemals", "kein*", "nirgend*", "weder")
+_PREPOSITIONAL_DENIERS = ("ohne", "without")
+# THE CORRELATIVE NEGATION, which both languages build the same way: `neither ... nor`,
+# `weder ... noch`. Round 2 of this item's verification measured the construction granting the
+# cheap rung; round 3 measured each HALF doing the same on its own -- "Neither of the tests goes
+# red after the rename" and "No fix ships; nor does a test go red", where the sentence split at `;`
+# hands `nor` its own clause. So the OPENING half of every pair is an ordinary negation and stands
+# in `_CLAUSAL_DENIERS` above -- `neither` and `weder` never appear outside one. The CLOSING half
+# is not symmetric across the two languages and is not derivable: English `nor` denies on its own
+# and is listed; German `noch` does NOT -- "noch ein Test wird rot" promises a second test -- and
+# is deliberately absent. This table is what keeps the construction from being half covered: its
+# tripwire asserts every OPENING half is a listed denier, and carries one measured row per pair for
+# the closing half, which is the one thing a word list cannot decide about itself.
+# `tools/test_ladder.py::test_every_listed_denial_word_is_the_reason_its_sentence_is_refused`
+# WHAT IT COSTS, on the cheap side and measured: "neither here nor there the test goes red" is an
+# idiom that denies nothing, and it is refused -- an unnecessary expensive rung, never a grant.
+_CORRELATIVE_DENIERS = (("neither", "nor"), ("weder", "noch"))
+
+
+def _word_alternation(words) -> str:
+    """The alternation of a denial vocabulary: a trailing `*` becomes "and its inflections"."""
+    return "|".join(word[:-1] + r"\w*" if word.endswith("*") else word for word in words)
+
+
+_DENIES_RX = re.compile(r"(?<![a-z0-9])(?:%s)(?![a-z0-9])" % _word_alternation(_CLAUSAL_DENIERS),
+                        re.IGNORECASE)
+_PREPOSITION_DENIES_RX = re.compile(
+    r"(?<![a-z0-9])(?:%s)(?![a-z0-9])" % _word_alternation(_PREPOSITIONAL_DENIERS), re.IGNORECASE)
+# WHERE A CLAUSE ENDS, for the complement above: the punctuation a writer separates clauses with.
+_CLAUSE_END_RX = re.compile(r"[,;:.!?]")
+# WHERE A PREPOSITION'S COMPLEMENT ENDS, and it is a DEFINITION rather than a width. A preposition
+# governs exactly ONE noun phrase, and a noun phrase is opened by its determiner -- so the
+# complement runs to the clause end or to the NEXT determiner, whichever comes first, with the
+# determiner that opens the complement itself skipped. Nothing here has to find the finite verb,
+# which is what the two rejected readings both tried to approximate.
+#
+# WHAT WAS REJECTED AND WHY, both measured on this item: reading the complement to the END OF THE
+# CLAUSE made the FRONTED form swallow its main clause ("Without the fix a test goes red." was
+# refused, round 1 of the verification); reading it as a WIDTH of three words flipped to the
+# DANGEROUS side from the fourth word on -- "The result goes red without any new regression test"
+# was granted although it denies a test (round 2). A width is the wrong shape for a phrase whose
+# length is free; the determiner is what really ends one.
+#
+# A NOUN PHRASE MAY CONTAIN A SECOND ONE, and that is where the determiner rule needed its own
+# answer (round 3 of this item's verification measured the class, which is bigger than the German
+# genitive the first note named): both languages postmodify a noun with another noun phrase --
+# German by the GENITIVE ("ohne die Hilfe eines Tests"), English by `of` ("without the help of a
+# test") -- and the complement has to run through it, or a denial reads as a promise. So a
+# determiner does NOT end the complement when it is an unambiguous genitive form or stands
+# directly after `of`.
+#
+# THE PRICE OF THAT, dangerous direction FIRST: the AMBIGUOUS German genitive articles are not
+# read as genitives -- `der` and `einer` are also nominative and dative, and nothing here can tell
+# which -- so "ohne die Hilfe einer Probe, die rot wird" ends its complement early and can still
+# buy the cheap rung. Unambiguous forms (`des`, `eines`, `dessen`, `deren`) are covered. The other
+# direction is cheap and stated second: a determiner MISSING from the list below only lengthens a
+# complement, which can cost an unnecessary refusal and the expensive rung, never a grant.
+#
+# THE LIST IS A CLOSED GRAMMATICAL CLASS, not a vocabulary of content words: the articles and
+# quantifiers of the two languages the kits are written in. `kein*`/`no` are deniers already and
+# are not repeated here.
+#
+# A TRAILING `-` TAKES THE GERMAN DECLENSION AND NOT ANY TAIL, which is a NARROWER convention than
+# the deniers' `*` on purpose: with `\w*` the entry `ein` swallowed the adjective `einzigen`, so
+# "ohne einen einzigen neuen Test" ended its complement before the test word and granted the cheap
+# rung -- measured while building this. A determiner's tail is one of five endings, and that set is
+# the definition.
+# `tools/test_ladder.py::test_a_german_acceptance_line_is_read_like_its_english_twin`
+_DECLENSION = "(?:e|en|em|er|es)?"
+_DETERMINERS = ("the", "a", "an", "any", "some", "each", "every", "this", "that", "these", "those",
+                "der", "die", "das", "den", "dem", "des", "ein-", "jed-", "dies-", "jen-", "all-")
+_DETERMINER_RX = re.compile(r"(?<![a-z0-9])(?:%s)(?![a-z0-9])" % "|".join(
+    word[:-1] + _DECLENSION if word.endswith("-") else word for word in _DETERMINERS),
+    re.IGNORECASE)
+# A GERMAN COMPOUND'S HEAD IS ITS LAST ELEMENT, so `Regressionstest` and `Unittest` ARE the test
+# word -- invisible to `_WORD_TEST_RX`, which asks for a word boundary an agglutinating language
+# does not put there. Two conditions keep the English tail-collisions out, and both are measured
+# rather than guessed: the compound is a NOUN (capitalised, as every German noun is), and its stem
+# is at least `_COMPOUND_STEM_MIN` characters -- `pro`test, `con`test, `la`test all carry 2-3.
+# WHAT STILL GETS THROUGH, said rather than left to be found: a capitalised English superlative at
+# the start of a sentence ("Greatest ...") carries a 4-character stem and would be read as the test
+# word; it needs a verdict word in the same sentence to matter, and the direction it fails in is
+# the cheap rung, which is why it is named here instead of chased with a word list.
+# `tools/test_ladder.py::test_a_german_acceptance_line_is_read_like_its_english_twin`
+_COMPOUND_STEM_MIN = 4
+_COMPOUND_TEST_RX = re.compile(
+    r"(?<![A-Za-z0-9])[A-ZÄÖÜ][a-zäöüß]{%d,}tests?(?![a-z0-9])" % (_COMPOUND_STEM_MIN - 1))
 
 
 def _path_names_a_test(word: str) -> bool:
@@ -2891,15 +3005,81 @@ def _path_names_a_test(word: str) -> bool:
     return bool(_TEST_MODULE_RX.match(parts[-1]))
 
 
+def _mentions_a_test(text: str) -> bool:
+    """Does this span name a test at all -- as a runner, as a path, or as the word?
+
+    The one reader both the positive question and the denial question below use, so "what counts
+    as naming a test" cannot drift between them.
+    """
+    if _RUNNER_RX.search(text):
+        return True
+    if any(_path_names_a_test(word) for word in text.split()):
+        return True
+    return bool(_WORD_TEST_RX.search(text) or _COMPOUND_TEST_RX.search(text))
+
+
+def _denies_a_test(sentence: str) -> bool:
+    """Does this sentence refuse a test -- clausally, or by a preposition over its own complement?
+
+    See `_DENIES_RX` for why the two classes are read differently (BUG-0278).
+    """
+    if _DENIES_RX.search(sentence):
+        return True
+    for first, second in _CORRELATIVE_DENIERS:
+        opened = re.search(r"(?<![a-z0-9])%s(?![a-z0-9])" % first, sentence, re.IGNORECASE)
+        if opened and re.search(r"(?<![a-z0-9])%s(?![a-z0-9])" % second,
+                                sentence[opened.end():], re.IGNORECASE):
+            return True
+    for negator in _PREPOSITION_DENIES_RX.finditer(sentence):
+        rest = sentence[negator.end():]
+        clause_end = _CLAUSE_END_RX.search(rest)
+        within_clause = rest[:clause_end.start()] if clause_end else rest
+        if _mentions_a_test(_complement_of(within_clause)):
+            return True
+    return False
+
+
+# A DETERMINER THAT OPENS A POSTMODIFIER rather than the next phrase -- see the note above. The
+# English `of` stands before it; the German genitive is IN it, and only the unambiguous forms count.
+_POSTMODIFIER_RX = re.compile(r"(?:\bof\s+$)", re.IGNORECASE)
+_GENITIVE_DETERMINERS = ("des", "eines", "dessen", "deren")
+
+
+def _complement_of(within_clause: str) -> str:
+    """The ONE noun phrase a preposition governs -- see `_DETERMINERS` for why it ends there.
+
+    The determiner that OPENS the complement is skipped, because that one belongs to it; the next
+    one begins the phrase after it, and that is where this stops -- UNLESS that next one opens a
+    postmodifier of the same phrase (an `of`-phrase or a genitive), in which case the complement
+    runs on through it.
+    `tools/test_ladder.py::test_a_german_acceptance_line_is_read_like_its_english_twin`
+    """
+    text = within_clause.lstrip()
+    opener = _DETERMINER_RX.match(text)
+    rest = text[opener.end():] if opener else text
+    cut = 0
+    while True:
+        following = _DETERMINER_RX.search(rest, cut)
+        if following is None:
+            return rest
+        word = following.group(0).lower()
+        before = rest[:following.start()]
+        if word in _GENITIVE_DETERMINERS or _POSTMODIFIER_RX.search(before):
+            cut = following.end()       # a postmodifier of the same phrase -- keep going
+            continue
+        return rest[:following.start()]
+
+
 def _sentence_names_a_test(sentence: str) -> bool:
     """Does THIS sentence name a test as an artefact or as an action, and not deny one."""
-    if _DENIES_RX.search(sentence):
+    if _denies_a_test(sentence):
         return False
     if _RUNNER_RX.search(sentence):
         return True
     if any(_path_names_a_test(word) for word in sentence.split()):
         return True
-    return bool(_WORD_TEST_RX.search(sentence) and _VERDICT_RX.search(sentence))
+    return bool((_WORD_TEST_RX.search(sentence) or _COMPOUND_TEST_RX.search(sentence))
+                and _VERDICT_RX.search(sentence))
 
 
 def acceptance_is_test_shaped(task: dict, root: dict) -> bool:

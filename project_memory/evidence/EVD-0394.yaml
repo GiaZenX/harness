@@ -1,0 +1,21 @@
+id: EVD-0394
+kind: test
+related:
+- BUG-0288
+result: pass
+summary: 'REWORK of the round-1 closure (verifier B2): _SUBSTITUTIONS_BY_SHELL knew
+  the value-returning openers and not PROCESS SUBSTITUTION, while the office ledger
+  gate one file away already carried the whole class. Both <( and >( added to the
+  Bash entry with the measurement beside them. Real hook processes: cat <(cp evil.py
+  .claude/hooks/g.py) and cat <(cp evil.yaml project_memory/evidence/EVD-9999.yaml)
+  rc 0 in the pristine rig -> rc 2 in this tree; echo  stays rc 0 in both. Mirrored
+  dev=office=research gate_write_scope deadc12553ef. This SUPERSEDES EVD-0338, whose
+  summary claims a closure wider than the code then built.'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_a_command_a_substitution_introduces_is_judged_as_a_command
+  -q -p no:randomly
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T13:07:07'

@@ -1,0 +1,23 @@
+id: EVD-0396
+kind: test
+related:
+- BUG-0107
+result: pass
+summary: 'REWORK (verifier B4): the declared borrow surface covered ONE of two borrowed
+  modules. The workshop also reaches _compat._MASK_RX, and renaming it made gate_lead_write_scope
+  refuse every Bash call of the session while the tripwire stayed green -- it filtered
+  the harness''s attribute reads on the receiver name ''module''. _compat.py now declares
+  its own HARNESS_BORROWS, and the test derives both ends: which kit modules the workshop
+  loads comes from the _from_kit() literals in _harness.py, and which receivers hold
+  one comes from the file itself (a name it neither imports nor owns). Red-first in
+  the rig with BOTH fixes in and _MASK_RX renamed: 1 failed naming exactly [''_MASK_RX''].
+  This SUPERSEDES EVD-0340, whose summary claims a declared surface wider than the
+  one built.'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_the_harness_borrows_only_what_this_kit_declares
+  -q -p no:randomly
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T13:07:21'

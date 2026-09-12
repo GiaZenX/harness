@@ -1,0 +1,15 @@
+id: EVD-0344
+kind: test
+related:
+- BUG-0158
+result: pass
+summary: '_compat (mirrored, three kits): one heredoc scanner with the caller''s condition,
+  one reading per escape character; the office ledger gate keeps an interpreter''s
+  heredoc body and judges every reading; red-first in the pristine rig'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_hooks.py::test_every_escape_character_of_this_kit_gets_its_own_reading
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:39:47'

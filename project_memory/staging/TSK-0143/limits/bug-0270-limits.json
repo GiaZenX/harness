@@ -1,0 +1,3 @@
+{
+  "limits": "Der Rundgang, der Verweise auf Tests prüft, liest die Testdateien dieses Projekts selbst nicht mit. Ihn zu erweitern setzt voraus, dass man ein BEISPIEL von einem echten Verweis unterscheiden kann -- und genau das kann niemand (siehe BUG-0257). Erweitert man ihn trotzdem, melden vier Beispiele einen Fehler, den es nicht gibt."
+}

@@ -1,0 +1,14 @@
+id: EVD-0367
+kind: test
+related:
+- BUG-0263
+result: pass
+summary: 'AC-4 (seam from stream C): the duplicate fenced-block reader in tools/test_office_package.py
+  deleted; the one reader in test_repo_hygiene carries the rule and is asked directly'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_office_package.py::test_every_test_the_field_report_verdicts_name_is_one_that_exists
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:21:20'

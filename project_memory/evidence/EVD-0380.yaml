@@ -1,0 +1,21 @@
+id: EVD-0380
+kind: test
+related:
+- BUG-0265
+result: pass
+summary: 'Seam S3, INSTALLER HALF ONLY: both scaffold twins now write .claude/kit_repo_files.json
+  -- every path the kit''s templates/repo tree places in the project, collected in
+  the copy walk itself, byte-identical from .sh and .ps1 (measured, one python writer
+  shared by both). AC-2 is met; AC-1 needs kernel.report.installed_kit_paths to read
+  the manifest instead of INSTALLER_SCRIPT_DIRS, which is stream A''s file -- the
+  exact patch is in the protocol under Seam handoffs. Red-first in the pristine rig:
+  1 failed (sh installed no .claude/kit_repo_files.json, 29 s), repo 1 passed (38
+  s).'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_the_installer_records_which_files_it_places_outside_the_hook_bundle
+  -q -p no:randomly
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:33:11'

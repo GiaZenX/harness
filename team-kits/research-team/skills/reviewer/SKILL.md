@@ -18,7 +18,7 @@ analysis `src/**`.
 
 ## How you record an Evidence item
 Every verdict below becomes an **Evidence** item, and there is exactly one way to make one:
-`python scripts/harness.py evidence --kind <review|acceptance|test> --result <pass|fail|blocked> --related <TSK-nnnn> --summary "…"
+`python scripts/harness.py evidence --kind <review|acceptance|test> --result <pass|fail|blocked> --related <TSK-nnnn> --summary "…" --run-command "<the command line you ran>" --run-scope <full|selection>
 --artifact-ref <path>`, run from the project root and never with `--root` (the write gate refuses a
 command line that names the state directory, and the entry point refuses the flag itself). You never write the file;
 the kernel captures the item and allocates its id, which is what you put in your envelope's `evidence`.

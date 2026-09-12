@@ -1,0 +1,16 @@
+id: EVD-0325
+kind: test
+related:
+- BUG-0193
+result: pass
+summary: 'H109 closed: invariant_check_resolution now reads what stands ON the definition
+  -- a skip marker or an empty parametrize is False with its own sentence, a skipif
+  is the third answer because the runner evaluates it; red-first in the rig'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_report.py::test_a_check_whose_test_is_skipped_resolves_to_nothing_it_can_run
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:02:52'

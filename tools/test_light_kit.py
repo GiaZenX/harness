@@ -772,6 +772,104 @@ def _placeholder_manifest(builder):
     return values
 
 
+def _card_subject(kind, count):
+    """The NOUN PHRASE the approving option must carry for this list-bound kind and count.
+
+    WRITTEN OUT HERE, both numbers, rather than derived from the module under test -- a derivation
+    would render whatever `approvals` renders and measure nothing. It is the one place in this
+    suite where the German wording is quoted, and it is quoted because the wording IS the subject:
+    the card is what a non-developer signs, and BUG-0271 is about that sentence being readable.
+
+    ROUND 3 IS WHY: the earlier form check matched a list of four verbs behind a digit, and both
+    mutations of the original defect -- the singular as a main clause, and the plural with a fifth
+    verb -- stayed green. A structural reader would need to find a German finite verb, which needs
+    a lexicon this suite does not have and must not invent.
+    """
+    from kernel import approvals
+
+    forms = {approvals.VERIFICATION_KIND: {1: "einen gemessen behobenen Fehler",
+                                           2: "2 gemessen behobene Fehler"},
+             approvals.HOLE_EXCEPTION_KIND: {1: "eine Lücke, die offen bleibt",
+                                             2: "2 Lücken, die offen bleiben"}}
+    return forms[kind][count]
+
+
+def test_a_list_bound_question_reads_in_the_right_numerus_and_names_the_same_subject_as_its_card():
+    """BUG-0271, round 1 of TSK-0141's verification: "diese 1 Fehler" and two subjects in one card.
+
+    Two defects in the sentence a non-developer answers, and both were invisible to the earlier
+    naming test because it asked about enum words, hashes and paths. FIRST, numerus: a list-bound
+    approval can carry exactly one entry, and German does not put a number in front of a plural
+    noun for it -- the surface printed "diese 1 Fehler" and "1 Lücken bleiben offen". SECOND,
+    subject: `build_question` asked "is there an item" before it asked the kind's own form, so a
+    list-bound request that carried an item described THE ITEM in the question while the approving
+    option -- the text that mints -- bound THE LIST.
+
+    MEASURED OVER EVERY LIST-BOUND KIND, with one entry and with two, so a form repaired in one
+    place and forgotten in the other goes red: the singular carries no digit at all, the plural
+    carries the count with no digit glued to it, and question and option agree on the count in both.
+    The counterweight is the kind that is NOT list-bound: its question still names its item, which
+    is what the third block asserts.
+    """
+    import re
+
+    from kernel import approvals
+
+    listed = {approvals.VERIFICATION_KIND: ("bugs", lambda n: [
+                  {approvals.GOAL_ITEM_FIELD: "BUG-%04d" % (n + 1), "evidence": "EVD-0001"}]),
+              approvals.HOLE_EXCEPTION_KIND: ("holes", lambda n: [
+                  {approvals.GOAL_ITEM_FIELD: "BUG-%04d" % (n + 1),
+                   approvals.LISTED_BOUND_FIELD: "was stattdessen begrenzt"}])}
+    assert set(listed) == set(approvals.OPTION_FORMS), (
+        "a list-bound kind with no row here is a sentence nothing measures: %s"
+        % (set(listed) ^ set(approvals.OPTION_FORMS)))
+
+    for kind, (key, record) in sorted(listed.items()):
+        for count in (1, 2):
+            entries = [row for n in range(count) for row in record(n)]
+            # THE ITEM IS SET ON PURPOSE, and the revision is not: a list-bound request carries no
+            # revision of its own, and the item is here to prove the kind's form wins over it.
+            request = {"request_id": "ab" * 16, "kind": kind, "item": "PR-0001",
+                       "item_title": "Kasse mit Bon", "revision": None, "mint_code": "c0ffee",
+                       "subject_manifest": {key: entries}, "subject_manifest_hash": "de" * 32}
+            question = approvals.build_question(request)
+            sentence = question["question"]
+            approving = question["options"][0]["description"]
+
+            assert "PR-0001" not in sentence, (kind, count, sentence)
+            for text in (sentence, approving):
+                if count == 1:
+                    assert not re.search(r"\d", text.split("[APR-REQ")[0].replace("PR-0001", "")
+                                         .replace("BUG-0001", "").replace("EVD-0001", "")), (
+                        "the singular form still carries a digit: %r" % text)
+                else:
+                    assert re.search(r"(?<!\d)%d(?!\d)" % count, text), (kind, count, text)
+            for entry in entries:
+                assert entry[approvals.GOAL_ITEM_FIELD] in approving, (kind, approving)
+            # ...and the card's subject is a NOUN PHRASE, because the option reads "Erteilt die
+            # Freigabe ... FÜR <this>: <list>": a main clause there is ungrammatical German, which
+            # is what "für 2 Lücken bleiben offen: ..." was (round 2, R4).
+            #
+            # WHAT IS ASSERTED IS THE SHIPPED FORM ITSELF, both numbers, and the reason is round 3:
+            # the first attempt matched a four-verb list behind a digit, and TWO mutations that put
+            # the original defect straight back -- the singular as a main clause ("eine Lücke
+            # bleibt offen") and the plural with a fifth verb ("%d Lücken stehen offen") -- stayed
+            # GREEN. A list of verbs cannot carry this claim; the sentence a non-developer reads is
+            # the artefact under test, so the test holds the sentence. A rewording is then a red
+            # test, which for a text the user signs is the right cost.
+            # The LAST `für` before the colon: one kind's own LABEL carries a `für` of its own
+            # ("Ausnahme für eine bekannte Lücke"), so the first one is the wrong split.
+            subject = approving.split(":", 1)[0].rsplit(" für ", 1)[1]
+            assert subject == _card_subject(kind, count), (kind, count, subject)
+
+    # ...and a kind whose subject IS an item still names it
+    plain = approvals.build_question({"request_id": "ab" * 16, "kind": "scope", "item": "PR-0001",
+                                      "item_title": "Kasse mit Bon", "revision": 2,
+                                      "mint_code": "c0ffee", "subject_manifest": {},
+                                      "subject_manifest_hash": "de" * 32})
+    assert "PR-0001" in plain["question"], plain["question"]
+
+
 def test_no_approval_question_shows_an_english_enum_word_a_hash_or_a_path():
     """BUG-0271 AC-1 / PR-0011 AC-7: the question a non-developer answers names the kind in plain
     words, the item by its title and a manifest with German labels; the manifest hash, the
@@ -813,7 +911,11 @@ def test_no_approval_question_shows_an_english_enum_word_a_hash_or_a_path():
         assert "approvals/pending" not in body and "sha256" not in body, body
         for run in hexes.finditer(body):
             assert body[:run.start()].endswith("Prüfsumme "), (kind, run.group(0), body)
-        if request["item"]:
+        # ...and the item stands in the sentence for every kind whose SUBJECT is that item. A kind
+        # with its own `TARGET_FORMS` entry has a subject of its own -- a list, a manifest -- and
+        # since BUG-0271's second half the form wins over an item standing beside it, because the
+        # approving option binds that subject and the two texts have to be about one thing.
+        if request["item"] and kind not in approvals.TARGET_FORMS:
             assert "„Kasse mit Bon“ (PR-0001)" in body and "(Revision 2)" in body, body
         for field in request["subject_manifest"]:
             if builder is None or kind not in approvals.TARGET_FORMS:

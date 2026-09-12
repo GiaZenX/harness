@@ -36,6 +36,43 @@ KERNEL_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "team-kits", "kernel")
 
 
+def test_an_accepted_system_requirement_is_finished_without_being_terminal():
+    """BUG-0281 (H7 re-filed): an agreed system requirement carried open work for ever.
+
+    "Terminal" and "finished" are two questions and the kernel only had the first: a terminal state
+    has no outgoing edge, while `SR.ACCEPTED` is a life end that still has one (a later requirement
+    supersedes it). Every reader that asked `is_terminal` to mean "is this still work" therefore
+    answered wrong for the one type whose natural end is not a terminal.
+
+    THE DECLARATION IS CHECKED AGAINST THE AUTOMATON, both ways: a `done_states` entry that is not
+    a state of its automaton, and one that is really a terminal, fail at IMPORT -- so the map
+    cannot drift away from the states it talks about. And `is_finished` keeps the terminal reading
+    for every other type, which the rows below hold: a draft task is unfinished, a validated one is
+    finished through its terminal, and a proposed requirement is unfinished.
+    """
+    assert backlog_types.is_finished("SR", "ACCEPTED") is True
+    assert backlog_types.is_terminal("SR", "ACCEPTED") is False, (
+        "ACCEPTED must stay non-terminal -- the edge to SUPERSEDED leaves it")
+    assert backlog_types.is_finished("SR", "PROPOSED") is False
+    assert backlog_types.is_finished("SR", "SUPERSEDED") is True
+
+    assert backlog_types.is_finished("TSK", "DRAFT") is False
+    assert backlog_types.is_finished("TSK", "VALIDATED") is True
+    assert backlog_types.is_finished("BUG", "OPEN") is False
+
+    for item_type, automaton in backlog_types.AUTOMATA.items():
+        for state in automaton.done_states:
+            assert state in automaton.states, (item_type, state)
+            assert state not in automaton.terminals, (item_type, state)
+
+    with pytest.raises(AssertionError):
+        backlog_types._Automaton(chain=("A", "B"), terminals=("C",),
+                                 terminal_from={"C": ("A", "B")}, done_states=("C",))
+    with pytest.raises(AssertionError):
+        backlog_types._Automaton(chain=("A", "B"), terminals=("C",),
+                                 terminal_from={"C": ("A", "B")}, done_states=("Z",))
+
+
 def test_the_fr_result_terminals_partition_the_fr_automaton():
     """BUG-0009(a): the split "points to a result item" vs "points to nothing" is a fact about what
     each FR OUTCOME means, so it is written out -- but pinned to the automaton from both ends. Every

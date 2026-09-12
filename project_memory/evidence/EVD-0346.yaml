@@ -1,0 +1,17 @@
+id: EVD-0346
+kind: test
+related:
+- BUG-0226
+result: pass
+summary: 'H143 measured: a seam narrower than the overlap covers only its own paths
+  and every covered path is printed as its own seam line, while the uncovered part
+  stays a collision -- the bound the item names is now held by a test that goes red
+  if pair_seam stops intersecting the declarations'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_parallel_scopes.py::test_a_seam_narrower_than_the_overlap_leaves_the_rest_colliding_and_prints_what_it_covers
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:41:56'

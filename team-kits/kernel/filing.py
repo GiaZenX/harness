@@ -47,6 +47,7 @@ import re
 import yaml
 
 from . import approvals
+from .lock import ext_path
 from .state import ProjectState, StateError
 
 # The APR kind that authorises this operation. One name, three readers: the vocabulary, the
@@ -210,6 +211,49 @@ def existing_rules(state: ProjectState) -> list:
     return found
 
 
+def coverage_not_compared(state: ProjectState) -> str:
+    """Why the filing coverage could not be COMPARED at all, or None when it was -- BUG-0152.
+
+    THE THIRD ANSWER, and it is the same one `kitupdate.pending_entries` was given in this round
+    for the same reason: `uncovered_document_sources` returns an empty list both when every source
+    is covered and when there is nothing to compare, so an interview nobody walked reads exactly
+    like a plan that covers everything. "Not compared" is not "nothing to report".
+
+    A PROJECT WITH NO PROFILE AT ALL IS NOT A FINDING: the file belongs to the office kit, and a
+    dev or research project has no interview to walk. What this reports is a profile that is THERE
+    and answers nothing -- unreadable, wrongly shaped, or naming no source.
+
+    NOR IS A PLAN WITH NO RULES YET, and that bound is the one the neighbour above already names:
+    a fresh office project ships BOTH empty, the interview is what fills them, and `gate_filing`
+    fails closed on a ruleless plan at the first document with its own message. Reporting there
+    would put a warning into every project on its first day, which is noise and not an answer. The
+    state this finding is about is the OTHER one: documents are being filed under real rules while
+    nobody ever recorded what the business receives.
+    `tools/test_kernel.py::test_a_filing_profile_that_answers_nothing_is_told_apart_from_full_coverage`
+    """
+    path = os.path.join(state.root, PROFILE)
+    if not os.path.isfile(ext_path(path)):
+        return None
+    try:
+        plan = yaml.safe_load(read_text(plan_path(state))) or {}
+        rules = plan.get(RULES) if isinstance(plan, dict) else None
+    except Exception:  # noqa: BLE001 -- an unreadable plan is `gate_filing`'s finding, not this one
+        return None
+    if not isinstance(rules, list) or not rules:
+        return None
+    try:
+        profile = yaml.safe_load(read_text(path)) or {}
+    except Exception as exc:  # noqa: BLE001 -- an unreadable profile is the finding itself
+        return "%s does not read (%s: %s)" % (PROFILE, type(exc).__name__, exc)
+    if not isinstance(profile, dict):
+        return "%s is not a mapping, so it names no document sources" % PROFILE
+    sources = profile.get(SOURCES)
+    if not isinstance(sources, list) or not sources:
+        return ("%s names no `%s`, so nothing was compared against the filing plan -- an interview "
+                "nobody walked reads exactly like a plan that covers everything" % (PROFILE, SOURCES))
+    return None
+
+
 def uncovered_document_sources(state: ProjectState) -> list:
     """[(what the user called it, [document type, ...])] the plan carries no rule for.
 
@@ -227,10 +271,12 @@ def uncovered_document_sources(state: ProjectState) -> list:
     asks it today -- the office kit's SessionStart briefing, `_kernel.filing_coverage_briefing` --
     so a project whose sessions never start is told nothing, and no gate refuses anything over it.
 
-    A PROFILE THAT NAMES NO SOURCES YIELDS NOTHING, and that is the honest answer rather than a
-    silent pass: an empty list is a profile nobody walked, which is a fact about the INTERVIEW and
-    not about the plan -- `gate_filing` already fails closed on a plan with no rules, so the
-    project with neither is stopped by that, at the first document, with its own message.
+    A PROFILE THAT NAMES NO SOURCES YIELDS NOTHING HERE, and the THIRD ANSWER is where that is
+    said: this function answers "which sources are uncovered", and "nobody walked the interview"
+    is not an answer to that question -- it is the absence of one. `coverage_not_compared` is the
+    reader that tells the two apart (BUG-0152), and `report.validate_state` is what says it out
+    loud; `gate_filing` already fails closed on a plan with no rules, so the project with neither
+    is stopped there too, at its first document.
 
     NEVER RAISES: both files may be missing, unparseable or shaped differently in a project this
     kernel did not write. A comparison that cannot be made is no finding -- the callers are a

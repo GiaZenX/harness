@@ -88,8 +88,9 @@ Fix rot wird, und jedes Rot ist in einer Kopie außerhalb des Repos gesehen word
 
 ### 5.1 Ein Testzeiger, der ins Leere zeigte
 
-`_duties.py` schrieb die Budget-Rechnung `tools/test_hooks_v2.py::test_the_session_start_budgets_
-together_fit_inside_the_hook_deadline` zu; der Test liegt in `tools/test_office_duties.py`. Der Satz
+`_duties.py` schrieb die Budget-Rechnung der Datei `tools/test_hooks_v2.py` zu, unter dem Namen
+`test_the_session_start_budgets_together_fit_inside_the_hook_deadline`; der Test liegt in
+Wahrheit in `tools/test_office_duties.py::test_the_session_start_budgets_together_fit_inside_the_hook_deadline`. Der Satz
 las sich als gemessen und schickte einen Leser in die falsche Datei. Gebaut wurde daraus die
 Eigenschaft statt der Korrektur: `tools/test_repo_hygiene.py::test_every_test_pointer_this_repo_writes_resolves`
 liest jede voll qualifizierte Knoten-Id (`datei.py::name`) aus den Backtick-Spannen von `team-kits/`
@@ -104,8 +105,10 @@ Die zeilenweise Spannen-Lesung des Nachbarn `_DELIMITED_RX` hätte 0 gefunden �
 Fundstelle ist über zwei Zeilen umgebrochen. Das ist im Kommentar an `_CODE_SPAN_RX` festgehalten.
 
 Zweiter Fund derselben Klasse: die neuen Löcher `H111`–`H113` nannten ihre Tests **unqualifiziert**,
-und `.claude/hooks/test_gates.py::test_every_test_the_hole_list_names_is_one_that_exists` löst einen
-unqualifizierten Namen ausschließlich in `test_gates.py` auf. Gemessen: der Lauf
+und `.claude/hooks/test_gates.py::test_every_test_a_hole_names_is_one_that_exists` löst einen
+unqualifizierten Namen ausschließlich in `test_gates.py` auf (der Test hieß am 2026-09-02 noch
+`test_every_test_the_hole_list_names_is_one_that_exists`; die Umbenennung kam mit der Migration
+der Löcherliste in typisierte Items). Gemessen: der Lauf
 `pytest .claude/hooks/test_gates.py -k "hole or measurement or reference"` war **1 failed, 7 passed**
 („H112 names `test_a_rotated_event_log_…`, and 0 tests in test_gates.py answer to it"), nach dem
 Qualifizieren **8 passed**.

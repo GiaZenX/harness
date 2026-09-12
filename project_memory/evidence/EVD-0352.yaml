@@ -1,0 +1,19 @@
+id: EVD-0352
+kind: test
+related:
+- BUG-0281
+result: pass
+summary: 'H197: the kernel half is built -- _Automaton gains done_states (checked
+  against the automaton at import, both ways), SR declares ACCEPTED, and backlog_types.is_finished
+  is the reader every ''is this still open'' question means. The consumer OUTSIDE
+  the kernel (.claude/hooks/_harness.py Reference.terminal) is closed to every role
+  here and goes to the user as a one-line patch in this stream''s Seam handoffs; the
+  kernel function says so in its own docstring'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_backlog_types.py::test_an_accepted_system_requirement_is_finished_without_being_terminal
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:04:00'

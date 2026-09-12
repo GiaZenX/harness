@@ -2511,4 +2511,11 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | H208 | BUG-0292 | OPEN | H99 neu aufgelegt (Ausnahme nie freigegeben): H11 hebt die Vier-Augen-Buchung mit auf: ein Skript trägt eine ungelesene Zeile nach `HEAD` und prägt die zweite Lesung (neu, TSK-0102, FR-0065) |
 | H209 | BUG-0293 | OPEN | H116 neu aufgelegt (Ausnahme nie freigegeben): Die Hook-REGISTRIERUNG wird mitten in der Sitzung neu gelesen — auch zwischen zwei Werkzeugaufrufen einer Runde (neu, TSK-0108, FR-0059) |
 | H210 | BUG-0294 | OPEN | H138 neu aufgelegt (Ausnahme nie freigegeben): Die Konformitätsbefunde des Renderers verweigern nichts: der Datensatz beantwortet eine andere Frage (neu, TSK-0119, FR-0077/FR-0078) |
+| H211 | BUG-0295 | OPEN | Ein DEC-Verweis in einem Python-Docstring einer ausgelieferten Kit-Datei wird von keinem Leser beurteilt, wenn die Anfuehrungszeichen-Paarung ihn verschluckt (2 von 190, gemessen) |
+| H212 | BUG-0296 | OPEN | Der mehrdeutige deutsche Genitivartikel (`der`, `einer`) beendet ein Präpositionskomplement zu früh -- eine so formulierte Verneinung kauft die billige Sprosse |
+| H213 | BUG-0297 | OPEN | Die gedruckte Abhilfe des Commit-Gates dieses Repos ist rc 2, bis der Nutzer den S4-Patch fährt -- seit TSK-0144 hält ein Test in tools/ das rot, bis er gefahren ist |
+| H214 | BUG-0298 | OPEN | Kit-Seite der H11-Klasse: ein Heredoc, das in einer Zeile erst in eine Datei geschrieben und dann von der Shell ausgeführt wird (`cat <<EOF > run.sh ; bash run.sh`), passiert jeden Kit-Hook |
+| H215 | BUG-0299 | OPEN | Der H196-Startleser folgt einem argv, das ein Name hält, aber nicht dem PROGRAMMWORT, das erst ein lokaler Name auflöst -- heute ohne Opfer |
+| H216 | BUG-0300 | OPEN | Der Stopper-Leser des Beweis-Vokabular-Tests begründet seine Unterscheidung (kann nicht zurückkehren vs. endet irgendwo) mit einer Zählung, die kein roter Test hält |
+| H217 | BUG-0301 | OPEN | Der Beweis-Vokabular-Leser entschuldigt eine ganze Spanne, sobald irgendwo vor dem nächsten Backtick eine berechnete Flagge (`--%s`) steht -- eine echte Auslassung daneben bleibt stumm |
 

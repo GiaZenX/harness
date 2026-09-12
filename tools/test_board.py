@@ -1822,13 +1822,23 @@ def test_a_request_file_nothing_could_write_costs_neither_the_page_nor_the_write
 
 
 def test_the_board_and_the_session_brief_agree_on_the_open_requests(tmp_path):
-    """Two readers of `approvals/pending/` with one rule between them -- held against each other.
+    """BUG-0210: two readers of `approvals/pending/` with one rule between them, held against each
+    other in the same moment.
 
-    `board.open_requests` is a COPY of the rule in `report.generate_session_brief`, because this
-    module cannot import `report` (the package's import graph would close into a cycle). A copy
-    nobody measures is the defect; this is the measurement, and the seam that removes the copy --
-    one `approvals.open_requests` both call -- is stream C's. Until it lands the copy stands as
-    H126 in `docs/POST_V2_WISHLIST.md`.
+    THE SEAM HAS LANDED AND THIS PARAGRAPH SAYS WHAT IS LEFT (measured 2026-09-12). The expiry RULE
+    is no longer copied: `approvals.has_expired` / `approvals.open_requests` is the one place that
+    says when a request can no longer mint, and both readers ask it -- `approvals.open_requests`
+    even takes the optional `now` the seam asked for. What is NOT shared is the WALK, on purpose:
+    `board` reads the files through its own `_flat`, because a request file is a hand-written file
+    and the page's defence against one nothing could write is its own (`_emit`'s depth bound and
+    character budget), and because importing `report` here would close the package's import graph
+    into a cycle.
+
+    WHAT THAT LEAVES, and it is the whole of what H126 still is: TWO CLOCKS. The brief reads
+    `time.time()`, the page its own stamp, so between two state writes the page can still show a
+    request the brief no longer counts. That is deliberate -- the page stays a pure function of the
+    state it was rendered from, and it says so in its own head -- and this test is what keeps the
+    two honest, because it asks them in ONE moment.
     """
     sys.path.insert(0, TEAM_KITS)
     from kernel import report

@@ -49,12 +49,36 @@ TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_NAME = "finance_dashboard.template.html"
 OUTPUT_REL = os.path.join("dashboards", "finanzen.html")
 
-# Payment term after which an unpaid receivable is a dunning candidate. THE LEDGER CARRIES NO DUE
-# DATE and `business_profile.yaml` no payment term (measured 2026-09-02 against the shipped
-# templates), so the number lives here, once, and the page prints where it comes from:
-# § 286 Abs. 3 BGB -- Verzug 30 days after the invoice is due and received. A field for it in the
-# business profile is open work in the kit workshop; until it exists, this is the one place.
+# THE LEGAL FALLBACK payment term, used where the business has declared none of its own:
+# § 286 Abs. 3 BGB -- Verzug 30 days after the invoice is due and received. THE LEDGER STILL
+# CARRIES NO DUE DATE, so the term is applied to the document date; what a business really agreed
+# with its customers is `receivables.payment_terms_days` in `business_profile.yaml`, and
+# `payment_term_days` below prefers it. Until BUG-0202 this constant was the only answer and the
+# page presented it as the law -- a business working on 14 days was shown dunning candidates by a
+# rule nobody in it had agreed to.
 PAYMENT_TERM_DAYS = 30
+LEGAL_TERM_SOURCE = "die gesetzliche Verzugsfrist (§ 286 Abs. 3 BGB)"
+PROFILE_TERM_SOURCE = "die in business_profile.yaml vereinbarte Zahlungsfrist"
+
+
+def payment_term_days(profile):
+    """(days, where-it-comes-from) for this business, its own declaration first.
+
+    A declaration is read only when it is a whole positive number of days: `null`, an empty string
+    and a nonsense value all mean "not declared", and inventing a term out of one of them would put
+    a dunning stamp on the page with nothing behind it. The SENTENCE travels with the number, so
+    the page can never name a term without naming whose it is.
+    """
+    declared = ((profile or {}).get("receivables") or {}).get("payment_terms_days")
+    if isinstance(declared, bool) or not isinstance(declared, (int, float, str)):
+        return PAYMENT_TERM_DAYS, LEGAL_TERM_SOURCE
+    try:
+        days = int(str(declared).strip())
+    except (TypeError, ValueError):
+        return PAYMENT_TERM_DAYS, LEGAL_TERM_SOURCE
+    if days <= 0:
+        return PAYMENT_TERM_DAYS, LEGAL_TERM_SOURCE
+    return days, PROFILE_TERM_SOURCE
 
 # § 19 Abs. 1 UStG in the wording in force since 2025-01-01 (JStG 2024): previous calendar year up
 # to 25.000 EUR AND current year up to 100.000 EUR. In CENTS, because every money comparison in
@@ -283,6 +307,10 @@ def load_project(root, euer_report, ledger_add):
                      "legal_form": (profile.get("business") or {}).get("legal_form") or "",
                      "kleinunternehmer": (profile.get("tax") or {}).get("kleinunternehmer"),
                      "founding_year": (profile.get("tax") or {}).get("founding_year")},
+        # ONE READ, carried on the data: the term and the sentence that says whose it is belong
+        # together, and a second read in a view is how the toolbar and the footnote come to name
+        # two different numbers.
+        "payment_term": payment_term_days(profile),
         "sources": sources,
         "strays": strays,
         "rows": rows,
@@ -750,7 +778,7 @@ def view_ueberblick(data):
                         plural(len(receivables), "offene Forderung", "offene Forderungen"),
                         e(fmt_eur(sum(r["cents"] for r in receivables))),
                         e("Mahnkandidat"), e("Mahnkandidaten"), e("Mahnkandidaten"),
-                        PAYMENT_TERM_DAYS))
+                        data["payment_term"][0]))
         parts.append('<li><a href="#offene-posten"><span class="figure-s">%d</span> %s · %s</a>'
                      '</li>'
                      % (len(payables),
@@ -895,7 +923,7 @@ def view_offene_posten(data):
     parts.append('<div class="toolbar"><label class="check"><input type="checkbox" '
                  'data-filter="overdue" data-scope="offene-posten"> nur Mahnkandidaten '
                  '<span class="muted">(Forderung älter als %d Tage, Stand heute)</span></label>'
-                 '</div>' % PAYMENT_TERM_DAYS)
+                 '</div>' % data["payment_term"][0])
     for direction, title, lead in (("income", "Forderungen", "Was Kunden uns noch schulden"),
                                    ("expense", "Verbindlichkeiten", "Was wir noch zu zahlen haben")):
         items = sorted(open_items(data["rows"], direction), key=lambda r: r["doc_date"])
@@ -922,9 +950,9 @@ def view_offene_posten(data):
                      % (len(items), e(fmt_eur(sum(r["cents"] for r in items)))))
     parts.append('<p class="hint">Alter = Tage seit Belegdatum, gerechnet beim Öffnen der Seite '
                  'aus der Uhr dieses Rechners. Das Ledger kennt kein Fälligkeitsdatum; die Frist '
-                 'von %d Tagen ist die gesetzliche Verzugsfrist (§ 286 Abs. 3 BGB). Ohne Skript '
+                 'von %d Tagen ist %s. Ohne Skript '
                  'bleibt in der Spalte Alter der Strich stehen und kein Posten trägt den Stempel '
-                 '„mahnen".</p></section>' % PAYMENT_TERM_DAYS)
+                 '„mahnen".</p></section>' % data["payment_term"])
     return "".join(parts)
 
 
@@ -1291,7 +1319,7 @@ def render_page(data, template):
              "banner": banner,
              "nav": nav,
              "views": "".join(bodies),
-             "payment_term_days": str(PAYMENT_TERM_DAYS),
+             "payment_term_days": str(data["payment_term"][0]),
              "page_rows": str(PAGE_ROWS)}
     page = template
     for name, value in slots.items():

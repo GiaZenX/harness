@@ -1,0 +1,21 @@
+id: EVD-0387
+kind: test
+related:
+- BUG-0196
+result: pass
+summary: 'H112''s UNSAFE direction closed: a SubagentStop that hit gate_subagent_output''s
+  give-up branch counted as an audit run and silenced the weekly reminder for a report
+  nobody received. _routine.last_run now pairs each stop with the give-up record of
+  the same stop by POSITION, not by time -- the two hooks sit in one SubagentStop
+  matcher group, so which lands first is the provider''s business. Mirrored dev=office=research
+  ee4cde63ee26. Red-first in the rig by MUTATING the fix (the give-up branch removed):
+  the stop was read as a run at 12:38:18 while the give-up record stood one line below
+  it.'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_routine_feed.py -q -p no:randomly -k gave_up
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:38:43'
+closed_at: '2026-09-12T13:32:35'

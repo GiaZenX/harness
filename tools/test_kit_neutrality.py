@@ -11,7 +11,9 @@ TWO PROPERTIES, because the binding can happen in two different places:
     assortment.
 Each has its own test below, and each has a reader whose two directions are measured separately.
 """
+import ast
 import glob
+import io
 import os
 import re
 
@@ -346,3 +348,66 @@ def test_no_shipped_office_role_text_names_the_pilot_business():
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__]))
+
+
+# THE LETTER WRITER ITSELF, as the source of what a term IS. `letter_draft.a_term` is the one
+# reader of `correspondence.yaml`, and it refuses with the route when a term is missing -- so the
+# set of terms is exactly the set of `a_term(...)` calls in that script, and this test derives it
+# from the script's own source instead of listing keys.
+LETTER_WRITER = os.path.join(TEAM_KITS, "office-team", "templates", "repo", "scripts",
+                             "letter_draft.py")
+CORRESPONDENCE = os.path.join(TEAM_KITS, "office-team", "templates", "project_memory",
+                              "correspondence.yaml")
+
+
+def _terms_the_letter_writer_reads():
+    """[(parent key or None, key)] for every `a_term(...)` the shipped letter writer calls."""
+    with io.open(LETTER_WRITER, encoding="utf-8") as handle:
+        tree = ast.parse(handle.read())
+    found = []
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id == "a_term" and len(node.args) >= 2):
+            continue
+        key = node.args[1]
+        if not (isinstance(key, ast.Constant) and isinstance(key.value, str)):
+            continue
+        parents = [inner.value for inner in ast.walk(node.args[0])
+                   if isinstance(inner, ast.Constant) and isinstance(inner.value, str)]
+        found.append((parents[0] if parents else "", key.value))
+    return sorted(set(found))
+
+
+def test_every_term_the_letter_writer_reads_ships_empty():
+    """BUG-0259: a value a CUSTOMER reads is one the user chose, whatever shape it ships in.
+
+    The neutrality rule beside this one walks LISTS, so a scalar was never judged, and
+    `correspondence.yaml` shipped three terms the kit decided for the business:
+    `offer.valid_days: 14` became "Dieses Angebot gilt bis zum <date>", `address: "Sie"` decided the
+    form of address of every letter, and `closing` was its last line. The dunning ladder of the SAME
+    file was refused as content on the argument that after how many days a business writes is its
+    own decision -- and how long an offer stands is the same decision, only spelled as a scalar.
+
+    DERIVED FROM THE WRITER, not listed here: a term is whatever `letter_draft.a_term` reads, and
+    that function already refuses a missing one with the route that fills it
+    (`request-approval` + `apply-proposal`). So a term added to the script tomorrow is under this
+    rule the day it ships, and a term dropped from the script stops being claimed.
+
+    BOTH ENDS: every term the writer reads has to be empty in the shipped template (a filled one is
+    the defect), and the writer has to read at least the terms the template names -- a walk that
+    found nothing would make this vacuous, so the count is asserted.
+    """
+    yaml = pytest.importorskip("yaml")
+    terms = _terms_the_letter_writer_reads()
+    assert len(terms) >= 3, "only %d terms read out of the letter writer -- the walk is broken" % len(terms)
+    with io.open(CORRESPONDENCE, encoding="utf-8") as handle:
+        document = yaml.safe_load(handle) or {}
+    filled = {}
+    for parent, key in terms:
+        node = document if not parent else (document.get(parent) or {})
+        value = node.get(key) if isinstance(node, dict) else None
+        if value is not None and str(value).strip():
+            filled["%s.%s" % (parent, key) if parent else key] = value
+    assert not filled, (
+        "these terms ship with a value the KIT chose, and `scripts/letter_draft.py` writes each of "
+        "them verbatim into a letter a customer reads (BUG-0259): %s" % filled)

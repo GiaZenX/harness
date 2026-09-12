@@ -1,0 +1,16 @@
+id: EVD-0334
+kind: test
+related:
+- BUG-0278
+result: pass
+summary: 'H194 closed: the acceptance reader separates a CLAUSAL negator from a PREPOSITIONAL
+  one (which denies only its own complement) and reads a German compound whose head
+  is -test (capitalised noun, stem >= 4); 19 measured rows, 12 of them counterweights'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_ladder.py::test_a_german_acceptance_line_is_read_like_its_english_twin
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:21:56'

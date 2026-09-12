@@ -1,0 +1,17 @@
+id: EVD-0402
+kind: test
+related:
+- BUG-0271
+result: pass
+summary: 'Rework 2 R4: the hole-exception card said ''fuer 2 Luecken bleiben offen''
+  -- a main clause inside a prepositional phrase; it is a noun phrase now, like its
+  twin. SUPERSEDES EVD-0383, whose run predates the repair'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_light_kit.py::test_a_list_bound_question_reads_in_the_right_numerus_and_names_the_same_subject_as_its_card
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T13:14:58'
+closed_at: '2026-09-12T13:51:23'

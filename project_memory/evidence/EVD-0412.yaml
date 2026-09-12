@@ -1,0 +1,18 @@
+id: EVD-0412
+kind: test
+related:
+- BUG-0280
+result: pass
+summary: 'H196 geschlossen: der Leser folgt der Umgebung in ihren zwei Wegen (im Rahmen
+  gebaut, als Parameter hereingegeben) statt das Schlagwort zu zaehlen; 55 -> 14 ->
+  13 -> 15 gefunden, 15 Aufrufstellen repariert, danach 0. Beide Enden plus die Docstring-Sperre
+  gemessen.'
+artifact_refs:
+- staging/TSK-0144/protocol.md
+run_command: python -B -m pytest tools/test_repo_hygiene.py::test_no_fixture_starts_a_hook_without_naming_the_project_it_asks_about
+  tools/test_repo_hygiene.py::test_the_project_reach_reader_tells_a_forgetful_fixture_from_an_inherited_one
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T19:34:23'

@@ -1,0 +1,15 @@
+id: EVD-0362
+kind: test
+related:
+- BUG-0250
+result: pass
+summary: the retired light/haiku translation removed from both scaffold launchers
+  and all three kits session_status drift check; the tripwire is derived from model_tiers.yaml
+  on both ends
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_model_pins.py::test_no_installer_or_hook_translates_a_tier_alias_the_table_does_not_declare
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:07:55'

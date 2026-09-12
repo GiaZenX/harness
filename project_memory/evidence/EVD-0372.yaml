@@ -1,0 +1,15 @@
+id: EVD-0372
+kind: test
+related:
+- BUG-0162
+result: pass
+summary: the completeness question is now WHICH STAGE IS FREED, asked of the shipped
+  function's outcome; measured against the pattern-free fourth exemption (deno) that
+  both pattern readers stay green on
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_hooks_v2.py::test_every_stage_the_exemption_frees_is_freed_by_a_named_exemption
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:30:43'

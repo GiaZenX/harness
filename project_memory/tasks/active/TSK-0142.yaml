@@ -137,7 +137,7 @@ dependencies:
 rung: opus
 effort: high
 root_revision: 1
-status: READY
+status: CANCELLED
 revision: 1
 approval_ref: null
 created: '2026-09-12T09:49:00'

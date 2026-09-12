@@ -1,0 +1,17 @@
+id: EVD-0406
+kind: test
+related:
+- BUG-0180
+result: pass
+summary: 'H88 (a3/a5): both installer twins refuse a RESTORE_SET line that is not
+  a repo-relative name and one naming a KEPT_ONLY file; measured red-first on the
+  shipped twins (rooted: sh wrong reason / ps1 unhandled GetFullPath; kept-only: BOTH
+  rc 0 with the user''s settings.local.json replaced)'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_neither_twin_replays_a_manifest_line_that_is_not_the_installers_to_write
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T14:02:11'

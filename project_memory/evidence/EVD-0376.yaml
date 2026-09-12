@@ -1,0 +1,16 @@
+id: EVD-0376
+kind: test
+related:
+- BUG-0186
+result: pass
+summary: 'SUPERSEDES EVD-0370 (its node no longer exists): the route lives in the
+  report-writer SKILL, not in the constitution -- the research lead package is at
+  its recorded ceiling, measured. The skill names freeze-report and no longer calls
+  the built route a missing step'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_role_contracts.py::test_the_report_writer_is_told_the_command_that_files_its_render
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:05:19'

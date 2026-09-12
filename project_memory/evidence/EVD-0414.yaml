@@ -1,0 +1,16 @@
+id: EVD-0414
+kind: review
+related:
+- TSK-0144
+result: pass
+summary: verifier PASS for diff:d5cd30b90b64e5384d04b29555d187592bdfc3788163b7bd041ac8d53d60ae10
+  -- PR-0012 order 3b (TSK-0141 A PASS r4, TSK-0142 B PASS r3, TSK-0143 C PASS r3)
+  + goal round TSK-0144 PASS r2 (harness-verifier Opus high M); stamp 2026.09.12-6;
+  full run EVD-0413 1 failed (S4 arbiter, user patch) / 5077 passed
+artifact_refs:
+- staging/TSK-0144/verify-round-2.md
+run_command: git diff
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T21:14:52'

@@ -13,6 +13,7 @@ the SHIPPED command through the project's own entry point -- never the function 
 because what has to hold is what a role's command line answers.
 """
 import io
+import json
 import os
 import re
 import shutil
@@ -185,12 +186,109 @@ def test_a_kit_tree_inside_the_project_is_not_the_projects_own_code(tmp_path):
         "a kit tree inside the project was swept as the project's own code: %s" % named)
 
 
+def _scaffolded_pilot(tmp_path, kit):
+    """A REAL installation of `kit` under `tmp_path` -- (repo path, environment).
+
+    ONE spelling of the two-step install for every pilot in this file, because the order is a
+    precondition and not a convention: the scaffold refuses a project with no
+    `project_memory/project_config.yaml`, which is the order a real entry session walks too. The
+    PowerShell twin is the one asked for here; the POSIX twin needs the probe
+    `tools/test_hooks.py::_scaffold_shell` performs (a bash that can see a Windows path AND reach an
+    interpreter with PyYAML), and that probe lives with the tests that own the launchers. THE COST
+    IS NAMED: on a machine without PowerShell every pilot in this file skips, so the acceptance
+    lines they hold are measured on the developer host and on no CI that lacks it.
+    """
+    if os.name != "nt" or not shutil.which("powershell"):
+        pytest.skip("the scaffold's PowerShell twin runs on Windows")
+    home = tmp_path / "home"
+    staging = home / ".claude" / "team-kits"
+    shutil.copytree(TEAM_KITS, str(staging), ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    repo = str(tmp_path / "project")
+    os.makedirs(repo, exist_ok=True)
+    environment = dict(os.environ, HOME=str(home), USERPROFILE=str(home),
+                       PYTHONIOENCODING="utf-8")
+    for script, flag in (("init_project_memory.ps1", "-Team"), ("scaffold_team.ps1", "-Team")):
+        done = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+             os.path.join(str(staging), script), flag, kit],
+            cwd=repo, capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=900, env=environment)
+        assert done.returncode == 0, script + ":" + done.stdout + done.stderr
+    return repo, environment
+
+
+def test_a_projects_own_script_is_swept_while_the_kits_copy_beside_it_is_not(tmp_path):
+    """`BUG-0265` / `H183` AC-1, the READING end: what the sweep skips is the FILES the installer
+    recorded, not the DIRECTORY they lie in.
+
+    THE DEFECT: `installed_kit_paths` could only name `INSTALLER_SCRIPT_DIRS = ("scripts", "tools")`,
+    so a project that put its own script next to the kit's had it unswept and no finding said so.
+    The installer now writes `.claude/kit_repo_files.json`
+    (`tools/test_hooks.py::test_the_installer_records_which_files_it_places_outside_the_hook_bundle`
+    measures the WRITING end, on both twins); this is the reading end, through the project's own
+    entry point, with the exit code a role sees.
+
+    BOTH ENDS IN ONE RUN, because either alone is passed by a broken reader:
+      * the project's own file under `scripts/` AND under `tools/` is reported -- red before the
+        change, where the sweep answered rc 0 and 0 dead pointers;
+      * not one of the files the record names is reported, and that silence is worth something
+        because at least one of them WOULD speak when it is read -- asked with
+        `report.findings_in_text`, the reader that RUNS, never a copy of its loop. A fix that simply
+        dropped the exclusion would pass the first end and fail this one.
+
+    THE KIT IS `office-team` because it is the one whose templates fill BOTH script directories;
+    the same record is written by every kit, and the sibling pilot above walks all three.
+    """
+    repo, environment = _scaffolded_pilot(tmp_path, "office-team")
+    recorded = json.loads(io.open(os.path.join(repo, ".claude", "kit_repo_files.json"),
+                                  encoding="utf-8-sig").read())
+    assert recorded.get("kit") == "office-team", recorded
+    in_script_dirs = sorted(one for one in (recorded.get("repo_files") or [])
+                            if one.split("/")[0] in report.INSTALLER_SCRIPT_DIRS)
+    assert in_script_dirs, (
+        "this kit records no file in %s, so the exclusion this test is about has no subject"
+        % (report.INSTALLER_SCRIPT_DIRS,))
+
+    assert _git(repo, "init", "-q").returncode == 0
+    _git(repo, "config", "user.email", "t@example.invalid")
+    _git(repo, "config", "user.name", "t")
+    _commit_everything(repo)
+    state = ProjectState(os.path.join(repo, "project_memory"))
+    speaking = [one for one in in_script_dirs if _reading_would_speak(state, repo, one)]
+    assert speaking, (
+        "not one of the recorded files in %s produces a finding when it IS read, so their absence "
+        "from the sweep measures nothing" % (report.INSTALLER_SCRIPT_DIRS,))
+
+    clean = _shipped_sweep(repo, environment)
+    assert (clean.returncode, _dead_pointers(clean.stdout)) == (0, 0), (
+        "the kit's own copies are reported: rc %d, %s -- %s"
+        % (clean.returncode, _dead_pointers(clean.stdout), clean.stdout[:3000]))
+
+    own = ["%s/a_file_this_project_wrote.py" % one for one in report.INSTALLER_SCRIPT_DIRS]
+    for rel in own:
+        _write(os.path.join(repo, *rel.split("/")),
+               '"""The reason is `DEC-9999`, and the property is held by\n'
+               '`src/test_nothing.py::test_gone`.\n"""\nVALUE = 1\n')
+    _commit_everything(repo)
+    planted = _shipped_sweep(repo, environment)
+    assert (planted.returncode, _dead_pointers(planted.stdout)) == (1, 2 * len(own)), (
+        "the project's own scripts were not swept: rc %d, %s -- %s"
+        % (planted.returncode, _dead_pointers(planted.stdout), planted.stdout[:3000]))
+    for rel in own:
+        assert rel in planted.stdout, planted.stdout[:3000]
+    reported = [one for one in in_script_dirs if one in planted.stdout]
+    assert not reported, (
+        "a file the installer recorded as its own was reported: %r" % (reported,))
+
+
 @pytest.mark.parametrize("kit", KITS)
 def test_the_root_files_the_sweep_skips_are_installed_and_would_be_noisy(tmp_path, kit):
     """The tripwire on `SCAFFOLDED_ROOT_FILES`, at BOTH ends, on a REAL scaffold of every kit.
 
-    THE ENUMERATION IS UNAVOIDABLE -- the kernel holds no other reader for the files an installer
-    copies to the project root -- so it owes both measurements the house rule asks for:
+    THE ENUMERATION IS UNAVOIDABLE for the ROOT FILES -- the kernel holds no other reader for the
+    files an installer copies to the project root -- so it owes both measurements the house rule
+    asks for (`INSTALLER_SCRIPT_DIRS` is since `BUG-0265` the fallback for a project installed
+    before the record existed, and the ends below hold for it in exactly that role):
 
       * NOT DEAD: every name in the tuple that the scaffold really writes is there afterwards, and
         at least one is (a tuple none of whose entries ever appears would silently skip nothing);
@@ -205,29 +303,7 @@ def test_the_root_files_the_sweep_skips_are_installed_and_would_be_noisy(tmp_pat
     both shapes. Both ends, because either alone is passed by a broken sweep: the first by one that
     reports everything, the second by one that reports nothing.
     """
-    if os.name != "nt" or not shutil.which("powershell"):
-        pytest.skip("the scaffold's PowerShell twin runs on Windows")
-    home = tmp_path / "home"
-    staging = home / ".claude" / "team-kits"
-    shutil.copytree(TEAM_KITS, str(staging), ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-    repo = str(tmp_path / "project")
-    os.makedirs(repo, exist_ok=True)
-    environment = dict(os.environ, HOME=str(home), USERPROFILE=str(home),
-                       PYTHONIOENCODING="utf-8")
-    # the state tree comes FIRST -- the scaffold refuses to install into a project with no
-    # `project_memory/project_config.yaml`, which is the order a real entry session walks too
-    initialised = subprocess.run(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-         os.path.join(str(staging), "init_project_memory.ps1"), "-Team", kit],
-        cwd=repo, capture_output=True, text=True, encoding="utf-8", errors="replace",
-        timeout=900, env=environment)
-    assert initialised.returncode == 0, initialised.stdout + initialised.stderr
-    installed = subprocess.run(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-         os.path.join(str(staging), "scaffold_team.ps1"), "-Team", kit],
-        cwd=repo, capture_output=True, text=True, encoding="utf-8", errors="replace",
-        timeout=900, env=environment)
-    assert installed.returncode == 0, installed.stdout + installed.stderr
+    repo, environment = _scaffolded_pilot(tmp_path, kit)
 
     present = [name for name in report.SCAFFOLDED_ROOT_FILES
                if os.path.isfile(os.path.join(repo, name))]

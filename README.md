@@ -594,7 +594,8 @@ all project-local `.codex/` layers until the repository and hooks are trusted.
   recorded it refused with "QA has judged PR-0001 only in part … no acceptance/review Evidence covers it
   at all"; with `review` added, the same refusal naming `acceptance` alone; each
   `python scripts/harness.py evidence --kind <test|review|acceptance> --result pass --related PR-0001
-  --summary "…" --artifact-ref staging/TSK-0001/run.log` passed all eight `PreToolUse` gates as real hook
+  --summary "…" --artifact-ref staging/TSK-0001/run.log --run-command "<the command line you ran>"
+  --run-scope <full|selection>` passed all eight `PreToolUse` gates as real hook
   processes and then ran; with all three recorded the same merge was allowed. `gate_write_scope`
   still decides by READING the command line, and a text check is enforcement rather than arithmetic, so
   a spelling it does not recognise is a hole in that gate to report — never the way in.

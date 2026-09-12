@@ -202,7 +202,8 @@ def _refuse_a_run_that_never_happened(types, subject, blocked):
                      for kind in sorted(blocked))),
         remedy="remove what blocked the run and record the run that then HAPPENED (`python "
                "scripts/harness.py evidence --kind <test|review|acceptance> --result pass "
-               "--related %s --summary ... --artifact-ref <path to the raw proof>`); the newer "
+               "--related %s --summary ... --artifact-ref <path to the raw proof> "
+               "--run-command \"<the command line you ran>\" --run-scope <full|selection>`); the newer "
                "verdict supersedes this one. If the run cannot be made to happen here, that is "
                "the merge arriving early — say so to the user rather than re-recording the same "
                "block." % subject + _FROM_THE_ROOT)
@@ -229,7 +230,8 @@ def _evidence_home(types):
 def _remedy(target):
     return ("fix what the Evidence names, then have QA record the re-run (`python scripts/harness.py evidence "
             "--kind <test|review|acceptance> --result pass --related %s --summary ... "
-            "--artifact-ref <path to the raw proof>`). Recording the newer verdict is what "
+            "--artifact-ref <path to the raw proof> --run-command \"<the command line you ran>\" "
+            "--run-scope <full|selection>`). Recording the newer verdict is what "
             "supersedes the old one — the kernel refuses to EDIT an Evidence, because a verdict "
             "changed in place leaves no item behind to notice. Archiving the failing Evidence is "
             "equally visible in git, but it retires a verdict without REPLACING it: the merge then "
@@ -521,7 +523,8 @@ def _refuse_unless_the_item_is_green(types, target, verdicts, publishing=False):
             % (target, _evidence_home(types)),
             remedy="run the QA gate and have the reviewing role record the outcome as an Evidence "
                    "item: `python scripts/harness.py evidence --kind <test|review|acceptance> --result pass "
-                   "--related %s --summary ... --artifact-ref <path to the raw proof>`." % target
+                   "--related %s --summary ... --artifact-ref <path to the raw proof> "
+                   "--run-command \"<the command line you ran>\" --run-scope <full|selection>`." % target
                    + _FROM_THE_ROOT)
     unanswered = sorted(set(types.QA_EVIDENCE_KINDS) - set(verdicts))
     # A WORK-BRANCH PUSH IS NOT A DELIVERY (BUG-0081). Only the kinds whose subject does not exist
@@ -543,7 +546,8 @@ def _refuse_unless_the_item_is_green(types, target, verdicts, publishing=False):
             remedy="have the judging role record the missing verdict — one Evidence per kind, each "
                    "naming the run that produced it: `python scripts/harness.py evidence --kind "
                    "<test|review|acceptance> --result pass --related %s --summary ... "
-                   "--artifact-ref <path to the raw proof>`. A kind that cannot be answered yet is "
+                   "--artifact-ref <path to the raw proof> --run-command \"<the command line you ran>\" "
+                   "--run-scope <full|selection>`. A kind that cannot be answered yet is "
                    "the merge arriving early; it is not this gate to route around." % target
                    + _FROM_THE_ROOT)
 
@@ -573,7 +577,8 @@ def _refuse_unless_nothing_is_failing(types, by_subject):
             remedy="name the item in the branch (`feat/PR-0001-…`) so the gate judges that item "
                    "alone, or clear the failing verdict by recording the re-run "
                    "(`python scripts/harness.py evidence --kind <test|review|acceptance> --result pass --related "
-                   "<ITEM-ID> --summary ... --artifact-ref <path to the raw proof>`)."
+                   "<ITEM-ID> --summary ... --artifact-ref <path to the raw proof> "
+                   "--run-command \"<the command line you ran>\" --run-scope <full|selection>`)."
                    + _FROM_THE_ROOT)
     # The same order as the named case, and the same reason: a measured defect outranks a check
     # that never ran. `subject` here is whatever the Evidence named, since this branch has no item.
@@ -587,7 +592,8 @@ def _refuse_unless_nothing_is_failing(types, by_subject):
             % _evidence_home(types),
             remedy="run the QA gate and have the reviewing role record the outcome as an Evidence "
                    "item: `python scripts/harness.py evidence --kind <test|review|acceptance> --result pass "
-                   "--related <ITEM-ID> --summary ... --artifact-ref <path to the raw proof>`; "
+                   "--related <ITEM-ID> --summary ... --artifact-ref <path to the raw proof> "
+                   "--run-command \"<the command line you ran>\" --run-scope <full|selection>`; "
                    "name the item in the branch too, so the next merge is judged on it alone."
                    + _FROM_THE_ROOT)
 

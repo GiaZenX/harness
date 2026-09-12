@@ -1,0 +1,19 @@
+id: EVD-0341
+kind: test
+related:
+- BUG-0218
+result: pass
+summary: 'H135 closed: the witness half now also works on the PAIR (scopes.pair_witnesses
+  / _unify), so a region no single-entry filling reaches -- a/*x against a/y* -> a/yx
+  -- is found; the builder only proposes candidates, in_scope with the gate predicate
+  still decides, so it can widen what is seen and never what is claimed. 11 measured
+  rows, 4 of them counterweights; check-scopes over the three live orders still reports
+  disjoint'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_parallel_scopes.py::test_two_orders_that_share_only_a_region_no_single_witness_reaches_collide
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:37:33'

@@ -29,9 +29,7 @@ limits: 'die Rückschau hängt an Anlässen, gebaut ist ein Takt: `_routine.rout
   Bereich dieses Stroms. Begrenzt durch: Schritt UND Rollendefinition sagen die Grenze,
   beides gemessen'
 regression_tests:
-- tools/test_review_procedure.py::test_no_occasion_makes_the_audit_run_due_and_that_is_the_seam
-- tools/test_review_procedure.py::test_the_retrospective_step_states_the_limit_it_runs_under
-- tools/test_review_procedure.py::test_the_occasion_rule_stands_in_the_file_a_spawn_actually_loads
+- tools/test_review_procedure.py::test_a_delivery_since_the_last_run_makes_the_audit_due_and_names_it
 - tools/test_routine_feed.py::test_a_run_in_an_earlier_week_leaves_the_routine_due
 status: TRIAGED
 revision: 1

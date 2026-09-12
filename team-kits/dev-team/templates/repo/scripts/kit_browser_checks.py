@@ -29,11 +29,19 @@ Until this existed the three ran on the STAGED DESIGN REVISION only, so a build 
 was caught by nothing (H139, closed by
 tools/test_hooks.py::test_the_built_app_is_judged_on_c1_c2_c3_and_each_is_red_on_its_own_violation).
 
-TWO RULES OF THE DESIGN READER ARE DELIBERATELY NOT APPLIED HERE, and this is the whole of the
-difference between a frozen revision and a build: the colour-literal rule (a build legitimately
-ships third-party CSS nobody wrote as tokens) and the one-primary-action-per-view rule (a built
-app carries no data-view contract). Applying either would produce findings no project could act
+ONE RULE OF THE DESIGN READER IS DELIBERATELY NOT APPLIED TO THE RENDERED PAGE, and this is the
+difference between a frozen revision and a build: the one-primary-action-per-view rule, because a
+built app carries no data-view contract. Applying it would produce findings no project could act
 on, which is the over-refusal half of the house rule.
+
+B3 (COLOUR LITERALS, the remaining BUILD half of FR-0077) IS NOT ASKED OF THE RENDERED PAGE EITHER,
+and for the reason this module carried from the start: a build legitimately serves third-party CSS
+nobody wrote as tokens, so the rendered document is the wrong subject. It is asked of the
+STYLESHEETS THIS PROJECT WROTE -- the walker is `kit_checks._frontend_sources`, which already
+excludes vendored and minified files, and the judge is the same browser probe, because what a
+colour literal is, is decided by a CSS parser and not by a table of notations (BUG-0222). What that
+leaves unjudged is named rather than implied: a colour spelled in JavaScript, in a `style`
+attribute of a template, or in a preprocessor source this project compiles to CSS.
 
 Degrades honestly: playwright or npx missing -> warn locally (CI installs + enforces); missing
 frontend/dist -> warn (the build step reports its own failure; never double-fail); the design
@@ -133,6 +141,71 @@ def _served_index_hash(base):
 C1 = "C1 contrast (WCAG AA)"
 C2 = "C2 keyboard path"
 C3 = "C3 reduced motion + focus-visible"
+B3 = "B3 colour literals in this project's own stylesheets"
+
+
+def _own_stylesheets(root):
+    """(repo-relative path, text) for every stylesheet THIS PROJECT wrote.
+
+    The walk is `kit_checks._frontend_sources`, not a second one: that reader already decides which
+    files are browser-facing and skips the vendor trees, and a copy here would answer a different
+    question than the check the same project meets in Tier 1. A minified sheet is dropped for the
+    reason the API grep drops it there -- it is vendored code the project did not author, and B3 is
+    a rule about authoring.
+
+    An empty answer is a fact and not a failure: a project that keeps its colours in JavaScript or
+    in a preprocessor source has no subject for this rule, and the caller says so rather than
+    reporting a pass.
+    """
+    try:
+        import sys as _sys
+        _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import kit_checks
+    except Exception:                                    # noqa: BLE001 — see `_design_reader`
+        return []
+    found = []
+    for path in kit_checks._frontend_sources(root):
+        name = os.path.basename(path).lower()
+        if not name.endswith(".css") or name.endswith(".min.css"):
+            continue
+        try:
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                found.append((os.path.relpath(path, root).replace("\\", "/"), handle.read()))
+        except OSError:
+            continue
+    return sorted(found)
+
+
+def own_stylesheet_literals(browser, reader, sheets, limit=12):
+    """Findings for the colour literals in the stylesheets this project wrote.
+
+    ONE BLANK PAGE PER SHEET, and that is what buys the file name in the finding: the probe reports
+    a rule's selector, and a designer who is told `card` without a file has to search for it. A
+    blank page also means the subject is the sheet and nothing else -- no third-party CSS the build
+    serves, which is the objection that keeps this rule off the rendered page.
+
+    `add_style_tag` rather than markup with the text pasted into it: a sheet carrying `</style>` in
+    a string would otherwise end the element it was meant to fill and the rest of it would be
+    judged as text.
+    """
+    findings = []
+    for relative, text in sheets:
+        page = browser.new_page()
+        try:
+            page.add_style_tag(content=text)
+            facts = page.evaluate(reader._PAGE_PROBE, reader._probe_config())
+        finally:
+            page.close()
+        for entry in facts["colour_literals"]:
+            if len(findings) >= limit:
+                findings.append("... and further colour literal(s) in this project's stylesheets")
+                return findings
+            findings.append(
+                "colour literal in %s: `%s` in `%s`%s — the design tokens are the one place a "
+                "colour is spelled; declare it as a custom property and reference it with var()"
+                % (relative, entry["property"] + ": " + entry["value"], entry["where"],
+                   " under @media %s" % entry["media"] if entry["media"] else ""))
+    return findings
 
 
 def _design_reader():
@@ -274,6 +347,8 @@ def browser_smoke(root, ok, fail, warn):
         console_errors = []
         reader = _design_reader()
         standards = None
+        own_sheets = _own_stylesheets(root)
+        own_literals = None
         try:
             with sync_playwright() as p:
                 browser = p.chromium.launch()
@@ -293,6 +368,9 @@ def browser_smoke(root, ok, fail, warn):
                         return reduced
 
                     standards = design_standards(page, reader, open_reduced)
+                    # THE SAME BROWSER, a page of its own: B3's subject is the project's stylesheet
+                    # and not the document this run just served.
+                    own_literals = own_stylesheet_literals(browser, reader, own_sheets)
                 browser.close()
         except Exception as exc:
             # missing BROWSER BINARY is a setup gap, not a product failure: requirements-dev
@@ -325,5 +403,17 @@ def browser_smoke(root, ok, fail, warn):
                 fail(rule, "; ".join(standards[rule][:3]))
             else:
                 ok(rule)
+        # B3 IS REPORTED IN THREE STATES, not two: a project whose colours never reach a stylesheet
+        # of its own has no subject for this rule, and calling that a pass is the reassuring
+        # direction of exactly the claim this module refuses to make elsewhere.
+        if own_literals:
+            fail(B3, "; ".join(own_literals[:3])
+                 + ("" if len(own_literals) <= 3 else " (+%d more)" % (len(own_literals) - 3)))
+        elif own_sheets:
+            ok(B3)
+        else:
+            warn(B3, "this project wrote no stylesheet of its own that the frontend walk finds — "
+                     "colours spelled in JavaScript, in a template's style attribute or in a "
+                     "preprocessor source are not judged by this rule")
     finally:
         _terminate_process_tree(proc)

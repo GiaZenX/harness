@@ -27,6 +27,9 @@ from conftest import load_kit_module
 ROOT = conftest.ROOT
 TEAM_KITS = conftest.TEAM_KITS
 KITS = ("dev-team", "office-team", "research-team")
+# A newline, spelled once: this module writes small fixture files and an escape inside a long
+# assertion string is where a hand edit loses a quote.
+NL = chr(10)
 
 
 def hooks_of(kit):
@@ -118,6 +121,55 @@ def test_the_routine_reads_the_run_record_the_shipped_hook_really_writes(kit, tm
     assert result.returncode == 0, result.stderr
     assert not routine.routine_duties(str(tmp_path), datetime.date.today())[0], (
         "a run in the current period must clear the duty -- that is the double-run guard")
+
+
+@pytest.mark.parametrize("kit", KITS)
+def test_a_run_that_gave_up_on_its_output_contract_is_not_a_run(kit, tmp_path):
+    """BUG-0196: a stop that delivered nothing must not answer for a report nobody received.
+
+    The record this feed reads is DERIVED from the event log, and until now it read only the stop.
+    A subagent that hits `gate_subagent_output`'s give-up branch produces exactly that stop -- so
+    the weekly reminder went silent for a run whose whole output was a refusal. Both shipped hooks
+    are run as PROCESSES here, so a rename of either record turns this red instead of making the
+    feed quietly blind, and the answer is read back through the module under test.
+
+    THE OTHER DIRECTION IN THE SAME RUN: the next stop, with the output contract honoured, does
+    clear the duty. A reader that counted no stop at all would pass the first half alone.
+    """
+    routine = routine_module(kit)
+    project(tmp_path)
+    # `gate_subagent_output` judges only an agent this project really installs.
+    agents = tmp_path / ".claude" / "agents"
+    os.makedirs(str(agents), exist_ok=True)
+    with open(str(agents / (routine.AUDIT_ROLE + ".md")), "w", encoding="utf-8") as handle:
+        handle.write("---" + NL + "name: " + routine.AUDIT_ROLE + NL + "---" + NL)
+    environment = dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path))
+    log = tmp_path / "project_memory" / ".audit" / "hook_events.jsonl"
+
+    def stop(message):
+        payload = {"cwd": str(tmp_path), "hook_event_name": "SubagentStop",
+                   "agent_type": routine.AUDIT_ROLE, "session_id": "s",
+                   "last_assistant_message": message, "stop_hook_active": True}
+        for hook in ("notify_agent_events.py", "gate_subagent_output.py"):
+            done = subprocess.run([sys.executable, "-B", os.path.join(hooks_of(kit), hook)],
+                                  input=json.dumps(payload), capture_output=True, text=True,
+                                  env=environment, timeout=60)
+            assert done.returncode == 0, (hook, done.stdout, done.stderr)
+        return open(str(log), encoding="utf-8").read()
+
+    written = stop("ich habe aufgegeben")
+    assert routine.GAVE_UP_EVENT in written, (
+        "the shipped gate wrote no give-up record for this stop: " + written)
+    when, reason = routine.last_run(str(tmp_path), routine.AUDIT_ROLE)
+    assert reason is None and when is None, (
+        "a stop that gave up was read as a run: %s -- %s" % ((when, reason), written))
+    assert routine.routine_duties(str(tmp_path), datetime.date.today())[0], (
+        "the reminder went silent for a run that delivered nothing")
+
+    written = stop("summary: der Bericht steht")
+    assert routine.last_run(str(tmp_path), routine.AUDIT_ROLE)[0] is not None, (
+        "a stop that honoured the contract was not counted: " + written)
+    assert not routine.routine_duties(str(tmp_path), datetime.date.today())[0]
 
 
 @pytest.mark.parametrize("kit", KITS)

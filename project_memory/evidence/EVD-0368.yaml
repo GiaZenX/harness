@@ -1,0 +1,19 @@
+id: EVD-0368
+kind: test
+related:
+- BUG-0246
+result: pass
+summary: 'H164 closed as stream C handed it over: the defect was the ORDER, so holes.migrate
+  asks the judge BEFORE the write -- a cited test that resolves to no declaration,
+  or to more than one, stops the run; a checkout with no test module at all is not
+  asked, because there a refusal would be about the checkout. Measured correction:
+  the module-name case the item names is ALREADY dropped by cited_tests (the tail
+  is ''py''); what got through is a plain name that resolves to none or several'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_kernel.py::test_a_citation_that_names_no_test_stops_the_run_before_it_writes
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:23:02'

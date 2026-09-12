@@ -242,3 +242,84 @@ def test_a_tier_nobody_pins_is_not_an_error(tmp_path):
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__]))
+
+
+# Where a tier ALIAS becomes a concrete model name: the two installers and the model/effort drift
+# check each kit's session briefing carries. Found by NAME under `team-kits/`, so a fourth kit is
+# covered the day it ships and a renamed installer is red rather than silently unread.
+def _alias_translating_files():
+    kits = os.path.join(ROOT, "team-kits")
+    found = [os.path.join(kits, "scaffold_team.sh"), os.path.join(kits, "scaffold_team.ps1")]
+    for entry in sorted(os.listdir(kits)):
+        candidate = os.path.join(kits, entry, "hooks", "session_status.py")
+        if os.path.isfile(candidate):
+            found.append(candidate)
+    return found
+
+
+def _model_names_a_file_writes(text, aliases):
+    """Every value these files put where a MODEL NAME goes, on a code line.
+
+    TWO POSITIONS, and they are the only ones these five files have: the frontmatter key
+    (`model: <value>`, which the two installers rewrite) and the right-hand side of a translation
+    whose left-hand side is quoted (`"lead": "opus"`, `"lead" { $val = "opus" }`, `lead) val="opus"`).
+    A prose line is not read at all -- the comment beside such a line is where a retired rung is
+    explained and has to stay nameable, which is why the subject here is the VALUE and not the word.
+    """
+    found = set()
+    for line in text.splitlines():
+        body = line.strip()
+        if not body or body.startswith("#") or body.startswith("//"):
+            continue
+        # ...and the key has to STAND where a frontmatter key stands: at the beginning of the
+        # value the code writes or matches (a quote, a regex `^`, a path separator) and never in
+        # the middle of a sentence -- a docstring line reading "the session model: when ..." is
+        # prose, and reading it as a pin is how this check first went red on its own subject.
+        found.update(re.findall(r"""(?:^|["'/^])model:[ 	]*["']?([A-Za-z][A-Za-z0-9_.-]*)""",
+                                body))
+        if not re.search(r"(?<![\w-])(?:%s)(?![\w-])" % "|".join(sorted(aliases)), body):
+            continue          # not a translation line at all -- an alias is on one side of one
+        found.update(value for _source, value in re.findall(
+            r"""["']([a-z][a-z0-9_]{2,})["'][^A-Za-z0-9_]{1,20}["']([A-Za-z][A-Za-z0-9_.-]*)["']""",
+            body))
+        found.update(value for _source, value in re.findall(
+            r"""(?<![\w-])([a-z][a-z0-9_]{2,})\)[ 	]*\w+=["']([A-Za-z][A-Za-z0-9_.-]*)["']""",
+            body))
+    return found
+
+
+def test_no_installer_or_hook_translates_a_tier_alias_the_table_does_not_declare():
+    """BUG-0250: `light` -> haiku was still translated in five shipped files after the rung retired.
+
+    `model_tiers.yaml` declares three rungs per provider and two aliases, and says in its own header
+    that there is no `light` alias and no haiku row (DEC-0076). Five places went on translating one:
+    both scaffold launchers, twice each (the frontmatter rewrite and the model_map stamping), and
+    the drift check of all three kits' `session_status.py`, which also listed `light` among the
+    aliases whose presence in installed frontmatter it calls a crash. A kit source cannot carry that
+    value at all -- `gen_provider_artifacts.provider_neutral_model` refuses it -- so those branches
+    translated something nothing produces, while telling every reader the rung still exists.
+
+    BOTH ENDS, against the TABLE and never against a list here: every alias the table declares is
+    translated by every one of these files, and nothing else is. Retiring another alias is red until
+    the five places follow; inventing one there is red until the table declares it.
+    """
+    _tiers, aliases = tiers_reader.load_tiers()
+    declared = set(aliases)
+    for path in _alias_translating_files():
+        with io.open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        relative = os.path.relpath(path, ROOT).replace(os.sep, "/")
+        # WHAT THE TABLE CAN PLACE, derived from it: an alias, an alias target, or a rung of the
+        # reference row. NOT `provider_neutral_model` -- that one answers whether a kit SOURCE may
+        # carry a value, and an installer's whole job is to write the concrete target it refuses.
+        known = (declared | set(aliases.values())
+                 | set(tiers_reader.rungs(_tiers, tiers_reader.REFERENCE_PROVIDER)))
+        unplaceable = sorted(name for name in _model_names_a_file_writes(text, declared)
+                             if name not in known)
+        assert not unplaceable, (
+            "%s writes %s where a model name goes, and `model_tiers.yaml` cannot place it -- a "
+            "value no kit source may carry and no installer should produce" % (relative, unplaceable))
+        missing = sorted(alias for alias in declared
+                         if not re.search(r"(?<![\w-])%s(?![\w-])" % re.escape(alias), text))
+        assert not missing, (
+            "%s does not mention %s, which the table declares as an alias" % (relative, missing))

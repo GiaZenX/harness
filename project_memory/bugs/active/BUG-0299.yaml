@@ -1,0 +1,31 @@
+id: BUG-0299
+title: Der H196-Startleser folgt einem argv, das ein Name hält, aber nicht dem PROGRAMMWORT,
+  das erst ein lokaler Name auflöst -- heute ohne Opfer
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-12 (TSK-0144 verify round 1, R1): tools/test_repo_hygiene.py
+  `_starts_a_hook` resolves an argv bound to a local name, but a program word bound
+  first (`program = os.path.join(tmp, ''gate_write_scope.py''); subprocess.run([sys.executable,
+  ''-B'', str(program)], env=dict(os.environ))`) is silent: 2 of 3 plantings named.
+  Live speaking sites of this form: 4 (tools/test_hooks_v2.py:13506, :14569, tools/test_repo_hygiene.py:2588,
+  .claude/hooks/test_gates.py:344) -- with one more element hop the sweep reports
+  `still forgetful with the hop: 0`, so no victim today.'
+expected: The same bound-name hop the reader applies to the argv is applied to the
+  program word; a planted fixture of the third form is reported, red-first; the four
+  live sites stay clean.
+repro: plant the third form in a copy of tools/test_hooks_v2.py and run tools/test_repo_hygiene.py::test_no_fixture_starts_a_hook_without_naming_the_project_it_asks_about
+  -> green (should be red).
+severity: low
+acceptance_criteria:
+- 'AC-1: the third planting form is reported, measured red-first'
+- 'AC-2: the four live sites remain 0 findings after the widening'
+source: staging/TSK-0144/verify-round-1.md (R1); staging/TSK-0144/protocol.md 'Rework
+  1' remainder rows
+limits: 'Ein Test, der eine Schutzregel startet, muss sagen, für welches Projekt er
+  fragt; die Prüfung dafür übersieht eine Schreibweise, bei der der Programmname vorher
+  in einer Variablen abgelegt wird. Begrenzt: heute schreibt keine Stelle im Repo
+  diese Form fehlerhaft (nachgezählt, vier Stellen, alle sauber).'
+hole_number: H215
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T21:05:04'

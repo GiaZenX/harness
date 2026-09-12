@@ -1,0 +1,18 @@
+id: EVD-0350
+kind: test
+related:
+- BUG-0144
+result: pass
+summary: 'H52 closed on the half that was reachable: the ambiguity refusal is right
+  and stays, but it now names the candidates with what each lease knows about its
+  child AND the route out of a corpse -- a lease is released with the task''s STATUS,
+  so moving the dead task restores id-less attribution for the role. The test measures
+  that route (transition, then the same stop is attributed), not the sentence'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_approvals_dispatch.py::test_the_ambiguous_stop_refusal_names_the_way_out_of_a_zombie_dispatch
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:00:36'

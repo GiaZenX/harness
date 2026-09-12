@@ -1,0 +1,23 @@
+id: EVD-0358
+kind: test
+related:
+- BUG-0008
+result: pass
+summary: 'AC-3 closed: whether ANOTHER tool writes into this checkout is measured
+  -- a top-level entry git neither tracks nor ignores is such a trace, and the root
+  carries none today. Driven at both ends on a throwaway repository (a whole untracked
+  directory is reported, a rule silences it). Red-first mutate bug_0008 (the sweep
+  stops seeing a directory, the shape the PowerShell module cache arrived in): 1 failed.
+  5 passed in 114.05 s.'
+artifact_refs:
+- staging/TSK-0143/protocol.md
+run_command: python -B -m pytest "tools/test_repo_hygiene.py::test_no_tool_trace_lies_unaccounted_for_in_the_repo_root"
+  "tools/test_repo_hygiene.py::test_git_tracks_no_ignored_file_outside_canonical_state"
+  "tools/test_repo_hygiene.py::test_no_pairing_shift_blinds_the_pointer_sweep_for_the_rest_of_a_file"
+  "tools/test_repo_hygiene.py::test_every_test_pointer_this_repo_writes_resolves"
+  "tools/test_repo_hygiene.py::test_the_test_pointer_reader_reads_the_shapes_a_kit_file_writes"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:04:17'

@@ -32,6 +32,8 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
+import textwrap
 import time
 import warnings
 
@@ -73,6 +75,71 @@ def test_git_tracks_no_ignored_file_outside_canonical_state():
         "git tracks these files while a .gitignore rule ignores them, so the rule is a no-op and "
         "the tool trace ships in every commit -- untrack each with `git rm --cached <path>`: %s"
         % offenders)
+
+
+def _unaccounted_top_level_entries(root):
+    """Top-level entries of a checkout git neither TRACKS nor IGNORES -- what a tool dropped in.
+
+    ASKED OF GIT and not of a walk of our own: whether a path is ignored is the resolution of every
+    `.gitignore` on the way to it plus the global excludes, and a second answer to that question
+    would age the day someone writes a rule this reader does not understand. `??` is git's word for
+    "untracked and not excluded"; a whole untracked directory comes back as one entry.
+
+    TOP LEVEL ONLY, because that is the property: new state DEEP in a tracked tree is work in
+    progress (this round writes evidence items and a staging protocol that way), while a name
+    appearing beside `tools/` and `docs/` is something that wrote itself into the checkout.
+    """
+    result = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True,
+                            text=True, encoding="utf-8", errors="replace", timeout=60)
+    assert result.returncode == 0, result.stderr
+    found = []
+    for line in result.stdout.splitlines():
+        if not line.startswith("?? "):
+            continue
+        path = line[3:].strip().strip('"')
+        if path.rstrip("/").count("/") == 0:
+            found.append(path)
+    return sorted(found)
+
+
+def _write_line(path, text):
+    """One line into a throwaway checkout, with the newline policy stated rather than inherited."""
+    with io.open(path, "w", encoding="utf-8", newline="") as handle:
+        handle.write(text + chr(10))
+
+
+def test_no_tool_trace_lies_unaccounted_for_in_the_repo_root():
+    """BUG-0008 AC-3: whether ANOTHER tool writes into this checkout is MEASURED, not assumed --
+    a top-level entry git neither tracks nor ignores is exactly such a trace.
+
+    THE OCCASION IS THE ONE THE ITEM CARRIES: a PowerShell module cache appeared beside `tools/`
+    because a subagent ran with `HOME` pointing here, and it sat in every `git status` until
+    somebody read the list. The sibling above holds the other direction (a rule that ignores a file
+    git already tracks is a dead rule); this one holds the direction that has no rule at all.
+
+    BOTH ENDS, ON A CHECKOUT BUILT HERE, because a reader whose only subject is a clean tree cannot
+    tell "nothing was dropped" from "nothing was looked at": a stray file in a throwaway repository
+    has to be reported, and the same file has to fall silent once a rule accounts for it.
+    """
+    _require_git()
+    work = os.path.join(tempfile.mkdtemp(prefix="hygiene-root-"), "checkout")
+    os.makedirs(work)
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True, timeout=60)
+    os.makedirs(os.path.join(work, "ToolCache", "Windows"))
+    _write_line(os.path.join(work, "ToolCache", "Windows", "cache"), "a tool wrote this")
+    assert _unaccounted_top_level_entries(work) == ["ToolCache/"], (
+        "a whole directory no rule accounts for is not reported in a checkout built to hold "
+        "exactly one -- and a tool trace arrives as a directory, which is the shape the module "
+        "cache of BUG-0008 had: %s" % _unaccounted_top_level_entries(work))
+    _write_line(os.path.join(work, ".gitignore"), "ToolCache/")
+    assert _unaccounted_top_level_entries(work) == [".gitignore"], (
+        "a rule that names the directory does not silence the reader, so it is not asking git "
+        "about ignores at all: %s" % _unaccounted_top_level_entries(work))
+    stray = _unaccounted_top_level_entries(ROOT)
+    assert not stray, (
+        "these lie in the root of this checkout and no rule accounts for them -- each is either "
+        "work that belongs in a commit or a tool trace that belongs in .gitignore WITH the reason "
+        "it is there: %s" % stray)
 
 
 def test_the_known_out_of_scope_trace_is_still_the_only_exception():
@@ -901,6 +968,93 @@ def _dec_citations(text):
             if not any(start <= hit.start() < end for start, end in exempt)]
 
 
+def _docstrings_of(tree):
+    """The id() of every string constant this tree uses as a DOCSTRING -- module, class, function.
+
+    A DOCSTRING IS DOCUMENTATION and the rest of a source's strings are values it hands out. That
+    line is what separates an id a reader must be able to follow from one a text EXHIBITS: the
+    memory-budget guard shows `"a DEC-2100 controller"` in its own docstring as its own false
+    positive, and DEC-2100 is an id this store deliberately does not have.
+    """
+    found = set()
+    for node in ast.walk(tree):
+        body = getattr(node, "body", None) if isinstance(
+            node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) else None
+        if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) \
+                and isinstance(body[0].value.value, str):
+            found.add(id(body[0].value))
+    return found
+
+
+def _dec_citations_in_messages(source):
+    """`(line, id)` for every decision a PYTHON source names in a message it hands out.
+
+    THE CLASS H73 (a) NAMES, and the reason it is a class of its own: `_dec_citations` skips any id
+    inside a delimiter longer than itself, because in a MARKDOWN corpus a double-quoted span is
+    somebody's prose being quoted. In a Python SOURCE a double quote is the language's string
+    delimiter, and what stands inside is text the program hands to a reader -- a refusal, a
+    briefing, a handover marker. Measured on the shipped tree 2026-08-29: of the twenty-two
+    double-quoted spans carrying an id, sixteen were of that kind, and an id rotting in one of them
+    rots IN FRONT OF THE USER at the moment a gate refuses. So this reads the literals through
+    `ast`, not through quote characters.
+
+    TWO THINGS STAY OUT, both as properties: a DOCSTRING (`_docstrings_of` -- documentation, where
+    a text may exhibit an id it is talking about), and an id inside a backtick span within the
+    message, which is the marker these kits already use for data a message shows.
+
+    Measured 2026-09-12 over the shipped tree: 69 such citations, all resolving.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    documentation, found = _docstrings_of(tree), []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Constant) or not isinstance(node.value, str):
+            continue
+        if id(node) in documentation:
+            continue
+        marked = [(span.start(), span.end()) for span in _CODE_SPAN_IN_A_MESSAGE_RX.finditer(
+            node.value)]
+        for hit in _DEC_ID_RX.finditer(node.value):
+            if not any(start <= hit.start() < end for start, end in marked):
+                found.append((node.lineno, hit.group(0)))
+    return found
+
+
+_CODE_SPAN_IN_A_MESSAGE_RX = re.compile(r"`[^`\n]*`")
+# A string literal of a SHELL source: a quoted run inside ONE line, paired positionally from the
+# left, which is how both shells read it and how `_DELIMITED_RX` above already pairs.
+_SHELL_LITERAL_RX = re.compile("\"[^\"\n]*\"|'[^'\n]*'")
+SHELL_SOURCES = (".sh", ".ps1")
+
+
+def _dec_citations_in_shell_messages(source):
+    """`(line, id)` for every decision a SHELL or POWERSHELL source names inside a string literal.
+
+    THE SAME CLASS AS THE PYTHON ONE and therefore the same rule: in a SOURCE a quote is the
+    language's string delimiter, not a quotation of somebody's prose, and what stands inside is
+    text the script hands to a reader. The installers write the handover marker that way -- an
+    `echo "# agents-and-skills handover marker (BUG-0016, DEC-0032)"` whose line lands in
+    `.claude/HANDOVER_PENDING`, where the next session reads it.
+
+    A BOUNDED READER, said plainly: `bash -n` and the PowerShell parser check syntax, they do not
+    hand back literals, so there is no parser here to ask. What this reads is a quoted run inside
+    ONE line -- which is what these two files write, and a literal continued across a line break is
+    outside it. Measured 2026-09-12 over the shipped tree: four ids in two files, all resolving.
+
+    NO BACKTICK EXEMPTION HERE, unlike the Python reader, and that is a property of the languages
+    rather than an omission: in a shell a backtick opens a command substitution and in PowerShell it
+    escapes the next character -- neither marks data the way a code span does in Python prose.
+    """
+    found = []
+    for number, line in enumerate(source.splitlines(), start=1):
+        for span in _SHELL_LITERAL_RX.finditer(line):
+            for hit in _DEC_ID_RX.finditer(span.group(0)):
+                found.append((number, hit.group(0)))
+    return found
+
+
 def _shipped_kit_files():
     """(relative path, text) for every readable file under `team-kits/` -- the shipped tree."""
     kits = os.path.join(ROOT, "team-kits")
@@ -962,12 +1116,95 @@ def test_every_decision_pointer_in_a_shipped_kit_file_resolves():
             if hit.group(0) not in store:
                 offenders.append("%s:%d %s" % (rel, text[:hit.start()].count("\n") + 1,
                                                hit.group(0)))
+        # AND THE MESSAGES A SOURCE HANDS OUT (BUG-0165 / H73 (a)): the reader above skips them,
+        # and they are the ones a USER reads -- at the moment of a refusal, or in the handover
+        # marker an installer writes into a fresh project.
+        if rel.endswith(".py"):
+            for line, one in _dec_citations_in_messages(text):
+                judged += 1
+                if one not in store:
+                    offenders.append("%s:%d %s (in a message this program hands out)"
+                                     % (rel, line, one))
+        elif rel.endswith(SHELL_SOURCES):
+            for line, one in _dec_citations_in_shell_messages(text):
+                judged += 1
+                if one not in store:
+                    offenders.append("%s:%d %s (in a line this script writes out)"
+                                     % (rel, line, one))
     assert not offenders, (
         "these shipped kit files cite a decision that is in neither decisions/active/ nor "
         "archive/DEC/, so the reason they point at cannot be read:\n  " + "\n  ".join(offenders))
     assert judged >= 100, (
         "only %d decision pointers judged across team-kits/ -- the reader stopped matching, and "
         "then every assertion above is vacuously true" % judged)
+
+
+def test_a_decision_named_in_a_message_a_user_reads_is_one_that_resolves():
+    """BUG-0165 / H73 (a): a decision id inside a SOURCE's string literal was unjudged, and those
+    literals are the refusals, briefings and markers a USER reads.
+
+    WHY IT WAS UNJUDGED, and why the fix is a class and not an exception: `_dec_citations` skips an
+    id inside any delimiter longer than itself, because its corpus quotes prose and command lines,
+    and a double-quoted span there is somebody else's words. In a SOURCE the double quote is the
+    language's string delimiter -- what stands inside is text the program HANDS OUT. Measured
+    2026-08-29 on the shipped tree for the entry: of twenty-two double-quoted spans carrying an id,
+    sixteen were of that kind -- thirteen kernel refusal and briefing messages (Python) and three
+    handover-marker literals, and the marker ones are written by the INSTALLERS, which are shell
+    and PowerShell. Both halves are read here: `_dec_citations_in_messages` through `ast` for `.py`,
+    `_dec_citations_in_shell_messages` as a bounded reader for `.sh`/`.ps1`. The second half is
+    round 2's finding (the verifier planted a dead id in the marker line of
+    `team-kits/scaffold_team.sh` and this file stayed GREEN); it is measured below in both
+    directions.
+
+    BOTH ENDS, ON SOURCES BUILT HERE: a message naming an id has to be read; the same id marked as
+    DATA inside the message (a backtick span, the marker these kits already use) must not be; and
+    the same id in a DOCSTRING must not be either -- a docstring is documentation, and the
+    memory-budget guard exhibits `"a DEC-2100 controller"` in its own as its own false positive.
+
+    AND THE CORPUS IS NOT EMPTY: the shipped tree really carries such messages (69 of them on
+    2026-09-12, all resolving), so the sweep in the sibling test is about something.
+    """
+    message = 'raise SystemExit("%s asks for a rung the ladder does not have (DEC-9142)")'
+    assert _dec_citations_in_messages(message % "x") == [(1, "DEC-9142")], (
+        "an id in a message this program hands out is not read at all, which is the defect itself")
+    marked = 'raise SystemExit("the file `DEC-9142.yaml` is the one it names")'
+    assert _dec_citations_in_messages(marked) == [], (
+        "an id a message marks as DATA with a code span is reported, so every message showing a "
+        "file name would be red")
+    documentation = textwrap.dedent('''
+        def guard():
+            """a DEC-9142 controller is not a decision id"""
+            return 1
+    ''')
+    assert _dec_citations_in_messages(documentation) == [], (
+        "an id EXHIBITED in a docstring is read as a citation -- that is the shape the "
+        "memory-budget guard uses to show its own false positive")
+    assert _dec_citations_in_messages("def f():\n    return 1") == [], (
+        "a source with no message at all yields a citation, so the reader is inventing them")
+    # AND THE SHELL HALF, which is where H73 (a) counted two of its sixteen sites: the installers
+    # write the handover marker with `echo "... (BUG-0016, DEC-0032)"`, and an `ast` reader never
+    # opens a `.sh`. Measured: a dead id planted in that very line left this file GREEN.
+    shell = 'echo "# agents-and-skills handover marker (BUG-0016, DEC-9142)"'
+    assert _dec_citations_in_shell_messages(shell) == [(1, "DEC-9142")], (
+        "an id in the line a shell script WRITES OUT is not read, and that is the half of H73 (a) "
+        "the python reader cannot reach")
+    assert _dec_citations_in_shell_messages("# DEC-9142: a comment about the code") == [], (
+        "an id in a shell COMMENT is reported by this reader -- bare prose is `_dec_citations`' "
+        "subject, and two readers answering the same question is what this repo pays for")
+    assert _dec_citations_in_shell_messages('Write-Host "a) b" ; # DEC-9142') == [], (
+        "a quoted span that carries no id yields one, so the pairing is running away")
+    carried, spoken = 0, 0
+    for rel, text in _shipped_kit_files():
+        if rel.endswith(".py"):
+            carried += len(_dec_citations_in_messages(text))
+        elif rel.endswith(SHELL_SOURCES):
+            spoken += len(_dec_citations_in_shell_messages(text))
+    assert carried >= 40, (
+        "only %d decisions are named in the messages of the shipped tree -- the reader stopped "
+        "matching, and then the sweep that judges them is vacuously true" % carried)
+    assert spoken >= 2, (
+        "only %d decisions are named inside a string literal of a shipped .sh/.ps1 -- the two "
+        "handover-marker sites H73 (a) counts are then judged by nothing" % spoken)
 
 
 def test_the_decision_pointer_reader_can_tell_a_citation_from_a_literal():
@@ -1039,6 +1276,27 @@ _CODE_SPAN_RX = re.compile(r"`([^`]+)`", re.DOTALL)
 _SUITE_DIRS = ("tools", ".claude/hooks")
 
 
+_FENCE_RX = re.compile(
+    r"^[ \t]*(?P<mark>`{3,}|~{3,}).*?(?:^[ \t]*(?P=mark).*?$|\Z)",
+    re.MULTILINE | re.DOTALL)
+
+
+def _without_fenced_blocks(text):
+    """`text` with every fenced block blanked out -- SAME LENGTH, so every offset still points home.
+
+    A FENCE IS AN ODD NUMBER OF BACKTICKS, and `_CODE_SPAN_RX` pairs single backticks from the left
+    across the whole file: from the first fence onward it pairs the GAPS between spans instead of
+    the spans, and every citation below that fence disappears (BUG-0263 / H181).
+
+    THE COUNTING CONVENTION, stated because two honest readers gave two figures for one defect: a
+    citation INSIDE a fenced block is worth nothing -- it is an example of a command line, not a
+    statement answering for a claim -- while the text around the block is read as before. What that
+    convention yields over this tree, and what the reader before it yielded, is counted in ONE
+    place: `test_no_pairing_shift_blinds_the_pointer_sweep_for_the_rest_of_a_file`.
+    """
+    return _FENCE_RX.sub(lambda hit: " " * len(hit.group(0)), text)
+
+
 def _test_citations(text):
     """(offset, file, test name) for every pytest node id `text` cites, out of its backtick spans.
 
@@ -1053,9 +1311,10 @@ def _test_citations(text):
     `test_the_test_pointer_reader_reads_the_shapes_a_kit_file_writes` a floor rather than a
     restatement.
     """
+    readable = _without_fenced_blocks(text)
     found = []
     carried = None
-    for span in _CODE_SPAN_RX.finditer(text):
+    for span in _CODE_SPAN_RX.finditer(readable):
         glued = re.sub(r"[\s#]+", "", span.group(1))
         glued = re.sub(r"\[[^\]]*\]\Z", "", glued).rstrip(".,;:)")
         hit = _NODE_ID_RX.match(glued)
@@ -1069,8 +1328,14 @@ def _test_citations(text):
     return found
 
 
+# WHAT A FILE NOBODY CAN PARSE RIGHT NOW ANSWERS -- a third value beside "here are its tests" and
+# "there is no such file", so a citation is never called dead for a neighbour's half-saved file.
+UNREADABLE = object()
+
+
 def _defined_in(cited):
-    """The function names the suite file `cited` names, or `None` when there is no such file.
+    """The function names the suite file `cited` names -- or `None` where no such file exists, or
+    `UNREADABLE` where the file exists and cannot be parsed right now (all three, see below).
 
     A citation without a directory is looked for in the suite directories, because that is how these
     sentences are written -- the hole list says `test_gates.py::…` and means the one file of that
@@ -1078,6 +1343,12 @@ def _defined_in(cited):
 
     Parsed, never searched: a name that appears in a docstring is not a test, and a check satisfied
     by its own prose is the failure mode this repo has hit twice.
+
+    A FILE HALF-WRITTEN AT THIS INSTANT IS `UNREADABLE`, NOT "no such test", and that third answer
+    was bought on 2026-09-12: this tree is written by three builders at once, `ast.parse` raised
+    `SyntaxError` out of the middle of the sweep, and the run came back red naming the wrong thing
+    entirely -- seventy seconds later the same node was green. The caller says which of the three
+    it met; the one thing it may not do is call a citation dead because a neighbour was mid-save.
     """
     candidates = [cited] if "/" in cited else ["%s/%s" % (one, cited) for one in _SUITE_DIRS]
     for candidate in candidates:
@@ -1085,7 +1356,10 @@ def _defined_in(cited):
         if not os.path.isfile(path):
             continue
         with open(path, encoding="utf-8") as handle:
-            tree = ast.parse(handle.read())
+            try:
+                tree = ast.parse(handle.read())
+            except SyntaxError:
+                return UNREADABLE
         return {node.name for node in ast.walk(tree)
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
     return None
@@ -1132,11 +1406,14 @@ def test_every_test_pointer_this_repo_writes_resolves():
     `tools/test_hooks_v2.py`, while the test lives in `tools/test_office_duties.py`. The claim it
     carries ("raising either turns red") was true; the file it sent a reader to was not.
     """
-    judged, offenders = 0, []
+    judged, offenders, unreadable = 0, [], set()
     for rel, text in _texts_that_answer_for_a_claim():
         for offset, path, name in _test_citations(text):
             judged += 1
             defined = _defined_in(path)
+            if defined is UNREADABLE:
+                unreadable.add(path)
+                continue
             if defined is None or name not in defined:
                 offenders.append("%s:%d cites %s::%s -- %s"
                                  % (rel, text[:offset].count("\n") + 1, path, name,
@@ -1144,9 +1421,105 @@ def test_every_test_pointer_this_repo_writes_resolves():
     assert not offenders, (
         "these statements answer for a claim with a test nobody can run, so the claim reads as "
         "measured and is not:\n  " + "\n  ".join(offenders))
-    assert judged >= 150, (
+    if unreadable:
+        # NOT an offence and not silence either: a file that does not parse at THIS instant is a
+        # neighbour mid-save in a tree three builders write (measured 2026-09-12, this node red on
+        # a `SyntaxError` and green seventy seconds later). It is named, so a run that met one can
+        # be told from a clean one and re-run.
+        warnings.warn("not judged, these suite files did not parse while this ran: %s"
+                      % ", ".join(sorted(unreadable)))
+    # THE FLOOR IS A CONSTANT AND THE MEASUREMENT IS NOT HERE (BUG-0263): what this tree really
+    # yields, and what it yielded before the fenced blocks were blanked, is counted in ONE place --
+    # `test_no_pairing_shift_blinds_the_pointer_sweep_for_the_rest_of_a_file`. This number is only
+    # the floor under a reader that quietly stops matching, with room for the documents a round
+    # archives; a second copy of the count is what aged the last one.
+    assert judged >= 500, (
         "only %d test pointers judged -- the reader stopped matching, and then the assertion "
         "above is vacuously true" % judged)
+
+
+def test_a_suite_file_a_neighbour_is_saving_is_unreadable_and_not_a_dead_pointer(
+        tmp_path, monkeypatch):
+    """A suite file that does not PARSE at this instant answers `UNREADABLE`, never "no such test".
+
+    MEASURED 2026-09-12 in this tree: three builders write it at once, `ast.parse` raised
+    `SyntaxError` out of the middle of `test_every_test_pointer_this_repo_writes_resolves`, the node
+    came back red naming nothing real, and the same node was green seventy seconds later. A reader
+    that answered "no such test" there would have reported a live citation as dead.
+
+    THE TREE IS BUILT HERE and `ROOT` is pointed at it, so nothing is written into the repository a
+    neighbour is working in -- which is the same reason the defect exists at all.
+    """
+    monkeypatch.setattr(sys.modules[__name__], "ROOT", str(tmp_path))
+    suite = tmp_path / "tools"
+    suite.mkdir()
+    _write_line(str(suite / "test_whole.py"), "def test_one(): return 1")
+    _write_line(str(suite / "test_half_written.py"), "def test_one(:")
+    assert _defined_in("tools/test_whole.py") == {"test_one"}, (
+        "a file that parses does not hand back its tests, so the drive below says nothing")
+    assert _defined_in("tools/test_half_written.py") is UNREADABLE, (
+        "a suite file that does not parse answers like one that is not there, so a citation into "
+        "it reads as dead while a neighbour is simply saving")
+    assert _defined_in("tools/test_not_there_at_all.py") is None, (
+        "a file that is really absent answers UNREADABLE too, and then the two cases cannot be "
+        "told apart in the message")
+
+
+def test_no_pairing_shift_blinds_the_pointer_sweep_for_the_rest_of_a_file():
+    """BUG-0263 / H181: pairing single backticks across a whole file is decided by the PARITY of
+    everything before, so one fence -- three backticks -- made every citation below it disappear.
+
+    THE ONE PLACE THE COUNT LIVES, and it is BOTH readers over the SAME corpus -- a figure taken
+    against the old assertion floor is not a count, which is what the first writing of this round
+    got wrong. Measured 2026-09-12 12:0x on this tree, through the two readers themselves:
+
+        the reader before this change   625
+        the fenced-block reader         680 in 172 files
+        files whose count changes        15, and NONE of them loses a citation
+        docs/office-kit-from-field.md   0 -> 14 (its first fence opens in line 23)
+
+    The tree moves under this: three builders write it, and the verifier of round 1 counted 617 /
+    672 on a snapshot twenty minutes older. What does NOT move is the direction and the shape -- no
+    file loses, fifteen gain -- and that is what the sentence above claims.
+
+    AND THE THREE THAT RESOLVE AT NOTHING: with the fences blanked, exactly three citations of this
+    tree surfaced that name no test, all three in field reports, all three repaired in the same
+    change. Planted, a citation below a fence replaced by a name no suite defines left the sweep
+    GREEN before it (TSK-0132 verifier, re-measured here as a mutation).
+
+    THE COUNTING CONVENTION is stated at `_without_fenced_blocks`: a citation INSIDE a fence is
+    worth nothing, the text around it is read as before. The figures above are counted that way.
+
+    WHAT IS NOT CLOSED WITH IT, measured rather than left implied: blanking the fences takes the
+    commonest cause of a shifted pairing out, not every cause -- a single stray backtick inside a
+    string shifts the pairing just the same, and the node ids that shift leaves visible only to a
+    reader bounded by a LINE are counted in this round's protocol with the hour they were counted
+    at, because that set moves with every write of a neighbouring stream. A reader answering under
+    BOTH pairings is the next step and not this one's: it turns files this round may not write red.
+
+    WHY THE FLOOR STAYS A GLOBAL ONE (BUG-0263 AC-3, decided rather than skipped): a per-FILE floor
+    has to know that a file carrying a node id and contributing none really dropped out -- and
+    three files of this tree carry one inside a DOUBLED backtick span on purpose, as an
+    illustration of the reader rather than as a claim (`team-kits/office-team/hooks/_filing.py`,
+    `docs/holes/H41.md`, `docs/reviews/phase0-disposition.md`). Telling an illustration from a
+    pointer is the open gap BUG-0257 / H175, and a per-file floor built before it buys false reds.
+
+    BOTH ENDS: the reader is driven over a text carrying a fence and a citation behind it, and over
+    one whose only citation stands INSIDE the fence -- so a reader that stopped blanking fences and
+    one that blanked the whole file both fail here.
+    """
+    behind = "see `tools/test_repo_hygiene.py::test_every_test_pointer_this_repo_writes_resolves`"
+    node = ("tools/test_repo_hygiene.py", "test_every_test_pointer_this_repo_writes_resolves")
+
+    def read(text):
+        return [(path, name) for _offset, path, name in _test_citations(text)]
+
+    assert read(behind) == [node], "the plain citation is not read, so nothing below says anything"
+    assert read("\n".join(["```", "one fenced line", "```", "", behind])) == [node], (
+        "a citation standing BEHIND a fenced block is not read, which is the defect itself")
+    assert not read("\n".join(["```", behind, "```"])), (
+        "a citation INSIDE a fenced block is counted, which contradicts the convention this round "
+        "counted under")
 
 
 def test_the_test_pointer_reader_reads_the_shapes_a_kit_file_writes():
@@ -1180,6 +1553,7 @@ def test_the_test_pointer_reader_reads_the_shapes_a_kit_file_writes():
     assert _defined_in("test_gates.py"), "a bare suite file name must resolve in a suite directory"
     assert _defined_in("tools/test_no_such_suite.py") is None
     assert _defined_in("test_no_such_suite.py") is None
+
 
 
 if __name__ == "__main__":
@@ -2222,6 +2596,224 @@ def test_no_hook_started_by_this_suite_can_write_this_repos_audit_log(tmp_path):
     assert after_sink is not None and after_sink != before_sink, (
         "the refusal was recorded nowhere -- the redirection cannot be read off a log that never "
         "grows, so this assertion is the one that keeps the check above honest")
+
+
+PROJECT_VARIABLE = "CLAUDE_PROJECT_DIR"
+
+
+_NAMES_A_HOOK_RX = re.compile(r"(?i)\bhooks?\b|HOOKS|gate_[a-z_]+\.py|guard_[a-z_]+\.py")
+# What stands in an argv BEFORE the program, so the reader can find the program rather than assume
+# it is element 0: the interpreter and its own switches. Read off `sys` and the shipped spelling,
+# because a fourth switch here would change nothing about the question.
+_BEFORE_THE_PROGRAM = ("sys.executable", "'-B'", '"-B"', "'-u'", '"-u"', "'-m'", '"-m"')
+
+
+def _starts_a_hook(call, bound=None):
+    """Does this `subprocess` call start a HOOK? -- asked of the PROGRAM, not of the whole argv.
+
+    The subject of `BUG-0280` in its own words: a start whose argv names a hooks directory or a
+    shipped-hook constant. Read out of the parse tree, so a path assembled from a constant
+    (`os.path.join(HOOKS, name)`), from a fixture (`hooks_dir or HOOKS`) or written out is one
+    expression here and not three spellings to remember.
+
+    THE PROGRAM AND NOT ELEMENT ZERO, because the difference is a false alarm this reader really
+    produced: `['cmd', '/c', 'mklink', '/J', str(hooks / 'yaml'), target]` names a hooks directory
+    as an ARGUMENT to a link command and starts no hook at all
+    (`tools/test_hooks_v2.py`, measured while writing this). So the interpreter and its switches are
+    stepped over and the first remaining word is the one asked about.
+
+    AN ARGV HELD BY A NAME IS FOLLOWED to its assignment in the same function (`bound`), because
+    that is a shape the suite really uses (`argv = [sys.executable, str(hooks / "_gate.py")] + ...`
+    and then `subprocess.run(argv, ...)`) and a reader that stopped at the name answered "no hook"
+    about it. One hop, not a solver: a name assigned from another name is not followed, and that
+    direction reports nothing rather than reporting wrongly.
+    """
+    func = ast.unparse(call.func) if isinstance(call, ast.Call) else ""
+    if func not in ("subprocess.run", "subprocess.Popen", "subprocess.check_output",
+                    "subprocess.check_call"):
+        return False
+    if not call.args:
+        return False
+    argv = call.args[0]
+    if isinstance(argv, ast.Name) and (bound or {}).get(argv.id) is not None:
+        argv = bound[argv.id]
+    if not isinstance(argv, (ast.List, ast.Tuple)):
+        return bool(_NAMES_A_HOOK_RX.search(ast.unparse(argv)))
+    for element in argv.elts:
+        word = ast.unparse(element)
+        if word in _BEFORE_THE_PROGRAM:
+            continue
+        return bool(_NAMES_A_HOOK_RX.search(word))
+    return False
+
+
+def _functions_that_name_the_project(tree):
+    """(named, callers-of) -- which functions of this module name the project, and who calls whom.
+
+    THE DATAFLOW `BUG-0280` ASKS FOR, in the only two shapes the environment really travels in:
+
+      * BUILT HERE -- `CLAUDE_PROJECT_DIR` occurs anywhere inside the function (a keyword of a
+        `dict(os.environ, ...)`, an assignment into an env map, a `monkeypatch.setenv`). That is
+        `tools/test_hooks.py::run_hook_process`, the call site every new test is copied from, and
+        it is why the item's own count of 55 is a scan and not a check: most of the 55 build the
+        environment one statement above the call.
+      * HANDED IN -- the `env=` of the start is a PARAMETER of the enclosing function, so the
+        question belongs to that function's CALLERS. `_callers_of` is what the sweep asks then, and
+        it demands that EVERY caller names it: one forgetful caller is a forgetful start.
+
+    WHAT IS DELIBERATELY *NOT* DONE, because it was tried and it collapses: a transitive closure in
+    both directions (a caller is covered because its callee names it AND a callee because its
+    caller does). Over one of these modules that makes almost every function "covered" through a
+    shared helper like `write`, so the sweep would report nothing and say it had looked. The two
+    shapes above are narrow on purpose; an environment that arrives from ANOTHER module, or a
+    helper reached through a value rather than by its name, is not seen and is reported instead.
+    """
+    named, calls = set(), {}
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        calls[node.name] = {_called_name_of(inner)
+                            for inner in ast.walk(node) if isinstance(inner, ast.Call)}
+        # THE DOCSTRING IS CUT OFF FIRST, and that is not tidiness: a function whose PROSE names
+        # the variable while its code does not would have satisfied this reader with its own
+        # docstring -- the failure mode this repository has hit twice and forbids by rule.
+        if PROJECT_VARIABLE in "".join(ast.unparse(one) for one in _past_the_docstring(node)):
+            named.add(node.name)
+    callers = {name: {who for who, called in calls.items() if name in called} for name in calls}
+    return named, callers
+
+
+def _called_name_of(call):
+    """The name a call spells, attribute or bare -- `self._bash` and `_bash` are one helper."""
+    return call.func.attr if isinstance(call.func, ast.Attribute) else getattr(call.func, "id", None)
+
+
+def _past_the_docstring(node):
+    """The statements of a function that are CODE -- its docstring dropped, if it has one."""
+    body = list(node.body)
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) \
+            and isinstance(body[0].value.value, str):
+        body = body[1:]
+    return body
+
+
+def _hook_starts_that_name_no_project(source, where="<module>"):
+    """[(where, line, owner, argv)] for every hook start in `source` that no reach above covers."""
+    tree = ast.parse(source, where)
+    named, callers = _functions_that_name_the_project(tree)
+    owner, bound, parameters = {}, {}, {}
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        local = {}
+        for inner in ast.walk(node):
+            owner.setdefault(inner, node.name)
+            if isinstance(inner, ast.Assign) and len(inner.targets) == 1 \
+                    and isinstance(inner.targets[0], ast.Name):
+                local[inner.targets[0].id] = inner.value
+        taken = {one.arg for one in node.args.args + node.args.kwonlyargs}
+        for inner in ast.walk(node):
+            bound.setdefault(inner, local)
+            parameters.setdefault(inner, taken)
+    forgetful = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not _starts_a_hook(node, bound.get(node)):
+            continue
+        if PROJECT_VARIABLE in ast.unparse(node):
+            continue
+        here = owner.get(node)
+        if here in named:
+            continue
+        handed = [one.value for one in node.keywords if one.arg == "env"]
+        if handed and isinstance(handed[0], ast.Name) \
+                and handed[0].id in (parameters.get(node) or set()) \
+                and callers.get(here) and callers[here] <= named:
+            continue                    # the environment is the callers' business, and they name it
+        forgetful.append((where, node.lineno, here or "<module>",
+                          ast.unparse(node.args[0])[:100]))
+    return forgetful
+
+
+def test_no_fixture_starts_a_hook_without_naming_the_project_it_asks_about():
+    """`BUG-0280`/`H196`: a hook a suite starts with no project of its own judges the AMBIENT tree.
+
+    THE CHAIN: `_root.find_repo_root` answers `CLAUDE_PROJECT_DIR` BEFORE the payload's cwd, and
+    `tools/conftest.py` points that variable at a throwaway tree (the `BUG-0052` fix). So a call
+    site that names no project of its own asks a hook about the throwaway tree, and the answer
+    ("nothing here") is a green test about nothing. Nine tests went red on it once and were repaired
+    at the call site; the scan that produced the item counted 65 hook starts, 55 of them without a
+    literal of the variable in the call's own keywords.
+
+    WHY THAT 55 IS NOT THE CHECK, which is the item's own AC-1: most of the 55 pass the variable
+    INDIRECTLY -- a helper builds the environment one statement above the call, and every caller
+    inherits it. So the reach is followed instead of the keyword being counted
+    (`_functions_that_name_the_project`, to a fixed point over the module's own call graph), and
+    what is left over is the set nothing names at all.
+
+    BOTH ENDS, and the second is the one that makes the first mean something
+    (`test_the_project_reach_reader_tells_a_forgetful_fixture_from_an_inherited_one`): the reader
+    must NAME a fixture that starts a shipped hook with no environment, and must NOT name
+    `run_hook_process`.
+    """
+    forgetful = []
+    for directory in _SUITE_DIRS:
+        for path in sorted(glob.glob(os.path.join(ROOT, *directory.split("/")) + "/test_*.py")):
+            with io.open(path, encoding="utf-8") as handle:
+                forgetful.extend(_hook_starts_that_name_no_project(
+                    handle.read(), os.path.relpath(path, ROOT).replace(os.sep, "/")))
+    assert not forgetful, (
+        "%d hook start(s) in this suite name no project, so they judge whatever tree the ambient "
+        "CLAUDE_PROJECT_DIR points at (BUG-0280):\n  %s"
+        % (len(forgetful), "\n  ".join("%s:%d  %s()  %s" % one for one in forgetful)))
+
+
+def test_the_project_reach_reader_tells_a_forgetful_fixture_from_an_inherited_one():
+    """The floor under the sweep above: it has to NAME one and STAY SILENT about the other.
+
+    Three shapes, written here rather than looked for in the tree, so the property is the subject:
+    a start that names the project in its own keywords, one that inherits it from the helper that
+    built the environment (the `run_hook_process` shape), and one that names it nowhere. Without
+    the third the sweep could be a reader that finds nothing at all; without the second it would be
+    the 55-wide scan the item says is not the check.
+
+    AND THE RUNNING TREE, for the one call site the item names by name: `run_hook_process` really
+    is covered -- if it ever stops building the environment, the sweep above reports it and this
+    assertion says which reader let it through.
+    """
+    forgetful = _hook_starts_that_name_no_project(textwrap.dedent('''
+        import os
+        import subprocess
+        HOOKS = "team-kits/dev-team/hooks"
+
+        def run_it(name, project):
+            env = dict(os.environ, CLAUDE_PROJECT_DIR=str(project))
+            return subprocess.run([os.path.join(HOOKS, name)], env=env)
+
+        def inherits(name, project):
+            return run_it(name, project)
+
+        def in_its_own_keywords(name, project):
+            return subprocess.run([os.path.join(HOOKS, name)],
+                                  env=dict(os.environ, CLAUDE_PROJECT_DIR=str(project)))
+
+        def forgets_it(name):
+            return subprocess.run([os.path.join(HOOKS, name)], env=dict(os.environ))
+
+        def only_says_it(name):
+            """Runs the hook with CLAUDE_PROJECT_DIR set -- which this function does NOT do."""
+            return subprocess.run([os.path.join(HOOKS, name)], env=dict(os.environ))
+        '''), "<probe>")
+    assert [one[2] for one in forgetful] == ["forgets_it", "only_says_it"], (
+        "the reader must name both forgetful starts and nothing else -- the second one PROMISES the "
+        "variable in its docstring and passes none, which is the check-satisfied-by-its-own-prose "
+        "failure this repository forbids: %r" % (forgetful,))
+
+    with io.open(os.path.join(ROOT, "tools", "test_hooks.py"), encoding="utf-8") as handle:
+        tree = ast.parse(handle.read(), "test_hooks.py")
+    assert "run_hook_process" in _functions_that_name_the_project(tree)[0], (
+        "`tools/test_hooks.py::run_hook_process` is the call site every new test is copied from; "
+        "the reader no longer sees that it names the project, so the sweep above is measuring the "
+        "wrong thing")
 
 
 def _test_modules_outside_the_default_surface():

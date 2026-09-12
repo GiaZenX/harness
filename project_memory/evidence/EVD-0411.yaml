@@ -1,0 +1,17 @@
+id: EVD-0411
+kind: test
+related:
+- BUG-0265
+result: pass
+summary: 'H183 AC-1 geschlossen: kernel.report.installed_kit_paths liest .claude/kit_repo_files.json,
+  die Verzeichnisnamen bleiben nur Rueckfall fuer eine Installation vor diesem Datensatz.
+  Rot-zuerst im Rig: Fix herausgeschnitten rc 0/0 dead pointers (1 failed/11.10s),
+  mit Fix rc 1/4 (1 passed/10.50s).'
+artifact_refs:
+- staging/TSK-0144/protocol.md
+run_command: python -B -m pytest tools/test_pointer_sweep.py::test_a_projects_own_script_is_swept_while_the_kits_copy_beside_it_is_not
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T19:34:21'

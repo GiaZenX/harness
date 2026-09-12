@@ -1,0 +1,19 @@
+id: EVD-0389
+kind: test
+related:
+- BUG-0055
+result: pass
+summary: 'Closed as stream B handed it over, and by the PRODUCER rather than by widening
+  _SCOPE_FIELDS: freeze_wireframe appends the frozen revision to the root design_refs,
+  which is already in the scope manifest AND in HASHED_FIELDS -- so a re-freeze bumps
+  the revision and drops the approval, and a UI scope can be asked whether it names
+  a wireframe. No migration: the hashed tuple is unchanged, which is what widening
+  it would have cost (every stored hash, every live approval)'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_staging_cli.py::test_a_frozen_wireframe_is_a_design_reference_the_scope_hash_moves_on
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:38:55'

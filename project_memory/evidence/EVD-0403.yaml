@@ -1,0 +1,28 @@
+id: EVD-0403
+kind: test
+related:
+- BUG-0286
+result: pass
+summary: 'H202/H22''s PATCH half closed: git apply <<EOF with a diff naming .claude/hooks/gate_write_scope.py
+  was rc 0 at the write-scope gate (measured as a real hook process on this tree),
+  because the body was removed as prose before the first reader -- the enforcement
+  layer rewriting itself inside one command line. A patch applier now belongs to the
+  same membership as a shell, eval and .//source in _compat._STDIN_PARSER_RX, and
+  the property is what joins them: the body is not data the program receives, it is
+  what the program DOES. Three openers plus the canonical-state direction refused;
+  the documented capture-with-heredoc route stays rc 0. Mirrored dev=office=research
+  _compat 250c1007125b. Red-first by mutating the fix in the rig (the patch appliers
+  dropped from the membership): rc 0 again. WHAT STAYS OPEN, measured: a patch that
+  lies in a FILE (git apply changes.diff, patch -p1 < changes.diff) is rc 0 -- the
+  paths are in no word of the line, and this gate decides before the line runs. The
+  remaining pipe/substitution shapes of H202 were re-measured and are already refused
+  (echo path | xargs cp, grep -l | xargs rm, find | xargs sed -i, cp evil path, F=path
+  ; cp evil ).'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_a_patch_body_a_line_carries_names_the_paths_that_line_writes
+  -q -p no:randomly
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T13:21:44'

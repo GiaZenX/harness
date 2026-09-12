@@ -1,0 +1,22 @@
+id: EVD-0357
+kind: test
+related:
+- BUG-0274
+result: pass
+summary: 'H190 closed: the names of the not-built cloud option are measured at BOTH
+  ends against the bullet of radar/README.md that describes it -- a name the bullet
+  writes and the declaration does not publish is red, a published name the bullet
+  never writes is red. named_as grew the two wordings the shipped README really used.
+  Red-first: mutate bug_0274_list 1 failed (written 5, published 3); the merge verifier''s
+  v04 and v05 sentences, GREEN before, are 2 failed each. 4 passed in 2.08 s.'
+artifact_refs:
+- staging/TSK-0143/protocol.md
+run_command: python -B -m pytest "tools/test_review_procedure.py::test_the_ladder_reader_wants_both_axes_in_the_same_breath"
+  "tools/test_review_procedure.py::test_no_lead_skill_keeps_its_own_copy_of_the_scaling_rule"
+  "tools/test_radar_trigger.py::test_the_names_of_the_rejected_option_are_the_ones_its_bullet_writes"
+  "tools/test_radar_trigger.py::test_no_text_claims_a_schedule_the_repo_does_not_build"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:04:14'

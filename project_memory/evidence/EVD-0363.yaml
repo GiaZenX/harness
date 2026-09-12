@@ -1,0 +1,19 @@
+id: EVD-0363
+kind: test
+related:
+- BUG-0213
+result: pass
+summary: 'H130 closed: approvals.filing_rule_subject_manifest tells the flag NOBODY
+  TYPED (None, still refused -- the kernel must not fill in a decision the user owes)
+  from the flag TYPED EMPTY, which is the plan''s second honest retention; the question
+  renders it as ''keine zaehlbare Frist'' and never as the ''?'' a missing answer
+  gets. The comment in test_kernel that called the form unreachable was replaced --
+  it claimed a gap the code no longer has'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_kernel.py::test_a_filing_rule_with_no_countable_retention_can_be_asked_for
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:09:48'

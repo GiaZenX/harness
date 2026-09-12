@@ -559,7 +559,8 @@ def judge(source, args):
                "invoice_no": out.get("invoice_no"), "seller": out.get("seller"),
                "buyer": out.get("buyer"), "issue_date": out.get("issue_date"),
                "net": out.get("net"), "tax": out.get("tax"), "gross": out.get("gross"),
-               "norm_rules_checked": [rule for rule, _t, _w, _h in NORM_RULES] + [SUM_RULE[0]],
+               "norm_rules_checked": ([rule for rule, _t, _w, _h in NORM_RULES]
+                                      + [SUM_RULE[0], reader.BREAKDOWN_RULE[0]]),
                "reasons": []}
     failed = norm_violations(out)
     if failed:
@@ -568,6 +569,11 @@ def judge(source, args):
     sum_failure = reader.reconciliation_failure(out)
     if sum_failure:
         raise Refusal("%s (%s): %s" % (SUM_RULE[0], SUM_RULE[1], sum_failure))
+    # BR-CO-14, the document's SECOND statement of its own tax total (BUG-0167/H75). The reader
+    # names the rule in its own sentence, so this one does not restate it.
+    breakdown = reader.breakdown_failure(out)
+    if breakdown:
+        raise Refusal(breakdown)
     vocabulary = _load(VOCABULARY, "the number ranges and the categories")
     profile = _load(PROFILE, "the tax status") if os.path.isfile(PROFILE) else {}
     declared, match = range_for(out, ranges_of(vocabulary))

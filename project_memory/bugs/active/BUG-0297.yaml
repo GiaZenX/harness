@@ -1,0 +1,35 @@
+id: BUG-0297
+title: Die gedruckte Abhilfe des Commit-Gates dieses Repos ist rc 2, bis der Nutzer
+  den S4-Patch fährt -- seit TSK-0144 hält ein Test in tools/ das rot, bis er gefahren
+  ist
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-12 (TSK-0141 verify rounds 3/4): since `kernel.cli evidence`
+  requires `--run-command`/`--run-scope` (S2, H108/BUG-0192), the remedy `.claude/hooks/gate_commit_evidence.py:418-423`
+  prints is refused by the parser with rc 2. The file is forbidden to every role (this
+  repo''s own gate); the patch is staging/TSK-0141/s4-gate-commit-evidence-patch.md
+  (before/after, anchors once). `.claude/hooks/test_gates.py::test_gate3_remedy_is_executable_and_opens_the_commit`
+  builds its argv instead of parsing the printed text, so it stays green either way
+  -- its docstring now says so (TSK-0143 rework 3).'
+expected: The user applies S4 from a shell outside Claude Code; afterwards a test
+  that EXECUTES the printed remedy line verbatim (parsed from the refusal text) is
+  built and stays red-first against a remedy missing a required flag.
+repro: 'git commit -q -m probe (without a matching EVD) -> copy the printed evidence
+  line -> run it -> ''error: the following arguments are required: --run-command,
+  --run-scope'', rc 2.'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the printed line, run as printed, writes an EVD (rc 0) -- after the user''s
+  patch'
+- 'AC-2: a test parses the printed remedy from the refusal and executes it; a remedy
+  missing a flag turns it red'
+source: staging/TSK-0141/verify-round-4.md (remainder 2); staging/TSK-0141/s4-gate-commit-evidence-patch.md
+limits: 'Die Hilfezeile, die der Commit-Schutz dieses Repos ausgibt, ist gerade veraltet:
+  wer sie abtippt, bekommt eine Fehlermeldung statt eines Eintrags. Begrenzt: der
+  Schutz selbst hält (kein Commit ohne Beweis), nur die Anleitung stimmt nicht; seit
+  der Zielrunde TSK-0144 wird ein Test in tools/ rot, solange die Zeile veraltet ist;
+  der Patch für deine Shell liegt bereit und ist zwei Zeilen lang.'
+hole_number: H213
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T14:03:28'

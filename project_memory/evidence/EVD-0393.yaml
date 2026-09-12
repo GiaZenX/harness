@@ -1,0 +1,27 @@
+id: EVD-0393
+kind: test
+related:
+- BUG-0289
+result: pass
+summary: 'REWORK of the round-1 closure (verifier B1), which covered only the parser
+  LEFT of the opener. A here-document is the standard input of its stage and a pipeline
+  hands that input on, so _compat._fed_to_a_command_parser now reads the whole pipeline
+  the opener stands in -- left of it up to the last separator, right of it up to the
+  first ;/&/||/newline, where a | does NOT end it -- and .//source joined the parser
+  names as _SOURCE_NAMES. Real hook processes, probe ws_probe.py: cat <<EOF | bash,
+  cat <<EOF | tee | bash, . /dev/stdin <<EOF, source /dev/stdin <<EOF rc 0 in the
+  pristine rig -> rc 2 in this tree, while cat <<EOF ; bash other.sh and ./build.sh
+  <<EOF stay rc 0 in both. The office ledger gate is fixed by the same reader: the
+  verifier''s own line (cat <<EOF | bash + sed -i ledger/2026.csv + git commit) rig
+  rc 0 -> repo rc 2, P4-12''s commit message rc 0 in both. Mirrored dev=office=research
+  _compat 0e2ec6391da1. This SUPERSEDES EVD-0339, whose summary claims a closure wider
+  than the code then built.'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_a_heredoc_body_handed_to_a_shell_is_judged_as_a_command
+  tools/test_hooks_v2.py::test_a_heredoc_body_an_interpreter_executes_is_not_prose_here
+  tools/test_hooks_v2.py::test_a_heredoc_body_is_prose -q -p no:randomly
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T13:06:31'

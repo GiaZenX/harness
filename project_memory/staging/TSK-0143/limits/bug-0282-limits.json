@@ -1,0 +1,3 @@
+{
+  "limits": "Ein Programm, das von der Kommandozeile gestartet wird, führt danach eigenen Code aus. Was dieser Code tut, steht nicht in der Zeile -- eine Prüfung, die nur die Zeile liest, kann es nicht sehen. Was stattdessen begrenzt: das Starten der Schutzdateien selbst ist jedem verboten."
+}

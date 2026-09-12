@@ -1,0 +1,17 @@
+id: EVD-0335
+kind: test
+related:
+- BUG-0140
+result: pass
+summary: 'H48 closed in the direction the item names: report.validate_state carries
+  a standing warning when the board is older than the index, so a page the OS would
+  not let the kernel replace is no longer a one-off stderr line; measured by mtime,
+  which is what the one-clock write makes decidable'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_report.py::test_a_board_that_could_not_be_rewritten_is_reported_as_older_than_the_index
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:28:51'

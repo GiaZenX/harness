@@ -1,0 +1,3 @@
+{
+  "limits": "Dieselbe Lücke wie beim Programm-Start: ein Skript kann eine Buchungszeile ins Kassenbuch eintragen, die vorher niemand gelesen hat. Was stattdessen begrenzt: die Eintragung steht in der Änderungsübersicht und ist damit sichtbar, sie ist nur nicht verhindert."
+}

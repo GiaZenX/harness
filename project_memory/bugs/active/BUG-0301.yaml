@@ -1,0 +1,35 @@
+id: BUG-0301
+title: Der Beweis-Vokabular-Leser entschuldigt eine ganze Spanne, sobald irgendwo
+  vor dem nächsten Backtick eine berechnete Flagge (`--%s`) steht -- eine echte Auslassung
+  daneben bleibt stumm
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-12 (TSK-0144 verify round 2): tools/test_hooks.py:7018
+  skips the whole `evidence([^`]*)` span when `_COMPUTED_FLAG_RX` matches anywhere
+  in it. Three runs all 1 passed: (1) `--summary` removed from gate_test_scope.py''s
+  text while `--%s` stays; (2) the real unpatched S4 defect in gate_commit_evidence.py
+  plus a plausible `--%s <kind>` line in the same remedy -> the S4 arbiter is silent;
+  (3) the `--%s` not in the command but in the PowerShell hint line beside it (the
+  span runs to the next backtick). No victim today: 25 spans, exactly one computed,
+  and it renders every required flag. The chain needs a future text change, so it
+  does not run within this session.'
+expected: Excuse at most as many missing names as there are computed tokens in the
+  span (`len(required - flags) <= number of --%s`), or cut the span at the command
+  end; red-first with run (2) above.
+repro: 'in a copy: add `--%s <x>` to the gate_commit_evidence.py remedy (unpatched)
+  -> tools/test_hooks.py::test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requires
+  -> green (should be red).'
+severity: low
+acceptance_criteria:
+- 'AC-1: run (2) turns the node red, measured'
+- 'AC-2: gate_test_scope.py''s rendered line stays accepted (no over-refusal)'
+source: staging/TSK-0144/verify-round-2.md
+limits: 'Ein Prüfleser, der kontrolliert, ob jede Beispiel-Befehlszeile für Beweise
+  vollständig ist, verzeiht eine ganze Zeile, sobald darin ein Platzhalter vorkommt
+  — auch wenn daneben wirklich etwas fehlt. Begrenzt: heute gibt es genau eine solche
+  Zeile, und die ist vollständig; die Lücke wirkt erst, wenn jemand künftig eine unvollständige
+  Zeile mit Platzhalter schreibt.'
+hole_number: H217
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T21:14:26'

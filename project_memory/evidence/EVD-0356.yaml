@@ -1,0 +1,21 @@
+id: EVD-0356
+kind: test
+related:
+- BUG-0275
+result: pass
+summary: 'H191 closed: _states_the_scaling_rule now asks for a rung AND the effort
+  axis in ONE span -- the bold lead-in or one sentence -- which is what its docstring
+  already claimed. Red-first mutate bug_0275 (the wide lead-in branch restored): 1
+  failed on the unit with the axes a sentence apart. The three shipped constitutions
+  still qualify with exactly one paragraph each (second node). 4 passed in 2.08 s.'
+artifact_refs:
+- staging/TSK-0143/protocol.md
+run_command: python -B -m pytest "tools/test_review_procedure.py::test_the_ladder_reader_wants_both_axes_in_the_same_breath"
+  "tools/test_review_procedure.py::test_no_lead_skill_keeps_its_own_copy_of_the_scaling_rule"
+  "tools/test_radar_trigger.py::test_the_names_of_the_rejected_option_are_the_ones_its_bullet_writes"
+  "tools/test_radar_trigger.py::test_no_text_claims_a_schedule_the_repo_does_not_build"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:04:11'

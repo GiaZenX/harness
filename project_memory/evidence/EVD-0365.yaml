@@ -1,0 +1,19 @@
+id: EVD-0365
+kind: test
+related:
+- BUG-0238
+result: pass
+summary: 'H156: one of the two limits the lease refusal inherited is closed with BUG-0218
+  -- the refusal now reaches a region no single-entry witness lands in (a/*x vs a/y*,
+  empty tree, refused naming a/yx). What stays outside it is the division of labour,
+  not a gap: two READY orders that are never leased together are seen by check-scopes,
+  which walks the OPEN orders, and DEC-0070 (1) makes that run the rule before a cut.
+  Both halves are in the one test'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_parallel_streams.py::test_the_lease_refusal_reaches_a_region_no_single_witness_reaches
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:12:05'

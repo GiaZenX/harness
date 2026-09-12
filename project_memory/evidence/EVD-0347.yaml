@@ -1,0 +1,18 @@
+id: EVD-0347
+kind: test
+related:
+- BUG-0224
+result: pass
+summary: 'H141 closed as a two-ended tripwire: the cadence vocabulary stands once
+  as _CADENCE_WORDS and the pattern is built from it; every entry must be the SOLE
+  reason its sentence fires, and the five spellings TSK-0118 measured blind are assertions
+  now, so widening the reader goes red and the limit is re-decided instead of drifting.
+  World knowledge (is this sentence a rhythm) is declared, not repaired'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_parallel_streams.py::test_the_cadence_reader_is_an_enumeration_held_at_both_ends
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:45:48'

@@ -740,6 +740,67 @@ def test_dunning_candidates_follow_the_frozen_clock(browser, tmp_path, fixture):
         page.close()
 
 
+def test_the_page_dunning_term_is_the_one_this_business_agreed(tmp_path):
+    """BUG-0202: the dunning term was the law's, and the page presented it as this business's rule.
+
+    `§ 286 Abs. 3 BGB` is the FALLBACK and stays one -- what a business really agreed with its
+    customers is `receivables.payment_terms_days`, and a business working on 14 days was shown
+    dunning candidates by a rule nobody in it had agreed to. Both directions in one test, because
+    a generator that always printed the profile's number would be the same defect mirrored.
+
+    WHAT IS READ IS THE GENERATED PAGE: the number the page script computes with
+    (`{{payment_term_days}}`) and the sentence under the table have to move TOGETHER, or the page
+    dunns by one rule and names another. The undeclared case is asserted against the generator's
+    own constant rather than against a repeated 30.
+    """
+    pytest.importorskip("yaml")
+    profile = {"business": {"name": "Nordlicht Handel", "legal_form": "Einzelunternehmen"},
+               "tax": {"kleinunternehmer": True, "fiscal_year": "calendar"},
+               "receivables": {"payment_terms_days": 14}}
+
+    agreed = build_project(tmp_path / "agreed", "regular", profile=profile)
+    assert run_generator(agreed).returncode == 0
+    page = generated_page(agreed)
+    assert "var TERM_DAYS = 14;" in page, "the page script still counts with the legal default"
+    assert "von 14 Tagen ist die in business_profile.yaml vereinbarte Zahlungsfrist" in page, (
+        "the footnote does not say whose term this is")
+    assert "Forderung älter als 14 Tage" in page, "the filter label kept the legal default"
+
+    undeclared = dict(profile)
+    undeclared.pop("receivables")
+    legal = build_project(tmp_path / "legal", "regular", profile=undeclared)
+    assert run_generator(legal).returncode == 0
+    term = _generator_constant(legal, "PAYMENT_TERM_DAYS")
+    page = generated_page(legal)
+    assert "var TERM_DAYS = %d;" % term in page
+    assert "von %d Tagen ist die gesetzliche Verzugsfrist (§ 286 Abs. 3 BGB)" % term in page, (
+        "a business that declared nothing must still be told where the term comes from")
+
+
+def test_a_payment_term_that_is_not_a_positive_number_of_days_is_not_a_term(tmp_path):
+    """BUG-0202, the fail-closed half: a declaration nobody can read must not reach the page.
+
+    `null` is what the shipped template carries, and an empty string, a word and a zero are what a
+    hand-edited profile produces. Each of them means "not declared" -- a dunning stamp built out of
+    one of them would be a rule with nothing behind it.
+    """
+    pytest.importorskip("yaml")
+    sys.path.insert(0, os.path.join(OFFICE_TEMPLATE, "tools"))
+    try:
+        sys.modules.pop("finance_dashboard", None)
+        import finance_dashboard
+        legal = (finance_dashboard.PAYMENT_TERM_DAYS, finance_dashboard.LEGAL_TERM_SOURCE)
+        for value in (None, "", "  ", "vierzehn", 0, -3, True, [14]):
+            assert finance_dashboard.payment_term_days(
+                {"receivables": {"payment_terms_days": value}}) == legal, value
+        assert finance_dashboard.payment_term_days({}) == legal
+        assert finance_dashboard.payment_term_days({"receivables": {"payment_terms_days": "7"}}) == (
+            7, finance_dashboard.PROFILE_TERM_SOURCE)
+    finally:
+        sys.path.pop(0)
+        sys.modules.pop("finance_dashboard", None)
+
+
 def _generator_constant(root, name):
     """A constant out of the generator the project actually carries -- imported, not re-typed."""
     tools = os.path.join(root, "tools")
@@ -1751,3 +1812,44 @@ def test_a_vocabulary_entry_that_is_not_a_mapping_costs_a_category_and_not_the_p
     assert result.returncode == 0, result.stdout + result.stderr
     text = dom(generated_page(root)).by_id("view-euer").text()
     assert "Software" in text and "porto" in text, text[:400]
+
+
+def test_a_ledger_write_renders_the_finance_page(tmp_path):
+    """BUG-0201: a booking moves the page, because the ledger hook starts the generator.
+
+    The ledger has no kernel writer, so both of its write paths pass exactly one place --
+    `gate_ledger_valid.handle_post_tool_use` -- and that handler validated the changed file and did
+    nothing else. The page was therefore as old as its last run by hand, and the masthead cannot
+    tell anyone so: it prints the youngest date the ledger carries, which a back-dated booking
+    leaves byte-identical.
+
+    Driven as the REAL hook process with the payload the provider sends, in a project built from
+    the shipped kit, so what is measured is the shipped handler and not a function call. Two halves:
+    the page appears where there was none, and a SECOND booking moves it again -- the second is
+    what a run that merely happened once would not show.
+    """
+    pytest.importorskip("yaml")
+    root = build_project(tmp_path / "rendered", "regular")
+    ledger = [name for name in sorted(os.listdir(os.path.join(root, "ledger")))
+              if name.endswith(".csv")][0]
+    ledger_path = os.path.join(root, "ledger", ledger)
+    page = os.path.join(root, OUTPUT_REL)
+    assert not os.path.exists(page)
+
+    def edited():
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Edit", "cwd": root,
+                   "tool_input": {"file_path": ledger_path}}
+        env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_KERNEL_PATH=os.path.dirname(KERNEL))
+        return subprocess.run(
+            [sys.executable, os.path.join(OFFICE_HOOKS, "gate_ledger_valid.py")],
+            input=json.dumps(payload), capture_output=True, text=True, env=env, timeout=180)
+
+    edited()
+    assert os.path.isfile(page), "no page after a ledger edit"
+    first = open(page, encoding="utf-8").read()
+
+    with open(ledger_path, "a", encoding="utf-8", newline="") as handle:
+        handle.write("L2026-9999,2026-11-01,2026-11-01,expense,invoice,ZZZ,R-9,100.00,19.00,"
+                     "119.00,standard,porto,archive/z.pdf,," + chr(10))
+    edited()
+    assert open(page, encoding="utf-8").read() != first, "the page did not follow the booking"

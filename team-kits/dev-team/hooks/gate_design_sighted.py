@@ -277,6 +277,25 @@ def _verdict(draft, item_dir):
                 return ("its render record names %d image(s) that are missing, empty or outside "
                         "the staging item (%s)"
                         % (len(missing), ", ".join(sorted(missing)[:3])))
+            # ...AND WHAT THE RENDERER FOUND IN IT (`BUG-0294`). The renderer checks the draft
+            # against the mechanically decidable share of the design standards and exits 3 on a
+            # finding -- and writes this record anyway, because the record answers "was this draft
+            # rendered". That was the whole gap: a role that ignored the exit code presented a
+            # draft with findings and nothing refused. Measured: a draft with a contrast of 1.92:1
+            # was renderer rc 3 and gate rc 0.
+            #
+            # `undecided` is deliberately NOT read here. It is the renderer's own word for a
+            # question it could not decide (text on an image, a gradient, a translucent layer), and
+            # refusing on it would turn "I could not tell" into a verdict -- which is the one thing
+            # the printed `NOT DECIDABLE` line exists to avoid
+            # (`tools/test_design_conformance.py::test_a_draft_with_conformance_findings_is_refused_and_an_undecided_one_is_not`).
+            conformance = entry.get("conformance")
+            found = (conformance.get("findings") if isinstance(conformance, dict) else None) or []
+            found = [str(one) for one in found if isinstance(one, str)]
+            if found:
+                return ("its render record carries %d conformance finding(s) from the renderer, "
+                        "so this draft was rendered and found wanting: %s"
+                        % (len(found), "; ".join(found[:3])))
             return None
     if seen_this_one:
         return ("a render record exists, but for OTHER bytes — this file changed after it was "

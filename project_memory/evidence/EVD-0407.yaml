@@ -1,0 +1,16 @@
+id: EVD-0407
+kind: test
+related:
+- BUG-0167
+result: pass
+summary: 'H75: BR-CO-14 is checked -- a tax total the document''s own VAT breakdown
+  (BG-23) contradicts is refused with both figures; measured red-first as rc 0 on
+  the shipped extractor for a head that reconciles under BR-CO-15'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_einvoice_a_tax_total_its_own_breakdown_contradicts_is_refused
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T14:09:40'

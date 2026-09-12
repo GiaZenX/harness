@@ -1,0 +1,26 @@
+id: EVD-0355
+kind: test
+related:
+- BUG-0290
+result: pass
+summary: 'H206 closed as a MEASUREMENT: which end states this workshop reaches is
+  read off the running kernel. The approval half is wired since TSK-0098 (report.approval_mint_is_wired
+  True) -- red-first mutate bug_0290_approval, the pre-TSK-0098 registration: 1 failed.
+  The lease half is a walk over AUTOMATA[...].allowed with the edges into dispatch.LEASE_BEARING_STATUSES
+  closed: TSK reaches CANCELLED and neither DONE nor VALIDATED (DEC-0041), BUG reaches
+  all four terminals; red-first mutate bug_0290_lease: DID NOT RAISE DispatchError.
+  7 passed.'
+artifact_refs:
+- staging/TSK-0143/protocol.md
+run_command: python -B -m pytest ".claude/hooks/test_gates.py::test_no_timed_span_here_pays_for_a_helper_that_reads_the_clock_itself"
+  ".claude/hooks/test_gates.py::test_the_session_guards_watch_list_is_built_without_a_shell"
+  ".claude/hooks/test_gates.py::test_the_arbiter_refuses_a_shell_that_runs_every_line_on_another_filesystem"
+  ".claude/hooks/test_gates.py::test_the_pointer_reader_answers_for_every_shape_a_statement_here_can_carry"
+  ".claude/hooks/test_gates.py::test_the_end_states_this_repo_reaches_are_measured_against_the_kernel"
+  ".claude/hooks/test_gates.py::test_every_check_this_apparatus_claims_in_its_own_prose_is_one_that_exists"
+  ".claude/hooks/test_gates.py::test_the_gate_table_of_this_file_is_the_registration_itself"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:04:08'

@@ -1,0 +1,16 @@
+id: EVD-0366
+kind: test
+related:
+- BUG-0207
+result: pass
+summary: 'office guard_fs_tripwire: a copier that carries a destroying word and does
+  not relocate destroys in its DESTINATION; a slash introduces a flag; mir/mirror
+  join the sweeping vocabulary. Four measured rc 0 -> rc 2, every ordinary filing
+  row unchanged'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_hooks.py::test_a_copier_that_destroys_in_its_destination_is_a_delete_there
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T11:21:17'

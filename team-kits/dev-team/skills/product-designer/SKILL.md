@@ -158,8 +158,9 @@ The procedure, per view, in this order:
    only the attribute, and so the fidelity review in Phase 3 has something to compare against.
 `python scripts/kit_design_render.py <your task-id>` reads the rendered mockup and answers `3` with
 a sentence naming any declared view that has none or more than one primary action. It BLOCKS
-nothing — no hook refuses a presentation over it — so the exit code is the whole mechanism, and
-reading it is your step. And it has nothing to say about a view you never declared: it judges the
+nothing itself, but the findings it records are no longer yours alone to read: `gate_design_sighted`
+refuses a presentation whose render record carries them (`BUG-0294`), naming the findings. So the
+exit code is the fast way to learn it, not the only one. And it has nothing to say about a view you never declared: it judges the
 ranking you claimed, never the one you skipped.
 
 ## The SIGHT loop — render, LOOK, fix — before ANY draft leaves you (Phases 1 and 2)

@@ -1,0 +1,24 @@
+id: EVD-0399
+kind: test
+related:
+- BUG-0202
+result: pass
+summary: 'H118''s declarable half closed: the finance page dunned by the legal default
+  as a constant in the generator and presented it as this business''s rule, while
+  receivables.payment_terms_days had meanwhile arrived in the profile and nothing
+  read it. payment_term_days(profile) returns the term AND the sentence naming its
+  source, carried on data and read at all four use sites (the page script''s TERM_DAYS,
+  the filter label, the summary line, the footnote). Red-first in the rig: the page
+  of a project declaring 14 days still counted with the legal default. The other half
+  of H118 is not closable here and is printed on the page itself: the age is computed
+  in the BROWSER from the reader''s clock, because the page is a pure function of
+  the ledger and deliberately carries no generation timestamp.'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_finance_dashboard.py::test_the_page_dunning_term_is_the_one_this_business_agreed
+  tools/test_finance_dashboard.py::test_a_payment_term_that_is_not_a_positive_number_of_days_is_not_a_term
+  -q -p no:randomly
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T13:08:55'

@@ -1,0 +1,3 @@
+{
+  "limits": "Setzt eine Befehlszeile den Namen des Testläufers erst beim Ausführen zusammen, sieht ihn die schnelle Vorprüfung nicht und die Zeile wird nicht beurteilt. In die andere Richtung ist die Prüfung streng: ein Ziel, dessen Ort sie nicht bestimmen kann, lehnt sie ab. Lieber eine Absage zu viel als eine zu wenig."
+}

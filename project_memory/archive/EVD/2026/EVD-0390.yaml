@@ -1,0 +1,22 @@
+id: EVD-0390
+kind: test
+related:
+- BUG-0208
+result: pass
+summary: 'H124''s zone half closed: business_profile.yaml gains business.timezone
+  and _duties.business_today reads it, so the register''s dates belong to the BUSINESS
+  and not to whichever machine ran the session. Three answers, the third loud: no
+  declaration -> the machine''s zone; an IANA name -> that zone''s date; a name this
+  machine cannot resolve -> the machine''s date PLUS a line that reaches the session-start
+  paragraph. Red-first in the rig by mutating the fix (the declared zone read and
+  dropped): two projects 25 hours apart came back with the same day. The session-over-midnight
+  half stays open and is named in the reader''s own docstring -- a SessionStart hook
+  has no second occasion to read a clock at.'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_office_duties.py -q -p no:randomly
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:42:42'
+closed_at: '2026-09-12T13:32:39'

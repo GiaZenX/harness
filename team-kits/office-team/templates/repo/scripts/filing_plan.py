@@ -141,6 +141,78 @@ def _render(node, indent):
     return lines
 
 
+def _template_segments(rules):
+    """The segment lists of every rule template, lower-cased, placeholders kept as they stand."""
+    found = []
+    for rule in rules:
+        template = str(rule.get("path_template") or "").strip().strip("/")
+        if template:
+            found.append([segment.lower() for segment in template.split("/")])
+    return found
+
+
+def _is_placeholder(segment):
+    """A template segment that stands for ANY folder name -- `<year>`, `<Jahr>`, `<kunde>`.
+
+    The property and not the vocabulary: a plan written in German and one written in English are
+    read the same way, which is the same decision `_duties._YEAR_NAME_RX` carries for the year.
+    """
+    return segment.startswith("<") and segment.endswith(">")
+
+
+def _covered_by(segments, templates):
+    """Is this folder one of the plan's own -- on the path of a rule, or the folder a rule names?
+
+    A folder DEEPER than every template it matches is not covered: the template describes the
+    folder a document is filed into, so anything below it is structure the plan does not know.
+    """
+    for template in templates:
+        if len(segments) > len(template):
+            continue
+        if all(_is_placeholder(want) or want == have
+               for want, have in zip(template, segments)):
+            return True
+    return False
+
+
+def unplanned_directories(rules, repo_root, limit=40, max_depth=6):
+    """Folders that EXIST under the plan's own roots and that no rule describes (BUG-0183).
+
+    THE TREE IS THE PLAN, and that is what the user steered for -- but it means a folder somebody
+    really created under `archive/` appears nowhere in the picture the kit presents as the visible
+    truth. This is the other half of that picture, and it is deliberately NOT mixed into
+    `tree_lines`: that renderer is also the one `scripts/process_doc.py` puts into the
+    Verfahrensdokumentation, which describes the PLAN and must keep describing exactly the plan.
+
+    THE ROOTS ARE THE PLAN'S OWN first segments, so a project that files into two roots gets both
+    and a project with no rules gets nothing walked. `limit` and `max_depth` bound the walk: an
+    archive is a legal state with thousands of year folders, and this runs in a script a person is
+    waiting on.
+    """
+    templates = _template_segments(rules)
+    roots = sorted({template[0] for template in templates if not _is_placeholder(template[0])})
+    found = []
+    for root in roots:
+        base = os.path.join(repo_root, root)
+        if not os.path.isdir(base):
+            continue
+        for current, directories, _files in os.walk(base):
+            directories[:] = sorted(one for one in directories if not one.startswith("."))
+            relative = os.path.relpath(current, repo_root).replace(os.sep, "/")
+            segments = [one.lower() for one in relative.split("/")]
+            if len(segments) > max_depth:
+                directories[:] = []
+                continue
+            if relative != root and not _covered_by(segments, templates):
+                found.append(relative)
+                # ...and no deeper: everything under an unplanned folder is unplanned for the same
+                # reason, and naming the top of it is what a person can act on.
+                directories[:] = []
+            if len(found) >= limit:
+                return found, True
+    return found, False
+
+
 def named_classes(state_root):
     """[(the owner's own words, [document type, ...])] from `business_profile.yaml`.
 
@@ -303,6 +375,17 @@ def main(argv=None):
         print("Aktenplan -- the archive as `%s` describes it" % os.path.join(STATE, PLAN))
         for line in tree_lines(rules):
             print("  " + line)
+        # ...and the PLATE beside the plan (BUG-0183): a folder that really exists under the plan's
+        # own roots and that no rule describes appeared in this picture nowhere, while the picture
+        # is what the user is shown as the visible truth.
+        unplanned, more = unplanned_directories(rules, REPO_ROOT)
+        if unplanned:
+            print("")
+            print("ON DISK AND IN NO RULE -- %d folder(s)%s. Nothing files into them, `gate_filing` "
+                  "refuses every document whose target is not a rule's, and this list is the only "
+                  "place they appear:" % (len(unplanned), " (list cut)" if more else ""))
+            for relative in unplanned:
+                print("  %s/" % relative)
         return 0
 
     proposed, refused = draft(rules, named_classes(os.path.join(REPO_ROOT, STATE)))

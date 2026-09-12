@@ -1,0 +1,3 @@
+{
+  "limits": "Wird ein Befehl einmal abgelehnt und der Nutzer lässt ihn trotzdem weiterlaufen, markiert Claude Code diese Fortsetzung. Ein zweites Mal zu blockieren würde eine Endlosschleife ergeben -- der Hersteller entscheidet das, nicht dieses Projekt."
+}

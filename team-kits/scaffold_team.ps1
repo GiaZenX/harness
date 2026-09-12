@@ -153,8 +153,25 @@ $restorable = @(
     "CLAUDE.md", "AGENTS.md", ".claude/settings.json", ".claude/agents", ".claude/hooks",
     ".claude/kernel", ".claude/skills", ".claude/team_kit_roles.txt",
     ".claude/provider_artifacts.json", ".claude/kit_version", ".claude/kit_state.json",
+    ".claude/kit_repo_files.json",
     ".codex", ".agents/skills", ".github/hooks", ".github/agents")
 $keptOnly = @("AGENTS.override.md", ".claude/settings.local.json")
+
+function Test-RepoRelativeName {
+    # IS THIS MANIFEST LINE A REPO-RELATIVE NAME SEQUENCE -- the POSIX twin carries the argument and
+    # the measurement of what the two twins did with a rooted word before 2026-09-12 (this one: rc 1
+    # through an unhandled GetFullPath exception, no sentence). Segments are judged, spellings are
+    # not enumerated: every segment is a plain NAME, so nothing empty, nothing `.` or `..`, and no
+    # character a path parser of either platform reads as a root or a separator.
+    param([string]$Line)
+    if ($Line -match '[\\:]') { return $false }
+    $segments = $Line -split "/"
+    if ($segments.Count -eq 0) { return $false }
+    foreach ($part in $segments) {
+        if (-not $part -or $part -eq "." -or $part -eq "..") { return $false }
+    }
+    return $true
+}
 
 function Restore-FromSnapshot {
     param([string]$Snapshot, [string[]]$Paths)
@@ -243,17 +260,31 @@ if ($Rollback) {
     # BOM by the same stated rule rather than by two defaults that happen to agree.
     $setPaths = @()
     $foreign = @()
+    $rooted = @()
+    $kept = @()
     $manifestText = [IO.File]::ReadAllText((Join-Path $chosen.FullName "RESTORE_SET"))
     foreach ($line in ($manifestText -split "`r?`n")) {
         $entry = $line.Trim()
         if (-not $entry -or $entry.StartsWith("#")) { continue }
+        if (-not (Test-RepoRelativeName $entry)) { $rooted += $entry; continue }
         $native = $entry.Replace("/", [IO.Path]::DirectorySeparatorChar)
         Assert-SafeRepoPath (Join-Path $repo $native)
+        # A KEPT_ONLY PATH IN A MANIFEST IS NOT AN OWNERSHIP QUESTION -- the POSIX twin carries the
+        # argument and the measurement (both twins rc 0, the user's file replaced by the snapshot's
+        # copy). The backup pass copies these files, so "the snapshot holds a copy" is true of them
+        # and was the half that let them through.
+        if ($keptOnly -contains $entry) { $kept += $entry; continue }
         if (($restorable -notcontains $entry) -and
             -not (Test-Path -LiteralPath (Join-Path $chosen.FullName $native))) {
             $foreign += $entry
         }
         $setPaths += $entry
+    }
+    if ($rooted.Count -gt 0) {
+        throw "This snapshot's RESTORE_SET names path(s) that are not repo-relative names: $($rooted -join ', '). A manifest line this installer writes is a sequence of plain names under the repository, and a word carrying its own root is read differently by the two launchers, so replaying it is not one operation. Nothing was changed; report where this snapshot came from rather than retrying."
+    }
+    if ($kept.Count -gt 0) {
+        throw "This snapshot's RESTORE_SET names file(s) this installer backs up and never writes: $($kept -join ', '). They are yours, not the bundle's; putting the snapshot's copy back would overwrite an edit this installer never made. Nothing was changed; take the copy out of .claude/backups/ by hand if you want the old one."
     }
     if ($foreign.Count -gt 0) {
         throw "This snapshot's RESTORE_SET names path(s) this installer does not own and did not save a copy of: $($foreign -join ', '). Replaying it would DELETE them with nothing to put back, so nothing was changed. A manifest written by this installer names only paths it backs up; report where this snapshot came from rather than retrying."
@@ -298,7 +329,8 @@ Assert-NoReparseTree $kit -AllowOutsideRepo
 foreach ($relative in @(
         "AGENTS.md", "CLAUDE.md", "AGENTS.override.md", ".claude\settings.json",
         ".claude\agents", ".claude\hooks", ".claude\kernel", ".claude\skills", ".claude\team_kit_roles.txt",
-        ".claude\provider_artifacts.json", ".claude\settings.local.json", ".claude\kit_version", ".claude\backups",
+        ".claude\provider_artifacts.json", ".claude\kit_repo_files.json",
+        ".claude\settings.local.json", ".claude\kit_version", ".claude\backups",
         ".codex", ".agents\skills", ".github\hooks", ".github\agents")) {
     Assert-NoReparseTree (Join-Path $repo $relative)
 }
@@ -328,6 +360,18 @@ if ($LASTEXITCODE -ne 0) { throw "Invalid provider configuration; no scaffold fi
 # the refusals and the fail-closed rule live in `kernel.kitupdate.preflight_cli`; this line only
 # starts it, so the two twins cannot come to classify a project differently.
 Invoke-Preflight
+
+# THE STAGING HAS TO CARRY ITS OWN TRUST RECORDER, and this is asked BEFORE anything is copied.
+# `write_kit_state.py` is what vouches for the installed hook bundle, and it is also one of
+# `kernel.hashing.kit_hash_inputs` -- so a staging without it installed green on a warning nobody
+# reads (`hook_trust: unverified`) while every later stamp comparison refused the SAME staging by
+# the hash. Measured 2026-09-11 (BUG-0277): rc 0 on the first install for all three kits,
+# `request-approval kit_update` then refused it with "does not hash to the content in its own
+# VERSION". A first install that cannot be vouched for is not a first install this scaffold makes.
+$recorderSource = Join-Path (Split-Path -Parent $kit) "write_kit_state.py"
+if (-not (Test-Path -LiteralPath $recorderSource)) {
+    throw "$recorderSource is missing, so nothing could vouch for the installed hook bundle and every later kit-update check would refuse this same staging by its hash. Nothing was changed. Remedy: re-install the harness from a complete store (install.ps1)."
+}
 $configJson = & $providerPython.Source -c "import json,sys,yaml; print(json.dumps(yaml.safe_load(open(sys.argv[1], encoding='utf-8-sig'))))" $cfg
 if ($LASTEXITCODE -ne 0) { throw "Could not read validated project_config.yaml." }
 $configData = $configJson | ConvertFrom-Json
@@ -536,13 +580,12 @@ Get-ChildItem -Path $agentsSrc -Filter "*.md" | Sort-Object Name | ForEach-Objec
     if ($presetRoles -and $_.BaseName -ne $lead -and $presetRoles -notcontains $_.BaseName) { return }
     $agentDstPath = Join-Path $agentsDst $_.Name
     Copy-Item $_.FullName $agentDstPath -Force
-    # Kit sources carry provider-neutral tier aliases (lead/worker/light); the INSTALLED Claude
+    # Kit sources carry provider-neutral tier aliases (`model_tiers.yaml` `aliases:`); the INSTALLED Claude
     # frontmatter needs the concrete reference-platform name (model_map stamping may override).
     # Lookahead keeps the original line ending (no mixed CRLF/LF after the rewrite).
     $agentRaw = [IO.File]::ReadAllText($agentDstPath)
     $agentResolved = (($agentRaw -replace '(?m)^model:[ \t]*lead(?=\s*$)', 'model: opus') `
-        -replace '(?m)^model:[ \t]*worker(?=\s*$)', 'model: sonnet') `
-        -replace '(?m)^model:[ \t]*light(?=\s*$)', 'model: haiku'
+        -replace '(?m)^model:[ \t]*worker(?=\s*$)', 'model: sonnet')
     if ($agentResolved -ne $agentRaw) { [IO.File]::WriteAllText($agentDstPath, $agentResolved) }
     if ($_.BaseName -ne $lead) { $installedSpecialists += $_.BaseName }
     Write-Host "  [ok] agent: $($_.Name)" -ForegroundColor Green
@@ -562,9 +605,9 @@ if (Test-Path $cfg) {
         foreach ($property in $mapObject.PSObject.Properties) {
             $role = [string]$property.Name
             $val = [string]$property.Value
-            # tier aliases (team-kits/model_tiers.yaml): map may say lead/worker/light —
+            # tier aliases (team-kits/model_tiers.yaml `aliases:`): map may say lead/worker —
             # Claude agent frontmatter gets the concrete reference-platform name.
-            switch ($val) { "lead" { $val = "opus" } "worker" { $val = "sonnet" } "light" { $val = "haiku" } }
+            switch ($val) { "lead" { $val = "opus" } "worker" { $val = "sonnet" } }
             $ap = Join-Path $agentsDst ($role + ".md")
             if (Test-Path $ap) {
                 $raw = [IO.File]::ReadAllText($ap)
@@ -758,10 +801,15 @@ if (Test-Path $kitOwnedFile) {
     $kitOwned = Get-Content $kitOwnedFile | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') }
 }
 $keptList = @()
+$shippedList = [System.Collections.ArrayList]@()
 $repoTplSrc = Join-Path $kit "templates\repo"
 if (Test-Path $repoTplSrc) {
     Get-ChildItem -Path $repoTplSrc -Recurse -File -Force | Where-Object { $_.FullName -notmatch '__pycache__|\.ruff_cache|\.mypy_cache|\.pytest_cache' } | ForEach-Object {
         $rel = $_.FullName.Substring($repoTplSrc.Length).TrimStart('\', '/')
+        # WHAT THE KIT PLACES OUTSIDE `.claude/`, recorded where it is placed (BUG-0265). One line
+        # at the TOP of the loop rather than one per branch: the kit-owned branch returns, so a
+        # per-branch append is three places that can drift from the walk.
+        [void]$shippedList.Add(($rel -replace '\\', '/'))
         $dst = Join-Path $repo $rel
         if (($rel -replace '\\', '/') -in $kitOwned) {
             $dstDir = Split-Path $dst
@@ -786,6 +834,27 @@ if (Test-Path $repoTplSrc) {
         }
     }
 }
+# THE RECORD ITSELF (BUG-0265). `.claude/provider_artifacts.json` is the shape: a manifest the
+# PROJECT holds, so a reader asks the installation instead of carrying a directory name. Until it
+# existed, `kernel.report.installed_kit_paths` could only exclude the DIRECTORIES a kit fills
+# (`scripts/`, `tools/`) -- which also excluded a project's own script lying beside the kit's, and
+# no finding said so. Written unconditionally, empty list included: "no file" and "no entries"
+# print the same and mean the opposite things, and the reassuring one would be the wrong default.
+# WRITTEN BY THE INTERPRETER, in both twins, and that is not tidiness: `ConvertTo-Json` on Windows
+# PowerShell 5.1 unwraps a one-element array into a scalar and writes a BOM, so the two twins would
+# hand a reader two different documents for the same installation. The source below is BYTE-
+# IDENTICAL with the .sh twin's and carries neither a double quote nor a backslash, because this
+# call passes it to a native executable: the first cut reached `python` as
+# `open(sys.argv[1], w, encoding=utf-8, newline=\n)` and died on a SyntaxError -- measured, and
+# walked past with exit code 0, which is why the status is checked here.
+$repoFilesWriter = @'
+import json, sys
+record = json.dumps({'kit': sys.argv[2], 'repo_files': sorted(sys.argv[3:])}, indent=2) + chr(10)
+open(sys.argv[1], 'wb').write(record.encode('utf-8'))
+'@
+& $providerPython.Source -c $repoFilesWriter (Join-Path $repo ".claude\kit_repo_files.json") $Team @($shippedList)
+if ($LASTEXITCODE -ne 0) { throw "Could not write .claude/kit_repo_files.json (exit $LASTEXITCODE)" }
+Write-Host "  [ok] .claude/kit_repo_files.json ($($shippedList.Count) file(s) this kit places in the project)" -ForegroundColor Green
 $pendFile = Join-Path $repo ".claude\kit_update_pending.repo"
 $stateFile = Join-Path $repo ".claude\kit_update_pending.state"
 if ($keptList.Count -gt 0) {

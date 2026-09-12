@@ -22,12 +22,23 @@ and the templates `project_memory/reports/scientific_report.template.tex` and
 `project_memory/reports/experiment_report.template.html`.
 
 ## Where your renders go
-`project_memory/reports/` is where a rendered report BELONGS, and where the kernel promotes it once a
-promotion path exists — but `gate_write_scope` refuses every tool write under `project_memory/` except your
-task's own `staging/<task-id>/` (constitution §0 write-lock). So render into
-`project_memory/staging/<your task-id>/` under the FINAL file names below, hand those paths back, and report
-the missing promotion step as the infrastructure defect it is. Never write into `reports/` and never
-hand-copy your render there with a shell.
+`project_memory/reports/` is where a rendered report BELONGS, and `gate_write_scope` refuses every tool
+write under `project_memory/` except your task's own `staging/<task-id>/` (constitution §0 write-lock).
+So render into `project_memory/staging/<your task-id>/` under the FINAL file names below — and then FILE
+it yourself:
+
+    python scripts/harness.py freeze-report
+
+It reads one JSON object on stdin; `python scripts/harness.py freeze-report --help` names the keys
+(`source_name`, `staging_key`, `subject_id`) and is the authority on them. The command promotes your
+render into `reports/` and appends its path to the subject, which is what §17 of the constitution means by
+an experiment being INCOMPLETE without its rendered report.
+
+Until 2026-09-12 this page told you to hand the paths back and "report the missing promotion step as the
+infrastructure defect it is". The step was not missing — it had been built and measured in TSK-0106 and no
+shipped text named it, so every Report-Writer either found it in the kernel's `--help` or filed a defect
+report about a command that existed (`BUG-0186`). Never write into `reports/` with a tool and never
+hand-copy your render there with a shell; both are refused, and this command is why neither is needed.
 
 ## Do
 1. **Scientific report (the deliverable) — LaTeX.** Render `EXP-xxxx.tex` from the

@@ -1,0 +1,16 @@
+id: EVD-0333
+kind: test
+related:
+- BUG-0030
+result: pass
+summary: no C0 control character but tab/newline/CR in any file kit_hash_inputs covers,
+  all three kits; the two 0x08 bytes of gate_ledger_valid.py were already gone at
+  the base, the tripwire is what this round adds (red-first by injecting one into
+  the rig)
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_hooks.py::test_no_shipped_kit_file_carries_a_control_character
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:16:13'

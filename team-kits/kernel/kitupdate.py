@@ -816,13 +816,20 @@ def pending_entries(path: str):
     nag either, but the file SURVIVED, so this was a regression of that round and not an old hole.)
     `FileNotFoundError` is separated from the rest rather than probed with `os.path.exists`, so the
     two answers cannot swap under a race.
+
+    AND EVERY OTHER WAY OF NOT READING IT IS THE SAME ANSWER (BUG-0163). This caught `OSError`
+    alone, so anything else `open()` or the decoder raises -- a `ValueError` out of a codec is the
+    reachable one -- travelled up and aborted `update-kit` AFTER the installer had already run,
+    with the tree half moved. The hook around this was guarded; the command was not. "Unknown" is
+    the right answer for every failure to read, and it is the safe one: the nag stays.
+    `tools/test_kitupdate.py::test_a_pending_list_that_cannot_be_read_at_all_is_unknown_and_not_a_crash`
     """
     try:
         with open(path, encoding="utf-8-sig", errors="ignore") as handle:
             return [line.strip()[2:].strip() for line in handle if line.strip().startswith("- ")]
     except FileNotFoundError:
         return []                 # no such list -- nothing is pending
-    except OSError:
+    except Exception:             # noqa: BLE001 -- see the paragraph above: not read is not empty
         return None               # it EXISTS and could not be read -- unknown, never "empty"
 
 
@@ -850,18 +857,20 @@ def _same_but_for_line_endings(one: str, other: str):
     such a byte would stop being reported. Nothing here narrows that: narrowing it would mean this
     reader and the two installers disagreeing about the same file, which is the failure that put
     four matching scripts on the user's list in the first place.
+
+    EVERY FAILURE TO READ IS THE THIRD ANSWER, not only an `OSError` -- the same correction as in
+    `pending_entries` and for the same measured reason (BUG-0163): a reader that let anything else
+    escape aborted `update-kit` after the installer had moved the tree.
+    `tools/test_kitupdate.py::test_a_pending_list_that_cannot_be_read_at_all_is_unknown_and_not_a_crash`
     """
-    try:
-        with open(one, "rb") as handle:
-            left = handle.read().replace(b"\r", b"")
-    except OSError:
-        return None
-    try:
-        with open(other, "rb") as handle:
-            right = handle.read().replace(b"\r", b"")
-    except OSError:
-        return None
-    return left == right
+    read = []
+    for path in (one, other):
+        try:
+            with open(path, "rb") as handle:
+                read.append(handle.read().replace(b"\r", b""))
+        except Exception:         # noqa: BLE001 -- not compared is its own answer, never "differs"
+            return None
+    return read[0] == read[1]
 
 
 def outstanding_pending(root: str, kit: str = None) -> dict:

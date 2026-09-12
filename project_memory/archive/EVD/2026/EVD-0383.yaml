@@ -1,0 +1,19 @@
+id: EVD-0383
+kind: test
+related:
+- BUG-0271
+result: pass
+summary: 'Reworked (verifier B5): the list-bound question read diese 1 Fehler and
+  1 Luecken bleiben offen, and a list-bound request carrying an item described THE
+  ITEM while the approving option bound THE LIST. _numerus carries the singular, and
+  the kind own TARGET_FORM now wins over an item beside it, so question and card name
+  one subject; measured over every list-bound kind with one entry and with two'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_light_kit.py::test_a_list_bound_question_reads_in_the_right_numerus_and_names_the_same_subject_as_its_card
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:38:15'
+closed_at: '2026-09-12T13:21:01'

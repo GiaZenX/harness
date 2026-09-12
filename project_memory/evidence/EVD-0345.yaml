@@ -1,0 +1,18 @@
+id: EVD-0345
+kind: test
+related:
+- BUG-0231
+result: pass
+summary: 'H148 second residue closed: scopes._spelled_apart names every path BOTH
+  orders declare as a seam in different words, so a string-intersection miss is answered
+  as a spelling and not as a plain collision; the verdict is unchanged. Measured correction:
+  against the shipped predicate docs/ and docs/** are NOT one set (docs/a.md matches
+  only the second) -- the residue reproduces on the directory path itself'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_parallel_scopes.py::test_two_spellings_of_one_seam_are_named_as_such_and_not_as_a_collision
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:41:53'

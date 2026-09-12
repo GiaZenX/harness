@@ -393,8 +393,8 @@ def test_the_statuses_a_migration_may_write_are_the_ones_reachable_without_an_ap
     which any approval touches -- fails on the right.
     """
     from kernel import approvals
-    from kernel.backlog_types import AUTOMATA
-    from kernel.state import migration_writable_statuses
+    from kernel.backlog_types import AUTOMATA, confirming_edge
+    from kernel.state import CONFIRMING_EVIDENCE, migration_writable_statuses
 
     for item_type, automaton in AUTOMATA.items():
         reachable, frontier = {automaton.initial}, [automaton.initial]
@@ -404,6 +404,12 @@ def test_the_statuses_a_migration_may_write_are_the_ones_reachable_without_an_ap
                 if source != current or target in reachable:
                     continue
                 if approvals.required_approval_kinds(item_type, source, target):
+                    continue
+                # ...and the CONFIRMING edge, which the write set has read since BUG-0150: a type
+                # that owes an Evidence on it cannot have the import walk past that either. Asked
+                # through `confirming_edge`, the same derivation `_assert_confirmed` asks.
+                if (item_type in CONFIRMING_EVIDENCE
+                        and (source, target) == confirming_edge(item_type)):
                     continue
                 reachable.add(target)
                 frontier.append(target)
@@ -832,7 +838,36 @@ def _task_at(state, status):
     return drive_task_to(state, task["id"], status)["id"]
 
 
-def test_the_migration_write_set_reads_three_of_the_four_edge_guards(state):
+def test_a_validated_task_owes_the_verdict_its_edge_says_it_has(state):
+    """BUG-0150: `TSK DONE -> VALIDATED` says QA confirmed the work and demanded nothing.
+
+    A task could be validated with no verdict anywhere, and what stood in its place was a validator
+    WARNING -- a finding nobody is stopped by. Two measured reasons were recorded for leaving it:
+    the V1 import maps `("TSK","VALIDATED")` onto itself, and `migration_writable_statuses` does not
+    read the confirming guard, so adding the type would turn an unread guard into a status that
+    escapes. BOTH are answered here, and the second one had to be built in the same breath -- the
+    import does not walk the edge at all, it writes through the migration door.
+
+    THREE ROWS. The edge refuses without the Evidence; it walks WITH it; and the migration door no
+    longer offers `VALIDATED` at all, so the demand cannot be walked around instead of met. The
+    counterweight is the edge BEFORE it: `SUBMITTED -> DONE` owes nothing and still walks, so this
+    is a duty on one edge and not a wall in front of the type.
+    """
+    from kernel.state import CONFIRMING_EVIDENCE, migration_writable_statuses
+
+    assert CONFIRMING_EVIDENCE.get("TSK") == "test"
+    assert "VALIDATED" not in migration_writable_statuses("TSK"), (
+        "the migration door still offers the confirming target, so the demand can be walked around")
+    assert "DONE" in migration_writable_statuses("TSK"), "the edge before it is untouched"
+
+    task = _task_at(state, "DONE")
+    with pytest.raises(Exception) as refused:
+        state.transition(task, "VALIDATED")
+    assert "test" in str(refused.value).lower(), refused.value
+    assert state.read_item(task)["status"] == "DONE", "the refused task was moved anyway"
+
+
+def test_the_migration_write_set_reads_all_four_edge_guards(state):
     """R-i: which of `_transition_locked`'s four guards the write set reads, measured one by one.
 
     THE RETRY GUARD IS READ, and measuring that needs an automaton in which the retry edge is the
@@ -841,13 +876,13 @@ def test_the_migration_write_set_reads_three_of_the_four_edge_guards(state):
     `RETRY_APPROVAL_EDGE` being read by the walk: `READY` comes back writable although the only
     edge into it is the one `transition` refuses without an approved retry.
 
-    THE CONFIRMING-EVIDENCE GUARD IS NOT READ, and what that costs today is nothing -- which is a
-    different sentence from "it is guarded" and is the one that is true. `CONFIRMING_EVIDENCE`
-    covers `BUG` alone, its confirming edge ends at `VERIFIED`, and `VERIFIED` already sits behind
-    the `BUG` scope approval, so the approval bolt excludes it first. This measures exactly that:
-    for every type the evidence rule really enforces, the confirming target is out of the write
-    set for SOME reason. Add a type to `CONFIRMING_EVIDENCE` whose confirming target is reachable
-    and this goes red -- which is the moment the unread guard turns into a status that escapes.
+    THE CONFIRMING-EVIDENCE GUARD IS READ SINCE BUG-0150, and until then it was not. The old
+    paragraph here said what that cost -- nothing, because `CONFIRMING_EVIDENCE` covered `BUG`
+    alone and its confirming target lay behind an approval anyway -- and it said what would end
+    that: a type whose confirming target IS reachable. `TSK` became that type in the same round,
+    so the guard is a rule now instead of a coincidence, and this test measures the DIFFERENCE:
+    every confirming target is out of the write set, AND at least one of them comes back in when
+    the guard is taken away.
     """
     from kernel import approvals
     from kernel import state as state_module
@@ -883,12 +918,21 @@ def test_the_migration_write_set_reads_three_of_the_four_edge_guards(state):
             "`CONFIRMING_EVIDENCE` demands, and this walk does not read that guard -- so the "
             "import would write a confirmation nobody recorded"
             % (item_type, edge[1], CONFIRMING_EVIDENCE[item_type]))
-    # ...and the reason it is out is the APPROVAL bolt, which is what makes the sentence above a
-    # measurement of coincidence rather than of coverage.
-    for item_type in CONFIRMING_EVIDENCE:
-        assert any(owner == item_type for (owner, _kind) in approvals.APPROVAL_TRANSITIONS), (
-            "%s has no approval edge either, so nothing excludes its confirming target and the "
-            "unread guard has become a hole" % item_type)
+    # ...and it is out because THIS WALK READS THE GUARD, not because an approval bolt happens to
+    # exclude it first (BUG-0150). That difference is the row below: with the confirming edge taken
+    # out of the map the walk reads, a type whose confirming target has no approval edge of its own
+    # becomes writable again -- which is the status that used to escape, and `TSK` is that type.
+    kept = dict(CONFIRMING_EVIDENCE)
+    try:
+        CONFIRMING_EVIDENCE.clear()
+        unguarded = {item_type: confirming_edge(item_type)[1] in migration_writable_statuses(item_type)
+                     for item_type in kept}
+    finally:
+        CONFIRMING_EVIDENCE.update(kept)
+    assert any(unguarded.values()), (
+        "no type in CONFIRMING_EVIDENCE becomes writable without this guard, so reading it is "
+        "measured by nothing here: %s" % unguarded)
+    assert approvals.APPROVAL_TRANSITIONS, "the approval map is what the paragraph above compares to"
 
     # THE TWO READERS LOOK AT THE SAME EDGE, and that is measured off the RUNNING transition path
     # rather than asserted about the constant: every edge out of `FAILED` is attempted on a fresh

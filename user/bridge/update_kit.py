@@ -182,13 +182,19 @@ def main(argv=None) -> int:
                  marker))
     sys.stdout.write(
         "kit '%s' updated from %s to %s.\n%s.\n"
+        "NO APPROVAL COVERS THIS ONE LIFT, and that is the thing to say out loud: the release "
+        "installed here is the one the USER staged, and the per-project decision was the OK they "
+        "gave in the chat. The stock this project ran carries no `%s` approval kind, so there was "
+        "nothing to mint and nothing in this project's state records the answer -- this update is "
+        "the only one in its life that no record covers. Report that to the user in the same "
+        "breath as the restart (`H55` is the measured gap).\n"
         "RESTART REQUIRED: tell the user in plain words that the update is installed and that the "
         "session has to be restarted (close and reopen the window, or start a new session in this "
         "folder). Do NOT start further work in this session -- the new hooks, roles and settings "
         "only bind at the next start, and from there `python %s %s` is the route for every future "
-        "update, with the user's recorded approval.\n"
+        "update, and that one DOES record the user's approval.\n"
         % (kit, answer["from"].get("version") or "no readable version stamp",
-           answer["to"].get("version") or "no readable version stamp", marker,
+           answer["to"].get("version") or "no readable version stamp", marker, kitupdate.KIND,
            ENTRY_POINT.replace(os.sep, "/"), kitupdate.COMMAND))
     return 0
 

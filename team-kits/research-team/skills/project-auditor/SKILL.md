@@ -54,9 +54,12 @@ and `TSK` items it names, the Evidence attached to those experiments, and
    phase has ended, (b) something was merged or released, (c) a finding class has repeated — two
    findings whose kind and location are the same one and whose claims differ only in wording, which is
    what the `fingerprint` beside them is for —, (d) the premise a Decision item rests on has moved.
-   None of the four reaches you as a trigger: no hook and no gate watches for an occasion, and
-   nothing but the turn of the period makes your run due at all (`hooks/_routine.audit_period_id`),
-   so whether one occurred is YOUR reading out of what you have just opened. When none did, skip this step and say so
+   ONE of the four reaches you as a trigger and three do not. (b) does: a record that reached the
+   end of its own chain since your last run makes this run due and the duty NAMES that record
+   (`hooks/_routine.delivery_occasions`), beside the turn of the period
+   (`hooks/_routine.audit_period_id`). For (a), (c) and (d) no hook and no gate watches anything --
+   they are not facts a file carries -- so whether one of those occurred is YOUR reading out of what
+   you have just opened. When none did, skip this step and say so
    in one line — a retrospective in every run is the routine this step exists instead of.
    Each question is answered with a MEASUREMENT out of the artifacts you already read, never with an
    impression, and one you cannot answer is reported as unanswered rather than filled in:
@@ -84,7 +87,7 @@ and `TSK` items it names, the Evidence attached to those experiments, and
    clean run is a result. Each finding must be actionable enough for the PM to turn it into a BUG/CR/TSK or a
    Decision item recording a conscious skip in the SAME cycle (constitution §13); a finding that cannot be
    acted on is one you have not finished writing.
-   **How you record it:** `python scripts/harness.py evidence --kind audit --result <pass|fail|blocked> --related <RQ-nnnn> --summary "…" --artifact-ref staging/<your task-id>/<file>` — the kernel captures the item and allocates its id. Run it from the project root; never add `--root` (the write gate refuses a command line that names the state directory, and the entry point refuses the flag itself). `--result` is your overall verdict: `pass`, `fail`, or `blocked` for a run that did not happen at all — no browser, no device, no net — which needs `--blocked-reason "<what prevented the run>"` and closes a merge exactly like a failure, saying only something different: nothing was checked; `--artifact-ref` is required and its paths are relative to the state directory, because `gate_write_scope` refuses any write-capable command line that spells the state directory out. The kernel refuses a verdict that points at nothing, so write your run's raw output to that path first. `kind: audit` judges the PROJECT, so it never opens or closes a merge — that is what the delivery kinds (`test`/`review`/`acceptance`) are for.
+   **How you record it:** `python scripts/harness.py evidence --kind audit --result <pass|fail|blocked> --related <RQ-nnnn> --summary "…" --artifact-ref staging/<your task-id>/<file> --run-command "<the command line you ran>" --run-scope <full|selection>` — the kernel captures the item and allocates its id. Run it from the project root; never add `--root` (the write gate refuses a command line that names the state directory, and the entry point refuses the flag itself). `--result` is your overall verdict: `pass`, `fail`, or `blocked` for a run that did not happen at all — no browser, no device, no net — which needs `--blocked-reason "<what prevented the run>"` and closes a merge exactly like a failure, saying only something different: nothing was checked; `--artifact-ref` is required and its paths are relative to the state directory, because `gate_write_scope` refuses any write-capable command line that spells the state directory out. The kernel refuses a verdict that points at nothing, so write your run's raw output to that path first. `kind: audit` judges the PROJECT, so it never opens or closes a merge — that is what the delivery kinds (`test`/`review`/`acceptance`) are for.
 
 ## Hard limits
 Read-only means read-only: your task's `allowed_scope` gives you `staging/<task-id>/` for raw output and

@@ -161,7 +161,8 @@ assert_no_symlink_tree() {
 RESTORABLE=(
   CLAUDE.md AGENTS.md .claude/settings.json .claude/agents .claude/hooks .claude/kernel
   .claude/skills .claude/team_kit_roles.txt .claude/provider_artifacts.json .claude/kit_version
-  .claude/kit_state.json .codex .agents/skills .github/hooks .github/agents)
+  .claude/kit_state.json .claude/kit_repo_files.json .codex .agents/skills .github/hooks
+  .github/agents)
 KEPT_ONLY=(AGENTS.override.md .claude/settings.local.json)
 
 in_restorable() { # repo-relative path -> 0 when THIS installer owns it
@@ -170,6 +171,38 @@ in_restorable() { # repo-relative path -> 0 when THIS installer owns it
     [ "$known" = "$candidate" ] && return 0
   done
   return 1
+}
+
+in_kept_only() { # repo-relative path -> 0 when it is a file this installer READS and never writes
+  local candidate="$1" known
+  for known in "${KEPT_ONLY[@]}"; do
+    [ "$known" = "$candidate" ] && return 0
+  done
+  return 1
+}
+
+# IS THIS MANIFEST LINE A REPO-RELATIVE NAME SEQUENCE -- the shape both twins write and the only
+# shape they read ALIKE. A line that carries its own root is not a path into this project, and the
+# two launchers do not answer one such word the same way: measured 2026-09-12 with
+# `C:/…/victim.txt` in a snapshot's manifest, real installers, this twin came back rc 1 through the
+# OWNERSHIP refusal (a sentence about a foreign manifest, which is the wrong reason) while the .ps1
+# twin came back rc 1 through an unhandled `GetFullPath` NotSupportedException (no sentence at
+# all). Neither wrote outside the project; what neither did was NAME the property. The segments are
+# judged rather than the spellings enumerated: every segment is a plain NAME, so nothing empty,
+# nothing `.` or `..`, and no character that a path parser of either platform these twins run on
+# reads as a root or a separator. `tools/test_hooks.py::test_neither_twin_replays_a_manifest_line_
+# that_is_not_the_installers_to_write` holds both ends -- the refusal, and that every path this
+# installer itself writes into a manifest passes.
+manifest_line_is_a_repo_relative_name() {
+  local line="$1" part
+  case "$line" in *\\*|*:*) return 1 ;; esac
+  local -a segments=()
+  IFS='/' read -r -a segments <<< "$line"
+  [ "${#segments[@]}" -gt 0 ] || return 1
+  for part in "${segments[@]}"; do
+    case "$part" in ''|.|..) return 1 ;; esac
+  done
+  return 0
 }
 
 restore_from_snapshot() {
@@ -257,17 +290,41 @@ if [ "$ROLLBACK" -eq 1 ]; then
   # still refused, by the rule above, on the line's content.
   set_paths=()
   foreign=()
+  rooted=()
+  kept=()
   first_line=1
   while IFS= read -r line || [ -n "$line" ]; do
     if [ "$first_line" -eq 1 ]; then line="${line#"$BOM"}"; first_line=0; fi
     line="${line%$CR}"
     case "$line" in ''|'#'*) continue;; esac
+    if ! manifest_line_is_a_repo_relative_name "$line"; then
+      rooted+=("$line")
+      continue
+    fi
     assert_safe_repo_path "$REPO/$line"
+    # A KEPT_ONLY PATH IN A MANIFEST IS NOT AN OWNERSHIP QUESTION, and until 2026-09-12 the
+    # ownership rule let it through: the backup pass copies these files, so the snapshot HOLDS a
+    # copy, and "the snapshot holds a copy" is the very half that keeps an older manifest playable.
+    # Measured on both twins, real installers, a manifest naming `.claude/settings.local.json`:
+    # **rc 0** and the user's file replaced by the snapshot's copy. These two files are the ones
+    # this installer reads and never writes, so no copy of them in any snapshot is one it made.
+    if in_kept_only "$line"; then
+      kept+=("$line")
+      continue
+    fi
     if ! in_restorable "$line" && [ ! -e "$SNAP/$line" ] && [ ! -L "$SNAP/$line" ]; then
       foreign+=("$line")
     fi
     set_paths+=("$line")
   done < "$SNAP/RESTORE_SET"
+  if [ "${#rooted[@]}" -gt 0 ]; then
+    echo "This snapshot's RESTORE_SET names path(s) that are not repo-relative names: ${rooted[*]}. A manifest line this installer writes is a sequence of plain names under the repository, and a word carrying its own root is read differently by the two launchers, so replaying it is not one operation. Nothing was changed; report where this snapshot came from rather than retrying." >&2
+    exit 1
+  fi
+  if [ "${#kept[@]}" -gt 0 ]; then
+    echo "This snapshot's RESTORE_SET names file(s) this installer backs up and never writes: ${kept[*]}. They are yours, not the bundle's; putting the snapshot's copy back would overwrite an edit this installer never made. Nothing was changed; take the copy out of .claude/backups/ by hand if you want the old one." >&2
+    exit 1
+  fi
   if [ "${#foreign[@]}" -gt 0 ]; then
     echo "This snapshot's RESTORE_SET names path(s) this installer does not own and did not save a copy of: ${foreign[*]}. Replaying it would DELETE them with nothing to put back, so nothing was changed. A manifest written by this installer names only paths it backs up; report where this snapshot came from rather than retrying." >&2
     exit 1
@@ -320,6 +377,7 @@ assert_no_symlink_tree "$KIT" outside
 for relative in \
   AGENTS.md CLAUDE.md AGENTS.override.md .claude/settings.json .claude/agents \
   .claude/hooks .claude/kernel .claude/skills .claude/team_kit_roles.txt .claude/provider_artifacts.json \
+  .claude/kit_repo_files.json \
   .claude/settings.local.json .claude/kit_version .claude/backups .codex .agents/skills \
   .github/hooks .github/agents; do
   assert_no_symlink_tree "$REPO/$relative"
@@ -349,6 +407,21 @@ fi
 # the refusals and the fail-closed rule live in `kernel.kitupdate.preflight_cli`; this line only
 # starts it, so the two twins cannot come to classify a project differently.
 preflight
+
+# THE STAGING HAS TO CARRY ITS OWN TRUST RECORDER, and this is asked BEFORE anything is copied.
+# `write_kit_state.py` is what vouches for the installed hook bundle, and it is also one of
+# `kernel.hashing.kit_hash_inputs` -- so a staging without it installed green on a warning nobody
+# reads (`hook_trust: unverified`) while every later stamp comparison refused the SAME staging by
+# the hash. Measured 2026-09-11 (BUG-0277): rc 0 on the first install for all three kits,
+# `request-approval kit_update` then refused it with "does not hash to the content in its own
+# VERSION". A first install that cannot be vouched for is not a first install this scaffold makes.
+if [ ! -f "$KITS_ROOT/write_kit_state.py" ]; then
+  echo "  [refused] $KITS_ROOT/write_kit_state.py is missing, so nothing could vouch for the" >&2
+  echo "            installed hook bundle and every later kit-update check would refuse this" >&2
+  echo "            same staging by its hash. Nothing was changed." >&2
+  echo "  Remedy: re-install the harness from a complete store (\`install.sh\`)." >&2
+  exit 1
+fi
 # settings.local.json: only ENFORCEMENT-replacing keys block the scaffold. `permissions` is
 # where Claude Code records every "Always allow" grant and `model` is a legitimate local
 # preference — blocking on those made every actively used project unable to take kit updates.
@@ -592,8 +665,11 @@ for f in "$KIT"/agents/*.md; do
   role="$(basename "$f" .md)"
   in_preset "$role" || continue
   cp -f "$f" "$AGENTS_DST/$(basename "$f")"
-  # Kit sources carry provider-neutral tier aliases (lead/worker/light); the INSTALLED Claude
-  # frontmatter needs the concrete reference-platform name (model_map stamping may override).
+  # Kit sources carry provider-neutral tier aliases; the INSTALLED Claude frontmatter needs the
+  # concrete reference-platform name (model_map stamping may override). WHICH aliases exist is
+  # `team-kits/model_tiers.yaml` `aliases:` and nothing else -- `light`/haiku stood here for a
+  # rung that table retired (DEC-0076: three rungs, no light row), so this translated a value
+  # `gen_provider_artifacts.provider_neutral_model` already refuses in a kit source (BUG-0250).
   # CR-tolerant match: agent .md files may be CRLF on a Windows checkout used from WSL/Linux,
   # and non-MSYS awk keeps the \r in $0 (sub() below preserves the original line ending).
   ap="$AGENTS_DST/$(basename "$f")"
@@ -601,7 +677,6 @@ for f in "$KIT"/agents/*.md; do
   awk '{ line=$0; sub(/\r$/, "", line)
          if (line=="model: lead")        sub(/model: lead/, "model: opus")
          else if (line=="model: worker") sub(/model: worker/, "model: sonnet")
-         else if (line=="model: light")  sub(/model: light/, "model: haiku")
          print }' "$ap" > "$tmp"
   mv "$tmp" "$ap"
   [ "$role" = "$LEAD" ] || installed_specialists+=("$role")
@@ -617,9 +692,9 @@ if [ -f "$CFG" ]; then
     mapname="${pair%%:*}"; field="${pair##*:}"
     while IFS=$'\t' read -r role val; do
       [ -n "$role" ] || continue
-      # tier aliases (team-kits/model_tiers.yaml): map may say lead/worker/light — Claude agent
-      # frontmatter gets the concrete reference-platform name.
-      case "$val" in lead) val="opus" ;; worker) val="sonnet" ;; light) val="haiku" ;; esac
+      # tier aliases (team-kits/model_tiers.yaml `aliases:`): the map may say lead/worker —
+      # Claude agent frontmatter gets the concrete reference-platform name.
+      case "$val" in lead) val="opus" ;; worker) val="sonnet" ;; esac
       ap="$REPO/.claude/agents/$role.md"
       [ -f "$ap" ] || continue
       tmp="$ap.tmp"
@@ -825,9 +900,16 @@ if [ -f "$KITS_ROOT/repo_kit_owned.txt" ]; then
   done < "$KITS_ROOT/repo_kit_owned.txt"
 fi
 kept_list=()
+shipped_list=()
 if [ -d "$KIT/templates/repo" ]; then
   while IFS= read -r rel; do
     rel="${rel#./}"
+    # WHAT THE KIT PLACES OUTSIDE `.claude/`, recorded where it is placed (BUG-0265). One line at
+    # the TOP of the loop rather than one per branch: the kit-owned branch returns, so a per-branch
+    # append is three places that can drift from the walk. Every path this loop decides about is
+    # the kit's -- overwritten, freshly copied, or kept because the project customised the kit's
+    # file -- and a reader asking "is this the project's own file" needs all three.
+    shipped_list+=("$rel")
     dst="$REPO/$rel"
     if [ "${kit_owned#*"|$rel|"}" != "$kit_owned" ]; then
       mkdir -p "$(dirname "$dst")"
@@ -852,6 +934,25 @@ if [ -d "$KIT/templates/repo" ]; then
   done < <(cd "$KIT/templates/repo" && find . -type f -not -path '*/__pycache__/*' \
            -not -path '*/.ruff_cache/*' -not -path '*/.mypy_cache/*' -not -path '*/.pytest_cache/*')
 fi
+# THE RECORD ITSELF (BUG-0265). `.claude/provider_artifacts.json` is the shape: a manifest the
+# PROJECT holds, so a reader asks the installation instead of carrying a directory name. Until it
+# existed, `kernel.report.installed_kit_paths` could only exclude the DIRECTORIES a kit fills
+# (`scripts/`, `tools/`) -- which also excluded a project's own script lying beside the kit's, and
+# no finding said so. Written unconditionally, empty list included: "no file" and "no entries"
+# print the same and mean the opposite things, and the reassuring one would be the wrong default.
+# The JSON is built by the interpreter this run already validated, not by string concatenation
+# here: a path is data, and a shell-quoted JSON writer is one backslash away from a manifest no
+# reader can parse. THE SOURCE IS BYTE-IDENTICAL IN BOTH TWINS, and it carries neither a double
+# quote nor a backslash for a measured reason: PowerShell strips double quotes and mangles
+# backslashes when it hands a string to a native executable, so the first cut of this line reached
+# `python` as `open(sys.argv[1], w, encoding=utf-8, newline=\n)` -- a SyntaxError the .ps1 twin
+# then walked past, because a failing native call does not stop a PowerShell script by itself.
+# `chr(10)` is there instead of an escape for the same reason; the twin checks its exit status.
+"$PYBIN" -c "import json, sys
+record = json.dumps({'kit': sys.argv[2], 'repo_files': sorted(sys.argv[3:])}, indent=2) + chr(10)
+open(sys.argv[1], 'wb').write(record.encode('utf-8'))
+" "$REPO/.claude/kit_repo_files.json" "$TEAM" ${shipped_list[@]+"${shipped_list[@]}"}
+echo "  [ok] .claude/kit_repo_files.json (${#shipped_list[@]} file(s) this kit places in the project)"
 PEND="$REPO/.claude/kit_update_pending.repo"
 STATE="$REPO/.claude/kit_update_pending.state"
 if [ ${#kept_list[@]} -gt 0 ]; then

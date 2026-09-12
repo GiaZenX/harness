@@ -88,14 +88,17 @@ def model_effort_mismatches(cwd):
             # Claude cannot resolve `model: worker` and the subagent dies at spawn ("model may
             # not exist" — a real bookkeeper crashed; an OneDrive-synced scaffold write had
             # left the alias unresolved and the canonicalized compare below saw "in sync").
-            if field == "model" and have in ("lead", "worker", "light"):
+            if field == "model" and have in ("lead", "worker"):
                 mism.append("%s frontmatter model='%s' is an UNRESOLVED tier alias — subagents "
                             "crash at spawn; re-run the scaffold (or set the real model name)"
                             % (role, have))
                 continue
-            # provider-neutral tier aliases (team-kits/model_tiers.yaml): `lead` IS opus etc. —
-            # a map saying `lead` with frontmatter `opus` is in sync, not drift.
-            canon = {"lead": "opus", "worker": "sonnet", "light": "haiku"}
+            # provider-neutral tier aliases (team-kits/model_tiers.yaml `aliases:`): `lead` IS
+            # opus etc. — a map saying `lead` with frontmatter `opus` is in sync, not drift. The
+            # third entry was `light: haiku`, an alias that table retired (DEC-0076: three rungs
+            # per provider, no light row), so this hook translated a value no kit source may
+            # carry and no installer produces any more (BUG-0250).
+            canon = {"lead": "opus", "worker": "sonnet"}
             if canon.get(have, have) != canon.get(want, want):
                 mism.append("%s %s=%s (map says %s)" % (role, field, have, want))
     return mism

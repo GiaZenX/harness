@@ -1,0 +1,18 @@
+id: EVD-0408
+kind: test
+related:
+- BUG-0289
+result: pass
+summary: 'H205 rework 2: the stdin-parser membership is asked AFTER the redirections
+  are dropped -- four everyday lines (cat > patch.diff / patch/notes.md / bash.md
+  / source.txt with a heredoc) were rc 2 through the shipped gate and are rc 0 now,
+  while patch/patch.exe/git apply/nohup bash/timeout 5 bash heredocs stay rc 2'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_a_heredoc_body_handed_to_a_shell_is_judged_as_a_command
+  tools/test_hooks_v2.py::test_a_heredoc_body_an_interpreter_executes_is_not_prose_here
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T14:20:03'

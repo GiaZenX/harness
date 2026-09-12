@@ -63,20 +63,29 @@ class StagingError(StateError):
 # it appends a path under `ACTIVE_DIRS[DESIGN_REF_TYPE]` -- so the constant is what that function
 # composes its own target from, and `dispatch` reads it rather than carrying a second copy.
 #
-# WFR IS NOT IN HERE, and the first cut of this was wider than any producer: `freeze_wireframe`
-# writes a frozen wireframe but never touches `design_refs`, so no entry pointing into
-# `design/wireframes/` is ever created -- accepting one would have been a rule about a shape
-# nothing produces. Spec II.2 does say the scope manifest's design references include approved
-# wireframes (II.6a), so the ABSENCE OF THAT PRODUCER is an open gap and not a decision taken
-# here; the day `freeze_wireframe` appends, it appends through this constant and the resolver
-# follows. ARC stays out for a different reason: an architecture revision is not a design
+# WFR IS IN HERE SINCE BUG-0055, and this paragraph used to say the opposite for a reason that has
+# been answered rather than reasoned away: `freeze_wireframe` wrote a frozen wireframe and never
+# touched `design_refs`, so no entry pointing into `design/wireframes/` was ever created --
+# accepting one would have been a rule about a shape nothing produced. Spec II.2 does say the
+# scope manifest's design references include approved wireframes (II.6a), and the absence of the
+# PRODUCER was what made that a gap: a re-frozen wireframe invalidated nothing, and nothing could
+# be asked whether a UI scope names one at all. `freeze_wireframe` appends now, through this same
+# derivation, and the resolver follows -- which is what the old paragraph said would happen the
+# day it did.
+#
+# WHY NOT `_SCOPE_FIELDS`: widening THAT tuple is what `approvals` calls a spec decision with a
+# migration attached -- every stored hash would change and every live approval would die. Nothing
+# of the sort is needed: `design_refs` is already in `_SCOPE_FIELDS` AND in `HASHED_FIELDS`, so an
+# appended wireframe bumps the root's revision and drops the approval through the machinery that
+# is already there. ARC stays out for a different reason: an architecture revision is not a design
 # reference (II.6 makes `design_ref` the binding IMPLEMENTATION reference for a UI task).
 DESIGN_REF_TYPE = "DSN"
+WIREFRAME_REF_TYPE = "WFR"
 
 
 def frozen_design_dirs():
     """The state-relative directories a FROZEN design reference may point into."""
-    return (ACTIVE_DIRS[DESIGN_REF_TYPE],)
+    return (ACTIVE_DIRS[DESIGN_REF_TYPE], ACTIVE_DIRS[WIREFRAME_REF_TYPE])
 
 
 def architecture_revisions_dir(state: ProjectState) -> str:
@@ -303,8 +312,24 @@ def freeze_wireframe(
             os.path.join(target_dir, revision_name(wfr_id, revision, ".yaml")), companion
         )
         staged = consume_staged_artifact(state, source)
+        # AND THE ROOT'S `design_refs` POINTS AT IT (BUG-0055). Without this the freeze wrote a
+        # file nothing referred to: `design_refs` is what the scope manifest hashes, so a SECOND
+        # freeze of the same wireframe invalidated no approval, and "does this UI scope name a
+        # wireframe" was a question with no field to read. Through `field_elements` for the reason
+        # `freeze_design` gives at its own append (a scalar `list()`ed is its letters, BUG-0038),
+        # and through `_update_item_locked`, so the hashed-field change bumps the revision and
+        # drops the approval on the same path every other design reference takes.
+        # `tools/test_staging_cli.py::test_a_frozen_wireframe_is_a_design_reference_the_scope_hash_moves_on`
+        root_id = _root_of(state, derives_from)
+        updated_root = None
+        if root_id is not None:
+            refs = field_elements(state.read_item(root_id).get("design_refs"))
+            refs.append("%s/%s" % (ACTIVE_DIRS[WIREFRAME_REF_TYPE],
+                                   revision_name(wfr_id, revision, ".drawio.svg")))
+            updated_root = state._update_item_locked(root_id, {"design_refs": refs})
         state._regenerate_index_locked()
-        return {"frozen": frozen, "companion": companion, "staging": staged}
+        return {"frozen": frozen, "companion": companion, "staging": staged,
+                "root": updated_root}
 
 
 def _root_of(state: ProjectState, derives_from) -> str:
@@ -500,7 +525,8 @@ def freeze_report(
                 "as Evidence: `python scripts/harness.py evidence --kind "
                 "<test|review|acceptance> --related <item-id> --result <pass|fail|blocked> "
                 "--summary "
-                "\"what it shows\" --artifact-ref <staged path>`."
+                "\"what it shows\" --artifact-ref <staged path> --run-command \"<the line you "
+                "ran>\" --run-scope <full|selection>`."
                 % REPORTS_DIRNAME)
         if not os.path.exists(ext_path(source)) or os.path.getsize(ext_path(source)) == 0:
             raise StagingError(

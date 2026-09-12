@@ -1,0 +1,15 @@
+id: EVD-0375
+kind: test
+related:
+- BUG-0182
+result: pass
+summary: ledger_add.validate_cross refuses two live rows that differ in nothing but
+  their id -- one voucher booked twice without an invoice number; the same two told
+  apart in note are accepted; office package + finance dashboard 126 passed
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest -q -p no:randomly tools/test_office_package.py::test_one_voucher_booked_twice_without_an_invoice_number_is_refused
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:00:49'

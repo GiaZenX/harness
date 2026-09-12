@@ -171,15 +171,35 @@ def test_the_clean_draft_this_suite_breaks_passes_untouched(tmp_path):
     assert done.returncode == 0, done.stdout + done.stderr
 
 
-def test_a_record_is_written_even_when_the_checks_find_something_and_the_sighting_gate_still_opens(
-        tmp_path):
-    """Two questions, two answers: the record says it was RENDERED, the exit code says what is wrong.
+def _sighting_gate(root, relative):
+    """The shipped `gate_design_sighted` as a process, asked about one staged draft by name."""
+    payload = {"hook_event_name": "PreToolUse", "tool_name": "AskUserQuestion", "cwd": str(root),
+               "tool_input": {"questions": [{"question": "Datei: %s" % relative, "header": "Design",
+                                             "options": [{"label": "A",
+                                                          "description": "die Kacheln"}]}]}}
+    return subprocess.run([sys.executable, os.path.join(HOOKS, "gate_design_sighted.py")],
+                          input=json.dumps(payload), capture_output=True, text=True,
+                          env=dict(os.environ, CLAUDE_PROJECT_DIR=str(root),
+                                   HARNESS_KERNEL_PATH=os.path.join(ROOT, "team-kits")),
+                          timeout=120)
 
-    `gate_design_sighted` asks whether anyone rendered the draft. A finding is a different question,
-    so the record is written and that gate opens — which is exactly the split `H138` in
-    `docs/POST_V2_WISHLIST.md` names as not closed. Measured here rather than asserted in prose,
-    because the day the renderer starts withholding the record on a finding, the refusal a designer
-    then meets says "nobody has rendered this draft" and sends them to fix the wrong thing.
+
+def test_a_draft_with_conformance_findings_is_refused_and_an_undecided_one_is_not(tmp_path):
+    """BUG-0294: a rendered draft with findings no longer walks past the sighting gate.
+
+    Two questions used to have two answers and only one of them refused: the record said the draft
+    was RENDERED and the exit code said what was wrong, so a role that ignored the exit code
+    presented a draft with findings and nothing stopped it. Measured before the repair: a draft
+    with a contrast of 1.92:1 was renderer rc 3 and hook rc 0.
+
+    THE RECORD IS STILL WRITTEN on a finding, and that half has not moved -- the day the renderer
+    withholds it, the refusal a designer meets says "nobody has rendered this draft" and sends them
+    to fix the wrong thing. What changed is that the gate reads the record's
+    `conformance.findings` as well as its provenance.
+
+    THE COUNTER-END IS THE SECOND HALF: a draft whose contrast the checker could not DECIDE (text
+    over a gradient) is `NOT DECIDABLE`, renderer rc 0, and the gate opens. Without it this test
+    would be satisfied by a gate that refused every rendered draft.
     """
     pytest.importorskip("playwright")
     relative = stage(tmp_path, CLEAN.replace("--fg:#1a1a1a", "--fg:#bbbbbb"))
@@ -192,15 +212,19 @@ def test_a_record_is_written_even_when_the_checks_find_something_and_the_sightin
         record = json.load(handle)
     entry, = record["sources"]
     assert entry["conformance"]["findings"], record
-    payload = {"hook_event_name": "PreToolUse", "tool_name": "AskUserQuestion", "cwd": str(tmp_path),
-               "tool_input": {"questions": [{"question": "Datei: %s" % relative, "header": "Design",
-                                             "options": [{"label": "A", "description": "die Kacheln"}]}]}}
-    gate = subprocess.run([sys.executable, os.path.join(HOOKS, "gate_design_sighted.py")],
-                          input=json.dumps(payload), capture_output=True, text=True,
-                          env=dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path),
-                                   HARNESS_KERNEL_PATH=os.path.join(ROOT, "team-kits")),
-                          timeout=120)
-    assert gate.returncode == 0, gate.stdout + gate.stderr
+
+    gate = _sighting_gate(tmp_path, relative)
+    assert gate.returncode == 2, gate.stdout + gate.stderr
+    assert "conformance finding" in gate.stderr, gate.stderr
+
+    undecided = tmp_path / "undecided"
+    relative = stage(undecided, CLEAN.replace("body { background: var(--bg);",
+                                              "body { background: linear-gradient(#fff, #eee);"))
+    clean = render(undecided)
+    _needs_a_browser(clean)
+    assert clean.returncode == 0, clean.stdout + clean.stderr
+    opened = _sighting_gate(undecided, relative)
+    assert opened.returncode == 0, opened.stdout + opened.stderr
 
 
 def test_a_value_the_check_cannot_decide_is_named_and_is_not_a_finding(tmp_path):

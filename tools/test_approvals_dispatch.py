@@ -3,8 +3,10 @@ import ast
 import contextlib
 import inspect
 import io
+import json
 import os
 import pathlib
+import re
 import shutil
 import sys
 import time
@@ -20,7 +22,7 @@ from conftest import (  # noqa: E402 -- shared suite helpers
     mint_via_hook,
     satisfy_the_architect_step,
 )
-from kernel import approvals, backlog_types, checkpoints, dispatch, hashing, staging  # noqa: E402
+from kernel import approvals, backlog_types, checkpoints, cli, dispatch, hashing, staging  # noqa: E402
 from kernel.approvals import ApprovalError  # noqa: E402
 from kernel.backlog_types import ACTIVE_DIRS  # noqa: E402
 from kernel.dispatch import DispatchError  # noqa: E402
@@ -964,6 +966,48 @@ def _routine_apr(state, item_id, role="project-auditor", expires_in=3600, **mani
         state, "routine", item_id, manifest=manifest,
         approval_expires=time.time() + expires_in))
     return _latest_apr(state)
+
+
+def test_the_routine_kind_is_walkable_on_the_command_surface_a_role_actually_types(state, capsys):
+    """BUG-0266 and BUG-0195: the auditor's route existed in the kernel and not on the CLI.
+
+    The measurement that filed both was a PROCESS on a scaffolded pilot -- `request-approval
+    routine PR-0001` answered `invalid choice: 'routine'`, so the only walkable way to run the
+    auditor was an ordinary work order, and `create-task` makes `--allowed-scope` mandatory: the
+    very writable scope the routine route exists to avoid. So this drives the SHIPPED parser and
+    the shipped entry point, not the library function behind them, and it asserts the second half
+    too -- the task the minted approval authorises carries NO writable scope.
+
+    The counterweight in the same test is the kind that is still NOT on that surface: `analysis`
+    has no producer here, and a test that only asked "is routine there" would go green on a parser
+    that accepted every word.
+    """
+    kinds = set(cli.build_parser()._subparsers._group_actions[0]
+                .choices["request-approval"]._actions[1].choices)
+    assert approvals.ROUTINE_KIND in kinds, kinds
+    assert "analysis" not in kinds, (
+        "`analysis` has no producer on this surface -- see BUG-0266's `expected`")
+
+    pr, task = _audit_task(state)
+    assert cli.main(["--root", state.root, "request-approval", approvals.ROUTINE_KIND, pr["id"],
+                     "--role", "project-auditor", "--scope", "project_memory/**",
+                     "--trigger", "weekly + after kit update", "--cadence", "weekly",
+                     "--expires-in-days", "7"]) == 0
+    question = json.loads(capsys.readouterr().out)["question"]
+    found = re.search(r"APR-REQ:([A-Za-z0-9_.:-]+)", question)
+    assert found, question
+
+    request = approvals.pending_request(state, found.group(1))
+    assert request["kind"] == approvals.ROUTINE_KIND, request
+    assert request["subject_manifest"]["role"] == "project-auditor"
+
+    mint_via_hook(state, request)
+    assert _latest_apr(state)["kind"] == approvals.ROUTINE_KIND
+    lease = dispatch.create_lease(state, task["id"])
+    assert dispatch.validate_dispatch(
+        state, dispatch.parse_header(dispatch.dispatch_header(lease)), "project-auditor")
+    assert state.read_item(task["id"])["allowed_scope"] == [], (
+        "the routine route authorises a task with no writable scope -- that is its point")
 
 
 def test_a_routine_approval_authorises_the_recurring_read_only_dispatch(state):
@@ -3998,6 +4042,35 @@ def test_a_child_stop_the_kernel_cannot_attribute_is_refused_rather_than_guessed
     assert [row["task_id"] for row in dispatch.idle_dispatches(state)] == [second_task["id"]]
 
 
+def test_the_ambiguous_stop_refusal_names_the_way_out_of_a_zombie_dispatch(state):
+    """BUG-0144: a dispatch nobody can finish kept id-less attribution off for its whole role.
+
+    The refusal is right -- guessing writes the end of a running specialist onto the wrong task --
+    but the remedy it carried ("dispatch same-role tasks sequentially") is advice for a project
+    that has not yet gone wrong, and says nothing to one that already has. There IS a way out and
+    it is the mechanism, not a text: a lease is released with the task's STATUS, so moving the dead
+    task takes it out of the candidate set and the next stop of that role lands again.
+
+    This test measures that route rather than the sentence: the ambiguity is produced, then the
+    corpse is transitioned, then the same stop is recorded and attributed. The sentence is asserted
+    only for the two facts a reader needs to walk it -- the candidates' ids and what each lease
+    knows about its child -- because a remedy naming neither cannot be followed.
+    """
+    running = _with_a_bound_child(state, "child-1")
+    zombie = _another_dispatch(state, agent_id=None)
+
+    with pytest.raises(dispatch.AmbiguousBinding) as refusal:
+        dispatch.record_child_end(state, agent_type=TSK_FIELDS["assigned_role"])
+    message = str(refusal.value)
+    assert zombie["id"] in message and running["id"] in message, message
+    assert "no child bound" in message and "child-1" in message, message
+    assert "TASK moves" in message, message
+
+    state.transition(zombie["id"], "FAILED")
+    assert dispatch.record_child_end(state, agent_type=TSK_FIELDS["assigned_role"]) == running["id"]
+    assert dispatch.CHILD_ENDED in state.read_item(running["id"])
+
+
 def test_a_stop_with_no_id_is_refused_while_an_unbound_dispatch_of_the_role_could_own_it(state):
     """The misattribution that WAS measured: an unbound child's stop landed on a running dispatch.
 
@@ -5041,13 +5114,19 @@ def test_the_card_of_a_list_bound_approval_counts_what_it_binds(state):
     THE COUNT COMES FROM THE PROVENANCE and not from the caller: the APR file keeps only the
     manifest digest, so what is counted is the list the consumed request carries -- the record a
     later auditor opens.
+
+    THE COUNT IS READ AS A NUMBER AND NOT AS A DIGIT SOMEWHERE (the verifier's G3 of this round):
+    `"2" in card` is satisfied by a card that says 12, 20 or 32, so a counter that added a constant
+    to the length passed it. The number is matched with no digit on either side, which is the
+    property -- and the card's wording stays in `approvals.approval_card`, not copied here.
     """
     holes = [_measured_hole(state, "gap %d" % n) for n in range(2)]
     request = _ask_the_exception_batch(state, holes)
     mint_via_hook(state, request)
     apr = state._read_yaml(os.path.join(state.root, "approvals", "APR-0001.yaml"))
     assert apr.get("item") is None, apr
-    assert "2" in approvals.approval_card(apr, state), approvals.approval_card(apr, state)
+    card = approvals.approval_card(apr, state)
+    assert re.search(r"(?<!\d)%d(?!\d)" % len(holes), card), card
     assert "keinen Vorgang" not in approvals.approval_card(apr, state)
     # ...and without a state it says what it can rather than counting nothing
     assert "keinen Vorgang" in approvals.approval_card(apr)

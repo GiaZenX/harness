@@ -47,7 +47,10 @@ def _hook_process(proj, env, name, payload, launched=True):
     hooks = os.path.join(proj, ".claude", "hooks")
     argv = [sys.executable, "-B", os.path.join(hooks, "_gate.py"), name] if launched else \
            [sys.executable, "-B", os.path.join(hooks, name)]
-    done = subprocess.run(argv, cwd=proj, env=env,
+    # BUG-0280: the project this hook is being ASKED about, named rather than inherited --
+    # `_root.find_repo_root` answers the variable before the payload's cwd, and the suite's
+    # ambient value is a throwaway tree.
+    done = subprocess.run(argv, cwd=proj, env=dict(env, CLAUDE_PROJECT_DIR=proj),
                           input=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
                           capture_output=True, timeout=900)
     return done.returncode, done.stderr.decode("utf-8", "replace")
@@ -272,20 +275,41 @@ def test_the_research_chain_runs_from_the_question_to_a_merge_through_the_shippe
         "--status-proposal", "SUBMITTED", "--summary", "Beide Arme gelaufen, Seeds notiert.",
         "--output", "src/messlauf.py", "--scope-touched", "src/")
     assert handed_back.returncode == 0, handed_back.stdout + handed_back.stderr
+
+    from kernel.backlog_types import QA_EVIDENCE_KINDS
+    from kernel.state import CONFIRMING_EVIDENCE
+
+    def record(kind):
+        # `--run-command`/`--run-scope` are REQUIRED since BUG-0192: a record that declares no
+        # scope counted as a full run, so a partial run opened a merge in silence. Without them
+        # this call is argparse rc 2 and every `returncode == 0` below would measure nothing.
+        return project.harness(
+            "evidence", "--kind", kind, "--result", "pass", "--related", "TSK-0001",
+            "--summary", "Messlauf geprüft", "--artifact-ref", "staging/TSK-0001/lauf.log",
+            "--run-command", "python scripts/harness.py check", "--run-scope", "full")
+
+    # THE CONFIRMING EVIDENCE COMES BEFORE THE CONFIRMING EDGE, and the order is the kernel's rule
+    # rather than this test's taste: `CONFIRMING_EVIDENCE` gained `TSK` in generation 6, so
+    # `DONE -> VALIDATED` now refuses a task no passing `test` Evidence covers. The KIND is read out
+    # of that map, so the day another type joins it this walk moves with the rule.
+    confirming = CONFIRMING_EVIDENCE["TSK"]
+    assert record(confirming).returncode == 0
     for target in ("DONE", "VALIDATED"):
         moved = project.harness("transition", "TSK-0001", target)
         assert moved.returncode == 0, moved.stdout + moved.stderr
 
     merge = {"hook_event_name": "PreToolUse", "tool_name": "Bash", "cwd": project.path,
              "tool_input": {"command": "git merge rq/RQ-0001-chunkgröße"}}
+    # ...and the confirming kind ALONE does not open a merge: the gate wants the whole QA set, so it
+    # still refuses here and names what is missing. Without this assertion the walk would prove only
+    # that three records open a merge, never that fewer do not.
     shut, err = project.hook("gate_git.py", merge)
-    assert shut == 2 and "no QA Evidence" in err, err
+    assert shut == 2, err
+    for missing in sorted(QA_EVIDENCE_KINDS - {confirming}):
+        assert missing in err, (missing, err)
 
-    from kernel.backlog_types import QA_EVIDENCE_KINDS
-    for kind in sorted(QA_EVIDENCE_KINDS):
-        recorded = project.harness(
-            "evidence", "--kind", kind, "--result", "pass", "--related", "TSK-0001",
-            "--summary", "Messlauf geprüft", "--artifact-ref", "staging/TSK-0001/lauf.log")
+    for kind in sorted(QA_EVIDENCE_KINDS - {confirming}):
+        recorded = record(kind)
         assert recorded.returncode == 0, recorded.stdout + recorded.stderr
     # the Evidence names the TASK; the branch names the QUESTION two levels above it, and the gate
     # opens because the binding is resolved transitively (`report.evidence_covers`)

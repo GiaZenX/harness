@@ -684,11 +684,15 @@ def description():
             # reader refuses a sentence naming a mechanism that is not built WHATEVER ELSE the
             # sentence says -- measured (TSK-0133 verify round 1, B3): "The claude.ai cloud
             # routine starts the claude-watcher every Friday from the Desktop." passed a reader
-            # that only asked whether the Desktop task was named. This list has no tripwire at
-            # either end -- a wording of the option the list does not carry passes the reader --
-            # which is BUG-0274 / H190 and is not closed here.
-            # `tools/test_radar_trigger.py::test_the_claim_rule_follows_the_record_per_watcher`
-            "named_as": ["claude.ai", "cloud routine", "RemoteTrigger"],
+            # that only asked whether the Desktop task was named. BOTH ENDS OF THIS LIST ARE
+            # MEASURED against the bullet of `radar/README.md` that describes the option
+            # (BUG-0274 / H190): a name that bullet writes and this list does not carry is red, and
+            # an entry here the bullet never writes is red too. Before that the shipped README's
+            # own words for the option ("hosted code routine", "sandbox routine") passed the claim
+            # reader, measured by the merge verifier of TSK-0133 as v04 and v05.
+            # `tools/test_radar_trigger.py::test_the_names_of_the_rejected_option_are_the_ones_its_bullet_writes`
+            "named_as": ["claude.ai", "cloud routine", "RemoteTrigger", "hosted code routine",
+                         "sandbox routine"],
             "why": "it would run with the machine off, but against a fresh clone of the remote "
                    "with the report arriving as a pull request -- more moving parts for a "
                    "repository the user works in daily; the Desktop task that had been running for "

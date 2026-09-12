@@ -49,9 +49,14 @@ retyping it here.
 - **Not created yet: the other three.** Until the user has made them in the two apps and each has
   run twice on its own evening, the lead starts what is missing by hand — `--run <watcher>` when
   `--due` names it, which starts a Claude run and can start no other.
-- **The rejected alternative** — a hosted code routine of the platform, running in a sandbox
-  against the remote and returning each report as a pull request (DEC-0085) — is not built;
-  `--describe` keeps it under `cloud_option` only as a documented option that says so.
+- **The rejected alternative** — the **claude.ai** **cloud routine** (**RemoteTrigger**), a
+  **hosted code routine** of the platform running as a **sandbox routine** against the remote and
+  returning each report as a pull request (DEC-0085) — is not built and nothing in this repo
+  starts it; `--describe` keeps it under
+  `cloud_option` only as a documented option that says so. Every name this bullet writes in bold
+  after its lead-in is one the declaration publishes, and the other way round -- otherwise a
+  sentence promoting the option under a name nobody listed passes the claim reader
+  (`tools/test_radar_trigger.py::test_the_names_of_the_rejected_option_are_the_ones_its_bullet_writes`).
 
 **What the repository can measure of that, and what it cannot.** Every Desktop task and every Codex
 Automation keeps its day, hour and enabled flag in the app that owns it and in no file here; what

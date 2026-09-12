@@ -70,6 +70,157 @@ def _two_orders(tmp_path, first, second, **kwargs):
     return repo, state
 
 
+def test_a_wildcard_free_entry_is_offered_as_the_directory_prefix_the_gate_reads():
+    """BUG-0218's remaining class, measured by round 1 of this item's verification.
+
+    An entry WITHOUT a wildcard is a DIRECTORY PREFIX to the gate -- it owns everything under it --
+    and was a literal path to `_unify`, which can unify a literal with nothing that goes deeper. So
+    every pairing of a wildcard-free entry with a glob one was blind over an empty tree. The
+    verifier found it by brute force over every path up to five segments against the SHIPPED
+    predicate: SIX pairs shared a real path and produced no witness at all. All six are rows here.
+
+    THE COUNTERWEIGHTS ARE THE SECOND LIST, because offering a second reading of an entry is how a
+    check starts refusing cuts that hold: a different first segment, a different tray and a sibling
+    directory whose name merely starts the same way must still come back empty -- `in_scope` with
+    the gate's own predicate is what decides that, and the second reading only ever proposes.
+    """
+    matches, _norm, _gate = scopes._shipped_halves()
+
+    def shared(left, right):
+        found = scopes.overlaps(matches, [
+            {"id": "TSK-0001", "allowed": [left], "forbidden": [], "seam": []},
+            {"id": "TSK-0002", "allowed": [right], "forbidden": [], "seam": []}], [])
+        return found[0]["witnesses"] if found else []
+
+    for left, right in (("a/b", "a/**/c"), ("a/b", "a/*/c"), ("a/b", "a/**/*.py"),
+                        ("a/b", "**/c"), ("a", "**/c"), ("a", "*/c")):
+        assert shared(left, right), (left, right)
+
+    for left, right in (("a/b", "x/**/c"), ("docs", "src/**"), ("a/b", "a/b2/**")):
+        assert shared(left, right) == [], (left, right)
+
+    assert scopes._readings(["a/b"]) == ["a/b", "a/b/**"]
+    assert scopes._readings(["a/*"]) == ["a/*"], "an entry that already globs gets no second reading"
+
+
+def test_two_orders_that_share_only_a_region_no_single_witness_reaches_collide():
+    """BUG-0218: the witness half filled every entry ALONE, so a shared region could be invisible.
+
+    The measured row is `a/*x` against `a/y*`: filling each entry by itself gives `a/_x` and `a/y_`,
+    neither of which the other order owns, while `a/yx` belongs to both -- so two orders were cut
+    as disjoint over an empty tree and collided the moment somebody created the file. The builder
+    now works on the PAIR, so the character a wildcard stands for is chosen by the other pattern
+    wherever that one is literal.
+
+    THE COUNTERWEIGHTS ARE THE POINT OF THE SECOND LIST, because a builder that returned a path for
+    every pair would report every cut as colliding: a different first segment, a different file
+    name, and above all the separator -- `*` and `?` do not cross one, so `a/*` and `a/b/c` share
+    nothing. What this builder produces is only ever a CANDIDATE; `in_scope` decides with the
+    gate's own predicate, which is why widening it cannot invent an overlap.
+    """
+    for left, right, expected in (
+            ("a/*x", "a/y*", "a/yx"),
+            ("src/**", "src/kernel/x.py", "src/kernel/x.py"),
+            ("tools/test_*.py", "tools/*_hooks.py", "tools/test_hooks.py"),
+            ("team-kits/kernel/**", "team-kits/*/VERSION", "team-kits/kernel/VERSION"),
+            ("a/*/c", "a/b/*", "a/b/c"),
+            ("**/x.py", "src/deep/x.py", "src/deep/x.py")):
+        assert scopes._unify(scopes._tokens(left), scopes._tokens(right), 0, 0, {}) == expected, (
+            left, right)
+    for left, right in (("a/*x", "b/y*"), ("tools/test_*.py", "docs/*.md"),
+                        ("a/b.py", "a/c.py"), ("a/*", "a/b/c")):
+        assert scopes._unify(scopes._tokens(left), scopes._tokens(right), 0, 0, {}) is None, (
+            left, right)
+
+    first = {"id": "TSK-0001", "allowed": ["a/*x"], "forbidden": [], "seam": []}
+    second = {"id": "TSK-0002", "allowed": ["a/y*"], "forbidden": [], "seam": []}
+    matches, _norm, _gate = scopes._shipped_halves()
+    found = scopes.overlaps(matches, [first, second], [])
+    assert len(found) == 1 and found[0]["witnesses"] == ["a/yx"], found
+
+
+def test_a_named_route_that_cannot_be_a_pair_is_a_usage_answer_and_not_a_clean_cut(tmp_path):
+    """BUG-0225: `--only` with one real id resolved, compared nothing, and answered 0.
+
+    `--only` is a request for a COMPARISON, so an answer of 0 tells a script the cut was checked
+    when nothing was. It is rc 1 -- a usage answer, which the three exit codes already tell apart
+    from the refused cut's rc 2.
+
+    THE COUNTERWEIGHT IS THE RUN NOBODY NARROWED, in this same test: a state directory with one
+    open order and no `--only` stays rc 0 with NOTHING WAS COMPARED, because that run asked for
+    nothing -- making "fewer than two orders" an error outright would break the tool being run with
+    no arguments outside a project.
+    """
+    root = tmp_path / "project_memory"
+    root.mkdir()
+    st = ProjectState(str(root))
+
+    code, lines = scopes.check(st)
+    assert code == 0 and "NOTHING WAS COMPARED" in lines[0], lines
+
+    code, lines = scopes.check(st, only=["TSK-0001"])
+    assert code == 1, lines
+    assert "NOTHING WAS COMPARED" in lines[0] and "TSK-0001" in lines[0], lines
+    assert "disjoint" not in " ".join(lines), lines
+
+
+def test_two_spellings_of_one_seam_are_named_as_such_and_not_as_a_collision(tmp_path):
+    """BUG-0231, second residue: `pair_seam` intersects STRINGS while the gate compares file sets.
+
+    Two entries that denote the same paths in different words leave the intersection empty, so the
+    pair was refused with the ordinary OVERLAP message -- fail-closed, and a worse answer: the
+    caller reads "these two collide" where the truth is "you spelled one seam twice". The verdict
+    is unchanged on purpose; what changes is that every such path is named as spelled apart.
+
+    MEASURED CORRECTION TO THE ITEM'S EXAMPLE, and it is asserted here rather than argued: against
+    the SHIPPED predicate `docs/` and `docs/**` are NOT one set -- `docs/a.md` matches the second
+    and not the first (probe, 2026-09-12). What they do share is the directory path itself, and
+    that is the row below: `docs/` is matched by both declarations and missed by the string
+    intersection, which is exactly the residue.
+
+    The counterweight is the pair that really collides: two orders that declare NO seam at all over
+    the same paths get no such line, so the hint cannot be read as "this is fine".
+    """
+    matches, _norm, _gate = scopes._shipped_halves()
+    shared = ["docs/a.md", "docs/"]
+
+    apart = scopes.overlaps(matches, [
+        {"id": "TSK-0001", "allowed": ["docs/**"], "forbidden": [], "seam": ["docs/"]},
+        {"id": "TSK-0002", "allowed": ["docs/**"], "forbidden": [], "seam": ["docs/**"]},
+    ], shared)
+    assert len(apart) == 1, apart
+    assert apart[0]["spelled_apart"] == ["docs/"], apart
+    assert "docs/" in apart[0]["files"], (
+        "the verdict does not change -- the path is still counted as a collision")
+
+    plain = scopes.overlaps(matches, [
+        {"id": "TSK-0001", "allowed": ["docs/**"], "forbidden": [], "seam": []},
+        {"id": "TSK-0002", "allowed": ["docs/**"], "forbidden": [], "seam": []},
+    ], shared)
+    assert plain[0]["spelled_apart"] == [], plain
+
+
+def test_a_seam_narrower_than_the_overlap_leaves_the_rest_colliding_and_prints_what_it_covers(
+        tmp_path):
+    """BUG-0226: what a partial seam covers is not hidden -- it is printed path by path.
+
+    The bound the item names is the whole of its answer, and until now nothing measured it: a seam
+    is the orchestrator's DECLARATION, the merge round applies exactly the list it declares, so a
+    seam is only as safe as the report is complete. Both halves here: the covered path appears as
+    its own `seam` line, and the part of the overlap the declaration does NOT reach stays a
+    collision with its own rc 2.
+    """
+    matches, _norm, _gate = scopes._shipped_halves()
+    first = {"id": "TSK-0001", "allowed": ["src/**"], "forbidden": [], "seam": ["src/shared.py"]}
+    second = {"id": "TSK-0002", "allowed": ["src/**"], "forbidden": [], "seam": ["src/shared.py"]}
+    found = scopes.overlaps(matches, [first, second], ["src/shared.py", "src/other.py"])
+
+    assert len(found) == 1, found
+    assert found[0]["seam"] == ["src/shared.py"], found
+    assert found[0]["files"] == ["src/other.py"], (
+        "the part the declaration does not reach is still a collision")
+
+
 def test_two_orders_with_the_same_scope_are_refused_and_disjoint_ones_are_not(tmp_path):
     """C-1, both directions in one test -- separately either half passes on a stuck check.
 

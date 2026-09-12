@@ -1,0 +1,17 @@
+id: EVD-0410
+kind: test
+related:
+- BUG-0240
+result: pass
+summary: 'H158 geschlossen: hooks/_routine.delivery_occasions leitet den Anlass aus
+  dem Automaten ab, der Test der die Naht pinnte ist umgedreht, die Ehrlichkeitssaetze
+  in 3 SKILLs und 3 Rollendefinitionen korrigiert. Rot-zuerst im Rig: Anlass-Arm entfernt
+  1 failed/4.90s, since-Vergleich entfernt 1 failed/2.07s.'
+artifact_refs:
+- staging/TSK-0144/protocol.md
+run_command: python -B -m pytest tools/test_review_procedure.py::test_a_delivery_since_the_last_run_makes_the_audit_due_and_names_it
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T19:34:08'

@@ -733,12 +733,20 @@ def filing_rule_subject_manifest(rule_id, path_template, document_types, filenam
             user_text="Es wurde keine Freigabe erteilt: es wurde nicht gesagt, für welche "
                       "Dokumente die neue Regel gilt. " + NEXT_START_OVER)
     naming = _one_line(filename_template, 200)
-    kept = _one_line(retention, 200)
-    if not naming or not kept:
+    # NOT SAID AND SAID-TO-BE-EMPTY ARE TWO ANSWERS (BUG-0213). The refusal below exists so the
+    # kernel never FILLS IN a decision the user owes, and that is a question about whether the
+    # value was given at all -- `None` is the flag nobody typed, `""` is the flag typed empty,
+    # which is the second honest form `filing.retention_refusal` allows for a drawer whose clock
+    # does not start at the end of a year. Read as "falsy", the two were one answer and the empty
+    # form the plan's own header documents could not be asked for through the sanctioned command.
+    # `tools/test_kernel.py::test_a_filing_rule_with_no_countable_retention_can_be_asked_for`
+    kept = None if retention is None else _one_line(retention, 200)
+    if not naming or retention is None:
         raise ApprovalError(
             "a filing rule says how its documents are NAMED and how long they are KEPT; %s is "
             "missing. Both are decisions the user makes -- a rule the kernel filled in for them "
-            "would be signed and not chosen. Remedy: name it on the line."
+            "would be signed and not chosen. Remedy: name it on the line (pass an EMPTY "
+            "`--retention \"\"` for a drawer that really has no span to count)."
             % ("the filename template" if not naming else "the retention"),
             user_text="Es wurde keine Freigabe erteilt: zur neuen Ablage-Regel fehlt noch eine "
                       "Angabe. " + NEXT_START_OVER)
@@ -1347,6 +1355,20 @@ def _listed_entry(record) -> str:
             else str(record.get(GOAL_ITEM_FIELD)))
 
 
+def _numerus(count: int, one: str, many: str) -> str:
+    """The German sentence for this count -- the singular form, or the plural with the number.
+
+    A LIST-BOUND APPROVAL CAN CARRY EXACTLY ONE ENTRY, and German does not let a number stand in
+    front of a plural noun for it: "diese 1 Fehler" and "1 Lücken bleiben offen" are what the
+    surface printed, in the very sentence a non-developer has to judge -- which is the whole of
+    BUG-0271. Both forms are written out by the caller because only the caller knows the nouns;
+    what is shared is the rule that the SINGULAR carries no digit at all, which is what
+    `tools/test_light_kit.py::test_a_list_bound_question_reads_in_the_right_numerus_and_names_the_same_subject_as_its_card`
+    measures.
+    """
+    return one if count == 1 else many % count
+
+
 def _verification_target_form(manifest: dict) -> str:
     """The batch as the SENTENCE names it: how many defects, and where their list stands.
 
@@ -1359,8 +1381,12 @@ def _verification_target_form(manifest: dict) -> str:
     sentence is the thing that mints, and it names every id.
     """
     bugs = manifest.get("bugs") or []
-    return ("diese %d Fehler, jeder mit dem Testlauf, der ihn misst — welche das sind, steht "
-            "Eintrag für Eintrag in der Freigabe-Option darunter" % len(bugs))
+    return _numerus(
+        len(bugs),
+        "diesen einen Fehler mit dem Testlauf, der ihn misst — welcher das ist, steht in der "
+        "Freigabe-Option darunter",
+        "diese %d Fehler, jeder mit dem Testlauf, der ihn misst — welche das sind, steht "
+        "Eintrag für Eintrag in der Freigabe-Option darunter")
 
 
 def _verification_option_form(manifest: dict) -> str:
@@ -1373,8 +1399,9 @@ def _verification_option_form(manifest: dict) -> str:
     which is `tools/test_approvals_dispatch.py::test_the_batch_option_names_every_listed_bug_and_its_evidence`.
     """
     bugs = manifest.get("bugs") or []
-    return "%d gemessen behobene Fehler: %s" % (
-        len(bugs), "; ".join(_listed_entry(record) for record in bugs))
+    listed = "; ".join(_listed_entry(record) for record in bugs)
+    return "%s: %s" % (_numerus(len(bugs), "einen gemessen behobenen Fehler",
+                                "%d gemessen behobene Fehler"), listed)
 
 
 # HOW MUCH OF A GAP'S BOUND RIDES IN THE COMPARED OPTION. The option description is the text
@@ -1518,9 +1545,13 @@ def _hole_exception_target_form(manifest: dict) -> str:
     bound.
     """
     holes = manifest.get("holes") or []
-    return ("diese %d gemessenen Lücken, die damit offen bleiben — je mit dem, was an die Stelle "
-            "des Schutzes tritt; welche das sind, steht Eintrag für Eintrag in der Freigabe-Option "
-            "darunter" % len(holes))
+    return _numerus(
+        len(holes),
+        "diese eine gemessene Lücke, die damit offen bleibt — mit dem, was an die Stelle des "
+        "Schutzes tritt; welche das ist, steht in der Freigabe-Option darunter",
+        "diese %d gemessenen Lücken, die damit offen bleiben — je mit dem, was an die Stelle "
+        "des Schutzes tritt; welche das sind, steht Eintrag für Eintrag in der Freigabe-Option "
+        "darunter")
 
 
 def _hole_exception_option_form(manifest: dict) -> str:
@@ -1532,10 +1563,14 @@ def _hole_exception_option_form(manifest: dict) -> str:
     all: `tools/test_approvals_dispatch.py::test_the_exception_option_names_every_listed_hole_and_its_bound`
     """
     holes = manifest.get("holes") or []
-    return "%d Lücken bleiben offen: %s" % (
-        len(holes),
-        "; ".join("%s (%s)" % (record.get(GOAL_ITEM_FIELD), record.get(LISTED_BOUND_FIELD))
-                  if isinstance(record, dict) else str(record) for record in holes))
+    listed = "; ".join("%s (%s)" % (record.get(GOAL_ITEM_FIELD), record.get(LISTED_BOUND_FIELD))
+                       if isinstance(record, dict) else str(record) for record in holes)
+    # A NOUN PHRASE, like its twin above -- the card reads "Erteilt die Freigabe ... FÜR <this>",
+    # so a main clause lands inside a prepositional phrase: "für 2 Lücken bleiben offen: ..." is
+    # what the surface printed (round 2 of TSK-0141's verification, R4). The numerus is the same
+    # rule as everywhere else here.
+    return "%s: %s" % (_numerus(len(holes), "eine Lücke, die offen bleibt",
+                                "%d Lücken, die offen bleiben"), listed)
 
 
 def routine_subject_manifest(role: str, scope: str, trigger: str, cadence: str) -> dict:
@@ -2090,11 +2125,12 @@ def _unwired_mint_note(state: ProjectState) -> str:
     docstring records that a hand-run hook with a stdin payload does, and the shipped `known_hole`
     tests assert it.
 
-    WHAT THE READER GETS WRONG IS NOT SMOOTHED OVER HERE EITHER: `approval_mint_is_wired` records
-    two measured directions, and one of them prints this sentence at a project that CAN mint -- a
-    registration whose command line it cannot decompose, the reachable shape being a quoted
-    absolute path with a space in it. `H81` carries that; a role reading this sentence in such a
-    project is being over-warned, not lied to about an approval.
+    BOTH DIRECTIONS THE READER USED TO GET WRONG ARE CLOSED (BUG-0173): a quoted absolute path
+    containing a SPACE is one word to it now, so this sentence is no longer printed at a project
+    that mints; and a path that RESOLVES to a file which is not there reads `False`, so the
+    sentence is printed where nothing runs. What stays undecided is stated where it is decided --
+    `report._runs_no_file` leaves a word carrying a variable other than the project directory
+    alone, because the shell state that word belongs to is not this process's.
     """
     from . import report      # deferred: `report` imports this module at its own scope
     if report.approval_mint_is_wired(os.path.dirname(state.root)):
@@ -2412,7 +2448,11 @@ def _filing_rule_target_form(manifest: dict) -> str:
                ", ".join(manifest.get("document_types") or []) or "Dokumente",
                manifest.get("path_template") or "?",
                manifest.get("filename_template") or "?",
-               manifest.get("retention") or "?",
+               # The empty retention is the plan's second honest form and it has to READ like a
+               # decision, not like a missing answer -- the question is what the user signs
+               # (BUG-0213). `?` stays for a manifest that carries no key at all.
+               ("keine zählbare Frist" if "retention" in manifest and not manifest["retention"]
+                else manifest.get("retention") or "?"),
                manifest.get("reason") or "kein Grund angegeben",
                _render_manifest_value(EXPIRY_FIELD, manifest.get(EXPIRY_FIELD))))
 
@@ -2556,7 +2596,14 @@ def build_question(request: dict) -> dict:
     """
     label = kind_label(request["kind"])
     target = _item_target(request) if request["item"] else label
-    form = None if request["item"] else TARGET_FORMS.get(request["kind"])
+    # THE KIND'S OWN FORM WINS OVER AN ITEM STANDING BESIDE IT (BUG-0271, round 1 of TSK-0141's
+    # verification). This asked "is there an item" first, so a request of a LIST-BOUND kind that
+    # carried one described THE ITEM in the sentence while the approving option bound THE LIST --
+    # two different subjects in one question, and the option is the thing that mints. A kind with
+    # an entry in `TARGET_FORMS` has a form because its subject is not an item; asking the table
+    # first is what keeps the two texts about one thing.
+    # `tools/test_light_kit.py::test_a_list_bound_question_reads_in_the_right_numerus_and_names_the_same_subject_as_its_card`
+    form = TARGET_FORMS.get(request["kind"])
     if form is not None:
         target = form(request.get("subject_manifest") or {})
     elif request["kind"] == ROUTINE_KIND or request["item"] is None:
@@ -3575,7 +3622,10 @@ def consumed_request(state: ProjectState, apr: dict) -> dict:
             "approval %s names no request_id -- refusing to treat it as a user "
             "approval (spec II.12: a hand-written APR without a provider-minted "
             "token blocks). Remedy: obtain the approval through the kernel "
-            "approval flow." % apr.get("id")
+            "approval flow." % apr.get("id"),
+            user_text="Es wurde keine Freigabe erteilt: zu dieser Freigabe gehoert kein Antrag, "
+                      "mit dem sie belegt werden koennte. Eine Freigabe-Datei allein ist kein Ja "
+                      "von dir -- sie muss auf eine Frage zurueckgehen, die dir gestellt wurde.",
         )
     try:
         request = state._read_yaml(_request_path(state, request_id, consumed=True))
@@ -3588,17 +3638,27 @@ def consumed_request(state: ProjectState, apr: dict) -> dict:
                "provenance cannot be proven" % request_id,
                "obtain a fresh approval." if revoked else
                "obtain the approval through the kernel approval flow; `python scripts/harness.py "
-               "validate` reports approvals without a request.")
+               "validate` reports approvals without a request."),
+            user_text="Es wurde keine Freigabe erteilt: diese Freigabe wurde %s."
+                      % ("von dir zurueckgezogen, also gilt sie nicht mehr" if revoked else
+                         "nie durch eine Frage an dich belegt, und ohne diesen Nachweis gilt sie "
+                         "nicht"),
         ) from None
     except Exception as exc:
         raise ApprovalError(
             "consumed request %s for approval %s is unreadable (%s) -- "
             "fail-closed. Remedy: `git restore` the approvals directory."
-            % (request_id, apr.get("id"), type(exc).__name__)
+            % (request_id, apr.get("id"), type(exc).__name__),
+            user_text="Es wurde keine Freigabe erteilt: der Nachweis zu dieser Freigabe laesst "
+                      "sich nicht mehr lesen. Solange unklar ist, worauf du Ja gesagt hast, wird "
+                      "nichts gemacht.",
         ) from None
     if not isinstance(request, dict):
         raise ApprovalError(
-            "consumed request %s is not a mapping -- fail-closed." % request_id
+            "consumed request %s is not a mapping -- fail-closed." % request_id,
+            user_text="Es wurde keine Freigabe erteilt: der Nachweis zu dieser Freigabe hat nicht "
+                      "die Form, in der er angelegt wird. Er wird als unbrauchbar behandelt, nicht "
+                      "als Zustimmung.",
         )
     for field in ("mint_code", "subject_manifest_hash", "kind", "item", "revision"):
         if request.get(field) != apr.get(field):
@@ -3606,7 +3666,10 @@ def consumed_request(state: ProjectState, apr: dict) -> dict:
                 "approval %s disagrees with its minted request on %s -- the "
                 "approval was altered after minting, so it grants nothing "
                 "(fail-closed). Remedy: re-run the approval flow."
-                % (apr.get("id"), field)
+                % (apr.get("id"), field),
+                user_text="Es wurde keine Freigabe erteilt: diese Freigabe weicht von der Frage "
+                          "ab, die dir gestellt wurde -- sie wurde nachtraeglich geaendert. Es "
+                          "wird neu gefragt statt eine veraenderte Zustimmung zu verwenden.",
             )
     # the hash is RECOMPUTED from the request's own manifest, not merely compared
     # between two stored copies: both stored hashes survive an edit of the
@@ -3618,7 +3681,10 @@ def consumed_request(state: ProjectState, apr: dict) -> dict:
         raise ApprovalError(
             "consumed request %s does not hash to its own recorded hash -- the "
             "minted record was tampered with, so the approval grants nothing "
-            "(fail-closed). Remedy: re-run the approval flow." % request_id
+            "(fail-closed). Remedy: re-run the approval flow." % request_id,
+            user_text="Es wurde keine Freigabe erteilt: der Nachweis zu dieser Freigabe passt "
+                      "nicht mehr zu seiner eigenen Pruefsumme, wurde also nach deiner Zustimmung "
+                      "veraendert. Es wird neu gefragt.",
         )
     return request
 

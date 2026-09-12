@@ -673,19 +673,37 @@ _ENFORCEMENT_RX = re.compile(
     re.IGNORECASE)
 _STATE_RX = re.compile(r"\bproject_memory\b", re.IGNORECASE)
 
+# THE VERBS THAT MOVE THE SHELL'S BASE, and what each of them does to it. ONE mapping instead of
+# the three enumerations this used to be -- a tuple of spellings in `handle_shell`, a `== "popd"`
+# in `_walk`, and four of the same words inside `_READ_ONLY_VERBS` -- because each of those was a
+# separate place to forget a spelling, and each of them HAD forgotten the same two: PowerShell's
+# written-out `Push-Location` and `Pop-Location` (`BUG-0285`). `cd`'s cmdlet name is
+# `Set-Location`; its aliases are `cd`, `chdir` and `sl`, and `pushd`/`popd` are the aliases of
+# `Push-Location`/`Pop-Location`. The kind is what `_walk` asks about, so no reader has to know
+# which spelling is which alias.
+#
+# AN ENUMERATION IT REMAINS -- nothing in a command line says whether a program changes the
+# directory -- so it carries the tripwire CLAUDE.md asks for, measuring BOTH ends: every spelling
+# here really moves this gate's base, and a word that is not here does not
+# (`tools/test_hooks.py::test_every_directory_verb_moves_this_gates_base_and_no_other_word_does`).
+_DIRECTORY_VERBS = {
+    "cd": "set", "chdir": "set", "sl": "set", "set-location": "set",
+    "pushd": "push", "push-location": "push",
+    "popd": "pop", "pop-location": "pop",
+}
 # Verbs that cannot modify anything. Everything NOT here counts as write-capable — the fail-closed
 # direction: a tool nobody has classified is refused until someone decides it is safe.
-_READ_ONLY_VERBS = frozenset((
+_READ_ONLY_VERBS = frozenset(tuple(_DIRECTORY_VERBS) + (
     "cat", "type", "bat", "head", "tail", "less", "more", "wc", "nl", "od", "xxd", "strings",
     "grep", "egrep", "fgrep", "rg", "ag", "ack", "diff", "cmp", "comm", "file", "stat",
     "ls", "dir", "tree", "basename", "dirname", "realpath", "readlink", "pwd", "du", "df",
     "sort", "uniq", "cut", "tr", "jq", "yq", "test", "echo", "printf", "base64", "awk",
     # conditionally read-only -- see _WRITE_FLAGS, which is what actually decides for these
     "sed", "find",
-    "md5sum", "sha1sum", "sha256sum", "cd", "pushd", "popd",
+    "md5sum", "sha1sum", "sha256sum",
     # PowerShell
     "get-content", "get-childitem", "select-string", "test-path", "get-item", "resolve-path",
-    "get-filehash", "compare-object", "measure-object", "select-object", "set-location",
+    "get-filehash", "compare-object", "measure-object", "select-object",
     # `Out-Null` is the null device in cmdlet form — the same definition `_null_sinks` states for
     # the redirect form, reached through a pipe instead of a `>`, and retaining just as little.
     "out-null",
@@ -804,6 +822,129 @@ _PIPELINE_SEPARATORS = ("&&", "||", ";")
 # one place, and it covers the PowerShell backtick this hook's own copy never did.
 _HEREDOC_RX = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n.*?^\2\s*$",
                          re.MULTILINE | re.DOTALL)
+# A COMMAND SUBSTITUTION OPENS A COMMAND, and WHICH SPELLINGS open one is a property of the SHELL
+# and not of the text. `$(` is both shells'; the BACKTICK is POSIX's older spelling and PowerShell's
+# ESCAPE character; `@(` is PowerShell's array subexpression, which runs its content exactly as
+# `$(` does. One set per shell, because the union is not the safe direction here: with the backtick
+# in the PowerShell set, that shell's own LINE CONTINUATION (a backtick before the break) opened a
+# substitution that never closed, and the rest of the line became its own pipeline -- measured, and
+# it turned `test_a_continuation_the_named_shell_does_not_honour_is_not_joined[PowerShell-backtick
+# + LF]` red while the repair for `BUG-0288` was being made.
+_SUBSTITUTIONS_BY_SHELL = {
+    "PowerShell": {"$(": ")", "@(": ")"},
+    # ...and POSIX for everything else, including a payload whose tool this gate cannot name: this
+    # project spells its commands for a POSIX shell, and the backtick there is a substitution.
+    # PROCESS SUBSTITUTION (`<(`, `>(`) belongs here for the same
+    # reason `$(` does and for no weaker one: the shell runs its content as a command and hands the
+    # word a file name. Measured by the verifier of this round: `cat <(cp evil.py
+    # .claude/hooks/g.py)` was rc 0 at every registered hook of a scaffolded pilot while
+    # `echo $(cp …)` was rc 2 -- and the office ledger gate one file away already carried the whole
+    # class (`gate_ledger_valid._SUBSTITUTION_OPEN_RX`), which is what made this an omission rather
+    # than a boundary.
+    "Bash": {"$(": ")", "<(": ")", ">(": ")", "`": "`"},
+}
+_SUBSTITUTION_OPEN_RX_BY_SHELL = {
+    shell: re.compile("|".join(re.escape(opening) for opening in sorted(closers)))
+    for shell, closers in _SUBSTITUTIONS_BY_SHELL.items()
+}
+
+
+def substitution_bodies(text, tool=None):
+    """Every command a substitution introduces in `text`, outermost first.
+
+    A SUBSTITUTION IS A COMMAND IN A WORD, and the shell runs it BEFORE the word reaches the
+    command it stands in. The decomposition this gate works on knows list separators, stage cuts
+    and parentheses; a command inside a word appeared in none of them, so `echo $(cp evil.py
+    .claude/hooks/g.py)` was a reading stage (`echo`) with an argument, rc 0 -- and inside a `-m`
+    payload the prose removal deleted the whole span before any reader saw it, which is the half
+    `BUG-0288` was left with.
+
+    JUDGED AS ITS OWN LINE rather than spliced into this one, which is why this returns the bodies
+    instead of rewriting the text: a separator written INTO the text lands inside the quoted span
+    the substitution usually stands in, where the tokeniser masks it and the cut never happens --
+    measured on the office ledger gate in this same round. Appended as extra pipelines the bodies
+    are outside every quote, and every rule of this gate then reads them
+    (`tools/test_hooks.py::test_a_command_a_substitution_introduces_is_judged_as_a_command`).
+
+    Nesting is followed, so the body of a substitution inside a substitution is returned too.
+    """
+    shell = "PowerShell" if _compat.gated_shell(tool) == "PowerShell" else "Bash"
+    closers = _SUBSTITUTIONS_BY_SHELL[shell]
+    opener_rx = _SUBSTITUTION_OPEN_RX_BY_SHELL[shell]
+    bodies, index = [], 0
+    while True:
+        opening = opener_rx.search(text, index)
+        if opening is None:
+            return bodies
+        closer = closers[opening.group(0)]
+        start, depth, position = opening.end(), 1, opening.end()
+        while position < len(text):
+            if closer == ")" and text.startswith("(", position):
+                depth += 1
+            elif text.startswith(closer, position):
+                depth -= 1
+                if depth == 0:
+                    break
+            position += 1
+        body = text[start:position]
+        bodies.append(body)
+        bodies.extend(substitution_bodies(body, tool))
+        index = position + 1
+
+
+# WHAT THE KIT WORKSHOP'S OWN GATES BORROW FROM THIS MODULE, declared here rather than discovered
+# at a session start. Those gates do not answer "does this stage write" a second time -- a second
+# answer to that question is the drift this apparatus has paid for repeatedly -- so they import
+# this module and use its reader. The price was a dependency on UNDERSCORED names that nothing on
+# this side knew about: a rename here made the borrow raise, and a gate that cannot execute refuses
+# every call of the session. That direction is loud and closed, but it arrives at a session start
+# rather than in a test, and it arrived exactly that way once while this line was being written.
+#
+# So the surface is NAMED, and both ends are measured
+# (`tools/test_hooks.py::test_the_harness_borrows_only_what_this_kit_declares`): every name here
+# has to exist in all three kits, and every private name the workshop reaches on this module has to
+# be here. Adding a name is a decision with a reason; removing one is a rename that now goes red in
+# a test instead of in a session (`BUG-0107`).
+HARNESS_BORROWS = (
+    "_HEREDOC_RX", "_INPUT_REDIRECT_RX", "_MESSAGE_ARG_RX", "_PIPELINE_SEPARATORS",
+    "_REDIRECT_RX", "_has_write_flag", "_lex", "_null_sinks", "_operator", "_redirect_targets",
+    "_stage_is_read_only", "_stage_verb", "_walk",
+)
+
+
+def prose_removed_view(command, tool=None):
+    """`command` with its PROSE gone and every command it really runs still in it.
+
+    THE PUBLIC NAME OF THIS KIT'S READING, and it is public because a second reader exists: the
+    harness gates of the kit's own workshop borrow this module rather than answering "does this
+    line write" a second time (`BUG-0107`). What they borrowed were UNDERSCORED names, so the two
+    prose removals had to be re-assembled on the other side -- and every correction here then had
+    to be made there again. This is the assembly, once.
+
+    THREE RULES, and the order between them is the fix of two defects:
+
+      * a HERE-DOCUMENT body is prose unless a command PARSER is fed it. That is
+        `_compat.prose_heredoc_free`'s question and not a second one: a body handed to `sh`,
+        `bash` or `eval` IS the command, and every other body is data the program on the left
+        receives. Removing every body unconditionally made `bash <<'EOF'` with a write to
+        canonical state inside it rc 0 (`BUG-0289`); removing only the INERT ones -- the
+        neighbouring question, about what the shell expands -- broke the prose end instead, and
+        both halves are measured beside that reader.
+      * a SUBSTITUTION body is a command and is appended as its own pipeline, so the removal of
+        the prose around it cannot take it with it (`BUG-0288`, `substitution_bodies`).
+      * the MESSAGE payload of a prose-taking flag is removed last, and only then, because by then
+        whatever it carried that the shell executes has already been lifted out of it.
+
+    `tool` says which shell will run the line, and BOTH the substitution spellings and the
+    line-continuation character depend on it -- a union over the two shells is not the safe
+    direction, because PowerShell's continuation IS the POSIX substitution opening.
+    """
+    heredoc_free = _compat.prose_heredoc_free(command or "")
+    bodies = [body for body in substitution_bodies(heredoc_free, tool) if body.strip()]
+    view = _MESSAGE_ARG_RX.sub(" ", heredoc_free)
+    if bodies:
+        view = view + " ; " + " ; ".join(bodies)
+    return view
 
 
 # Every value an ordinary shell could hand the program for a word — `_compat.shell_readings`, which
@@ -1337,7 +1478,7 @@ def _walk(pipeline, cwd):
     ordinary work, and the direct-naming check still covers anything that spells the path out.
     """
     verb = _stage_verb(pipeline)
-    if verb == "popd":
+    if _DIRECTORY_VERBS.get(verb) == "pop":
         return None
     args = [t for t in pipeline[1:] if not t.startswith("-")]
     if not args or args[0] == "-":
@@ -1377,7 +1518,7 @@ def handle_shell(data):
     # leaving heredoc bodies in made each of their LINES look like a command. The message removal is
     # bound to the VERB (`_MESSAGE_ARG_RX` is `_VerbBoundMessageRemoval`): a quoted span behind a
     # `-f`/`-b`/`-F` is prose after `git commit`/`gh`, but the FILE after `rm`/`cp`/`mv` (BUG-0020).
-    code_view = _HEREDOC_RX.sub(" ", _MESSAGE_ARG_RX.sub(" ", command))
+    code_view = prose_removed_view(command, data.get("tool_name"))
     # a continued line is ONE command; every break the shell honours is a command separator that
     # shlex would otherwise swallow as whitespace. WHICH characters those are, and that the
     # continuation is removed rather than spaced, both come from the shared preparation — this hook
@@ -1514,7 +1655,7 @@ def handle_shell(data):
                         "non-canonical proposal goes into the task's own proposal area (spec "
                         "II.4), which is the one place under the state directory a tool write "
                         "reaches.")
-        if _stage_verb(pipeline) in ("cd", "pushd", "popd", "set-location"):
+        if _stage_verb(pipeline) in _DIRECTORY_VERBS:
             # everything after `cd project_memory` is inside it, and the later pipelines no longer
             # NAME it -- that shape walked straight past a path-only check. Mirrored for the
             # enforcement layer, whose `cd .claude && cp -r hooks /tmp` had no carry-over at all.

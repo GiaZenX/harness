@@ -1,0 +1,19 @@
+id: EVD-0413
+kind: test
+related:
+- PR-0012
+result: pass
+summary: 'Liefer-Volllauf der Merge-Runde TSK-0144 nach dem letzten Kit-Wechsel und
+  dem Stempel 2026.09.12-5: 1 failed, 5077 passed, 14 skipped in 4116.31s (18:22:09-19:30:45).
+  Der eine Rote ist der S4-Schiedsrichter tools/test_hooks.py::test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requires
+  -- .claude/hooks/gate_commit_evidence.py druckt eine evidence-Zeile ohne --run-command/--run-scope
+  und ist jeder Rolle hier verweigert; der Patch liegt in staging/TSK-0141/s4-gate-commit-evidence-patch.md
+  und gehoert einer Shell ausserhalb von Claude Code. Acht weitere Rote des ersten
+  Volllaufs sind an ihrem Mechanismus geschlossen.'
+artifact_refs:
+- staging/TSK-0144/protocol.md
+run_command: DELIVERY_RUN=TSK-0144 python -B -m pytest tools/ -q
+run_scope: full
+revision: 1
+approval_ref: null
+created: '2026-09-12T19:34:33'

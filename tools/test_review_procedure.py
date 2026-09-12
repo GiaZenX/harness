@@ -46,6 +46,7 @@ import json
 import os
 import re
 import sys
+import time
 
 import pytest
 
@@ -262,6 +263,86 @@ def test_every_test_pointer_the_harness_role_texts_write_resolves():
         + "\n  ".join(offenders))
 
 
+_BRACE_RX = re.compile(r"[{]([^{}]*)[}]")
+
+
+def _path_pointers(text):
+    """Every repo-relative PATH a text points at in a backtick span, with its offset.
+
+    THE THIRD CURRENCY of these role texts, and the one BUG-0241 / H159 measured as unread: an item
+    id resolves against the store, a node id against the suite, and a PATH against nothing at all.
+    Four mutations of the three files came back rc 0 for that reason.
+
+    WHAT COUNTS AS A PATH, as a property and not a list of directories: a span with no whitespace
+    that carries a separator, is not a pytest node id, does not open with a redirection or with the
+    separator itself (`>/dev/null` is a redirect, `/model` is a command of the client), and names
+    MORE THAN ONE segment. The last clause is what keeps `staging/` out: a single top-level word is
+    one whose parent the sentence supplies, and this reader has no sentence -- judging it would
+    report an honest phrase as a dead pointer.
+
+    A BRACE SPAN IS EXPANDED, because that is what it means: `team-kits/{dev,office}-team/` is two
+    paths and both have to be there.
+    """
+    for hit in re.finditer(r"`([^`" + chr(92) + "s]+)`", text):
+        span = hit.group(1).rstrip(".,;:)")
+        if "/" not in span or "::" in span or span[0] in ">< /":
+            continue
+        if span.rstrip("/").count("/") < 1 or len(span.rstrip("/").split("/")) < 2:
+            continue
+        yield hit.start(), span
+
+
+def _expanded(span):
+    """The words a brace span stands for -- one pass, which is what these texts write."""
+    found = _BRACE_RX.search(span)
+    if not found:
+        return [span]
+    return [span[:found.start()] + one + span[found.end():] for one in found.group(1).split(",")]
+
+
+def test_every_path_pointer_the_harness_role_texts_write_resolves():
+    """BUG-0241 / H159: the third kind of pointer these role texts write -- a PATH -- was resolved
+    against nothing, so a file that moved left the sentence reading as if it still stood there.
+
+    THE READER IS DRIVEN AT BOTH ENDS on paths built here, because a sweep whose only subject is a
+    tree that happens to be tidy cannot tell "nothing is wrong" from "nothing was looked at": a
+    path this repo really carries has to be found, an invented one has to be reported, and the four
+    shapes that are NOT paths (a node id, a redirect, a command of the client, a single top-level
+    word) have to stay unread.
+
+    WHAT STAYS OPEN, and it is the rest of BUG-0241 rather than an omission: a test name written
+    WITHOUT backticks, and a property claim that names no test at all. Both are deliberate -- a
+    reader without the decoration goes red at prose -- and CLAUDE.md says so for the whole repo.
+    """
+    def read(text):
+        return [span for _offset, span in _path_pointers(text)]
+
+    assert read("see `tools/validate.py` for it") == ["tools/validate.py"]
+    assert read("the hooks in `.claude/hooks/` decide") == [".claude/hooks/"]
+    assert read("`team-kits/{dev,office}-team/`") == ["team-kits/{dev,office}-team/"]
+    assert read("held by `tools/test_review_procedure.py::test_a_name`") == [], "a node id"
+    assert read("stdout goes to `>/dev/null`") == [], "a redirection is not a path"
+    assert read("type `/model` to switch") == [], "a command of the client is not a path"
+    assert read("proposals live in `staging/`") == [], (
+        "a single top-level word is one whose parent the sentence supplies, and this reader has "
+        "no sentence")
+    assert _expanded("a/{b,c}/d") == ["a/b/d", "a/c/d"]
+    judged, offenders = 0, []
+    for rel, text in _harness_role_texts():
+        for offset, span in _path_pointers(text):
+            for word in _expanded(span):
+                judged += 1
+                if not glob.glob(os.path.join(ROOT, *word.split("/"))):
+                    offenders.append("%s:%d points at %s, and nothing of that name is here"
+                                     % (rel, text[:offset].count(chr(10)) + 1, word))
+    assert not offenders, (
+        "these role texts send a reader to a path this repo does not carry:" + chr(10) + "  "
+        + (chr(10) + "  ").join(offenders))
+    assert judged >= 10, (
+        "only %d path pointers judged across .claude/agents/ -- the reader stopped matching, and "
+        "then the assertion above is vacuously true" % judged)
+
+
 def test_the_item_pointer_reader_can_tell_an_id_from_the_prose_around_it():
     """The floor under the sweep, so "match everything" and "match nothing" both fail here.
 
@@ -369,12 +450,20 @@ def test_the_auditing_role_of_every_kit_runs_a_retrospective_and_it_is_one_text(
 
 
 def test_the_retrospective_step_states_the_limit_it_runs_under():
-    """The step describes a trigger nothing fires, so the step has to say so (SR-0008).
+    """The step names four occasions and THREE of them nothing fires, so the step has to say so
+    (SR-0008).
 
-    A reader who finds four occasions and no limit assumes something watches for them. Nothing
-    does: the duty register reports the run due once per period and no hook and no gate detects an
-    occasion. Both directions are asked — every mention of the enforcement layer stands in a clause
-    that negates it, and at least one such mention is there — with the same reader
+    A reader who finds four occasions and no limit assumes something watches for all of them. Since
+    `BUG-0240`/`H158` (TSK-0144) exactly ONE is watched — a record that reached the end of its own
+    chain since the last run makes the run due and the duty names it, which
+    `tools/test_review_procedure.py::test_a_delivery_since_the_last_run_makes_the_audit_due_and_names_it`
+    measures in three states per kit. The other three are not facts a file carries. So the limit
+    this node reads is the one that is still true, and it is read in both directions — every mention
+    of the enforcement layer stands in a clause that negates it, and at least one such mention is
+    there. The watched occasion names its reader as a module path
+    (`hooks/_routine.delivery_occasions`) and therefore carries no bare enforcement word at all,
+    which is why an affirmative sentence about it is not an overclaim here; the reader below is
+    what decides that, not this paragraph. Same reader as
     `test_role_contracts.test_the_answering_rule_claims_no_enforcement_it_does_not_have` uses, and
     the same finite vocabulary it names as its own limit.
 
@@ -914,20 +1003,33 @@ def test_the_statement_reader_splits_a_role_text_where_its_statements_begin():
 
 
 # ==================================== 4. the two limits, measured on a project outside this repo
-def test_no_occasion_makes_the_audit_run_due_and_that_is_the_seam(tmp_path):
-    """The retrospective's trigger, measured: the duty register knows PERIODS and no occasions.
+def test_a_delivery_since_the_last_run_makes_the_audit_due_and_names_it(tmp_path, monkeypatch):
+    """`BUG-0240` / `H158`: the retrospective's trigger, measured — a DELIVERY since the last run
+    makes the run due, and the duty names it.
 
-    `test_routine_feed` already measures that a run in the period clears the duty and that the
-    period boundary is the ISO week; what is measured HERE is the other half, which the
-    retrospective step claims about itself: an OCCASION changes nothing. Two projects on the same
-    day, one of them having just delivered a goal and recorded evidence for it — the occasion the
-    step's second trigger names — give the identical duty in both directions: due while no run is
-    recorded, clear while one is.
+    THIS TEST USED TO PIN THE SEAM and said so in its own docstring — the duty register knew
+    PERIODS and no occasions, so two projects on the same day, one of them having just delivered a
+    goal, gave the identical duty. That was closed across two owners in one change
+    (TSK-0144): `hooks/_routine.delivery_occasions` derives the occasion, this node turned around,
+    and the honest-limit sentence in every kit's auditing SKILL and `project-auditor` definition was
+    corrected in the same change. What is measured here is therefore the transition the old
+    docstring announced.
 
-    THIS TEST IS WRITTEN TO GO RED. The wiring belongs to `hooks/_routine.py` and
-    `session_status.py`, which this stream may not write, so it is a SEAM: the day an occasion
-    makes the run due, the two projects part company here, and the honest-limit sentence in every
-    kit's auditing skill and role definition is what has to be corrected.
+    FOUR STATES PER KIT, and the middle ones are the whole point:
+      * no run recorded — both projects are due, on the PERIOD, and nothing about a delivery yet;
+      * a run recorded AFTER the delivery — the plain project clears, and so does the delivered
+        one, because the occasion is older than the run;
+      * a delivery recorded AFTER that run — the delivered project is due AGAIN and the duty NAMES
+        the record, while the plain project stays clear. Without the third state a register that
+        never clears would pass the first two;
+      * the same record ARCHIVED — it is out of `active/` now, and the duty must still name it.
+        That arm is `read_anywhere`, and without this state it was load-bearing and uncovered: the
+        verifier cut it out in all three kits and the node stayed green (round 1, B3), because a
+        `PR` at `DELIVERED` is not terminal and never leaves the active tree.
+
+    `test_routine_feed` keeps the period half (a run in the period clears, the boundary is the ISO
+    week); this file holds the occasion half, because the occasion is what the retrospective step
+    of the auditing skill claims about itself.
     """
     import datetime
     from kernel.state import ProjectState
@@ -935,32 +1037,79 @@ def test_no_occasion_makes_the_audit_run_due_and_that_is_the_seam(tmp_path):
     from test_parallel_streams import PR_FIELDS
     from test_routine_feed import event, routine_module
 
+    # the hook helper resolves the kernel the way a hook does; in a tmp project there is none to
+    # find, and this is the same variable `run_hook_process` sets for the same reason
+    monkeypatch.setenv("HARNESS_KERNEL_PATH", os.path.join(ROOT, "team-kits"))
     today = datetime.date.today()
     judged = 0
     for kit in ("dev-team", "office-team", "research-team"):
         routine = routine_module(kit)
-        roots = {}
+        roots, states = {}, {}
         for name in ("plain", "delivered"):
             root = tmp_path / kit / name / "project_memory"
             os.makedirs(str(root), exist_ok=True)
             roots[name] = os.path.dirname(str(root))
-        state = ProjectState(os.path.join(roots["delivered"], "project_memory"))
-        walk_to_status(state, state.capture("PR", dict(PR_FIELDS)), "DELIVERED")
+            states[name] = ProjectState(str(root))
+        walk_to_status(states["delivered"], states["delivered"].capture("PR", dict(PR_FIELDS)),
+                       "DELIVERED")
 
         due = {name: routine.routine_duties(root, today)[0] for name, root in roots.items()}
         assert all(one and routine.AUDIT_ROLE in one[0]["what"] for one in due.values()), due
-        assert due["plain"][0]["what"] == due["delivered"][0]["what"], (
-            "%s: a delivered goal changed what the duty register says, so this seam has moved: %s"
-            % (kit, due))
 
-        for name, root in roots.items():
-            path = os.path.join(root, "project_memory", ".audit", "hook_events.jsonl")
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            with io.open(path, "w", encoding="utf-8") as handle:
-                handle.write(json.dumps(event(routine.AUDIT_ROLE, datetime.datetime.now())) + "\n")
+        def record_run(at):
+            for root in roots.values():
+                path = os.path.join(root, "project_memory", ".audit", "hook_events.jsonl")
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with io.open(path, "w", encoding="utf-8") as handle:
+                    handle.write(json.dumps(event(routine.AUDIT_ROLE, at)) + "\n")
+
+        # a run AFTER the delivery clears both: an occasion older than the run is not an occasion
+        recorded = datetime.datetime.now() + datetime.timedelta(seconds=1)
+        record_run(recorded)
         cleared = {name: routine.routine_duties(root, today)[0] for name, root in roots.items()}
         assert not any(cleared.values()), (
-            "%s: a run in this period must clear the duty in both projects: %s" % (kit, cleared))
+            "%s: a run after the delivery must clear the duty in both projects: %s" % (kit, cleared))
+
+        # ...and a delivery AFTER that run makes exactly the delivered project due again, by name.
+        # WAITED OUT rather than stamped by hand: the run record carries SECONDS (that is the
+        # event log's format), so "after the run" is only a fact once the wall clock has passed
+        # that second — and a test that set the file's time itself would measure its own os.utime
+        # instead of what a capture really leaves behind.
+        while datetime.datetime.now() <= recorded:
+            time.sleep(0.05)
+        walk_to_status(states["delivered"], states["delivered"].capture("PR", dict(PR_FIELDS)),
+                       "DELIVERED")
+        again = {name: routine.routine_duties(root, today)[0] for name, root in roots.items()}
+        assert not again["plain"], (
+            "%s: nothing happened in the plain project, so nothing may be due there: %s"
+            % (kit, again))
+        assert again["delivered"], (
+            "%s: a goal delivered since the last run left the register silent -- the seam H158 "
+            "closed has come back" % kit)
+        what = again["delivered"][0]["what"]
+        assert "PR-0002" in what and "DELIVERED" in what, (
+            "%s: the duty must NAME the occasion, not just fire on it: %s" % (kit, what))
+
+        # ...and the SAME record once it has been ARCHIVED. The terminal taken here is `SUPERSEDED`
+        # and not `ACCEPTED`, for a measured reason rather than a taste: `DELIVERED -> ACCEPTED` is
+        # the confirming edge and the kernel refuses it without an acceptance approval ("a status the
+        # supervised party can set itself is a status no gate may read as approval"), while an
+        # abandonment terminal needs none. What is under test here is the ARCHIVE arm of the
+        # occasion reader -- which terminal took the record out of `active/` is not part of it, and
+        # `delivery_occasions` reads the end of the automaton rather than a chosen status.
+        states["delivered"].transition("PR-0002", "SUPERSEDED")
+        states["delivered"].archive("PR-0002")
+        assert not os.path.isfile(os.path.join(roots["delivered"], "project_memory", "product",
+                                               "active", "PR-0002.yaml")), "still in active/"
+        archived = {name: routine.routine_duties(root, today)[0] for name, root in roots.items()}
+        assert not archived["plain"], archived
+        assert archived["delivered"], (
+            "%s: an archived record is out of `active/`, and an occasion reader that only knows "
+            "the active tree goes silent on exactly the records it exists for" % kit)
+        moved = archived["delivered"][0]["what"]
+        assert "PR-0002" in moved and "SUPERSEDED" in moved, (
+            "%s: the archived record must still be NAMED, with the status it reached: %s"
+            % (kit, moved))
         judged += 1
     assert judged >= 3, judged
 
@@ -1315,23 +1464,29 @@ _BOLD_LEAD_IN_RX = re.compile(r"^\s*(?:[-*+]\s+)?\*\*(.+?)\*\*", re.DOTALL)
 
 
 def _states_the_scaling_rule(unit, rungs, effort_field):
-    """True where this bold statement carries the rung/effort RULE itself -- the effort axis in its
-    bold lead-in, or in ONE sentence together with a rung named as a value.
+    """True where this bold statement carries the rung/effort RULE itself -- BOTH axes in one
+    breath: together in the bold lead-in, or together in ONE sentence of the block.
 
     THE OCCASION (TSK-0133 verify round 1, B4): read over the whole block, the dev ladder statement
     kept qualifying after its effort RULE ("effort high by default and xhigh when the goal's class
     is large") was gone, because three incidental mentions of the word stood elsewhere in the same
     1424-character bullet -- a mention is not a rule. A rule states both axes in one breath; that
     is what a lead following the pointer is sent to read, and it is the unit asked here.
+
+    ONE BREATH MEANS ONE SPAN, and the lead-in branch used to be wider than that sentence said: it
+    wanted the effort axis in the lead-in and the rung anywhere in the block, so moving the bare
+    word into the lead-in and deleting the effort RULE kept a constitution qualifying (BUG-0275,
+    measured by the merge verifier of TSK-0133, round 2 N2). Both axes now stand in whichever span
+    is read -- the lead-in or the sentence. Driven by
+    `test_the_ladder_reader_wants_both_axes_in_the_same_breath`.
     """
     block = " ".join(line.strip() for line in _own_block(unit).split("\n"))
     rung_rx = re.compile(r"`(?:%s)\b" % "|".join(re.escape(one) for one in rungs))
     effort_rx = re.compile(r"\b%s\b" % re.escape(effort_field), re.IGNORECASE)
     lead_in = _BOLD_LEAD_IN_RX.match(block)
-    if lead_in and effort_rx.search(lead_in.group(1)) and rung_rx.search(block):
-        return True
-    return any(rung_rx.search(sentence) and effort_rx.search(sentence)
-               for sentence in _SENTENCE_END_RX.split(block))
+    spans = [lead_in.group(1)] if lead_in else []
+    spans += _SENTENCE_END_RX.split(block)
+    return any(rung_rx.search(span) and effort_rx.search(span) for span in spans)
 
 
 def _effort_vocabulary(text):
@@ -1492,6 +1647,41 @@ def test_no_lead_skill_keeps_its_own_copy_of_the_scaling_rule():
         "only %d lead skill(s) instruct their lead about scaling at all -- the positive half of "
         "this check then measures almost nothing" % spoke)
 
+
+
+def test_the_ladder_reader_wants_both_axes_in_the_same_breath():
+    """BUG-0275 / H191: a statement counts as the scaling RULE only when it names a rung AND the
+    effort axis in ONE span -- the bold lead-in, or one sentence of the block.
+
+    THE OCCASION IS THE MERGE VERIFIER'S PROBE (TSK-0133, round 2 N2): the lead-in branch wanted the
+    effort word in the lead-in and the rung anywhere in the same 1424-character bullet, so deleting
+    the effort RULE and moving the bare word into the lead-in left a constitution qualifying while
+    it no longer stated an effort rule at all. The docstring beside the branch said "in one breath"
+    and the branch did not build it -- which is a claim of strictness that has to become a test.
+
+    THE VOCABULARY IS THE SHIPPED ONE, so this drives the reader a kit is really read with; the
+    units are built here, because a reader whose only subject is the tree it runs over cannot tell
+    "nothing is wrong" from "nothing was looked at".
+    """
+    rungs, effort_field = _rung_vocabulary()
+    assert rungs and effort_field, (
+        "team-kits/model_tiers.yaml yields no rung vocabulary or no effort field, so this drives "
+        "a reader that recognises nothing")
+    rung = sorted(rungs)[0]
+    lead_in = ("- **Die Leiter: `%s` und %s** -- der Rest des Absatzes sagt nichts weiter."
+               % (rung, effort_field))
+    sentence = "- **Die Leiter** -- ein Satz nennt `%s` mit %s zusammen." % (rung, effort_field)
+    apart = ("- **Die Leiter und %s** -- ein Satz ohne Achse. Ein zweiter nennt `%s` als Wert."
+             % (effort_field, rung))
+    assert _states_the_scaling_rule(lead_in, rungs, effort_field), (
+        "both axes in the bold lead-in is not read as the rule, so a paragraph that states it that "
+        "way would have to write it twice")
+    assert _states_the_scaling_rule(sentence, rungs, effort_field), (
+        "both axes in one sentence is not read as the rule, which is the strict branch the shipped "
+        "constitutions satisfy")
+    assert not _states_the_scaling_rule(apart, rungs, effort_field), (
+        "the axes a whole sentence apart are read as a rule stated in one breath -- which is the "
+        "shape that let an effort rule be deleted unnoticed")
 
 
 def test_the_effort_vocabulary_the_kits_write_is_the_one_the_tier_table_states():

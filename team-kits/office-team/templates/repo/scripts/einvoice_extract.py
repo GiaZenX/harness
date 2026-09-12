@@ -193,6 +193,42 @@ def reconciliation_failure(out):
     return None
 
 
+BREAKDOWN_RULE = ("BR-CO-14", "BT-110 = the sum of BT-117 over the VAT breakdown")
+
+
+def breakdown_failure(out):
+    """The refusal a tax total its own VAT breakdown contradicts earns, or None.
+
+    EN 16931 BR-CO-14. The document states the tax total TWICE -- once as BT-110 in the header
+    summation, once as the sum of BT-117 over the breakdown (BG-23) -- and until 2026-09-12 only
+    the first one was ever read. A head that is internally consistent (BR-CO-15 holds) while its
+    own breakdown says another number went through at rc 0, so the ledger would have carried a tax
+    amount the document itself denies (`H75`, BUG-0167).
+
+    WHAT MAKES IT SILENT is stated as a property, not as an exception list: this reader judges what
+    the document STATES. No breakdown at all, or one whose amounts it cannot read as figures, is
+    not a contradiction -- it is an absent second statement, and inventing one is the failure mode
+    this module exists to avoid. The three directions are measured in
+    `tools/test_hooks.py::test_einvoice_a_tax_total_its_own_breakdown_contradicts_is_refused`.
+
+    THE TOLERANCE IS ONE CENT PER STATED CATEGORY and not one cent overall: every BT-117 is itself
+    a rounded figure, so a document with several categories may legitimately be a cent per category
+    away from its own total. A tighter bound would refuse norm-valid invoices, which is the
+    direction that costs a bookkeeper an evening.
+    """
+    stated = _amount(out.get("tax"))
+    amounts = [_amount(one) for one in (out.get("tax_breakdown") or [])]
+    if stated is None or not amounts or any(one is None for one in amounts):
+        return None
+    total = sum(amounts, Decimal("0"))
+    if abs(total - stated) <= CENT * len(amounts):
+        return None
+    return ("%s (%s): the tax total and its own VAT breakdown state different numbers — the "
+            "header says %s and the %d breakdown entries add up to %s. One of the two is not this "
+            "document's tax: read it and book by hand."
+            % (BREAKDOWN_RULE[0], BREAKDOWN_RULE[1], out.get("tax"), len(amounts), total))
+
+
 def parse_xml(data):
     if ET is None:
         sys.stderr.write("[einvoice] defusedxml not installed (pip install -r "
@@ -245,6 +281,12 @@ def parse_xml(data):
             (_pick(tax, "CategoryCode"), _pick(tax, "RateApplicablePercent"))
             for tax in (settlement if settlement is not None else ())
             if _local(tax) == "ApplicableTradeTax"]
+        # BT-117 per category, for BR-CO-14. Read with the same currency filter as every other
+        # amount: a breakdown restated in the accounting currency is a different number.
+        out["tax_breakdown"] = [
+            _pick(tax, "CalculatedAmount", currency=out["currency"])
+            for tax in (settlement if settlement is not None else ())
+            if _local(tax) == "ApplicableTradeTax"]
     elif tag in UBL_ROOTS:                        # UBL (XRechnung-UBL)
         out["invoice_no"] = _pick(root, "ID")     # the invoice's own ID, not a party's
         out["issue_date"] = _pick(root, "IssueDate")
@@ -279,6 +321,11 @@ def parse_xml(data):
         out["tax_categories"] = [
             (_pick(_child(subtotal, "TaxCategory"), "ID"),
              _pick(_child(subtotal, "TaxCategory"), "Percent"))
+            for total in root if _local(total) == "TaxTotal"
+            for subtotal in total if _local(subtotal) == "TaxSubtotal"]
+        # BT-117 per category, UBL spelling -- see the CII branch.
+        out["tax_breakdown"] = [
+            _pick(subtotal, "TaxAmount", currency=out["currency"])
             for total in root if _local(total) == "TaxTotal"
             for subtotal in total if _local(subtotal) == "TaxSubtotal"]
     else:
@@ -380,7 +427,7 @@ def main():
     out = parse_xml(data)
     if not out:
         sys.exit(1)
-    failure = reconciliation_failure(out)
+    failure = reconciliation_failure(out) or breakdown_failure(out)
     for key in ("syntax", "seller", "invoice_no", "issue_date", "currency", "net", "tax", "gross"):
         value = out.get(key) or "MISSING"
         if failure and key in ("net", "tax", "gross"):

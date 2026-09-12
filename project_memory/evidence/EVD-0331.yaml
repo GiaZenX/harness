@@ -1,0 +1,18 @@
+id: EVD-0331
+kind: test
+related:
+- BUG-0266
+- BUG-0195
+result: pass
+summary: 'H184/H111 closed: the routine kind is walkable on the shipped request-approval
+  parser and the shipped entry point; the naming test drives cli.main end to end to
+  a lease for a task with an empty allowed_scope, with analysis as the counterweight.
+  Red-first: routine removed from the parser choices in the rig'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_approvals_dispatch.py::test_the_routine_kind_is_walkable_on_the_command_surface_a_role_actually_types
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:14:52'

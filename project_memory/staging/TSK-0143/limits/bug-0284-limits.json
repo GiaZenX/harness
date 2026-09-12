@@ -1,0 +1,3 @@
+{
+  "limits": "Steht der Dateipfad in einer Variablen, sieht die Prüfung nur deren Namen. Welcher Pfad wirklich dahintersteht, weiß erst das Kommandozeilen-Programm im Moment des Laufs. Was stattdessen begrenzt: ein Wort mit einem Dollarzeichen wird gar nicht erst durchgelassen."
+}

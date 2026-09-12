@@ -1,0 +1,16 @@
+id: EVD-0342
+kind: test
+related:
+- BUG-0225
+result: pass
+summary: 'H142 closed: an --only that resolves to fewer than two open orders is rc
+  1 -- a request for a comparison that cannot be had is a usage answer, not a clean
+  cut; the run nobody narrowed keeps rc 0'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_parallel_scopes.py::test_a_named_route_that_cannot_be_a_pair_is_a_usage_answer_and_not_a_clean_cut
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:37:36'

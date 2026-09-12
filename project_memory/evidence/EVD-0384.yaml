@@ -1,0 +1,17 @@
+id: EVD-0384
+kind: test
+related:
+- BUG-0190
+result: pass
+summary: 'H106 closed (verifier B6): the count is a ROLLUP over the immutable records,
+  not a field on them -- every EVD already declares its run scope, so the session
+  brief counts the QA runs by it, with the undeclared ones in their own bucket rather
+  than folded into full'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_report.py::test_the_brief_counts_the_qa_runs_by_the_scope_they_declare
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:38:27'

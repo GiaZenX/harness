@@ -7,6 +7,7 @@ Each hook is run as a real subprocess with synthetic stdin JSON and CLAUDE_PROJE
 on its exit code (0 = allow, 2 = block for guards/gates, 1 = red for quality.py). Run: pytest tools/
 """
 import ast
+import builtins
 import contextlib
 import csv
 import fnmatch
@@ -993,9 +994,14 @@ def capture_evidence(repo, kind="test", result="pass", related=("PR-0001",), sum
     """
     sys.path.insert(0, os.path.join(ROOT, "team-kits"))
     from kernel.cli import main as harness
+    # `--run-command` / `--run-scope` are REQUIRED of the parser since BUG-0192 (H108): a record
+    # that declares no run scope counted as a full run, so the surface end was made strict and
+    # every producer names both. A fixture that left them out would be recording what the shipped
+    # command can no longer record.
     argv = ["--root", os.path.join(str(repo), "project_memory"), "evidence",
             "--kind", kind, "--result", result, "--summary", summary,
-            "--artifact-ref", "staging/TSK-0001/run.log"]
+            "--artifact-ref", "staging/TSK-0001/run.log",
+            "--run-command", "python -m pytest tests/ -q", "--run-scope", "full"]
     for ref in related:
         argv += ["--related", ref]
     assert harness(argv) == 0, argv
@@ -6879,11 +6885,21 @@ def _texts_that_name_the_evidence_vocabulary():
     as `block()` calls: which module stops a role is not something this check may know in advance.
     Read as RUNNING strings rather than as file text, so the module docstring's account of what V1
     did cannot satisfy the check (house rule: a check reads the part that runs).
+
+    AND THIS REPOSITORY'S OWN GATES, since `BUG-0192`/H108 (seam S4): the `evidence` surface gained
+    two required arguments, and `.claude/hooks/gate_commit_evidence.py` prints an `evidence` call
+    at every blocked hand-over — the line on the path EVERY delivery takes. It was outside this
+    corpus, so the break was silent in `pytest tools/` and was found by hand. These gates are not
+    SHIPPED into a project; they stop a role in exactly the same way, which is the property this
+    corpus is about, and `_shipped_python_modules` keeps answering the narrower question its own
+    name asks.
     """
     for kit in KITS:
         for path, text in _instruction_files(kit):
             yield os.path.relpath(path, ROOT), text
     for path in _shipped_python_modules():
+        yield os.path.relpath(path, ROOT), "\n".join(_refusal_texts(path))
+    for path in sorted(glob.glob(os.path.join(ROOT, ".claude", "hooks", "*.py"))):
         yield os.path.relpath(path, ROOT), "\n".join(_refusal_texts(path))
     with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as fh:
         yield "README.md", fh.read()
@@ -6935,13 +6951,26 @@ def test_no_instruction_text_names_an_evidence_kind_or_verdict_the_kernel_refuse
 # An `evidence` command line as a TEXT spells it: an inline-code span, so it ends at the closing
 # backtick and not at the line break markdown wraps it on. Everything between is argument prose
 # (`<TSK-nnnn>`, `"…"`, `%s`), which is why only the FLAG NAMES are read out of it. The command's
-# own spelling is not written here — it is assembled from `kernel.cli.INVOCATION`, so this reader
-# follows the entry point instead of having to be remembered when it moves.
+# own spelling is not written here — it is assembled from `kernel.cli`, so this reader follows the
+# entry point instead of having to be remembered when it moves.
+# TWO WAYS THE KERNEL IS REACHED, and both are derived from the module rather than typed: through
+# the entry point a scaffolded project installs (`cli.INVOCATION`), and as a MODULE, which is how a
+# repository without an installed kit calls it (`-m` plus the module's own dotted name — the form
+# this repository's CLAUDE.md prescribes and its own gates print). Between that and the sub-command
+# stands the rest of the invocation (`-B`, `--root <store>`), so anything up to the line end is
+# allowed there and nothing across it: a call is one line, and the wrapping of a remedy is not.
 def _evidence_call_rx():
     sys.path.insert(0, os.path.join(ROOT, "team-kits"))
     from kernel import cli
-    return re.compile(re.escape(cli.INVOCATION) + r" evidence([^`]*)`")
+    entries = "(?:%s|-m %s)" % (re.escape(cli.INVOCATION), re.escape(cli.__name__))
+    return re.compile(entries + r"[^\n`]*? evidence([^`]*)`")
 _EVIDENCE_FLAG_RX = re.compile(r"--[a-z][a-z-]*")
+# A FLAG WHOSE NAME THE TEXT DOES NOT SPELL. Defined as the COMPLEMENT of the alphabet above rather
+# than as a list of interpolation forms: a `--` followed by something that is neither a flag letter
+# nor a space is a name the string builds at runtime (`--%s`, `--{}`, `--{flag}`), and a `-- ` in
+# prose keeps its space and is not one. What follows from it is in `_texts_that_name_the_evidence_
+# vocabulary`'s reader: such a call is NOT SPELLED OUT and is therefore not judged here.
+_COMPUTED_FLAG_RX = re.compile(r"--[^\sa-z]")
 
 
 def test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requires():
@@ -6955,6 +6984,24 @@ def test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requi
 
     Only flag NAMES are compared. Whether `<TSK-nnnn>` is a real id is not a question a text can
     answer, but whether the flag is there at all is.
+
+    THIS NODE IS THE ARBITER OF SEAM S4, AND IT IS RED IN THIS TREE UNTIL THE USER APPLIES IT — and
+    GREEN the moment they do, which is the half that had to be measured rather than promised.
+    `BUG-0192`/H108 made `--run-command` and `--run-scope` required;
+    `.claude/hooks/gate_commit_evidence.py` prints an `evidence` call without them at every blocked
+    hand-over, so the line on the path every delivery takes is one argparse rejects. That file is
+    refused to every role in this repository — the fix is the patch in
+    `project_memory/staging/TSK-0141/s4-gate-commit-evidence-patch.md`, run from a shell OUTSIDE
+    Claude Code. Hiding the red behind an exception for that one file would restore exactly the
+    silence H108 was found by hand in.
+
+    MEASURED, in a `.git`-less copy with that patch applied (verifier round 1, B1): the node goes
+    from `1 failed` to `1 passed`. The first cut of this round did NOT: it then reported
+    `.claude/hooks/gate_test_scope.py`, whose text is CORRECT and whose template merely spells the
+    two names as `--%s`, at a second file no role here may touch — so the arbiter would have been
+    red forever and the user's patch would have changed nothing they could see. `_COMPUTED_FLAG_RX`
+    is what makes it an arbiter: a call whose flag names the string builds at runtime is not a call
+    this reader can judge, and it says so by not counting it.
     """
     sys.path.insert(0, os.path.join(ROOT, "team-kits"))
     from kernel import cli
@@ -6968,6 +7015,17 @@ def test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requi
             flags = set(_EVIDENCE_FLAG_RX.findall(match.group(1)))
             if not flags:
                 continue    # the command named, not spelled out as a call
+            if _COMPUTED_FLAG_RX.search(match.group(1)):
+                # ...AND NEITHER IS A CALL WHOSE FLAG NAMES ARE COMPUTED. What this reader holds is
+                # the folded TEMPLATE of a string (`_folded_string` yields the template, because the
+                # arguments are runtime values), so `--%s full --%s "…"` reaches it with the two
+                # names still unresolved -- while the text the role really gets carries them. Judging
+                # the template there is the house rule's own failure ("a check must read the part
+                # that RUNS") one level down, and it is not hypothetical: measured 2026-09-12,
+                # `.claude/hooks/gate_test_scope.py:709-719` renders `--run-scope full --run-command
+                # "…"` and this node reported it as omitting both -- at a file every role here is
+                # refused, so the report could never have been acted on.
+                continue
             seen += 1
             assert required <= flags, (
                 "%s spells an `evidence` call `%s` that omits %s. `kernel.cli` requires that "
@@ -8711,17 +8769,22 @@ def _project_the_installers_produce(tmp_path, monkeypatch=None):
     a second scaffold would only measure the installers twice.
 
     The platform's own pair is run (`*.ps1` on Windows, `*.sh` elsewhere), so the check measures
-    where it stands and never skips. The trust recorder is removed from the staging first: it
-    writes `.claude/kit_state.json` and no executable, so it can hide nothing — and running it
-    would tie this pin to whether somebody has run `bump_kit_version.py`, which is the coupling
-    that drops a dozen unrelated tests with an off-topic message.
+    where it stands and never skips. The trust recorder is REPLACED BY A NO-OP in the staging: it
+    writes `.claude/kit_state.json` and no executable, so it can hide nothing — and running the
+    real one would tie this pin to whether somebody has run `bump_kit_version.py`, which is the
+    coupling that drops a dozen unrelated tests with an off-topic message. It used to be DELETED,
+    and that stopped working the day the scaffold began refusing a staging that carries no recorder
+    (`BUG-0277`): a staging nothing can vouch for is one no project should come out of, and a test
+    fixture is not the exception to that. Replacing it keeps the staging complete and the stamp out
+    of this pin at the same time.
     """
     home, repo = tmp_path / "home", tmp_path / "repo"
     kits = home / ".claude" / "team-kits"
     shutil.copytree(os.path.join(ROOT, "team-kits"), str(kits),
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".*_cache"))
     if (kits / "write_kit_state.py").is_file():
-        os.remove(str(kits / "write_kit_state.py"))
+        write(str(kits / "write_kit_state.py"),
+              "import sys\nprint('[write_kit_state] no-op stand-in for this pin')\nsys.exit(0)\n")
     os.makedirs(str(repo), exist_ok=True)
     subprocess.run(["git", "init", "-q", str(repo)], capture_output=True, timeout=60)
     env = dict(os.environ, HOME=str(home), USERPROFILE=str(home),
@@ -8875,7 +8938,8 @@ def test_the_evidence_the_merge_gate_demands_has_an_installed_producer(tmp_path)
     # kinds come from the kernel, so this measures the producer against what the gate demands
     # rather than against a kind this test happened to pick.
     per_kind = [["evidence", "--kind", kind, "--result", "pass", "--related", "PR-0001",
-                 "--summary", "qa run green", "--artifact-ref", "staging/TSK-0001/run.log"]
+                 "--summary", "qa run green", "--artifact-ref", "staging/TSK-0001/run.log",
+                 "--run-command", "python -m pytest tests/ -q", "--run-scope", "full"]
                 for kind in qa_kinds()]
     for arguments in per_kind:
         record = "%s %s" % (cli.INVOCATION, " ".join(arguments))
@@ -8941,7 +9005,8 @@ def test_the_entry_point_refuses_the_one_argument_the_write_gate_would_refuse(tm
         proc = subprocess.run(
             [sys.executable, os.path.join(*cli.ENTRY_POINT.split("/"))] + flag +
             ["evidence", "--kind", "test", "--result", "pass", "--related", "PR-0001",
-             "--summary", "x", "--artifact-ref", "staging/a.log"],
+             "--summary", "x", "--artifact-ref", "staging/a.log",
+             "--run-command", "python -m pytest tests/ -q", "--run-scope", "full"],
             cwd=str(repo), capture_output=True, text=True, env=env, timeout=120)
         assert proc.returncode == 2, "%s was accepted: %s%s" % (flag, proc.stdout, proc.stderr)
         assert "`--root` does not belong" in proc.stderr, (flag, proc.stderr)
@@ -9068,15 +9133,119 @@ def _folded_string(node, names, functions, depth=0):
     return None
 
 
+_STOPPER_NAMES = {}
+
+
+def _names_that_stop_the_role(path):
+    """The function names a call in `path` has to carry to be a REFUSAL — derived, never listed.
+
+    THE PROPERTY, not the word: a refusal is the call that ENDS the process, and the message it
+    carries is the last thing the role reads. Which word spells that differs per tree — the kits
+    say `block`, this repository's own gates say `_harness.refuse` — and the previous reader was
+    the literal name `block`, so widening the corpus to `.claude/hooks/` of this repository would
+    have added those files and read NOT ONE sentence out of them. The measurement of that widening
+    is in the round's protocol, not copied here.
+
+    Read off the DEFINITIONS, over the whole BUNDLE: a function stops when it CANNOT RETURN to its
+    caller — its last statement exits and no `return` stands anywhere in it — and a wrapper around
+    such a function stops too (the closure is walked to a fixed point). The directory rather than
+    the import graph, because a hook bundle IS a directory: the helper that spells the refusal is a
+    sibling by construction, and reading the siblings needs no import analysis to be wrong about.
+    `kernel.cli`-style raises of a project error type keep their own arm in `_refusal_texts`,
+    because they do not exit: the CLI turns them into the same stderr.
+
+    "CANNOT RETURN" AND NOT "EXITS SOMEWHERE", and that distinction is measured rather than
+    tasteful: the first cut of this reader marked every function that exits on ANY path, and over
+    this repository's own gate bundle that was 45 names — `decide`, `payload`, `probe`, every
+    gate's entry point, because each of them refuses in one branch and returns in another. Reading
+    their string arguments as "what a role is handed when stopped" would have handed the vocabulary
+    checks ordinary file text under a name that says otherwise.
+
+    WHAT IT CANNOT SEE, said here rather than left to be discovered: a stopper reached through a
+    value (a callback in a dict, a method on an instance), one defined outside the directory, and
+    one whose exit stands in a `finally` or behind a loop. A `return` in a nested function counts
+    against the outer one, which errs towards reading LESS.
+    `tools/test_hooks.py::test_the_refusal_reader_finds_a_stopper_this_repos_own_gates_spell` holds
+    the property at both ends.
+    """
+    directory = os.path.dirname(os.path.abspath(path))
+    if directory in _STOPPER_NAMES:
+        return _STOPPER_NAMES[directory]
+    bodies, calls = {}, {}
+    for name in sorted(os.listdir(directory)):
+        if not name.endswith(".py"):
+            continue
+        try:
+            with open(os.path.join(directory, name), encoding="utf-8") as handle:
+                tree = ast.parse(handle.read(), name)
+        except (OSError, SyntaxError, UnicodeDecodeError):
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            if any(isinstance(inner, ast.Return) for inner in ast.walk(node)):
+                continue                # it can hand control back, so it is not a refusal
+            bodies[node.name] = node
+            calls[node.name] = {_called_name(inner)
+                                for inner in ast.walk(node) if isinstance(inner, ast.Call)}
+    stoppers = {"exit", "_exit"}        # `sys.exit`, `os._exit` — the interpreter's own
+    while True:                         # to a fixed point: a wrapper around a stopper stops too
+        grown = {name for name, node in bodies.items() if _cannot_return(node.body, stoppers)}
+        if grown <= stoppers:
+            break
+        stoppers |= grown
+    stoppers -= {"exit", "_exit"}
+    _STOPPER_NAMES[directory] = stoppers
+    return stoppers
+
+
+def _called_name(call):
+    """The name a call site spells, attribute or bare — `_harness.refuse` and `refuse` are one."""
+    return call.func.attr if isinstance(call.func, ast.Attribute) else getattr(call.func, "id", None)
+
+
+def _cannot_return(body, stoppers):
+    """True where this statement list cannot fall through to the caller.
+
+    The LAST statement decides, because a statement after one that stops is dead: a `raise
+    SystemExit`, a call to something already known to stop, or a `try` whose body and whose every
+    handler cannot return either (the shape `_kernel.block` is written in — `_compat.stop`, with
+    `except SystemExit: raise` beside a last-resort `os._exit`).
+    """
+    if not body:
+        return False
+    last = body[-1]
+    if isinstance(last, ast.Raise):
+        return last.exc is None or _names_the_exit(last.exc)
+    if isinstance(last, ast.Expr) and isinstance(last.value, ast.Call):
+        return _called_name(last.value) in stoppers
+    if isinstance(last, ast.Try):
+        return (_cannot_return(last.body, stoppers) or _cannot_return(last.finalbody, stoppers)) \
+            and all(_cannot_return(handler.body, stoppers) for handler in last.handlers)
+    if isinstance(last, ast.If):
+        return bool(last.orelse) and _cannot_return(last.body, stoppers) \
+            and _cannot_return(last.orelse, stoppers)
+    return False
+
+
+def _names_the_exit(node):
+    """True where this expression IS the interpreter's exit — `SystemExit`, `sys.exit`, `exit`."""
+    if isinstance(node, ast.Call):
+        node = node.func
+    name = node.attr if isinstance(node, ast.Attribute) else getattr(node, "id", None)
+    return name in ("SystemExit", "exit", "_exit")
+
+
 def _refusal_texts(path):
     """Every text this shipped module hands a ROLE at the moment it stops them.
 
     A refusal is defined by WHAT IT DOES to the role, not by which function spells it: a hook
-    stops with `block(...)`, and the kernel stops by RAISING one of its own error types, which
-    `_kernel.run_gate` and the CLI turn into the same stderr the role reads. Reading only
-    `block()` was a reader that knew three source KINDS, and it missed `state.py` handing a
-    blocked role an `evidence` command line without the caveat every other text then carried —
-    the enumeration failure, in the check written to replace an enumeration.
+    stops by ending the process (`_names_that_stop_the_role` derives which names do that here),
+    and the kernel stops by RAISING one of its own error types, which `_kernel.run_gate` and the
+    CLI turn into the same stderr the role reads. Reading only `block()` was a reader that knew
+    three source KINDS, and it missed `state.py` handing a blocked role an `evidence` command line
+    without the caveat every other text then carried — the enumeration failure, in the check
+    written to replace an enumeration.
 
     Assembled as the interpreter would (`_folded_string`), so a message built from a template
     plus a shared tail is read the way the role reads it.
@@ -9092,12 +9261,13 @@ def _refusal_texts(path):
             value = _folded_string(node.value, names, functions)
             if value is not None:
                 names[node.targets[0].id] = value
+    stoppers = _names_that_stop_the_role(path)
     for node in ast.walk(tree):
         call = None
         if isinstance(node, ast.Call):
             name = node.func.attr if isinstance(node.func, ast.Attribute) else \
                 getattr(node.func, "id", None)
-            if name == "block":
+            if name in stoppers:
                 call = node
         elif isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call):
             name = node.exc.func.attr if isinstance(node.exc.func, ast.Attribute) else \
@@ -9125,6 +9295,58 @@ def _shipped_python_modules():
             yield path
     for path in sorted(glob.glob(os.path.join(ROOT, "team-kits", "kernel", "*.py"))):
         yield path
+
+
+def test_the_refusal_reader_finds_a_stopper_this_repos_own_gates_spell(tmp_path):
+    """`BUG-0192`/H108, seam S4: the reader that collects refusal texts must not be a WORD LIST.
+
+    THE DEFECT IT REPLACES is measurable in one sentence: `.claude/hooks/gate_commit_evidence.py`
+    prints an `evidence` command line at every blocked hand-over, and the reader recognised a
+    refusal by the literal name `block` — which this repository's gates never use. Adding the
+    directory to the corpus while the name list stayed would have read zero sentences out of it,
+    and the check would have looked wider while measuring exactly as much as before.
+
+    BOTH ENDS, on a synthetic bundle whose functions this test writes, so the property and not a
+    tree is the subject:
+      * a stopper under ANOTHER name is found, directly and through a wrapper (transitivity);
+      * a function that does not end the process is NOT, because a reader that took every call
+        would hand the vocabulary checks ordinary file text again — the thing this whole group
+        exists to avoid.
+
+    AND THE REACH, against the running tree: at least one of this repository's own gates really
+    yields a refusal text into `_texts_that_name_the_evidence_vocabulary`. Without that line the
+    two ends above would hold over a bundle nobody reads.
+    """
+    bundle = tmp_path / "hooks"
+    os.makedirs(str(bundle), exist_ok=True)
+    write(str(bundle / "helper.py"),
+          "import sys\n"
+          "def stop(message):\n"
+          "    sys.stderr.write(message)\n"
+          "    raise SystemExit(2)\n"
+          "def note(message):\n"
+          "    sys.stderr.write(message)\n")
+    write(str(bundle / "gate_probe.py"),
+          "import helper\n"
+          "def wrapped(message):\n"
+          "    helper.stop(message)\n"
+          "def decide():\n"
+          "    helper.stop('THE DIRECT REFUSAL')\n"
+          "    helper.note('AN ORDINARY MESSAGE')\n"
+          "    wrapped('THE WRAPPED REFUSAL')\n")
+    _STOPPER_NAMES.pop(os.path.abspath(str(bundle)), None)
+    texts = list(_refusal_texts(str(bundle / "gate_probe.py")))
+    assert "THE DIRECT REFUSAL" in texts, texts
+    assert "THE WRAPPED REFUSAL" in texts, (
+        "a wrapper around a stopper stops too, and its text is one a role reads: %r" % (texts,))
+    assert "AN ORDINARY MESSAGE" not in texts, (
+        "a call that returns is not a refusal; reading it turns this corpus back into file text")
+
+    own = [(where, text) for where, text in _texts_that_name_the_evidence_vocabulary()
+           if where.replace(os.sep, "/").startswith(".claude/hooks/") and text.strip()]
+    assert own, (
+        "not one gate of this repository yields a refusal text, so widening the corpus to "
+        ".claude/hooks/ bought nothing — the two ends above then hold over a bundle nobody reads")
 
 
 def test_no_refusal_text_names_a_kernel_invocation_a_project_cannot_run():
@@ -11218,6 +11440,68 @@ def _draft_project(tmp_path, profile=DRAFT_PROFILE, plan="rules: []\n"):
     write(str(repo / "project_memory" / "business_profile.yaml"), profile)
     write(str(repo / "project_memory" / "filing_plan.yaml"), plan)
     return repo
+
+
+def test_a_folder_the_archive_really_has_and_no_rule_describes_is_named(tmp_path):
+    """BUG-0183: the rendered tree is the PLAN, and a folder somebody created appeared nowhere.
+
+    `--tree` renders `path_template`s, which is what the user steered for -- the tree IS the plan.
+    The cost was that the picture the kit presents as the visible truth said nothing about a folder
+    that really exists under `archive/` and that no rule covers: nothing files into it,
+    `gate_filing` refuses every document whose target is not a rule's, and no output named it.
+
+    THREE FOLDERS, one per direction, and the two that must NOT be reported are the point: a
+    reader that listed everything on disk would be as useless as one that listed nothing.
+      * `archive/privat` -- under the plan's own root, covered by no rule -> reported;
+      * `archive/finance/incoming_invoices/2026` -- a `<year>` the template stands for -> silent;
+      * `archive/finance/incoming_invoices/2026/Q1` -- DEEPER than the template that matches it,
+        so the plan does not know it -> reported, and its own children are not reported again.
+    The renderer `process_doc.py` shares stays untouched: the Verfahrensdokumentation describes the
+    PLAN, and this is the picture beside it.
+    """
+    plan = ("rules:\n"
+            "  - id: FP-001\n"
+            '    path_template: "archive/finance/incoming_invoices/<year>/"\n'
+            "    document_types: [invoice]\n"
+            '    filename_template: "YYYY-MM-DD_<counterparty>_<doctype>"\n')
+    repo = _draft_project(tmp_path, plan=plan)
+    for relative in ("archive/privat/urlaub",
+                     "archive/finance/incoming_invoices/2026",
+                     "archive/finance/incoming_invoices/2026/Q1/scans"):
+        os.makedirs(str(repo / relative.replace("/", os.sep)), exist_ok=True)
+
+    printed = _run_office_script(repo, "filing_plan.py", "--tree")
+    assert printed.returncode == 0, printed.stdout + printed.stderr
+    listed = [line.strip().rstrip("/") for line in printed.stdout.splitlines()
+              if line.startswith("  archive/")]
+    assert "archive/privat" in listed, printed.stdout
+    assert "archive/finance/incoming_invoices/2026/Q1" in listed, printed.stdout
+    assert "archive/finance/incoming_invoices/2026" not in listed, (
+        "a folder the template's placeholder stands for was reported as unplanned:%s%s"
+        % (NL, printed.stdout))
+    assert "archive/privat/urlaub" not in listed, (
+        "the children of an unplanned folder were reported a second time:%s%s"
+        % (NL, printed.stdout))
+    # ...and the plan half of the picture is unchanged: the rule's own branch is still rendered.
+    assert "incoming_invoices/" in printed.stdout, printed.stdout
+
+
+def test_an_archive_that_matches_its_plan_is_reported_as_nothing(tmp_path):
+    """The other direction of BUG-0183: a tidy project must read as tidy.
+
+    A reader that always found something would make the new paragraph noise, and noise is what a
+    project switches off. Same plan, only folders the rule describes -- the section must not appear
+    at all.
+    """
+    plan = ("rules:\n"
+            "  - id: FP-001\n"
+            '    path_template: "archive/finance/incoming_invoices/<year>/"\n'
+            "    document_types: [invoice]\n")
+    repo = _draft_project(tmp_path, plan=plan)
+    os.makedirs(str(repo / "archive" / "finance" / "incoming_invoices" / "2026"), exist_ok=True)
+    printed = _run_office_script(repo, "filing_plan.py", "--tree")
+    assert printed.returncode == 0, printed.stdout + printed.stderr
+    assert "ON DISK AND IN NO RULE" not in printed.stdout, printed.stdout
 
 
 def _rule_flags_from(output):
@@ -13523,6 +13807,39 @@ def test_preset_parser_rejects_ambiguous_or_nonmechanical_policy(
     assert result.returncode != 0 and diagnostic in output
 
 
+def _stage_the_trust_recorder(home):
+    """Put `write_kit_state.py` beside a SYNTHETIC staging, the way a real store carries it.
+
+    THE SCAFFOLD ASKS FOR IT BEFORE IT COPIES ANYTHING (`BUG-0277`): a staging without the trust
+    recorder installs green on a warning nobody reads, while every later stamp comparison refuses
+    the SAME staging by its hash -- so both twins refuse such a staging outright now. A test that
+    builds its own kit tree has to carry it too, or the run under test never reaches the behaviour
+    it is about. Measured on the generation-6 merge full run: four scaffold tests came back with
+    this precondition's refusal ("re-install the harness from a complete store") instead of their
+    own subject, and one of them was asserting a DIFFERENT refusal, so it read as a pass for the
+    wrong reason until the message was compared.
+    """
+    staging = os.path.join(str(home), ".claude", "team-kits")
+    os.makedirs(staging, exist_ok=True)
+    shutil.copyfile(os.path.join(ROOT, "team-kits", "write_kit_state.py"),
+                    os.path.join(staging, "write_kit_state.py"))
+    # ...AND THE KERNEL BESIDE IT, because the recorder is not a file the scaffold only checks for:
+    # it RUNS it, and it opens with `from kernel import hashing`. Staged without the package the
+    # run got past the precondition and died one step later with `ModuleNotFoundError: No module
+    # named 'kernel'` (measured while repairing the four tests above) -- a synthetic staging has
+    # to be a store, not a file list.
+    if not os.path.isdir(os.path.join(staging, "kernel")):
+        shutil.copytree(os.path.join(ROOT, "team-kits", "kernel"),
+                        os.path.join(staging, "kernel"),
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    # ...AND THE STAMP THE RECORDER COMPARES AGAINST. It refuses a kit that "does not hash to the
+    # `content:` in its own VERSION", which a hand-written `content: x` never does -- so the
+    # recorder ran and refused, the scaffold rolled back, and the test read a failed install
+    # instead of its own subject. `_stamp_staging` is the SAME computation the real installer's
+    # stamp is, asked of the tree the test just built.
+    _stamp_staging(staging)
+
+
 def _unknown_recorded_preset_state(tmp_path):
     home = tmp_path / "home"
     kit = home / ".claude" / "team-kits" / "demo-team"
@@ -13541,6 +13858,7 @@ def _unknown_recorded_preset_state(tmp_path):
           'project:\n  name: demo\n  preset: "retired"\nproviders: [claude]\n')
     write(str(repo / "AGENTS.md"), "# external sentinel constitution\n")
     write(str(repo / ".claude" / "agents" / "custom.md"), "user-owned role\n")
+    _stage_the_trust_recorder(home)
     return home, repo
 
 
@@ -13552,6 +13870,7 @@ def _duplicate_recorded_preset_state(tmp_path):
         encoding="utf-8")
     presets = home / ".claude" / "team-kits" / "demo-team" / "presets.yaml"
     presets.write_text("mini: alpha\nmini: all\n", encoding="utf-8")
+    _stage_the_trust_recorder(home)
     return home, repo
 
 
@@ -13578,6 +13897,7 @@ def _scaffold_external_file_symlink_state(tmp_path, relative):
     write(str(external), "external scaffold sentinel\n")
     target = repo / relative
     target.parent.mkdir(parents=True, exist_ok=True)
+    _stage_the_trust_recorder(home)
     return home, repo, external, target
 
 
@@ -13685,6 +14005,7 @@ def _scaffold_provider_collision_state(tmp_path):
           "old native skill\n")
     collision = repo / ".codex" / "config.toml"
     write(str(collision), "# unowned collision sentinel\n")
+    _stage_the_trust_recorder(home)
     return home, repo, collision
 
 
@@ -13846,6 +14167,7 @@ def test_scaffold_preset_and_map_sync(tmp_path):
           "<!-- agents-and-skills:team-kit legacy-team -->\n# Legacy constitution\n")
     write(str(repo / ".claude" / "agents" / "custom.md"), "custom\n")
     write(str(repo / ".claude" / "skills" / "custom" / "SKILL.md"), "custom\n")
+    _stage_the_trust_recorder(home)
     script = os.path.join(ROOT, "team-kits", "scaffold_team.ps1")
 
     def scaffold(*extra):
@@ -13998,6 +14320,7 @@ def test_scaffold_sh_preset_and_provider_e2e(tmp_path):
           "effort_map:\n  alpha: high\n")
     write(str(repo / ".claude" / "agents" / "custom.md"), "user-owned role\n")
     write(str(repo / ".claude" / "skills" / "custom" / "SKILL.md"), "user-owned skill\n")
+    _stage_the_trust_recorder(home)
     script = os.path.join(ROOT, "team-kits", "scaffold_team.sh")
     pythonpath = os.pathsep.join(path for path in sys.path if path)
 
@@ -15813,7 +16136,8 @@ def test_the_qa_backstop_verdicts_the_item_not_the_author(tmp_path):
     environment = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
     for kind in qa_kinds():
         arguments = ["evidence", "--kind", kind, "--result", "pass", "--summary", "qa",
-                     "--related", "PR-0001", "--artifact-ref", "staging/PR-0001/run.log"]
+                     "--related", "PR-0001", "--artifact-ref", "staging/PR-0001/run.log",
+                     "--run-command", "python -m pytest tests/ -q", "--run-scope", "full"]
         line = "%s %s" % (cli.INVOCATION, " ".join(arguments))
         for gate in _shell_gates_of(repo):
             asked = _run_project_hook(repo, gate, line)
@@ -18149,6 +18473,7 @@ def capture_blocked_evidence(repo, related=("PR-0001",), reason="no Chromium on 
     argv = ["--root", os.path.join(str(repo), "project_memory"), "evidence",
             "--kind", "test", "--result", BLOCKED_RESULT, "--summary", "the e2e suite",
             "--artifact-ref", "staging/TSK-0001/run.log",
+            "--run-command", "python -m pytest tests/ -q", "--run-scope", "full",
             "--" + BLOCKED_REASON_FIELD.replace("_", "-"), reason]
     for ref in related:
         argv += ["--related", ref]
@@ -18796,12 +19121,18 @@ def _npx_on_path(tmp_path, monkeypatch):
     return str(home)
 
 
-def _smoke_a_build(tmp_path, monkeypatch, html, name="pilot"):
-    """Run the SHIPPED browser_smoke over a built app, and return what it reported."""
+def _smoke_a_build(tmp_path, monkeypatch, html, name="pilot", sources=None):
+    """Run the SHIPPED browser_smoke over a built app, and return what it reported.
+
+    `sources` are further repo-relative files written BEFORE the run -- the project's own frontend
+    sources, which B3 is asked of and the served build is not.
+    """
     pytest.importorskip("playwright")
     _npx_on_path(tmp_path, monkeypatch)
     repo = tmp_path / name
     write(str(repo / "frontend" / "dist" / "index.html"), html)
+    for relative, text in (sources or {}).items():
+        write(str(repo / relative.replace("/", os.sep)), text)
     mod = _browser_checks_mod()
     calls, ok, fail, warn = _collector()
     mod.browser_smoke(str(repo), ok, fail, warn)
@@ -18870,13 +19201,17 @@ def test_a_project_without_a_built_frontend_pays_nothing_for_the_design_rules(tm
     assert time.time() - started < 5, "a project with no UI waited on something"
 
 
-def test_the_build_half_leaves_out_the_two_rules_a_build_cannot_answer(tmp_path, monkeypatch):
+def test_the_build_half_leaves_out_the_rules_the_served_document_cannot_answer(tmp_path,
+                                                                               monkeypatch):
     """The over-refusal direction, stated in the module docstring and measured here.
 
-    A build legitimately ships CSS nobody wrote as design tokens, and it carries no `data-view`
-    contract -- so the colour-literal rule and the one-primary-action rule of the design reader are
-    deliberately NOT applied to it. Both are planted here at once: a build that breaks them and
-    nothing else must come back clean, or the docstring's claim is prose.
+    A build legitimately serves CSS nobody wrote as design tokens, and it carries no `data-view`
+    contract -- so the one-primary-action rule is not applied to it at all, and the colour-literal
+    rule is not applied to the SERVED DOCUMENT. Both are planted here at once, in the build and in
+    nothing else: the run must come back with no failure, or the docstring's claim is prose.
+
+    B3 is the rule this case draws the line for, so its verdict is asserted too: with no stylesheet
+    of the project's own, B3 has no subject and says so instead of passing.
     """
     html = BUILT_APP.replace("border:1px solid var(--line)", "border:1px solid #dddddd")
     calls, mod = _smoke_a_build(tmp_path, monkeypatch, html, name="literals")
@@ -18884,6 +19219,42 @@ def test_the_build_half_leaves_out_the_two_rules_a_build_cannot_answer(tmp_path,
     assert not calls["fail"], (
         "a rule the build half does not carry was applied to a build anyway: %s" % calls["fail"])
     assert mod.C1 in calls["ok"] and mod.C3 in calls["ok"], calls
+    assert mod.B3 not in calls["ok"], (
+        "B3 passed on a project that wrote no stylesheet of its own: %s" % calls["ok"])
+    assert any(name == mod.B3 for name, _message in calls["warn"]), calls["warn"]
+
+
+def test_a_colour_literal_in_the_projects_own_stylesheet_is_a_build_finding(tmp_path, monkeypatch):
+    """BUG-0222: the B3 half of FR-0077 reaches the project's own sources.
+
+    Until this existed, colour literals were judged on the frozen design revision only, and the
+    build half left the rule out entirely -- a build that stopped referencing its tokens was caught
+    by nothing. The subject is the stylesheet the project WROTE (`kit_checks._frontend_sources`,
+    which skips `dist/`, `node_modules/` and the vendor trees), never the served document, so the
+    reason the rendered page cannot carry the rule does not apply.
+
+    BOTH DIRECTIONS IN ONE RUN, because a rule that fires on everything is worth as little as one
+    that fires on nothing: the same sheet with the literal replaced by a `var()` reference passes,
+    and the finding names the FILE -- a selector without one sends the designer searching.
+    """
+    literal = (":root { --brand: #0b5fff; }\n"
+               ".card { border: 1px solid #dddddd; }\n")
+    clean = (":root { --brand: #0b5fff; --line: #dddddd; }\n"
+             ".card { border: 1px solid var(--line); }\n")
+    calls, mod = _smoke_a_build(tmp_path, monkeypatch, BUILT_APP, name="own-literal",
+                                sources={"frontend/src/app.css": literal})
+    _needs_chromium(calls)
+    failed = {name: message for name, message in calls["fail"]}
+    assert mod.B3 in failed, "a colour literal in the project's own sheet was not reported: %s" % calls
+    assert "frontend/src/app.css" in failed[mod.B3], failed[mod.B3]
+    assert ".card" in failed[mod.B3], failed[mod.B3]
+
+    calls, mod = _smoke_a_build(tmp_path, monkeypatch, BUILT_APP, name="own-clean",
+                                sources={"frontend/src/app.css": clean})
+    _needs_chromium(calls)
+    assert not calls["fail"], calls["fail"]
+    assert mod.B3 in calls["ok"], (
+        "a sheet that references its tokens was not judged clean on B3: %s" % calls)
 
 
 # The target is a PATH, not a piece of text -- the kit half of verifier round 1, B2. Measured on a
@@ -19301,3 +19672,664 @@ def test_a_change_to_something_built_walks_the_CR_route_the_constitution_names(t
     replaced = _entry_point(repo, "transition", "PR-0001", "SUPERSEDED")
     assert replaced.returncode == 0, replaced.stdout + replaced.stderr
     assert state.read_item("PR-0001")["status"] == "SUPERSEDED"
+
+
+def test_no_shipped_kit_file_carries_a_control_character():
+    """BUG-0030: a kit ships no C0 control character but tab, newline and carriage return.
+
+    Two literal backspaces (0x08) sat in the whitespace of one shipped office hook -- a copy-paste
+    artefact nobody intended, invisible in every editor, and the file compiled and behaved. What
+    makes it worth a tripwire rather than a one-line deletion is that nothing would have caught the
+    next one: `ruff` reported it under a rule nobody selects, and a mirrored copy carries the byte
+    along.
+
+    WHICH FILES, DERIVED: everything `kernel.hashing.kit_hash_inputs` covers for each of the three
+    kits -- the kit's own tree plus the shared half -- so a new shipped directory is under this
+    rule the day it ships, and a file that is not in a kit hash is not this rule's subject.
+    WHICH FILES ARE TEXT, DERIVED TOO: a file that decodes as UTF-8. A PNG or a font is not a
+    source and has no business being asked; asking "is it in a list of text suffixes" would be the
+    enumeration this rule exists to avoid.
+    """
+    sys.path.insert(0, TEAM_KITS)
+    from kernel import hashing
+
+    offenders = []
+    for kit in ("dev-team", "office-team", "research-team"):
+        for relative, path in hashing.kit_hash_inputs(os.path.join(TEAM_KITS, kit)):
+            if path is None or not os.path.isfile(path):
+                continue
+            data = open(path, "rb").read()
+            try:
+                data.decode("utf-8")
+            except UnicodeDecodeError:
+                continue                      # not text, so not a source this rule is about
+            found = sorted({byte for byte in data if byte < 32 and byte not in (9, 10, 13)})
+            if found:
+                offenders.append("%s/%s: %s" % (kit, relative, [hex(x) for x in found]))
+    assert not offenders, ("control characters in shipped kit files:" + chr(10)
+                           + chr(10).join(offenders))
+
+
+# -- gate_write_scope: the reading of a command line (BUG-0285 / 0288 / 0289 / 0107) ----------
+
+# THE DIRECTORY VERBS, WRITTEN A SECOND TIME AND INDEPENDENTLY. That is what CLAUDE.md asks of an
+# unavoidable enumeration, and it is the only tripwire available here: nothing in a command line
+# says whether a program changes the directory, so the set cannot be derived -- but a disagreement
+# between two independent spellings of it shows a dropped entry AND an invented one.
+# A newline, spelled so this file carries no literal one inside a string that a reader of the
+# heredoc tests would have to count.
+NL = chr(10)
+_DIRECTORY_VERBS_SPELLED_AGAIN = {
+    "cd": "set", "chdir": "set", "sl": "set", "set-location": "set",
+    "pushd": "push", "push-location": "push",
+    "popd": "pop", "pop-location": "pop",
+}
+
+
+def _write_scope(repo, command):
+    return run_hook_process("gate_write_scope.py", _bash(repo, command), repo)
+
+
+def test_every_directory_verb_moves_this_gates_base_and_no_other_word_does(tmp_path):
+    """BUG-0285: `Push-Location` and `Pop-Location` move the base too, and one mapping says so.
+
+    Three enumerations carried this before -- a tuple in `handle_shell`, an `== "popd"` in `_walk`,
+    and four of the same words inside `_READ_ONLY_VERBS` -- and all three had forgotten the two
+    written-out PowerShell cmdlets. Measured at the base as a real hook process: the two-step entry
+    `Push-Location .github ; Push-Location hooks ; echo x > g.py` was rc 0 while the same line with
+    `cd` was rc 2 -- and `chdir`, `sl` and `push-location` were rc 0 with it, which is one more
+    spelling than the bug report knew. The TWO-STEP shape is what measures the carry-over rather
+    than a side reason: `.github` alone is not a protected path, so only a gate that really walked
+    into `.github/hooks` refuses the write, which names neither. The target is deliberately not a
+    `.py` file: that one is refused by the lead rule whatever the base is, which would have made
+    every row of this test pass for the wrong reason (measured while writing it).
+
+    BOTH ENDS: the mapping above is a second, independent spelling of the gate's own, so an entry
+    dropped there and an entry invented there both show up here; and every `set`/`push` spelling is
+    then driven through the real hook, so an entry that is in the map and does nothing is red too.
+    """
+    module = conftest.load_kit_module("gate_write_scope_dirverbs",
+                                      os.path.join(HOOKS, "gate_write_scope.py"))
+    assert module._DIRECTORY_VERBS == _DIRECTORY_VERBS_SPELLED_AGAIN
+
+    for verb, kind in sorted(_DIRECTORY_VERBS_SPELLED_AGAIN.items()):
+        if kind == "pop":
+            continue
+        line = "%s .github ; %s hooks ; echo x > note.txt" % (verb, verb)
+        assert _write_scope(tmp_path, line).returncode == 2, line
+    for verb in sorted(v for v, k in _DIRECTORY_VERBS_SPELLED_AGAIN.items() if k == "pop"):
+        line = "cd .github ; cd hooks ; %s ; echo x > note.txt" % verb
+        assert _write_scope(tmp_path, line).returncode == 0, line
+    # ...and the other end of the same measurement: a word that is NOT one of them moves nothing,
+    # and one step alone does not reach the protected tree either. Both are rc 0, so a rule that
+    # simply refused the shape would be red here.
+    for line in ("enter .github ; enter hooks ; echo x > note.txt",
+                 "cd .github ; echo x > note.txt",
+                 "echo x > note.txt"):
+        assert _write_scope(tmp_path, line).returncode == 0, line
+
+
+def test_a_command_a_substitution_introduces_is_judged_as_a_command(tmp_path):
+    """BUG-0288: a command substitution runs before the word it stands in, so it is judged as one.
+
+    The decomposition knew list separators, stage cuts and parentheses; a command inside a WORD
+    appeared in none of them. So `echo $(cp evil.py .claude/hooks/g.py)` was a reading stage with
+    an argument (rc 0 at the base), and inside a `-m` payload the prose removal deleted the whole
+    span before any reader saw it -- the half this bug was left with.
+
+    The bodies are APPENDED as their own pipelines rather than spliced in with a separator: a
+    separator written into the text lands inside the quoted span the substitution usually stands
+    in, where the tokeniser masks it and the cut never happens. Measured in this same round on the
+    office ledger gate, where exactly that construction reopened an attack.
+    """
+    # PROCESS SUBSTITUTION is the same class and was the omission the verifier of this round
+    # measured: `cat <(cp evil.py .claude/hooks/g.py)` was rc 0 at every registered hook of a
+    # scaffolded pilot, while the office ledger gate one file away already read `<(` and `>(`.
+    refused = ["echo $(cp evil.py .claude/hooks/g.py)",
+               'git commit -m "$(rm -rf project_memory)"',
+               'git commit -m "`cp evil.py .claude/hooks/g.py`"',
+               'echo "$(cp evil.py .claude/hooks/g.py)"',
+               "cat <(cp evil.py .claude/hooks/g.py)",
+               "cat <(cp evil.yaml project_memory/evidence/EVD-9999.yaml)",
+               "diff <(cat src/a.py) >(cp evil.py .claude/hooks/g.py)"]
+    for command in refused:
+        assert _write_scope(tmp_path, command).returncode == 2, command
+    for command in ("git commit -m 'touched project_memory by hand? no'",
+                    'git commit -m "notes about project_memory"'):
+        assert _write_scope(tmp_path, command).returncode == 0, command
+
+
+def test_a_heredoc_body_handed_to_a_shell_is_judged_as_a_command(tmp_path):
+    """BUG-0289: a here-document body a shell PARSES is the command, not prose to be removed.
+
+    The gate removed every body unconditionally, so a here-document handed to `bash` with a write
+    to canonical state in it was rc 0 at the base -- the body is where a shell gets its PROGRAM,
+    and the span was deleted before the first reader. Which bodies are inert is
+    `_compat.literal_heredoc_free`'s question and is not asked a second time here.
+
+    WHAT STAYS OPEN and is measured rather than claimed: an interpreter that is not a shell still
+    hands its body past this gate -- `_compat`'s own docstring names that residue, because closing
+    it would mean deciding which PROGRAMS execute their standard input. And the prose route the
+    kits document stays open, which is the whole reason an inert body is removed at all.
+    """
+    # THE PIPELINE, not the stage in front of the opener. The first three are one property seen
+    # from three sides: a here-document is the standard input of its stage, and a pipeline hands
+    # that input on -- so the parser that receives the body may stand anywhere in the pipeline, and
+    # `.`/`source` are parsers without being shells. All four rows past the first were rc 0 at every
+    # registered Bash hook of a scaffolded pilot (verifier round 1 of TSK-0142, B1).
+    for opener in ("bash <<'EOF'", "sh <<EOF", "cat <<'EOF' | bash",
+                   "cat <<'EOF' | tee /tmp/x | bash", ". /dev/stdin <<'EOF'",
+                   "source /dev/stdin <<'EOF'"):
+        command = opener + NL + "echo x > project_memory/x.yaml" + NL + "EOF"
+        assert _write_scope(tmp_path, command).returncode == 2, command
+    # ...and what ENDS the pipeline really ends it: behind a `;` the body reaches nothing, and a
+    # word that merely BEGINS with a dot is not the dot command.
+    for kept in ("cat <<'EOF' ; bash other.sh", "./build.sh <<'EOF'"):
+        command = kept + NL + "echo x > project_memory/x.yaml" + NL + "EOF"
+        assert _write_scope(tmp_path, command).returncode == 0, (
+            "a body no parser on this line receives was judged as a command: " + command)
+    prose = ("python scripts/harness.py capture SR <<'EOF'" + NL
+             + "from git clone to a 200 on /health" + NL + "EOF")
+    assert _write_scope(tmp_path, prose).returncode == 0, prose
+    residue = "python - <<'EOF'" + NL + "open('project_memory/x.yaml','w')" + NL + "EOF"
+    assert _write_scope(tmp_path, residue).returncode == 0, "the named residue closed silently"
+    # THE PROMISE ROWS, and they are the correction of 2026-09-12: the membership was asked of the
+    # raw span, so a REDIRECTION TARGET whose name begins with a member word made the body a
+    # command. All four were rc 2 through the shipped gate as real processes -- writing a patch to
+    # a file for review, or a note called `bash.md`, refused as if the body were applied. The
+    # target of a redirection never reaches the program, which is what `_argument_scan` says and
+    # `_compat._names_a_stdin_parser` now asks before the membership.
+    for target in ("patch.diff", "patch/notes.md", "bash.md", "source.txt"):
+        command = ("cat > " + target + " <<'EOF'" + NL
+                   + "--- a/.claude/hooks/gate_write_scope.py" + NL + "EOF")
+        assert _write_scope(tmp_path, command).returncode == 0, (
+            "a file this line WRITES was read as the program it feeds: " + command)
+    # ...while a word in that position really being the program is refused whatever it is called,
+    # and a runner in front of the interpreter does not hide it.
+    for opener in ("patch -p1 <<'EOF'", "patch.exe -p1 <<'EOF'", "nohup bash <<'EOF'",
+                   "timeout 5 bash <<'EOF'"):
+        command = opener + NL + "echo x > project_memory/x.yaml" + NL + "EOF"
+        assert _write_scope(tmp_path, command).returncode == 2, command
+
+
+def test_a_patch_body_a_line_carries_names_the_paths_that_line_writes(tmp_path):
+    """BUG-0286: a here-document handed to a patch applier is a list of WRITES, not prose.
+
+    The read-only classification is per stage and the path travels: `git apply` is a writing stage,
+    but the paths it writes stood in the here-document body -- and the body was removed as prose
+    before the first reader, so `git apply <<'EOF'` with a diff naming
+    `.claude/hooks/gate_write_scope.py` was rc 0 at every registered Bash hook. That is the
+    enforcement layer rewriting itself inside one command line.
+
+    THE PROPERTY IS THE ONE THE SHELL CASE ALREADY HAD, not a second rule: for a shell, for `eval`,
+    for `.`/`source` and for a patch applier alike, the body is not DATA the program receives -- it
+    is what the program DOES. So the membership lives in one place (`_compat._STDIN_PARSER_RX`) and
+    a body of that kind is never removed.
+
+    WHAT STAYS OPEN and is measured rather than claimed: a patch that lies in a FILE
+    (`git apply changes.diff`, `patch -p1 < changes.diff`) is still rc 0 -- the paths are not in the
+    command line at all, and this gate decides before the line runs.
+    """
+    diff = (NL.join(("diff --git a/.claude/hooks/gate_write_scope.py"
+                     " b/.claude/hooks/gate_write_scope.py",
+                     "--- a/.claude/hooks/gate_write_scope.py",
+                     "+++ b/.claude/hooks/gate_write_scope.py",
+                     "@@ -1 +1 @@", "-x", "+y")) + NL)
+    for opener in ("git apply <<'EOF'", "patch -p1 <<'EOF'", "git am <<'EOF'"):
+        command = opener + NL + diff + "EOF"
+        assert _write_scope(tmp_path, command).returncode == 2, command
+    state = diff.replace(".claude/hooks/gate_write_scope.py",
+                         "project_memory/evidence/EVD-9999.yaml")
+    assert _write_scope(tmp_path, "git apply <<'EOF'" + NL + state + "EOF").returncode == 2
+
+    # The other direction: a body whose receiver neither parses nor applies it is prose, and the
+    # documented route out of `staging/` runs through exactly that.
+    prose = ("python scripts/harness.py capture SR <<'EOF'" + NL
+             + "a note about project_memory and a patch we discussed" + NL + "EOF")
+    assert _write_scope(tmp_path, prose).returncode == 0, prose
+
+
+def test_the_harness_borrows_only_what_this_kit_declares():
+    """BUG-0107: the workshop's own gates borrow this kit's readers, and the kit says what they may.
+
+    The coupling is deliberate -- a SECOND answer to "is this stage read-only" is the drift this
+    repository has paid for repeatedly -- and the price was a dependency on UNDERSCORED names that
+    nothing declared. Measured in this round, by accident and exactly as the bug predicts: a stray
+    parenthesis in `gate_write_scope.py` made `_harness.shell_reader` raise, and gate 1 then
+    refused every Bash call of the session -- fail-closed, loud, and unrepairable from inside.
+
+    THE SURFACE IS PER BORROWED MODULE, and the first cut of this test was not: it read
+    `gate_write_scope.HARNESS_BORROWS` and filtered the harness's attribute reads on the receiver
+    NAME `module`, so the second borrowed module was invisible. The verifier of TSK-0142 renamed
+    `_compat._MASK_RX` and measured `gate_lead_write_scope` refusing every Bash call of the session
+    while this test stayed green (B4).
+
+    So both ends are derived and neither is a list here: WHICH kit modules the workshop loads comes
+    from the `_from_kit("...")` calls in `_harness.py`; WHICH names it reaches on them comes from
+    the attribute reads on a receiver the file neither imports nor owns (`os` is imported, `self`
+    is the instance, `str` is a builtin -- what remains holds a kit module). Every declared name
+    must resolve in all three kits, and every reached underscored name must be declared somewhere.
+    """
+    with io.open(os.path.join(ROOT, ".claude", "hooks", "_harness.py"),
+                 encoding="utf-8") as handle:
+        source = handle.read()
+    tree = ast.parse(source)
+
+    loaded = sorted({node.args[0].value for node in ast.walk(tree)
+                     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                     and node.func.id == "_from_kit" and node.args
+                     and isinstance(node.args[0], ast.Constant)
+                     and isinstance(node.args[0].value, str)})
+    imported = {alias.asname or alias.name.split(".")[0] for node in ast.walk(tree)
+                if isinstance(node, (ast.Import, ast.ImportFrom))
+                for alias in node.names}
+    own = imported | {"self", "cls"} | set(dir(builtins))
+
+    declared, per_module = set(), {}
+    for name in loaded:
+        relative = os.path.join(TEAM_KITS, KITS[0], "hooks", name + ".py")
+        if not os.path.isfile(relative):
+            continue      # the kernel modules: loaded by import path, not out of a kit's hooks/
+        shared = None
+        for kit in KITS:
+            module = conftest.load_kit_module(
+                "%s_borrow_%s" % (name.strip("_"), kit.replace("-", "_")),
+                os.path.join(TEAM_KITS, kit, "hooks", name + ".py"))
+            names = set(getattr(module, "HARNESS_BORROWS", ()))
+            assert shared is None or names == shared, (
+                "%s declares a different borrow surface in %s" % (name, kit))
+            shared = names
+            missing = sorted(one for one in names if not hasattr(module, one))
+            assert not missing, "%s/%s declares names it does not have: %s" % (kit, name, missing)
+        per_module[name] = shared or set()
+        declared |= per_module[name]
+    assert any(per_module.values()), "no kit module the workshop loads declares a borrow surface"
+
+    reached = {node.attr for node in ast.walk(tree)
+               if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
+               and node.value.id not in own and node.attr.startswith("_")}
+    undeclared = sorted(reached - declared)
+    assert not undeclared, (
+        "`_harness` reaches names no kit module declares: %s -- add each to the HARNESS_BORROWS of "
+        "the module it lives in, with the reason, or stop borrowing it" % undeclared)
+
+
+def test_every_escape_character_of_this_kit_gets_its_own_reading():
+    """BUG-0158: `shell_readings` promised every reading a shell could give and built only one.
+
+    `_ESCAPE_CHARS` names two escape characters with the measurement for why -- POSIX escapes with
+    a backslash, PowerShell with a backtick, and both take the special meaning away from the next
+    character and vanish with it. `shell_words` resolved the backslash and nothing else, so a
+    backtick inside a path produced a word no reader ever saw: measured as a real office ledger
+    gate, `copy-item evil.py scr` + backtick + `ipts/ ; git commit -m x` was rc 0 while the same
+    line without the backtick was rc 2.
+
+    BOTH ENDS, and the second is what makes this more than a spelling check: the readings are
+    DERIVED from `_ESCAPE_CHARS`, so an escape character added to that constant gets a reading
+    without an edit here, and one removed loses it. The test asserts the derivation (a word built
+    with each character resolves under exactly one reading) rather than a count.
+    """
+    compat = conftest.load_kit_module("compat_escapes", os.path.join(HOOKS, "_compat.py"))
+    for escape in compat._ESCAPE_CHARS:
+        word = compat.shell_words("scr" + escape + "ipts/x", lambda chunk: [chunk])[0]
+        assert "scripts/x" in compat.shell_readings(word), (
+            "%r is in _ESCAPE_CHARS and produces no reading" % escape)
+    plain = compat.shell_words("scripts/x", lambda chunk: [chunk])[0]
+    assert compat.shell_readings(plain) == ("scripts/x",), (
+        "a word with no escape character must have exactly one reading")
+
+
+def test_a_copier_that_destroys_in_its_destination_is_a_delete_there(tmp_path):
+    """BUG-0207: a copier told to purge its destination is judged, not waved through as a copy.
+
+    Two readings answered in the wrong order. `_filing` recognises `robocopy` and `rsync` as
+    copiers by calling convention, so the copy/move branch answered the invocation and returned
+    before any destroying word was looked for -- and a copy INTO the archive is the kit's ordinary
+    filing operation, so nothing else looked either. Measured at the base as real guard processes:
+    `robocopy inbox archive/finance/2026 /MIR`, the same with `/PURGE`, and `rsync --delete` /
+    `--del` into the archive were all rc 0 over a real archive.
+
+    A SLASH INTRODUCES A FLAG, which is the second half: `/MIR` stood in none of the three
+    positions the destroying-word reader looked at -- not the command word, not a `-` flag, and not
+    a bare word, since the slash keeps it out of `_BARE_WORD_RX`.
+
+    WHAT MUST NOT MOVE, and it is the same distinction `_filing` already makes: a RELOCATING flag
+    deletes in the SOURCE and IS the filing move (`rsync --remove-source-files`, `robocopy /MOVE`),
+    and an ordinary copy into the archive is the everyday operation. Both are measured here, so a
+    repair that simply refused every copier is red.
+    """
+    project = _tray_project(tmp_path)
+    destroys_the_destination = ("robocopy inbox archive/finance/2026 /MIR",
+                               "robocopy inbox archive/finance/2026 /PURGE",
+                               "rsync --delete inbox/ archive/finance/2026/",
+                               "rsync --del inbox/ archive/finance/2026/")
+    for command in destroys_the_destination:
+        assert _guard(project, command) == 2, command
+    ordinary = ("rsync --remove-source-files inbox/scan.pdf archive/finance/2026/scan.pdf",
+                "robocopy inbox archive/finance/2026 /MOVE",
+                "cp inbox/scan.pdf archive/finance/2026/scan.pdf",
+                "mv inbox/scan.pdf archive/finance/2026/scan.pdf",
+                "cp archive/finance/2026/invoice.pdf /tmp/x.pdf",
+                "cp /archive/finance/2026/x.pdf docs/x.pdf")
+    for command in ordinary:
+        assert _guard(project, command) == 0, command
+
+
+def test_a_staging_without_its_trust_recorder_is_refused_before_anything_is_installed(tmp_path):
+    """BUG-0277: no project comes out of a first install with nothing vouching for its hook bundle.
+
+    `write_kit_state.py` records the installed hook bundle's trust, and it is also one of
+    `kernel.hashing.kit_hash_inputs`. A staging copied without it therefore scaffolded green on a
+    `[warn]` nobody reads -- `doctor` then says `hook_trust: unverified` -- while every later stamp
+    comparison refused the SAME staging by its hash ("does not hash to the content in its own
+    VERSION"), so the first install succeeded and the update route was shut behind it. Measured
+    2026-09-11 for all three kits.
+
+    BOTH LAUNCHERS AND BOTH DIRECTIONS: the refusal comes BEFORE anything is copied (the project
+    keeps no installed hooks at all), and the SAME staging with the recorder put back is not
+    refused by this rule -- that half is what keeps the check from being "refuse everything".
+    """
+    shell, spelling = _scaffold_shell(tmp_path, None)
+    home = tmp_path / "home"
+    staging = home / ".claude" / "team-kits"
+    shutil.copytree(os.path.join(ROOT, "team-kits"), str(staging),
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    recorder = os.path.join(str(staging), "write_kit_state.py")
+    kept = open(recorder, "rb").read()
+    os.remove(recorder)
+
+    def scaffold(name, launcher):
+        repo = tmp_path / name
+        source = os.path.join(str(staging), "office-team", "templates", "project_memory",
+                              "project_config.yaml")
+        os.makedirs(str(repo / "project_memory"), exist_ok=True)
+        with open(source, encoding="utf-8") as handle:
+            write(str(repo / "project_memory" / "project_config.yaml"),
+                  re.sub(r"(?m)^(\s*preset:\s*).*$", r"\g<1>core", handle.read()))
+        environment = dict(os.environ, HOME=str(home), USERPROFILE=str(home))
+        if launcher == "sh":
+            environment["HOME"] = spelling(home)
+            command = [shell, spelling(os.path.join(str(staging), "scaffold_team.sh")),
+                       "office-team"]
+        else:
+            command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                       os.path.join(str(staging), "scaffold_team.ps1"), "-Team", "office-team"]
+        return repo, subprocess.run(command, cwd=str(repo), capture_output=True, text=True,
+                                    timeout=900, env=environment)
+
+    launchers = []
+    if shell is not None:
+        launchers.append("sh")
+    if os.name == "nt" and shutil.which("powershell"):
+        launchers.append("ps1")
+    if not launchers:
+        pytest.skip("neither launcher can be run on this machine")
+
+    for launcher in launchers:
+        repo, result = scaffold("refused-" + launcher, launcher)
+        assert result.returncode != 0, (
+            "%s installed from a staging with no trust recorder:%s%s"
+            % (launcher, NL, result.stdout + result.stderr))
+        assert not os.path.isdir(str(repo / ".claude" / "hooks")), (
+            "%s copied hooks before refusing" % launcher)
+
+    # ...and the same staging with the recorder back is not refused by THIS rule. The stamp check
+    # further on may still refuse an edited kit source, which is a different sentence -- so what is
+    # asserted is that the refusal above is gone from the output, not that the install succeeds.
+    open(recorder, "wb").write(kept)
+    for launcher in launchers:
+        _repo, result = scaffold("allowed-" + launcher, launcher)
+        assert "nothing could vouch for" not in (result.stdout + result.stderr), (
+            "%s still refuses a staging that carries its recorder" % launcher)
+
+
+def _stamp_staging(staging):
+    """Re-stamp every kit in a COPIED staging so it is a delivered kit and not a work tree.
+
+    `write_kit_state.py` refuses a kit whose files do not hash to the `content:` in its own
+    VERSION, and the scaffold stops there. That refusal is right -- an edited kit source must not
+    install as if it were a release -- but it makes every test that really runs a scaffold measure
+    whether somebody has run `tools/bump_kit_version.py` since the last kit edit, which is a fact
+    about the working tree and not about the installer. A staging a user receives is stamped; this
+    builds one.
+
+    The hash comes from `kernel.hashing.kit_hash`, the same definition the stamper and the recorder
+    both call, so a staging stamped here is one the recorder accepts by the recorder's own rule.
+    """
+    sys.path.insert(0, str(staging))
+    from kernel.hashing import kit_hash
+    for name in sorted(os.listdir(str(staging))):
+        version = os.path.join(str(staging), name, "VERSION")
+        if not os.path.isfile(version):
+            continue
+        text = open(version, encoding="utf-8").read()
+        fresh = kit_hash(os.path.join(str(staging), name))
+        with open(version, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(re.sub(r"(?m)^(content:[ \t]*).*$", lambda m: m.group(1) + fresh, text))
+
+
+def test_the_installer_records_which_files_it_places_outside_the_hook_bundle(tmp_path):
+    """BUG-0265: a project's OWN script in `scripts/` was unswept, because nothing recorded whose
+    the files in there are.
+
+    `kernel.report.installed_kit_paths` could only name the DIRECTORIES a kit fills
+    (`INSTALLER_SCRIPT_DIRS = ("scripts", "tools")`), so the pointer sweep skipped everything in
+    them -- the kit's copies and the project's own files alike -- and no finding said so. AC-2 asks
+    for a record the INSTALLER writes; this measures that record, on both launchers, from a real
+    scaffold.
+
+    THE PROPERTY IS DOUBLE-ENDED and derived from the filesystem rather than from a list: every
+    file that exists BOTH in the kit's `templates/repo` tree and in the installed project is
+    recorded (so a template the walk stops covering is red), and NOTHING else is (so the project's
+    own `scripts/` file, planted before the run, must not appear -- that is the over-exclusion the
+    bug is about). The two launchers are compared byte for byte: a manifest whose shape depends on
+    which twin installed is one no reader can rely on.
+    """
+    shell, spelling = _scaffold_shell(tmp_path, None)
+    home = tmp_path / "home"
+    staging = home / ".claude" / "team-kits"
+    shutil.copytree(os.path.join(ROOT, "team-kits"), str(staging),
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    _stamp_staging(staging)
+    template_root = os.path.join(str(staging), "office-team", "templates", "repo")
+    templates = set()
+    for base, _dirs, files in os.walk(template_root):
+        for name in files:
+            templates.add(os.path.relpath(os.path.join(base, name),
+                                          template_root).replace(os.sep, "/"))
+    assert "scripts/harness.py" in templates, "the office kit ships no scripts/ template any more"
+    own = "scripts/a_script_this_project_wrote_itself.py"
+
+    def scaffold(launcher):
+        repo = tmp_path / ("repo-" + launcher)
+        source = os.path.join(str(staging), "office-team", "templates", "project_memory",
+                              "project_config.yaml")
+        os.makedirs(str(repo / "project_memory"), exist_ok=True)
+        with open(source, encoding="utf-8") as handle:
+            write(str(repo / "project_memory" / "project_config.yaml"),
+                  re.sub(r"(?m)^(\s*preset:\s*).*$", r"\g<1>core", handle.read()))
+        write(str(repo / own), "# this file is the project's, not the kit's\n")
+        environment = dict(os.environ, HOME=str(home), USERPROFILE=str(home))
+        if launcher == "sh":
+            environment["HOME"] = spelling(home)
+            command = [shell, spelling(os.path.join(str(staging), "scaffold_team.sh")),
+                       "office-team"]
+        else:
+            command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                       os.path.join(str(staging), "scaffold_team.ps1"), "-Team", "office-team"]
+        result = subprocess.run(command, cwd=str(repo), capture_output=True, text=True,
+                                timeout=900, env=environment)
+        assert result.returncode == 0, (
+            "%s scaffold failed:%s%s" % (launcher, NL, result.stdout + result.stderr))
+        return repo
+
+    launchers = []
+    if shell is not None:
+        launchers.append("sh")
+    if os.name == "nt" and shutil.which("powershell"):
+        launchers.append("ps1")
+    if not launchers:
+        pytest.skip("neither launcher can be run on this machine")
+
+    written = {}
+    for launcher in launchers:
+        repo = scaffold(launcher)
+        manifest = repo / ".claude" / "kit_repo_files.json"
+        assert manifest.is_file(), "%s installed no .claude/kit_repo_files.json" % launcher
+        written[launcher] = manifest.read_bytes()
+        recorded = json.loads(manifest.read_text(encoding="utf-8-sig"))
+        assert recorded.get("kit") == "office-team", recorded
+        landed = {one for one in templates if os.path.isfile(str(repo / one))}
+        assert set(recorded.get("repo_files") or []) == landed, (
+            "%s recorded %r, the kit really placed %r"
+            % (launcher, sorted(recorded.get("repo_files") or []), sorted(landed)))
+        assert own not in landed and own not in (recorded.get("repo_files") or []), (
+            "%s recorded the project's own script as kit material" % launcher)
+
+    if len(written) == 2:
+        assert written["sh"] == written["ps1"], (
+            "the two launchers write different manifests:%s%r%s%r"
+            % (NL, written["sh"], NL, written["ps1"]))
+
+
+def test_neither_twin_replays_a_manifest_line_that_is_not_the_installers_to_write(tmp_path):
+    """BUG-0180 (H88, a3 and a5): a snapshot's RESTORE_SET was replayed over two classes of line
+    neither launcher owns -- a word carrying its own ROOT, which the twins answered differently, and
+    a KEPT_ONLY path, which both replayed at rc 0 over the user's own file.
+
+    Measured on the shipped launchers before the fix (2026-09-12, real installs, a hand-written
+    snapshot): the rooted line came back rc 1 from the POSIX twin through the OWNERSHIP refusal --
+    the wrong reason, a sentence about a foreign manifest -- and rc 1 from the PowerShell twin
+    through an unhandled `GetFullPath` NotSupportedException, no sentence at all; the
+    `.claude/settings.local.json` line came back **rc 0 from both**, with the user's file replaced
+    by the snapshot's copy. The second is a silent loss of a file the installer never writes, inside
+    one command.
+
+    WHAT IS MEASURED HERE is the refusal of both classes by both launchers, in one run each, with
+    the user's file and a file outside the project as witnesses. The OTHER end -- that a manifest
+    this installer itself wrote still replays -- is not restated here: it is a real two-install
+    rollback and `tools/test_kitupdate.py::test_a_rollback_restores_the_previous_bundle_byte_for_byte`
+    is that run, parametrised over both twins, and goes red if this predicate refuses an own line --
+    a run that is STAMP-DEPENDENT (it does not re-stamp its staging), so on a working tree between
+    two bumps it is red for that reason and measures nothing. The direct measurement was therefore
+    taken by hand as well, on 2026-09-12: two real installs per twin, then `--rollback` over the
+    16-line manifest the installer itself wrote -- **rc 0 in both twins**
+    (`_round-scratch/TSK-0142/b3/own_manifest_probe.py`).
+    """
+    shell, spelling = _scaffold_shell(tmp_path, None)
+    launchers = []
+    if shell is not None:
+        launchers.append("sh")
+    if os.name == "nt" and shutil.which("powershell"):
+        launchers.append("ps1")
+    if not launchers:
+        pytest.skip("neither launcher can be run on this machine")
+
+    home = tmp_path / "home"
+    staging = home / ".claude" / "team-kits"
+    shutil.copytree(os.path.join(ROOT, "team-kits"), str(staging),
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    _stamp_staging(staging)
+    source = os.path.join(str(staging), "dev-team", "templates", "project_memory",
+                          "project_config.yaml")
+    with open(source, encoding="utf-8") as handle:
+        config = handle.read().replace('name: ""', 'name: "Probe"').replace("stacks: [TODO]",
+                                                                            "stacks: [python]")
+    outside = tmp_path / "victim.txt"
+    write(str(outside), "a file no project owns\n")
+    mine = '{"from": "what the user has today"}\n'
+    cases = {
+        # The two classes, each as the ONE line a snapshot carries beside an ordinary one.
+        "rooted": (str(outside).replace("\\", "/"), "not repo-relative names"),
+        "kept": (".claude/settings.local.json", "backs up and never writes"),
+    }
+
+    def install(repo, launcher):
+        write(str(repo / "project_memory" / "project_config.yaml"), config)
+        environment = dict(os.environ, HOME=str(home), USERPROFILE=str(home))
+        if launcher == "sh":
+            environment["HOME"] = spelling(home)
+            command = [shell, spelling(os.path.join(str(staging), "scaffold_team.sh")), "dev-team"]
+        else:
+            command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                       os.path.join(str(staging), "scaffold_team.ps1"), "-Team", "dev-team"]
+        done = subprocess.run(command, cwd=str(repo), capture_output=True, text=True, timeout=900,
+                              env=environment, encoding="utf-8", errors="replace")
+        assert done.returncode == 0, (launcher, done.stdout + done.stderr)
+
+    for launcher in launchers:
+        for case, (line, says) in cases.items():
+            repo = tmp_path / ("repo-%s-%s" % (launcher, case))
+            install(repo, launcher)
+            snapshot = repo / ".claude" / "backups" / "20260912-000000"
+            write(str(snapshot / "RESTORE_SET"), line + "\nCLAUDE.md\n")
+            # The snapshot HOLDS a copy of the kept-only file -- that is what the backup pass does
+            # with it, and it is the half that let the line through the ownership rule.
+            write(str(snapshot / ".claude" / "settings.local.json"), '{"from": "the OLD snapshot"}\n')
+            write(str(repo / ".claude" / "settings.local.json"), mine)
+            environment = dict(os.environ, HOME=str(home), USERPROFILE=str(home))
+            if launcher == "sh":
+                environment["HOME"] = spelling(home)
+                command = [shell, spelling(os.path.join(str(staging), "scaffold_team.sh")),
+                           "dev-team", "--rollback"]
+            else:
+                command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                           os.path.join(str(staging), "scaffold_team.ps1"), "-Team", "dev-team",
+                           "-Rollback"]
+            done = subprocess.run(command, cwd=str(repo), capture_output=True, text=True,
+                                  timeout=900, env=environment, encoding="utf-8",
+                                  errors="replace")
+            said = (done.stdout or "") + (done.stderr or "")
+            assert done.returncode != 0, (
+                "%s/%s replayed a line it does not own:%s%s" % (launcher, case, NL, said))
+            assert says in said, ("%s/%s refused for another reason:%s%s"
+                                  % (launcher, case, NL, said))
+            assert outside.is_file(), "%s/%s removed a file outside the project" % (launcher, case)
+            with open(str(repo / ".claude" / "settings.local.json"), encoding="utf-8") as handle:
+                assert handle.read() == mine, (
+                    "%s/%s overwrote the user's own settings with the snapshot's copy"
+                    % (launcher, case))
+
+
+def test_einvoice_a_tax_total_its_own_breakdown_contradicts_is_refused(tmp_path):
+    """BUG-0167 (H75): an internally consistent HEAD whose own VAT breakdown says another number
+    went through at rc 0 -- BR-CO-15 held (BT-112 = BT-109 + BT-110) and BR-CO-14 was unchecked.
+
+    The document states the tax total twice: once as BT-110 in the header summation, once as the
+    sum of BT-117 over the breakdown (BG-23). A document that contradicts itself there is one whose
+    figures the bookkeeper may not take -- the head reconciles, so every arithmetic guard this
+    reader had was silent, and the ledger would carry a tax amount the document's own breakdown
+    denies.
+
+    THE THREE DIRECTIONS, because a guard that only refuses is a guard nobody keeps: a breakdown
+    that agrees passes, a document that states NO breakdown passes (the norm allows a reader not to
+    receive one and this reader invents nothing), and the contradiction is refused with both figures
+    printed.
+    """
+    agreeing = _cii(('<ram:TaxBasisTotalAmount>1000.00</ram:TaxBasisTotalAmount>'
+                     '<ram:TaxTotalAmount>130.00</ram:TaxTotalAmount>'
+                     '<ram:GrandTotalAmount>1130.00</ram:GrandTotalAmount>'),
+                    trade_tax=_cii_trade_tax("500.00", "35.00", "7")
+                    + _cii_trade_tax("500.00", "95.00", "19"))
+    passing = _einvoice(tmp_path, agreeing, "agreeing.xml")
+    assert passing.returncode == 0, passing.stdout + passing.stderr
+
+    silent = _cii(('<ram:TaxBasisTotalAmount>1000.00</ram:TaxBasisTotalAmount>'
+                   '<ram:TaxTotalAmount>190.00</ram:TaxTotalAmount>'
+                   '<ram:GrandTotalAmount>1190.00</ram:GrandTotalAmount>'))
+    without = _einvoice(tmp_path, silent, "no-breakdown.xml")
+    assert without.returncode == 0, without.stdout + without.stderr
+
+    # The head is internally consistent -- 1000.00 + 190.00 = 1190.00 -- and its own breakdown
+    # adds up to 130.00.
+    contradicting = _cii(('<ram:TaxBasisTotalAmount>1000.00</ram:TaxBasisTotalAmount>'
+                          '<ram:TaxTotalAmount>190.00</ram:TaxTotalAmount>'
+                          '<ram:GrandTotalAmount>1190.00</ram:GrandTotalAmount>'),
+                         trade_tax=_cii_trade_tax("500.00", "35.00", "7")
+                         + _cii_trade_tax("500.00", "95.00", "19"))
+    refused = _einvoice(tmp_path, contradicting, "contradicting.xml")
+    assert refused.returncode == 2, (
+        "a tax total its own breakdown contradicts was accepted:%s%s%s"
+        % (NL, refused.stdout, refused.stderr))
+    assert "130.00" in refused.stderr and "190.00" in refused.stderr, refused.stderr
+    assert "BR-CO-14" in refused.stderr, refused.stderr

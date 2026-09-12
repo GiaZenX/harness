@@ -1,0 +1,58 @@
+id: BUG-0295
+title: Ein DEC-Verweis in einem Python-Docstring einer ausgelieferten Kit-Datei wird
+  von keinem Leser beurteilt, wenn die Anfuehrungszeichen-Paarung ihn verschluckt
+  (2 von 190, gemessen)
+observed: 'MEASURED 2026-09-12 (TSK-0143, stream C, rework 2; the verifier of round
+  2 raised it as R4 and this is the narrowed measurement). Two readers judge DEC ids
+  in the shipped tree: `tools/test_repo_hygiene.py::_dec_citations` (bare prose, skipping
+  any id inside a delimiter LONGER than itself) and `::_dec_citations_in_messages`
+  (string literals of a python source, read through `ast`, docstrings deliberately
+  excluded because documentation may EXHIBIT an id -- the memory-budget guard shows
+  `"a DEC-2100 controller"` as its own false positive). Between them, a docstring
+  id is normally still judged by the FIRST reader, because it stands outside any paired
+  delimiter: 184 of the 190 DEC ids in docstrings of shipped kit `.py` files are judged.
+  SIX are judged by nobody, and the cause is the positional pairing meeting the triple
+  quote -- `_DELIMITED_RX` pairs `"` from the left, `"""` opens an empty span plus
+  one that swallows the docstring body. Four of the six are deliberate illustrations
+  (`DEC-2100` in the three `guard_memory_budget.py` docstrings, `DEC-0000` in `team-kits/kernel/migrate.py:1291`).
+  TWO are real citations nobody can follow if they rot: `team-kits/kernel/dispatch.py:204`
+  -- `"""(rung, effort) the PM asked for on this order -- each a string or None (DEC-0091
+  (1))."""` -- and `team-kits/office-team/templates/repo/scripts/invoice_intake.py:370`
+  -- `"""The booked doc type for this type code, with the cross-reference rules of
+  DEC-0075 (5)."""`. LEAD 2026-09-12: N1 of verify-round-3 corrected at capture (two
+  decisions, not one).'
+expected: 'Either both readers together judge every DEC citation of a shipped kit
+  file, or the docstring exclusion states which ids it lets through and a check holds
+  that number. The narrow repair is a definition, not a list: the prose reader''s
+  delimiter pairing has to read a triple quote as ONE delimiter rather than as three
+  single ones, which is the same correction the pointer sweep took for fenced blocks
+  (BUG-0263). What must NOT change with it: an id a docstring EXHIBITS stays unjudged
+  -- that is what the DEC-2100 sites are for, and reporting them would be a false
+  red.'
+repro: 'In a copy outside the repo: replace `DEC-0091` at team-kits/kernel/dispatch.py:204
+  with an id this store does not hold (e.g. DEC-9142) and run `python -B -m pytest
+  tools/test_repo_hygiene.py -q -k "every_decision_pointer_in_a_shipped or decision_named_in_a_message"`
+  -> both green. Move the same id one line down into the function body as a comment
+  -> the first reader reports it.'
+severity: low
+acceptance_criteria:
+- 'AC-1: a dead DEC id planted in the docstring at team-kits/kernel/dispatch.py:204
+  is reported, measured red-first'
+- 'AC-2: the four deliberate illustrations (three DEC-2100, one DEC-0000) stay unreported,
+  measured on those four spans'
+- 'AC-3: the round states how many docstring ids are judged before and after, counted
+  with one reader over one corpus'
+limits: 'Zwei Verweise auf zwei verschiedene Entscheidungen (DEC-0091, DEC-0075) stehen
+  in einem Erklärtext mitten im Kit-Code, und keine Prüfung schaut sie an: wird eine
+  der beiden Entscheidungen eines Tages abgelöst, fällt es an diesen zwei Stellen
+  niemandem auf. Gemessen sind es zwei von 190 — alle anderen werden geprüft. Wer
+  diesen Text liest, ist ein Entwickler und nicht der Nutzer, und beide Entscheidungen
+  gibt es heute.'
+related_pr: PR-0012
+source: project_memory/staging/TSK-0143/verify-round-1.md and verify-round-2.md (R4);
+  measured in staging/TSK-0143/protocol.md, section 'Rework 2'
+hole_number: H211
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:56:47'

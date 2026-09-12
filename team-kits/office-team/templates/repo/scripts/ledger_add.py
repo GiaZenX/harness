@@ -242,6 +242,18 @@ def _reversal_matches(where, row, target_row, target):
     return findings
 
 
+def is_malformed(row):
+    """Does this row's SHAPE disagree with the header? -- one spelling, two readers.
+
+    `csv.DictReader` files the overflow of a too-long row under the `None` key and pads a too-short
+    one with a `None` value, so both shapes are one question. Both the per-row report and
+    `validate_cross` ask it here rather than each for itself: the second reader is the one that used
+    to sort such a row's column names and raise `TypeError` instead of leaving the finding to the
+    first (`tools/test_hooks_v2.py::test_a_malformed_existing_row_stops_the_write`).
+    """
+    return None in row or None in row.values()
+
+
 def validate_cross(rows, year=""):
     """Every rule that needs the OTHER rows: identity, the year, duplicates, the reversal graph.
 
@@ -250,7 +262,16 @@ def validate_cross(rows, year=""):
     booked-then-reversed 119 EUR expense reported as -119 EUR, and two reversals of one original
     do the same. Nothing else in the pipeline would notice -- the report has no reason to suspect
     its input, and a negative expense total looks like a data-entry mistake, not a rule gap.
+
+    A ROW WHOSE SHAPE IS BROKEN IS NOT A SUBJECT HERE, and that is not tidiness: csv files the
+    OVERFLOW of an unquoted comma under the `None` key, and the duplicate reading sorts the row's
+    own column names -- so one hand-edited line with a stray comma raised
+    `TypeError: '<' not supported between 'NoneType' and 'str'` out of the middle of a validation
+    that had already produced the right finding one line earlier (measured 2026-09-12 on the append
+    path: a traceback instead of "wrong number of columns"). The caller reports those rows through
+    `is_malformed`; comparing them with each other says nothing on top of that.
     """
+    rows = [(where, row) for where, row in rows if not is_malformed(row)]
     findings, seen_ids, invoices = [], {}, {}
     by_id = {}
     for where, row in rows:
@@ -328,6 +349,31 @@ def validate_cross(rows, year=""):
             findings.append("duplicate invoice %s / %s booked %d times (%s) — a correction needs a "
                             "reversal, not a second booking"
                             % (key[0], key[1], len(live), ", ".join(w for w, _ in live)))
+
+    # ...AND THE SAME BOOKING WITHOUT AN INVOICE NUMBER (`BUG-0182`). The rule above needs
+    # `invoice_no`, which a receipt, a fee or a bank charge often does not have -- so two rows that
+    # differ in NOTHING BUT THEIR ID were a double booking of one voucher that every layer let
+    # through: `gate_second_booking` pairs its readings on `source`, so both rows were covered by
+    # ONE reading pair, and this validator asked only about ids and invoice numbers.
+    #
+    # THE KEY IS THE WHOLE ROW MINUS THE ID, and that is the definition rather than a choice of
+    # columns: the id is allocated at write time and is the one field two bookings of one voucher
+    # cannot share, so everything else agreeing IS the duplicate. A business that really books one
+    # voucher twice (two identical positions) makes them distinguishable -- the `note` column is
+    # there for that -- and the finding says so.
+    same = {}
+    for where, row in rows:
+        rid = (row.get("id") or "").strip()
+        if row.get("doc_type") == "reversal" or rid in cancelled:
+            continue
+        key = tuple(sorted((name, str(value)) for name, value in row.items() if name != "id"))
+        same.setdefault(key, []).append(where)
+    for key, places in sorted(same.items()):
+        if len(places) > 1:
+            findings.append("the same booking stands %d times and differs only in its id (%s) — "
+                            "one voucher booked twice. If both are real, tell them apart in `note`; "
+                            "if one is a mistake, a correction needs a reversal, not a deletion"
+                            % (len(places), ", ".join(places)))
     return findings
 
 
@@ -554,7 +600,7 @@ def validate_file(path):
     labelled = label_rows(rows)
     findings = []
     for where, row in labelled:
-        if None in row or None in row.values():
+        if is_malformed(row):
             findings.append("%s: wrong number of columns" % where)
         findings.extend(validate_row(row, where))
     findings.extend(validate_cross(labelled, year))

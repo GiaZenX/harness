@@ -1,0 +1,20 @@
+id: EVD-0401
+kind: test
+related:
+- BUG-0278
+result: pass
+summary: 'Rework 2 R1+R2: the correlative negation (neither...nor, weder...noch) and
+  nothing are read, and the prepositional complement ends at the next DETERMINER instead
+  of after three words -- a preposition governs ONE noun phrase, which is a definition
+  where a width was a calibration. 35 measured rows, 0 wrong. SUPERSEDES EVD-0381,
+  whose run predates both repairs'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_ladder.py::test_a_german_acceptance_line_is_read_like_its_english_twin
+  tools/test_ladder.py::test_every_listed_denial_word_is_the_reason_its_sentence_is_refused
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T13:14:55'
+closed_at: '2026-09-12T13:51:19'

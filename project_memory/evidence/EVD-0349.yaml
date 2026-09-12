@@ -1,0 +1,18 @@
+id: EVD-0349
+kind: test
+related:
+- BUG-0163
+result: pass
+summary: 'H71 closed on the one-liner the item names: pending_entries and _same_but_for_line_endings
+  answer UNKNOWN for every failure to read, not only for OSError -- a ValueError out
+  of a codec used to travel up and abort update-kit after the installer had already
+  moved the tree (the hook was guarded, the command was not). The other three limits
+  of the entry stand with their bounds'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_kitupdate.py::test_a_pending_list_that_cannot_be_read_at_all_is_unknown_and_not_a_crash
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T10:57:33'

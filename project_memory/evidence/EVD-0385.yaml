@@ -1,0 +1,17 @@
+id: EVD-0385
+kind: test
+related:
+- BUG-0152
+result: pass
+summary: 'H60 closed (verifier B7): filing.coverage_not_compared is the third answer
+  -- not read and no source named is not the same as nothing to report -- and report.validate_state
+  says it. Bounded to the state it is about: a plan that HAS rules while nobody recorded
+  what the business receives; a fresh project with both empty is gate_filing''s case'
+artifact_refs:
+- staging/TSK-0141/protocol.md
+run_command: python -B -m pytest tools/test_kernel.py::test_a_filing_profile_that_answers_nothing_is_told_apart_from_full_coverage
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T12:38:30'

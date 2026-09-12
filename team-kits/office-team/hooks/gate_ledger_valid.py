@@ -238,9 +238,17 @@ _CD_LEDGER_RX = re.compile(r"(?:^|[;&|]|\bcd\s)\s*cd\s+\.?/?ledger\b", re.IGNORE
 # had the span `-B tools/ledger_add.py` removed as if it were a commit MESSAGE -- the decoy
 # validator disappeared from the view before anything judged it. Nothing here needs the folding:
 # these are git's own flags, and git does not accept them in another case.
+#
+# WHAT A QUOTED SPAN IS, written once. Two readers of this file need it -- the message payload
+# here and the syntax view further down -- and the second was written while the first already
+# carried the same alternation inline, which is a second place for one rule to rot. It is NOT
+# borrowed from `_compat`: that module's copy is a private of its own word splitter, and a gate
+# reaching into a sibling's internals is the defect `BUG-0107` is about.
+_QUOTED_SPAN = r"\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'"
+_QUOTED_SPAN_RX = re.compile(_QUOTED_SPAN)
 _MESSAGE_ARG_RX = re.compile(
     r"(?-i:(?:-m|--message|--body|-b|--notes|--squash-message))(?:=|\s+)"
-    r"(\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|[^\s;|&]+)", re.IGNORECASE)
+    r"(" + _QUOTED_SPAN + r"|[^\s;|&]+)", re.IGNORECASE)
 
 
 # `$(…)`, backticks and `${…}` inside a message payload are EXECUTED by the shell. Stripping the
@@ -335,8 +343,74 @@ _READ_ONLY_GIT = frozenset((
 # that pays it. `gate_write_scope` in this kit made the same discovery and treats a pipeline as
 # one unit for exactly this reason.
 _SEGMENT_SPLIT_RX = re.compile(r"&&|\|\||[;&\n]")
-# A substitution OPENS a new command, so it has to open a new SEGMENT.
+# A substitution OPENS a new command, so it has to open a new SEGMENT. It is part of the CUT
+# below rather than a rewrite of the text, because a rewrite has to put its separator somewhere,
+# and the only place available was inside the quoted span the substitution stands in -- which is
+# what made a quote-aware cut impossible for a round (`BUG-0160`'s `limits`).
 _SUBSTITUTION_OPEN_RX = re.compile(r"\$\(|<\(|>\(|`")
+# ...and the two together are what ENDS a command context, in one pattern, because the cut below
+# has to find them in one pass over one view.
+_COMMAND_CUT_RX = re.compile(_SEGMENT_SPLIT_RX.pattern + "|" + _SUBSTITUTION_OPEN_RX.pattern)
+# A PIPE cuts a segment into stages, and it is its own pattern for the same reason: the stage cut
+# is the same operation on the same view, with a different separator.
+_STAGE_CUT_RX = re.compile(r"\|")
+# THE CHARACTER AN INERT QUOTED SPAN IS FILLED WITH. It has to be a character that is neither a
+# separator nor a word end nor whitespace, so that filling can only ever REMOVE syntax from the
+# view and never invent a boundary; and it has to be legal inside a path, so a redirect target
+# found in the view has the same extent as the one in the text.
+_INERT_FILLER = "x"
+
+
+def _syntax_view(text):
+    """`text` with the CONTENT of every inert quoted span filled — same length, so offsets hold.
+
+    WHICH CHARACTERS OF A COMMAND LINE ARE SYNTAX, asked once for every reader that cuts. A shell
+    reads `;`, `|`, `&` and a newline as separators and `>` as a redirection only where they stand
+    as CODE; inside a quoted span the same characters are data the program receives. The cutters
+    of this gate used the plain text and therefore cut inside argument prose: `grep "a; b"
+    ledger/2026.csv && git commit` was rc 2 because the half after the quoted semicolon had the
+    ledger path and a verb (`b"`) no read-only table knows, and `grep -n "row > ledger/2026.csv"
+    ledger/2026.csv && git commit` was rc 2 because the quoted `>` was read as a redirection into
+    the books (`BUG-0160`, `BUG-0156`).
+
+    A SUBSTITUTION OPENING IS NEVER DATA, and that single exception is what the whole view turns
+    on. `"$(cp evil.py scripts/)"` is a quoted span whose content the shell RUNS, and the cut at
+    its opening is the only reason that line is refused (`BUG-0065`). So the fill skips exactly
+    the characters of a `_SUBSTITUTION_OPEN_RX` match and covers everything else in the span.
+
+    IT IS NOT `_payload_is_inert`'S QUESTION, although that is the same distinction one level up,
+    and the difference is measured rather than stylistic: this view is taken of a READING, where
+    `_as_one_word` has put quote marks around values the shell BUILT. A span-wide inertness test
+    short-circuits on a single quote, so the synthesised `'$(tar'` of `echo "$(tar -xf evil.tar -C
+    scripts/)"` counted as inert, the opening was filled, and the line went from rc 2 to rc 0 in
+    the first cut of this function -- `BUG-0065` reopened by the repair of `BUG-0160`. Skipping the
+    opening character-wise cannot have that failure mode, because it never asks a question about
+    the span as a whole
+    (`tools/test_hooks_v2.py::test_a_quoted_separator_is_argument_text_and_a_substitution_still_cuts`).
+
+    LENGTH-PRESERVING is the whole interface: every caller finds its separators HERE and then cuts
+    the ORIGINAL text at those offsets, so no reader downstream ever sees the filler.
+    """
+    view = list(text)
+    for match in _QUOTED_SPAN_RX.finditer(text):
+        kept = set()
+        for opening in _SUBSTITUTION_OPEN_RX.finditer(match.group(0)):
+            kept.update(range(match.start() + opening.start(), match.start() + opening.end()))
+        for index in range(match.start() + 1, match.end() - 1):
+            if index not in kept:
+                view[index] = _INERT_FILLER
+    return "".join(view)
+
+
+def _cut(text, pattern):
+    """`text` cut at every `pattern` match that stands in its SYNTAX view — the pieces, in order."""
+    view = _syntax_view(text)
+    pieces, last = [], 0
+    for match in pattern.finditer(view):
+        pieces.append(text[last:match.start()])
+        last = match.end()
+    pieces.append(text[last:])
+    return pieces
 # NORMALISE BEFORE SPLITTING, rather than adding a separator case per spelling. Four ordinary
 # forms tore the pipeline unit apart again and left the path in one segment with the write verb in
 # the next: a backslash-newline continuation (which is simply how a long command is FORMATTED), a
@@ -361,15 +435,22 @@ _NEWLINE_AROUND_PIPE_RX = re.compile(r"\s*\n\s*\|\s*|\s*\|\s*\n\s*")
 def _normalise_pipeline(text):
     """One shape for every way a shell can spell the same pipeline.
 
-    THE BODY OF A LITERALLY-QUOTED HERE-DOCUMENT IS NOT A PIPELINE, and this gate was the last
-    reader in the kit that still judged it as one. `_compat.literal_heredoc_free` is that rule --
-    a quoted delimiter means POSIX expands nothing in the body, and a body handed to a command
-    PARSER (`sh <<'EOF'`) is kept for exactly that reason. Measured in pilot 4 (`P4-12`): the
-    office manager's `git commit -m "$(cat <<'EOF' … EOF)"` was refused because a line of its
-    MESSAGE read "bookkeeper booked ledger entry L2025-0001" -- a ledger path plus a word this
-    reader took for a verb. Nothing about that command touched a file.
+    A HERE-DOCUMENT BODY IS PROSE WHEN THE PROGRAM THAT RECEIVES IT ONLY READS, and that question
+    is this gate's own (`_verb_only_reads`) because no general one exists. Measured in pilot 4
+    (`P4-12`): the office manager's `git commit -m "$(cat <<'EOF' … EOF)"` was refused because a
+    line of its MESSAGE read "bookkeeper booked ledger entry L2025-0001" -- a ledger path plus a
+    word this reader took for a verb. `cat` only reads, so that body is prose and goes.
+
+    WHAT THE BORROWED RULE COST, and why it is not borrowed any more: `_compat.literal_heredoc_free`
+    asks what the SHELL EXPANDS, so it removed the body of `python <<'EOF'` too -- and a body
+    handed to an INTERPRETER is a program that can rewrite the ledger's own judge. Measured rc 0 on
+    a broken ledger, with the validator replaced from inside such a body (`BUG-0149`). `python` is
+    not a verb this gate calls read-only, so its body now stays in the view and every rule below
+    reads it
+    (`tools/test_hooks_v2.py::test_a_heredoc_body_an_interpreter_executes_is_not_prose_here`).
     """
-    text = _compat.join_line_continuations(_compat.literal_heredoc_free(text))
+    text = _compat.join_line_continuations(_compat.heredoc_free(
+        text, lambda literal, fed, head: fed or not _verb_only_reads(head)))
     text = _PIPE_AMP_RX.sub("|", text)
     text = _NEWLINE_AROUND_PIPE_RX.sub(" | ", text)
     # ...and a newline whose next line begins with a FLAG continues the same command. Splitting
@@ -420,15 +501,15 @@ def _as_one_word(word, reading):
     (`tools/test_hooks_v2.py::test_a_quoted_word_end_character_does_not_end_the_word`,
     `tools/test_hooks_v2.py::test_a_quoted_directory_name_does_not_forgive_the_bare_validator`).
 
-    `_SEGMENT_SPLIT_RX` and the `|` split in
-    `_stages_beside_the_vouched_runs` are plain text splits and still cut at a quoted `;` or `|` --
-    measured, `--summary "reversed; see scripts/ledger_add.py"` and `--note "a|b"` are rc 2 with
-    this in place exactly as they were without it. That direction is over-refusal and it is
-    fail-closed by construction: a spurious cut can only make MORE segments, and the half that ends
-    up with the path gets a verb no read-only table knows. Making those two splits quote-aware is
-    NOT done here, because `_SUBSTITUTION_OPEN_RX` deliberately injects a separator INSIDE what is
-    then a quoted span (`"$(cp evil.py scripts/)"`), and a quote-aware split would swallow it and
-    reopen `BUG-0065`.
+    THE CUTS ARE QUOTE-AWARE NOW, and the quote mark this wrapper adds is what makes that safe to
+    say here: both cuts go through `_syntax_view`, so a `;` or a `|` inside an INERT quoted span is
+    argument text (`--summary "reversed; see scripts/ledger_add.py"` was rc 2 and is rc 0,
+    `BUG-0160`). What used to make a quote-aware cut impossible was that the substitution opening
+    was REWRITTEN into a `;` inside what is then a quoted span (`"$(cp evil.py scripts/)"`); it is
+    a member of `_COMMAND_CUT_RX` instead, and a span carrying one is not inert, so `BUG-0065`
+    stays closed. A word this wrapper quotes is therefore no longer cut apart either -- one argv
+    word is one word -- and it still cannot be read as a vouched path, because the anchors leave no
+    room for the quote mark it now begins with.
 
     The mark is one the value does not itself contain, so it cannot be mistaken for the value. When
     the value contains both, the wrapper repeats a character already inside it, which can only make
@@ -473,10 +554,19 @@ def _readings_of(command):
     """
     words = _compat.shell_words(_normalise_pipeline(command or ""),
                                 lambda chunk: re.split(r"(\s+)", chunk))
+    # EVERY reading, and that is a correction: this took the FIRST and the LAST, which was the
+    # whole set while a word had at most two. `_compat` derives one reading per escape character
+    # now (`BUG-0158`), so a third one appeared in the middle -- and `(0, -1)` would have skipped
+    # exactly the POSIX reading that several measured refusals rest on. A pair was never the rule;
+    # "each reading on its own" was, and this is that sentence
+    # (`tools/test_hooks_v2.py::test_a_second_shell_reading_can_only_add_refusals`).
+    width = max((len(_compat.shell_readings(word)) for word in words), default=1)
     readings = []
-    for index in (0, -1):
-        joined = "".join(_as_one_word(word, _compat.shell_readings(word)[index])
-                         for word in words).replace("\\", "/")
+    for index in range(width):
+        joined = "".join(
+            _as_one_word(word, _compat.shell_readings(word)[min(index, len(
+                _compat.shell_readings(word)) - 1)])
+            for word in words).replace("\\", "/")
         if joined not in readings:
             readings.append(joined)
     return readings
@@ -490,8 +580,19 @@ def _redirect_targets(segment):
     them, exit 0, because both readers asked `_REDIRECT_INTO_RX.search(...)` and stopped at the
     harmless target. Sequence, not existence, is what a single `search` answers
     (`tools/test_hooks_v2.py::test_every_redirect_target_of_a_segment_is_read`).
+
+    A REDIRECTION IS A `>` THE SHELL EXECUTES, so the operator is looked for in the SYNTAX VIEW
+    and the target is then read out of the text at the same offsets (`_syntax_view` keeps the
+    length for exactly this). A `>` inside inert argument prose is a character the program
+    receives: `grep -n "row > ledger/2026.csv" ledger/2026.csv && git commit` was refused as a
+    redirection into the books while it wrote nothing (`BUG-0156` --
+    `tools/test_hooks_v2.py::test_a_quoted_redirection_sign_in_argument_prose_is_not_a_redirect`).
+    A target that is itself quoted is still found: the filler is a legal path character, so the
+    match in the view has the extent the word has in the text.
     """
-    return [match.group("target") for match in _REDIRECT_INTO_RX.finditer(segment)]
+    view = _syntax_view(segment)
+    return [segment[match.start("target"):match.end("target")]
+            for match in _REDIRECT_INTO_RX.finditer(view)]
 # WHICH INTERPRETER OPTIONS MAY STAND BETWEEN THE INTERPRETER AND ITS SCRIPT, as a property rather
 # than as the letters somebody had in mind: any option word that carries no `c`/`e`/`m` in it. Those
 # three are the ones that make the interpreter read its program from the COMMAND LINE instead of the
@@ -676,23 +777,22 @@ def _stages_beside_the_vouched_runs(segment, inside_scripts):
     list drops, a DECOY path is prose too. `python scripts/ledger_add.py --validate ledger/2026.csv
     tools/ledger_add.py` hands a second, unguarded validator to the canonical run in its own
     arguments and is rc 0 -- the segment has no stage left to judge. In a NEIGHBOURING stage the
-    decoy survives as long as that stage only reads AND the segment names no ledger path (`…
-    --help | cat tools/ledger_add.py`, rc 0). What is refused there is measured, and the two halves
-    are NOT the same refusal: a neighbour that WRITES the decoy is refused whatever else the line
-    does, because `_writes_protected` is asked of every shell line (`… --help | tee
-    tools/ledger_add.py`, rc 2 with and without a commit). A neighbour that only RUNS it is refused
-    ONLY once a blocked operation stands in the same line -- running is not writing, so the sole
-    reader that sees it is the decoy check in `_a_reading_writes_the_ledger`, and
-    `handle_pre_tool_use` asks that one under `blocked_op`: `… --help | python
-    tools/ledger_add.py` is rc 0, and rc 2 with `&& git commit` behind it. A reading neighbour goes
-    the same way once a ledger path brings that check into play
-    (`tools/test_hooks_v2.py::test_a_decoy_run_beside_a_vouched_run_is_refused_only_with_a_blocked_op`).
+    decoy survives only as long as that stage READS it (`… --help | cat
+    tools/ledger_add.py`, rc 0). A neighbour that WRITES the decoy is refused whatever else the
+    line does, because `_writes_protected` is asked of every shell line (`… --help | tee
+    tools/ledger_add.py`, rc 2 with and without a commit), and a neighbour that RUNS it is now
+    refused whatever else the line does as well: `uses_an_unguarded_validator` is a question of
+    its own and `handle_pre_tool_use` puts it to every shell call. It used to be reachable only
+    under a `blocked_op`, which is what made `… --help | python tools/ledger_add.py` rc 0 and
+    rc 2 only with `&& git commit` behind it (`BUG-0159` --
+    `tools/test_hooks_v2.py::test_an_unguarded_validator_is_refused_without_a_blocked_operation`).
     `_only_the_bare_validator` is stricter for its
     OWN exemption -- every validator mention on that stage must be bare
     (`tools/test_hooks_v2.py::test_a_validator_with_a_directory_part_loses_the_step_inside`) -- and
-    the other two runs have no such half. Announced price of `H62`, not a protection built here.
+    the other two runs have no such half. Announced price of `H62` while the decoy question had
+    two answers in one function; the second, unconditioned one is gone (`BUG-0154`).
     """
-    return [stage for stage in segment.split("|")
+    return [stage for stage in _cut(segment, _STAGE_CUT_RX)
             if stage.strip() and not (_ENTRY_POINT_RUN_RX.search(stage)
                                       or _LEDGER_ADD_RUN_RX.search(stage)
                                       or (inside_scripts and _only_the_bare_validator(stage)))]
@@ -749,13 +849,24 @@ def _writes_protected(command):
     return any(_a_reading_writes_protected(reading) for reading in _readings_of(command))
 
 
+def _segments_of(text):
+    """(segments, inside_scripts) — the one preparation both decisions below start from.
+
+    The step into `scripts/` is asked of the SEGMENTS and not of the whole text, because
+    `_CD_SCRIPTS_RX` anchors on a separator and a cut piece begins exactly where one stood: that
+    is what keeps `$(cd scripts && …)` finding the step now that the cut no longer rewrites the
+    substitution opening into a `;`.
+    """
+    segments = _cut(text, _COMMAND_CUT_RX)
+    return segments, any(_CD_SCRIPTS_RX.search(segment) for segment in segments)
+
+
 def _a_reading_writes_protected(reading):
-    text = _SUBSTITUTION_OPEN_RX.sub(" ; ", reading)
     # ...and `cd scripts && python ledger_add.py --validate …` runs the CANONICAL validator from
     # inside its own directory, which is the sanctioned way out of a block. Which STAGE that buys
     # is `_stages_beside_the_vouched_runs`'s question, not a `continue` here.
-    inside_scripts = _CD_SCRIPTS_RX.search(text) is not None
-    for segment in _SEGMENT_SPLIT_RX.split(text):
+    segments, inside_scripts = _segments_of(reading)
+    for segment in segments:
         segment = segment.strip()
         if not (_PROTECTED_RX.search(segment) or _PROTECTED_DIR_RX.search(segment)):
             continue
@@ -790,24 +901,30 @@ def _writes_ledger(command):
     return any(_a_reading_writes_the_ledger(reading) for reading in _readings_of(command))
 
 
-def _a_reading_writes_the_ledger(reading):
-    text = re.sub(r"/{2,}", "/", reading)
-    # Without this, ALL of `git commit -m "$(sed -i … ledger/2026.csv)"` is one segment whose verb
-    # is `git commit` — read-only as far as the ledger goes — and the `sed -i` inside it is never
-    # examined. That is the round-6 bypass reappearing through the round-9 rewrite, which is
-    # exactly the kind of thing a rewrite is most likely to do.
-    text = _SUBSTITUTION_OPEN_RX.sub(" ; ", text)
-    # A DECOY validator, checked before the loop because the command need not name a ledger path
-    # at all: `python tools/ledger_add.py && git commit` runs a script this gate cannot vouch for
-    # and commits whatever it did. The canonical one is protected precisely so that it CAN be
-    # vouched for; a second copy elsewhere is how you get one that nobody guards.
-    # ...but only where something OTHER than a read happens to it. `cat ledger_add.py && git
-    # commit` reads it, and after a step into `scripts/` the bare name IS the canonical file, so
-    # `cd scripts && python ledger_add.py --validate …` is the sanctioned way out of a block —
-    # refusing either one blocks the remedy. That step is a finding about the whole command and is
-    # taken here; which STAGE it vouches for is `_stages_beside_the_vouched_runs`'s question.
-    inside_scripts = _CD_SCRIPTS_RX.search(text) is not None
-    for segment in _SEGMENT_SPLIT_RX.split(text):
+def uses_an_unguarded_validator(command):
+    """Does this command do something OTHER THAN READ to a second `ledger_add.py`?
+
+    ITS OWN QUESTION, AND ASKED OF EVERY SHELL LINE. It used to live inside `_writes_ledger`, and
+    `handle_pre_tool_use` asks that one only when the same line also carries a commit, a push or a
+    report -- so `python tools/ledger_add.py` on its own was rc 0 and the attacker's validator ran;
+    the gain became effective with a SECOND, then-checked line (`BUG-0159`). Running a validator
+    nobody guards is not a write and has nothing to do with whether this line commits, so the
+    question stands on its own and is put to every shell call
+    (`tools/test_hooks_v2.py::test_an_unguarded_validator_is_refused_without_a_blocked_operation`).
+
+    The canonical one is protected precisely so that it CAN be vouched for; a second copy elsewhere
+    is how you get one that nobody guards. But only where something OTHER than a read happens to
+    it: `cat ledger_add.py` reads it, and after a step into `scripts/` the bare name IS the
+    canonical file, so `cd scripts && python ledger_add.py --validate …` is the sanctioned way out
+    of a block -- refusing either one blocks the remedy.
+    """
+    return any(_a_reading_uses_an_unguarded_validator(reading)
+               for reading in _readings_of(command))
+
+
+def _a_reading_uses_an_unguarded_validator(reading):
+    segments, inside_scripts = _segments_of(re.sub(r"/{2,}", "/", reading))
+    for segment in segments:
         # ...asked of the stages BESIDE the vouched runs, so a decoy path named in THEIR arguments
         # is prose while one in a neighbouring stage is still a decoy
         # (`_stages_beside_the_vouched_runs`)
@@ -815,7 +932,18 @@ def _a_reading_writes_the_ledger(reading):
         if (any(_DECOY_VALIDATOR_RX.search(stage) for stage in stages)
                 and not all(_verb_only_reads(stage) for stage in stages)):
             return True
-    for segment in _SEGMENT_SPLIT_RX.split(text):
+    return False
+
+
+def _a_reading_writes_the_ledger(reading):
+    # THE SUBSTITUTION OPENING IS A CUT, NOT A REWRITE (`_COMMAND_CUT_RX`). Without the cut, ALL of
+    # `git commit -m "$(sed -i … ledger/2026.csv)"` is one segment whose verb is `git commit` --
+    # read-only as far as the ledger goes -- and the `sed -i` inside it is never examined. That is
+    # the round-6 bypass reappearing through the round-9 rewrite, which is exactly the kind of
+    # thing a rewrite is most likely to do.
+    text = re.sub(r"/{2,}", "/", reading)
+    segments, inside_scripts = _segments_of(text)
+    for segment in segments:
         segment = segment.strip()
         if not segment or not _LEDGER_PATH_RX.search(segment):
             continue
@@ -825,9 +953,15 @@ def _a_reading_writes_the_ledger(reading):
         # Each of this kit's own guarded programs vouches for its OWN stage only, for the reason
         # `_stages_beside_the_vouched_runs` carries. A redirect was decided above, so nothing any
         # of them could carry into the ledger passes here.
+        #
+        # A DECOY IS NOT RE-ASKED HERE. It was, without the read-only condition its own reader
+        # carries, so one question had two answers in one function and the stricter one won
+        # wherever the line happened to name a ledger path: `grep "tools/ledger_add.py"
+        # ledger/2026.csv && git commit` was refused for a line that reads two files
+        # (`BUG-0154` -- `tools/test_hooks_v2.py::test_a_decoy_path_in_a_reading_stage_is_prose`).
+        # `uses_an_unguarded_validator` asks it of every segment of every shell line, which is
+        # strictly more than this branch ever reached.
         stages = _stages_beside_the_vouched_runs(segment, inside_scripts)
-        if any(_DECOY_VALIDATOR_RX.search(stage) for stage in stages):
-            return True                       # a second `ledger_add.py` is a validator nobody guards
         if not stages or all(_verb_only_reads(stage) for stage in stages):
             continue                          # every stage of the pipeline only reads
         copy = _COPY_OUT_RX.search(segment)
@@ -837,7 +971,7 @@ def _a_reading_writes_the_ledger(reading):
         return True
     # ...and the working-directory form, which names no ledger path at all
     if _CD_LEDGER_RX.search(text) and re.search(r"\.csv\b", text, re.IGNORECASE):
-        for segment in _SEGMENT_SPLIT_RX.split(text):
+        for segment in segments:
             if re.search(r"\.csv\b", segment, re.IGNORECASE) and not _verb_only_reads(segment):
                 return True
     return False
@@ -1134,6 +1268,19 @@ def handle_pre_tool_use(data):
                        "anything, which is the whole point.")
         if blocked_op:
             _refuse_if_invalid(root, operation)
+        # A SECOND `ledger_add.py` is asked about on EVERY shell line, not only on one that also
+        # commits: running the attacker's own validator is not a write and does not become one
+        # because a commit stands beside it (`BUG-0159`).
+        if uses_an_unguarded_validator(_without_messages(raw)):
+            _kernel.block(
+                HOOK,
+                "this command uses a second '%s' -- a validator outside '%s', which is the only "
+                "copy this kit protects and therefore the only one whose verdict means anything. "
+                "Reading one is fine; running it, writing it or copying over it is not."
+                % (os.path.basename(VALIDATOR), VALIDATOR),
+                remedy="run the canonical validator instead: `python %s --validate <file>`, or "
+                       "`python %s --validate ../ledger/<year>.csv` from inside its own directory."
+                       % (VALIDATOR, os.path.basename(VALIDATOR)))
         # a shell write to the judge itself. An interpreter running a SCRIPT is exempt (that is how
         # `--validate` gets run); an interpreter with an inline `-c`/`-e`/`-m` payload never is.
         # ...asked of the SAME VIEWS the decision below works on, and that is what a cheap
@@ -1171,6 +1318,50 @@ def handle_pre_tool_use(data):
 
 # -- the early-warning path ---------------------------------------------------
 
+# The finance page, and the bound on rendering it. Separate from `VALIDATE_TIMEOUT` because it is
+# a different program with a different job: the renderer reads the whole year plus two reference
+# files and writes one HTML file, where the validator reads one CSV. The number is this process's
+# own promise and derives from nothing -- what it has to be is short enough that a POST hook never
+# becomes the thing the operator waits for.
+RENDERER = "tools/finance_dashboard.py"
+RENDER_TIMEOUT = 20
+
+
+def _render_the_finance_page(root):
+    """Re-render `dashboards/finanzen.html` after a ledger change, and never block on it.
+
+    NOTHING STARTED THE GENERATOR (`BUG-0201`). The ledger has no kernel writer: its two write
+    paths -- `scripts/ledger_add.py` and the hand edit spec II.9 allows -- pass exactly one place,
+    this handler, and it validated the changed file and did nothing else. So the page was as old as
+    its last run by hand, and the masthead does not say so: it prints the youngest date the ledger
+    carries, which a back-dated booking leaves byte-identical (measured 2026-09-02).
+
+    THE CHANGED-FILE CONDITION IS THE CALLER'S, and it is what makes this affordable: this function
+    is reached only where `handle_post_tool_use` has already found a ledger file whose stamp moved,
+    so an ordinary shell call in an office repo starts no renderer at all.
+
+    EVERY FAILURE IS A NOTE, NEVER A REFUSAL. This is the early-warning path, which cannot block by
+    construction, and a page that failed to render is not a reason to stand between the operator
+    and their books -- the ABOUT file in the directory still names the command to run by hand.
+    A kit whose project has no renderer (an older stock, or one the user removed) simply has
+    nothing to start, which is why the file is asked for rather than assumed
+    (`tools/test_finance_dashboard.py::test_a_ledger_write_renders_the_finance_page`).
+    """
+    script = os.path.join(root, RENDERER)
+    if not os.path.isfile(script):
+        return
+    try:
+        result = _compat.run_captured([sys.executable, script], cwd=root,
+                                      timeout=RENDER_TIMEOUT)
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        _kernel.record_note(HOOK, "the finance page was not re-rendered (%s); run `python %s`"
+                            % (exc.__class__.__name__, RENDERER))
+        return
+    if result.returncode != 0:
+        _kernel.record_note(HOOK, "the finance page was not re-rendered (renderer exited %d); "
+                            "run `python %s`" % (result.returncode, RENDERER))
+
+
 def handle_post_tool_use(data):
     tool = data.get("tool_name")
     root = _kernel.find_repo_root(data.get("cwd"))
@@ -1190,6 +1381,7 @@ def handle_post_tool_use(data):
                 changed.append(absolute)
     if not changed:
         sys.exit(0)
+    _render_the_finance_page(root)
 
     # EVERY changed file, then ONE report. Reporting inside the loop exited on the first finding,
     # so a patch touching two ledgers left the second unexamined -- and `_compat.file_paths` exists

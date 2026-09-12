@@ -38,6 +38,14 @@ business:
   # net/VAT/gross, counterparty, category), so the way out of the wrong kit is an export and a
   # handover, never a rebuild.
   legal_form: ""              # e.g. Einzelunternehmen / Freiberufler / GbR
+  # THE CLOCK EVERY DEADLINE OF THIS BUSINESS IS READ AGAINST. Empty means "this machine's own
+  # zone", which is right for the usual case (the business and the laptop are in one place) and
+  # wrong for exactly the case this field exists for: two machines in different zones answered the
+  # same question with different dates, because the register read `datetime.date.today()` and
+  # nothing declared whose day that is (BUG-0208). An IANA name, e.g. "Europe/Berlin". A name this
+  # machine cannot resolve is NAMED in the session-start register and the machine's own date is
+  # used — never silently.
+  timezone: ""                # e.g. Europe/Berlin — empty: this machine's own zone
   country: "DE"
   markets: []                 # where products/services are sold, e.g. [DE, AT, EU]
   channels: []                # e.g. [own-shop, marketplace, retail, wholesale] — name the

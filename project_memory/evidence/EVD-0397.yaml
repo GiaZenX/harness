@@ -1,0 +1,21 @@
+id: EVD-0397
+kind: test
+related:
+- BUG-0196
+result: pass
+summary: 'Supersedes EVD-0387, whose run command named a -k selection and no node
+  id, so naming_tests.coverage_blocker could not read it. Same measurement, same tree:
+  _routine.last_run pairs each SubagentStop with the give-up record gate_subagent_output
+  writes for that stop, by POSITION rather than by time, so a stop that delivered
+  nothing no longer silences the weekly reminder (H112''s unsafe direction). Mirrored
+  dev=office=research ee4cde63ee26. Red-first in the rig by mutating the fix (the
+  give-up branch removed): the stop was read as a run at 12:38:18 while the give-up
+  record stood one line below it.'
+artifact_refs:
+- staging/TSK-0142/protocol.md
+run_command: python -B -m pytest tools/test_routine_feed.py::test_a_run_that_gave_up_on_its_output_contract_is_not_a_run
+  -q -p no:randomly
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T13:08:37'

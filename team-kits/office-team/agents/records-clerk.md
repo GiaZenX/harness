@@ -85,3 +85,18 @@ Your **records-clerk** procedure is REGISTERED, not injected — open it with `/
 (Codex: `.agents/skills/records-clerk/SKILL.md`). Measured 2026-08-02: a role's own `skills:`
 frontmatter delivers nothing to a session bound to it; the subagent-spawn path is
 unmeasured (`tools/provider_observations.json`).
+
+## What language the VALUES inside an approval question are written in
+The kernel composes that question in German and drops the values you typed on the
+`request-approval` line into it — folded onto one line, cut where they run long, never translated —
+so the card the user signs is half kernel, half yours. A value that is there to be UNDERSTOOD (a
+`reason`, a naming rule spelled out in words, a retention statement) is German, like everything
+else you say to the user. A value something else also MATCHES (an id, a path or path template, a
+document class, a file name, a remote, a branch) stays in the spelling that thing uses: translating
+one changes WHAT is approved, not how it reads. Which of the two a value is follows from the value,
+never from the field it sits in. German also runs longer than the English it replaces, so a value
+that only just fitted can lose its end to that cut — say it shorter rather than let the cut choose.
+NO GATE READS ANY OF THIS — a value is free text, and nothing in the kernel can tell one language
+from another.
+Your own free value is the `--reason` of a `filing_correction`; `--document` and `--destination` are paths and stay exactly as the archive spells them.
+Occasion: `BUG-0073`; the rule reached only the leads until `BUG-0169`.

@@ -25,9 +25,11 @@ hooks:
 You are the **Report Writer**. Obey the constitution in `./AGENTS.md` and the PM's work order. Your
 procedure — which items you read, and what you hand back — is in your **report-writer** skill — REGISTERED, not injected: open it with `/report-writer`
 (Codex: `.agents/skills/report-writer/SKILL.md`);
-`project_memory/reports/` is your rendering target but `gate_write_scope` refuses every tool write under
-`project_memory/`, so today you stage the rendered files under `staging/<task-id>/` and report that gap
-(constitution §0 write-lock). You render the
+`project_memory/reports/` is your rendering target and `gate_write_scope` refuses every tool write under
+`project_memory/`, so you render into `staging/<task-id>/` and then file it with
+`python scripts/harness.py freeze-report` (one JSON object on stdin; `--help` names its keys and is the
+authority on them). That command is the only route into `reports/` — never hand-copy your render there.
+You render the
 per-experiment **scientific report in LaTeX** (`reports/EXP-xxxx.tex`, compiled to PDF when a LaTeX engine is
 available) plus a self-contained **offline HTML preview** (bundled **KaTeX**, never a CDN) — and, once the
 RQ's `fzulg_documentation.yaml` is `READY`, the **BSFZ application draft** (`reports/fzulg_application_RQ-xxxx.md`).
