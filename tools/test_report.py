@@ -609,10 +609,11 @@ def test_expired_request_not_listed_as_open(state):
 
 
 def test_the_session_brief_shows_the_rung_and_effort_a_lease_wrote_on_the_task(state):
-    """PR-0010 AC-6, the brief half (DEC-0077 (5)): the values the lease wrote on the task reach
-    the row a lead reads, and a task that was never dispatched carries no invented ones.
+    """PR-0010 AC-6, the brief half (DEC-0077 (5)), and the measurement that closes BUG-0249 /
+    H167: the values the lease wrote on the task reach the row a lead reads, and a task that was
+    never dispatched carries no invented ones.
 
-    MEASURED 2026-09-06 on a dev pilot before this line existed (BUG-0249/H167): the task item
+    MEASURED 2026-09-06 on a dev pilot before this line existed: the task item
     carried `rung: fable` / `effort: xhigh` and the freshly generated brief's row carried `id`,
     `status`, `assigned_role` and nothing else. The stream that built the lease (TSK-0130) was
     forbidden `kernel/report.py` by its own item, so the line and this test are the merge's.

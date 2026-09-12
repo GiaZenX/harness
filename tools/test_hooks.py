@@ -67,6 +67,47 @@ def write(path, text):
         fh.write(text)
 
 
+def model_the_lease_requires(lease):
+    """The `model` an Agent call must name for this lease, or None when it may name none.
+
+    ASKED OF THE SHIPPED PREDICATE, never restated. `dispatch.spawn_model_refusal` is the one
+    reader of DEC-0077 (2), and a fixture that spelled the rule again ("pass the rung unless it is
+    the pin") would be the second statement that drifts. So this asks it the question a spawn
+    without a model asks -- would you refuse? -- and hands back the rung exactly then.
+
+    WHY A FIXTURE NEEDS IT AT ALL: a spawn in a project with a KIT INSTALLED gets a derived rung on
+    its lease, and since generation 5 the gate refuses a climbed spawn that names no model. Two
+    chain fixtures written before the ladder existed spawned without one and were red at 1b6d95c
+    for that reason alone -- `tools/test_hooks.py::test_the_lease_model_helper_answers_both_ways`
+    holds both directions of this helper.
+    """
+    from kernel import dispatch
+    if dispatch.spawn_model_refusal(lease, None) is None:
+        return None
+    return (lease.get(dispatch.LADDER_KEY) or {}).get(dispatch.RUNG_KEY)
+
+
+def test_the_lease_model_helper_answers_both_ways():
+    """Both directions of `model_the_lease_requires`, against the shipped `spawn_model_refusal`.
+
+    A helper a fixture trusts has to be able to be wrong: a lease whose rung IS the role's pin
+    needs no model on the spawn (None), a lease that climbed above the pin needs exactly the rung,
+    and a lease with no ladder at all -- this repository's own shape (BUG-0253/H171) -- needs none.
+    """
+    from kernel import dispatch
+    climbed = {"task_id": "TSK-0001",
+               dispatch.LADDER_KEY: {dispatch.RUNG_KEY: "opus", "base": "sonnet", "pin": "sonnet"}}
+    at_the_pin = {"task_id": "TSK-0002",
+                  dispatch.LADDER_KEY: {dispatch.RUNG_KEY: "sonnet", "base": "sonnet",
+                                        "pin": "sonnet"}}
+    kitless = {"task_id": "TSK-0003", dispatch.LADDER_KEY: {"absent": "no kit declaration"}}
+    assert model_the_lease_requires(climbed) == "opus"
+    assert model_the_lease_requires(at_the_pin) is None
+    assert model_the_lease_requires(kitless) is None
+    # and the answer is the one the gate accepts, asked of the gate's own reader
+    assert dispatch.spawn_model_refusal(climbed, model_the_lease_requires(climbed)) is None
+
+
 # ---------------- global settings merge ----------------
 def test_settings_merge_preserves_personal_values_and_unions_permissions(tmp_path):
     ours = {
@@ -14141,6 +14182,78 @@ def _script_as_this_bash_sees_it(path, kind="-f"):
     return None
 
 
+def _this_bash_finds_under_home(home, relative, launcher=None):
+    """Whether the bash on PATH, given this `HOME`, can reach `relative` under it.
+
+    THE PRECONDITION OF A SCRIPT THAT BUILDS PATHS OUT OF `$HOME`, asked of the bash that will run
+    it (BUG-0067). Two things can go wrong between this process and that shell, and only the second
+    is fatal:
+
+      * THE SPELLING IS TRANSLATED. Measured 2026-09-12 on this host
+        (`_round-scratch/TSK-0140/home_probe2.py`): with `HOME=C:/Users/.../home` Git Bash reports
+        `$HOME` as `/tmp/.../home` -- MSYS rewrites the value, and the directory is still the same
+        one. Harmless, and the reason this asks about the DIRECTORY instead of comparing strings:
+        an equality probe called this a failure and skipped the measurement on the very host that
+        produced BUG-0067.
+      * THE VARIABLE DOES NOT CROSS AT ALL. Same measurement, `C:/Windows/System32/bash.exe` (the
+        WSL launcher, which is what the OS's own search resolves a bare `bash` to on this host):
+        `$HOME` comes back as `/home/<user>`, because WSLENV governs what crosses that boundary and
+        HOME is not in it. A seeding script started through it finds no templates and exits
+        `Templates not found` -- a path error that READS like the refusal under test.
+
+    So the question is the one the script will ask, and the answer is that bash's own. A check for
+    the word WSL would be an enumeration of launchers, and the next one would be invisible to it.
+    `tools/test_hooks.py::test_the_bash_home_probe_tells_a_launcher_that_carries_home_from_one_that_drops_it`
+    """
+    launcher = launcher or shutil.which("bash")
+    if not launcher:
+        return False
+    try:
+        probe = subprocess.run([launcher, "-c", 'test -e "$HOME/%s"' % relative],
+                               capture_output=True, text=True, timeout=60,
+                               env=dict(os.environ, HOME=home))
+    except OSError:
+        return False
+    return probe.returncode == 0
+
+
+def test_the_bash_home_probe_tells_a_launcher_that_carries_home_from_one_that_drops_it(tmp_path):
+    """BUG-0067: both directions of `_this_bash_finds_under_home`, against two real launchers.
+
+    This helper decides whether the seeding measurement below runs at all, so it has to be able to
+    be wrong in both directions: for a launcher that carries HOME across, a marker this process
+    wrote under that home must be FOUND (whatever spelling the shell reports for it), and for one
+    that does not it must NOT be found -- otherwise the skip route never fires and the measurement
+    reads a foreign tree. The WSL half is skipped where no WSL launcher exists rather than asserted
+    absent; what is never asserted is that a launcher misbehaves, only that this host can still
+    show both answers.
+    """
+    if not shutil.which("bash"):
+        pytest.skip("no bash on this host")
+    home = tmp_path / "home"
+    (home / "marker-dir").mkdir(parents=True)
+    spelling = _path_as_this_bash_sees_it(str(home))
+    if spelling is None:
+        pytest.skip("the bash on PATH cannot see this host's temporary directory")
+    # THE DROPPING DIRECTION FIRST, because it does not depend on which bash PATH happens to
+    # resolve: a launcher that starts bash in its own environment must NOT reach a marker this
+    # process put under the HOME it was given, or the skip route guards nothing.
+    dropping = r"C:\Windows\System32\bash.exe"
+    if os.path.exists(dropping):
+        assert not _this_bash_finds_under_home(spelling, "marker-dir", launcher=dropping), (
+            "the WSL launcher reached the marker under the HOME this process set, so this host "
+            "can no longer show the direction BUG-0067's skip route exists for -- re-measure "
+            "before deleting the route")
+    if not _this_bash_finds_under_home(spelling, "marker-dir"):
+        # THE BASH ON PATH IS ITSELF ONE THAT DROPS HOME -- the condition the route exists for.
+        # Then the seeding measurement is skipped as well, so there is nothing for the carrying
+        # direction to guard here, and asserting it would be asserting the host.
+        pytest.skip("the bash on PATH does not carry HOME across (the BUG-0067 condition), so "
+                    "the carrying direction cannot be shown on this run")
+    assert not _this_bash_finds_under_home(spelling, "no-such-marker"), (
+        "the probe answered yes for something that is not there, so it cannot refuse anything")
+
+
 def test_the_seeding_script_refuses_the_tree_that_ships_the_templates(tmp_path):
     """BUG-0067: a measuring run seeded THIS repository's own `project_memory/` -- eight unfilled
     office template documents and a `procedures/` directory landed in canonical state on
@@ -14186,6 +14299,16 @@ def test_the_seeding_script_refuses_the_tree_that_ships_the_templates(tmp_path):
         readable_home = _path_as_this_bash_sees_it(str(home))
         if readable_home is None:
             pytest.skip("the bash on PATH cannot see this host's temporary directory")
+        # ...AND THAT THE TEMPLATES ARE REACHABLE THROUGH IT. A spelling this bash can OPEN is not
+        # yet a HOME it carries: a launcher that starts bash in an environment of its own leaves
+        # the script reading a foreign home, where it finds no templates and exits
+        # `Templates not found` -- a path error that reads exactly like the refusal this test is
+        # about (BUG-0067, measured on this host's WSL launcher). The docstring above names
+        # skipping the last resort, and this is the case it foresaw.
+        if not _this_bash_finds_under_home(readable_home,
+                                           ".claude/team-kits/dev-team/templates/project_memory"):
+            pytest.skip("the bash on PATH cannot reach the template tree through the HOME this "
+                        "process sets, so the script would read a foreign one (BUG-0067)")
         return subprocess.run([shutil.which("bash"), script, "dev-team"], cwd=str(where),
                               capture_output=True, text=True, timeout=120,
                               env=dict(os.environ, HOME=readable_home))

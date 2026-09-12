@@ -1,0 +1,38 @@
+id: BUG-0285
+title: 'H21 neu aufgelegt (Ausnahme nie freigegeben): `Push-Location`/`Pop-Location`
+  fehlen im Verzeichnis-Vokabular (neu, TSK-0011)'
+related_pr: PR-0012
+observed: 'Migrated 2026-09-05 as H21 into BUG-0113 with status ACCEPTED_EXCEPTION
+  and approval null -- the user never saw a question for it (measured 2026-09-12 over
+  archive/bug/*). Original finding: **Mechanismus:** die Verben, die die Basis bewegen,
+  sind `cd`, `pushd`, `popd`, `set-location` —
+
+  in `_harness._DIRECTORY_VERBS` und, unabhängig davon, in `gate_write_scope._walk`
+  und der Zeile
+
+  daneben in `handle_shell`. Beide Aufzählungen kennen die **ausgeschriebenen** PowerShell-Formen
+
+  `Push-Location` und `Pop-Location` nicht.'
+expected: 'CLOSED red-first by stream B with a test that NAMES this bug id (DEC-0100);
+  fix location: team-kits/*/hooks/gate_write_scope.py directory vocabulary (Push-Location/Pop-Location).
+  If the attempt measures it unclosable here, the downgrade carries the measurement
+  and a plain-German sentence (never ''later'').'
+repro: 'read BUG-0113 (status ACCEPTED_EXCEPTION, approval: null); the mechanism:
+  docs/holes/H21.md'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the item ends VERIFIED on a passing test that names it, or ACCEPTED_EXCEPTION
+  on a request the user answered -- never on a migration'
+- 'AC-2: if an exception, its `limits` is the plain-German sentence a non-developer
+  understands'
+source: 'archive BUG-0113; staging/generation-6/refile_unclicked_exceptions.py (lead
+  classification: ja, stream B)'
+limits: 'dieselbe Kette wie H16 und dieselbe Begrenzung: **sozial**. Ohne Variable
+  greift heute ein Nebengrund (die Zeile nennt den Repo-Pfad wörtlich), und ein Nebengrund
+  ist keine Maßnahme'
+supersedes: BUG-0113
+hole_number: H201
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:46:24'

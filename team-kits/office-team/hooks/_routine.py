@@ -6,9 +6,15 @@ One file, mirrored byte-identical in all three kits -- which is the mirror rule 
 is held by `tools/test_hooks.py::test_shared_kit_files_identical` at both ends, not by this
 sentence. It is here for the reason `_audit.py` next to it is: what it answers is not an office
 question. Every kit ships a `project-auditor`, every kit's
-constitution rides that role on a weekly rhythm, and every kit's `notify_agent_events` writes the
-run record this module reads — so a copy that lived in one kit would have left the other two with a
-role nobody is ever reminded to run. Measured before the move: FR-0038 was delivered in 1 of 3 kits
+`notify_agent_events` writes the run record this module reads, and every kit therefore owes the
+same reminder — so a copy that lived in one kit would have left the other two with a
+role nobody is ever reminded to run. THE CADENCE ITSELF IS NOT CLAIMED FOR ANY OTHER FILE HERE:
+it stands in `audit_period_id` below and nowhere else, and that no role text and no constitution
+states it a second time is `tools/test_parallel_streams.py::
+test_no_text_that_describes_the_audited_role_states_the_cadence_the_code_owns`. Until 2026-09-12
+this paragraph stated a rhythm for all three constitutions that none of them states (`BUG-0220`); a
+sentence about another file that nothing reads is exactly the claim that rots, and `tools/test_parallel_streams.py::
+test_the_shipped_routine_module_claims_no_cadence_for_a_text_it_does_not_own` now reads this one. Measured before the move: FR-0038 was delivered in 1 of 3 kits
 while nothing about it was office-specific (`tools/test_routine_feed.py::
 test_the_routine_notice_appears_and_clears_in_every_kit_that_ships_it`).
 

@@ -1,0 +1,38 @@
+id: BUG-0284
+title: 'H16 neu aufgelegt (Ausnahme nie freigegeben): Der Pfad steht in einer Variablen,
+  das Gate liest den Text (neu, TSK-0008)'
+related_pr: PR-0012
+observed: 'Migrated 2026-09-05 as H16 into BUG-0108 with status ACCEPTED_EXCEPTION
+  and approval null -- the user never saw a question for it (measured 2026-09-12 over
+  archive/bug/*). Original finding: **Mechanismus:** Gate 1 liest eine Befehlszeile
+  als **Text**. Eine Shell setzt Variablen aber erst
+
+  beim Ausführen ein. Steht der geschützte Pfad in einer Variablen, sieht das Gate
+  `$R/team-kits/…`
+
+  und löst das gegen das Arbeitsverzeichnis auf — ein Pfad, den nichts schützt. Das
+  ist dieselbe
+
+  Klasse wie H11: nicht das Vokabular fehlt, sondern der Zustand der Shell zum Ausführungszeitpunkt.'
+expected: 'Not closable in this repository (a path held in a shell variable is invisible
+  to a text reader): an accepted exception the USER clicks, asked with this sentence:
+  Steht der Pfad in einer Variablen, sieht die Pruefung nur den Variablennamen; den
+  Wert kennt nur die Shell im Moment des Laufs.'
+repro: 'read BUG-0108 (status ACCEPTED_EXCEPTION, approval: null); the mechanism:
+  docs/holes/H16.md'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the item ends VERIFIED on a passing test that names it, or ACCEPTED_EXCEPTION
+  on a request the user answered -- never on a migration'
+- 'AC-2: if an exception, its `limits` is the plain-German sentence a non-developer
+  understands'
+source: 'archive BUG-0108; staging/generation-6/refile_unclicked_exceptions.py (lead
+  classification: nein, stream -)'
+limits: Steht der Pfad in einer Variablen, sieht die Pruefung nur den Variablennamen;
+  den Wert kennt nur die Shell im Moment des Laufs.
+supersedes: BUG-0108
+hole_number: H200
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:46:21'

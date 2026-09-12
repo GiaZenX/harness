@@ -380,6 +380,17 @@ def _verification_bugs(state: ProjectState, args) -> list:
     return approvals.verification_batch(state, getattr(args, BATCH_ARGUMENT, None) or [])
 
 
+def _hole_exception_holes(state: ProjectState, args) -> list:
+    """The gaps of a hole-exception batch -- the IDS are typed, the BOUND is read (PR-0012 AC-4).
+
+    The same split as `_verification_bugs` and for the same reason: which gaps the user is asked to
+    accept is the role's statement and can only be typed, while what BOUNDS each one is the item's
+    own `limits` sentence -- a typed bound could only differ from the one the gap's record states,
+    and it is the sentence the acceptance is FOR.
+    """
+    return approvals.hole_exception_batch(state, getattr(args, BATCH_ARGUMENT, None) or [])
+
+
 # THE COMMAND-LINE ARGUMENT A BATCH KIND NAMES ITS ITEMS ON. Spelled once: the parser adds it, the
 # resolver above reads it, and `kinds_reading_argument` derives WHICH kinds may carry it.
 BATCH_ARGUMENT = "batch"
@@ -391,6 +402,9 @@ LINE_MANIFEST_RESOLVERS = {
     "bugs": (_verification_bugs,
              "read from the ids on --batch and, per id, the Evidence that measured it",
              BATCH_ARGUMENT),
+    "holes": (_hole_exception_holes,
+              "read from the ids on --batch and, per id, the sentence that says what bounds it",
+              BATCH_ARGUMENT),
     "content": (_document_content, "hashed from the document named on this line"),
     "head": (_worktree_head, "read from the worktree this state directory sits in"),
     "roles": (_preset_roles, "read from the kit's own presets.yaml for the preset on this line"),
@@ -1739,10 +1753,24 @@ def main(argv=None) -> int:
                     "a %s approval is not asked over a list of items, so --%s is refused for it "
                     "(%s takes one). Remedy: drop the flag."
                     % (args.kind, BATCH_ARGUMENT, "/".join(sorted(batched)) or "no kind here"))
-            if args.kind in batched and not getattr(args, BATCH_ARGUMENT, None):
+            # THE POSITIONAL ID IS ANSWERED FIRST, and the order matters rather than being tidy:
+            # `hole_exception` took a positional id until PR-0012 AC-4, so a role with the older
+            # habit types one -- and asked in the other order it met "and none was named" while it
+            # HAD named one, with a remedy that dropped the id it gave. Measured 2026-09-12.
+            if args.kind in batched and args.item_id:
                 raise UsageError(
-                    "a %s approval closes the items it lists and none was named. Remedy: `%s "
-                    "request-approval %s --%s <ITEM_ID> <ITEM_ID> ...` (at most %d per question)."
+                    "a %s approval is asked over a LIST, so the id goes on --%s rather than on its "
+                    "own. Remedy: `%s request-approval %s --%s %s` (up to %d per question)."
+                    % (args.kind, BATCH_ARGUMENT, INVOCATION, args.kind, BATCH_ARGUMENT,
+                       args.item_id, approvals.BATCH_LIMIT))
+            if args.kind in batched and not getattr(args, BATCH_ARGUMENT, None):
+                # THE VERB IS NEUTRAL because the two batch kinds do opposite things: `verification`
+                # closes what it lists, `hole_exception` ACCEPTS that it stays open and closes
+                # nothing. A sentence saying "closes" is false for half the kinds it is printed for.
+                raise UsageError(
+                    "a %s approval is asked over the items it lists and none was named. Remedy: "
+                    "`%s request-approval %s --%s <ITEM_ID> <ITEM_ID> ...` (at most %d per "
+                    "question)."
                     % (args.kind, INVOCATION, args.kind, BATCH_ARGUMENT, approvals.BATCH_LIMIT))
             if builder is None:
                 if not args.item_id:
@@ -1775,10 +1803,12 @@ def main(argv=None) -> int:
                     approval_expires=time.time() + float(args.expires_in_days) * 86400.0)
             else:
                 if args.item_id:
+                    # A BATCHED KIND NEVER REACHES HERE -- it is answered above, where the id can
+                    # still be carried into the remedy.
                     raise UsageError(
                         "a %s approval has no item -- its subject is %s. Remedy: drop %r from the "
-                        "command line." % (args.kind,
-                                           ", ".join(manifest_parameters(builder)), args.item_id))
+                        "command line." % (args.kind, ", ".join(manifest_parameters(builder)),
+                                           args.item_id))
                 # THE CLOCK ONLY FOR THE KINDS THAT CARRY ONE, asked of `EXPIRING_KINDS` rather
                 # than assumed of every line kind: a plan approval is invalidated by its own
                 # content (each goal's revision and scope hash), not by an hour passing, and

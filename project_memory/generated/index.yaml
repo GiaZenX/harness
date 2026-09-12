@@ -1,4 +1,4 @@
-generated_at: '2026-09-12T06:20:08'
+generated_at: '2026-09-12T09:49:46'
 items:
 - id: APR-0001
   type: APR
@@ -276,6 +276,12 @@ items:
   status: null
   revision: null
   approval_ref: null
+- id: APR-0047
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
 - id: BUG-0008
   type: BUG
   title: Ein PowerShell-Modulcache liegt unverfolgt im Repo-Wurzelverzeichnis
@@ -306,13 +312,6 @@ items:
   type: BUG
   title: A recorded V1 file outside the state tree is writable -- protected is the
     PLACE, not the record
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0067
-  type: BUG
-  title: A measuring run wrote office-kit TEMPLATES into this repo's own project_memory
-    -- same family as BUG-0052, different mechanism
   status: OPEN
   revision: 1
   approval_ref: null
@@ -853,13 +852,6 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: BUG-0220
-  type: BUG
-  title: Ein Haken-Docstring nennt einen Takt, den keine Verfassung mehr nennt (neu,
-    TSK-0118, N2)
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: BUG-0222
   type: BUG
   title: Die BUILD-Hälfte der Standard-Härtung ist nicht gebaut, weil ihre beiden
@@ -1001,16 +993,6 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0249
-  type: BUG
-  title: 'The session brief does not show the rung and the effort the dispatcher derived:
-    `report.generate_session_brief` builds each `active_tasks` row from a fixed field
-    set (id/status/assigned_role/blocked_by), so DEC-0077 (5) and PR-0010 AC-6 ("shown
-    in the session brief") are unbuilt while the values sit on the task item (new,
-    TSK-0130, PR-0010 AC-6)'
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0250
   type: BUG
   title: 'One kit release ships two contradicting ladder texts: the constitutions
@@ -1067,14 +1049,6 @@ items:
   type: BUG
   title: Der Zeiger-Sweep kann eine ILLUSTRATION nicht von einem Zeiger unterscheiden
     -- und den Bestand eines fremden Stores nicht vom eigenen
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0258
-  type: BUG
-  title: After the generation-4 hole migration docs/POST_V2_WISHLIST.md carries no
-    `### H` entry any more, so test_repo_hygiene::test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole
-    is RED at HEAD b7f282e
   status: OPEN
   revision: 1
   approval_ref: null
@@ -1144,13 +1118,6 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0268
-  type: BUG
-  title: CLAUDE.md sagt "die vier Gates dieses Repos", registriert sind fuenf -- und
-    die Datei ist fuer jede Rolle verbotener Bereich
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0269
   type: BUG
   title: 'The radar watcher''s Desktop scheduled task is a mechanism this repository
@@ -1216,13 +1183,6 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0276
-  type: BUG
-  title: A module added under tools/ shadows the team-kits module of the same name
-    for every `python tools/<script>.py` entry point, and nothing measures the collision
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0277
   type: BUG
   title: scaffold_team warns and continues when the staging carries no write_kit_state.py,
@@ -1242,21 +1202,112 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0279
-  type: BUG
-  title: 'The batch route''s evidence rule ''a test that NAMES the bug'' (DEC-0100
-    (3), tools/close_measured_pass.py nodes_naming) reads an incidental mention like
-    a measuring one: BUG-0050''s only naming test says ''nothing was caught'', BUG-0044''s
-    is a historical aside -- both would have been VERIFIED by a click (TSK-0138 verify
-    round 2)'
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0280
   type: BUG
   title: A hook a suite starts without its own CLAUDE_PROJECT_DIR judges whatever
     tree the ambient variable names -- 55 of 65 call sites, and the suite cannot tell
     an honest one from a forgetful one
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0281
+  type: BUG
+  title: 'H7 neu aufgelegt (Ausnahme nie freigegeben): `carries_work` verlangt keinen
+    erreichbaren Endzustand — OFFEN'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0282
+  type: BUG
+  title: 'H11 neu aufgelegt (Ausnahme nie freigegeben): Ein Interpreter führt Code
+    aus, den kein Gate lesen kann (neu, Preis des Fixes zu F2)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0283
+  type: BUG
+  title: 'H12 neu aufgelegt (Ausnahme nie freigegeben): Ein Subagent kann sich die
+    Ausnahme von Gate 2 selbst ausstellen'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0284
+  type: BUG
+  title: 'H16 neu aufgelegt (Ausnahme nie freigegeben): Der Pfad steht in einer Variablen,
+    das Gate liest den Text (neu, TSK-0008)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0285
+  type: BUG
+  title: 'H21 neu aufgelegt (Ausnahme nie freigegeben): `Push-Location`/`Pop-Location`
+    fehlen im Verzeichnis-Vokabular (neu, TSK-0011)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0286
+  type: BUG
+  title: 'H22 neu aufgelegt (Ausnahme nie freigegeben): Die Read-only-Klassifikation
+    gilt pro Stufe, der Pfad reist weiter (neu, TSK-0011)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0287
+  type: BUG
+  title: 'H25 neu aufgelegt (Ausnahme nie freigegeben): Die Frist, die ein Gate sich
+    zugesteht, und die, nach der es getötet wird (neu, TSK-0013)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0288
+  type: BUG
+  title: 'H32 neu aufgelegt (Ausnahme nie freigegeben): Ein Befehl, den eine Ersetzung
+    einführt (neu, TSK-0019)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0289
+  type: BUG
+  title: 'H38 neu aufgelegt (Ausnahme nie freigegeben): Ein Programm, das ein Hier-Dokument
+    einer Shell übergibt, liest keines der Gates (neu, TSK-0022)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0290
+  type: BUG
+  title: 'H39 neu aufgelegt (Ausnahme nie freigegeben): Endzustände, die dieses Repo
+    nicht ehrlich erreichen kann: TSK `DONE`, BUG `VERIFIED` (neu, TSK-0055)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0291
+  type: BUG
+  title: 'H40 neu aufgelegt (Ausnahme nie freigegeben): Vertragszitationen außerhalb
+    der `.py`-Quellen von `.claude/hooks/` liest kein Stolperdraht (neu, TSK-0058)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0292
+  type: BUG
+  title: 'H99 neu aufgelegt (Ausnahme nie freigegeben): H11 hebt die Vier-Augen-Buchung
+    mit auf: ein Skript trägt eine ungelesene Zeile nach `HEAD` und prägt die zweite
+    Lesung (neu, TSK-0102, FR-0065)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0293
+  type: BUG
+  title: 'H116 neu aufgelegt (Ausnahme nie freigegeben): Die Hook-REGISTRIERUNG wird
+    mitten in der Sitzung neu gelesen — auch zwischen zwei Werkzeugaufrufen einer
+    Runde (neu, TSK-0108, FR-0059)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0294
+  type: BUG
+  title: 'H138 neu aufgelegt (Ausnahme nie freigegeben): Die Konformitätsbefunde des
+    Renderers verweigern nichts: der Datensatz beantwortet eine andere Frage (neu,
+    TSK-0119, FR-0077/FR-0078)'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -1985,6 +2036,17 @@ items:
     Nachweis ist, der jeden einzelnen misst -- der Nutzer unterschreibt weiter, zeichengenau
     verglichen, jeder gelistete Fehler braucht weiter seine bestandene Test-Evidenz,
     die ihn NENNT; nur die Zahl der Fragen sinkt'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0101
+  type: DEC
+  title: 'Der Lead misst an JEDEM Schnitt die Aufteilbarkeit (Zusatz zu DEC-0087 (2)
+    / DEC-0099 (2)): bevor ein Auftrag READY geht, laeuft der Bereichsabgleich ueber
+    den moeglichen Split -- mehrere Bauer, wo die Dateimengen gemessen disjunkt sind,
+    einer, wo nicht; ''ich nehme an, das ueberlappt'' ist der Solo-Reflex, den DEC-0092
+    fuer den PM der Kits mit dem Fakten-Checkpoint faengt und den der Lead dieses
+    Repos gerade gezeigt hat'
   status: VALID
   revision: 1
   approval_ref: null
@@ -3872,6 +3934,60 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0315
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0316
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0317
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0318
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0319
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0320
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0321
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0322
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0323
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -4044,6 +4160,30 @@ items:
   revision: 1
   approval_ref: null
 - id: TSK-0139
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0140
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0141
+  type: TSK
+  title: null
+  status: READY
+  revision: 1
+  approval_ref: null
+- id: TSK-0142
+  type: TSK
+  title: null
+  status: READY
+  revision: 1
+  approval_ref: null
+- id: TSK-0143
   type: TSK
   title: null
   status: READY

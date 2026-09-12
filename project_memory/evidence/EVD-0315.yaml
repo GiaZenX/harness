@@ -1,0 +1,20 @@
+id: EVD-0315
+kind: review
+related:
+- TSK-0139
+- PR-0012
+result: pass
+summary: 'verifier PASS for diff:9b8372bb7f7425b1ddfd841dab70c1cd95e0c1fa05b18f33a9da5ef720757eff
+  -- TSK-0139 (PR-0012 order 2: the real defects): round 1 FAIL (F1 trunk-push softening,
+  F2 kernel naming check missing, F3 WSL HOME, F8 no EVDs, F4-F7), rework (push TARGET
+  reader, kernel/naming_tests.py shared reader + proofs_naming direct-related, 31
+  EVDs EVD-0284..0314, the two TSK-0138 regressions closed), round 2 PASS on everything
+  except F3 (BUG-0067 withheld to order 3); the user minted four batches (30 bugs
+  VERIFIED, APR-0043..0046); stamps dev/research 2026.09.11-22, office -21 unchanged
+  in the verifier''s copy; verify-round-1/2.md'
+artifact_refs:
+- staging/TSK-0139/verify-round-2.md
+- staging/TSK-0139/protocol.md
+revision: 1
+approval_ref: null
+created: '2026-09-12T06:20:42'

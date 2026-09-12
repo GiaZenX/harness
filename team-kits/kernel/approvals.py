@@ -186,6 +186,16 @@ VERIFICATION_KIND = "verification"
 #     finishes them with no second question
 #     (`tools/test_approvals_dispatch.py::test_a_batch_approval_stays_in_force_for_every_id_it_lists_after_the_minting_process_ended`).
 #     A killed hook does leave the kernel lock behind; it ages out on its own TTL.
+# RE-MEASURED 2026-09-12 (TSK-0140) on this repository's own store, which is the largest one
+# this project has: a `verification` batch of SIX cost 34.7 s end to end, i.e. ~5.8 s per
+# entry -- so ten entries land at roughly 58 s against the 60 s lock ttl the size was derived
+# from. The number is therefore AT its bound rather than under it, and the cost per entry
+# grows with the Evidence store (`report.evidence_covers` walks an Evidence's ancestors once
+# per target). A batch that outlives the ttl does not lose the user's answer -- the approval
+# keeps covering every id it lists -- but the walk has to be finished with `transition`. The
+# `hole_exception` batch is cheaper per entry (no Evidence walk at all) and is not what this
+# measurement bounds. Left at 10 deliberately: lowering it multiplies the questions, and the
+# number to redo is this measurement, not the constant.
 # ONE NUMBER, ONE PLACE: `tools/close_measured_pass.py` cuts its batches by importing this, and
 # `verification_subject_manifest` refuses a longer one.
 BATCH_LIMIT = 10
@@ -942,21 +952,39 @@ def plan_goals(state: ProjectState) -> list:
     return sorted(goals, key=lambda goal: goal[GOAL_ITEM_FIELD])
 
 
-def listed_content_hash(item: dict) -> str:
-    """The content a LIST-bound approval binds ONE listed item to.
+def content_question(kind: str) -> str:
+    """The per-ITEM approval kind whose content question a list-bound approval of `kind` binds.
 
-    It is the very manifest a per-item `scope` approval binds to, so one answer over a list covers
-    exactly as much of each item as its own approval would -- no more, and with the same limit
-    `_SCOPE_FIELDS` measures (for a `BUG`, one of five hashed fields). The kind is spelled
-    `PLAN_COVERED_KIND` because that constant already names the per-item content question; what is
-    read here is that question, not the plan's stand-in rule.
+    DERIVED AND NOT TABLED, so a third list-bound kind still needs no entry anywhere: a kind that
+    HAS an item-derived manifest asks its own content question about each entry, and one that has
+    none (a `plan`, a `verification` batch) binds the per-item scope question its entries would
+    otherwise have been asked separately (`PLAN_COVERED_KIND`).
 
-    ONE SPELLING FOR THREE READERS -- `plan_goals` and `verification_batch` write the hash into the
-    record the user signs, `_assert_the_list_covers` recomputes it when the approval is later asked
-    to authorise something. A second spelling is how the two ends of a content binding drift apart,
-    and here they would drift silently: the cover check would simply stop matching.
+    WHY IT MATTERS, measured while the second batch kind was built (PR-0012 AC-4): a hole exception
+    is an acceptance of a DESCRIBED gap, and the description it is about -- the mechanism, the
+    severity and above all the sentence that says what limits the gap instead (`HOLE_LIMIT_FIELD`)
+    -- is what `item_subject_manifest` hashes for that kind and is NOT in `_SCOPE_FIELDS`. Binding
+    such an entry to the scope hash would have let the bound sentence be rewritten under a standing
+    acceptance. `tools/test_approvals_dispatch.py::test_a_batch_stops_covering_a_hole_whose_bound_moved`
     """
-    return subject_manifest_hash(item_subject_manifest(item, PLAN_COVERED_KIND))
+    return kind if kind in item_derived_kinds() else PLAN_COVERED_KIND
+
+
+def listed_content_hash(item: dict, kind: str = PLAN_COVERED_KIND) -> str:
+    """The content a LIST-bound approval of `kind` binds ONE listed item to.
+
+    It is the very manifest that kind's per-item approval binds to, so one answer over a list
+    covers exactly as much of each item as its own approval would -- no more, and with the same
+    limit that manifest has (for a `scope` on a `BUG`, one of five hashed fields). Which manifest
+    that is, is `content_question`'s answer and not this function's.
+
+    ONE SPELLING FOR THREE READERS -- `plan_goals`, `verification_batch` and `hole_exception_batch`
+    write the hash into the record the user signs, `_assert_the_list_covers` recomputes it when the
+    approval is later asked to authorise something. A second spelling is how the two ends of a
+    content binding drift apart, and here they would drift silently: the cover check would simply
+    stop matching.
+    """
+    return subject_manifest_hash(item_subject_manifest(item, content_question(kind)))
 
 
 def plan_subject_manifest(goals) -> dict:
@@ -1198,15 +1226,26 @@ def proofs_naming(state: ProjectState, item_ids, proof: str) -> dict:
 def batch_walk_end(item_type: str, kind: str) -> str:
     """The status a batch mint of `kind` walks a listed item of `item_type` TO.
 
-    The type's CONFIRMING end when it has one (`backlog_types.confirming_edge` -- for `BUG` that is
-    VERIFIED), the approved edge's own target otherwise. Derived, because the two halves of the walk
-    have different guards and only the derivation keeps them honest: the approval opens the edge it
-    commits, and every step after it is either free or carries its own proof, which the caller has
-    already required (`batch_walk_blockers`). A hard-coded "VERIFIED" here would be this kernel's
-    third statement of the BUG chain.
+    THREE ANSWERS, and the first one is what the second batch kind needed (PR-0012 AC-4): an edge
+    whose target is NOT ON THE TYPE'S CHAIN ends there and nowhere further. `BUG`'s
+    `ACCEPTED_EXCEPTION` is that case -- a terminal beside the chain, reachable only from TRIAGED
+    (`backlog_types`) -- so a batch of accepted exceptions walks to it and stops. Reading the
+    confirming end for it would have walked a gap the user ACCEPTED to VERIFIED, i.e. said the gap
+    was measured gone, which is the opposite statement.
+
+    Otherwise: the type's CONFIRMING end when it has one (`backlog_types.confirming_edge` -- for
+    `BUG` that is VERIFIED), the approved edge's own target when it has none. Derived, because the
+    two halves of the walk have different guards and only the derivation keeps them honest: the
+    approval opens the edge it commits, and every step after it is either free or carries its own
+    proof, which the caller has already required (`batch_walk_blockers`). A hard-coded "VERIFIED"
+    here would be this kernel's third statement of the BUG chain.
+    `tools/test_approvals_dispatch.py::test_a_batch_of_accepted_exceptions_ends_on_the_off_chain_terminal`
     """
+    target = APPROVAL_TRANSITIONS[(item_type, kind)][1]
+    if target not in AUTOMATA[item_type].chain:
+        return target
     confirming = confirming_edge(item_type)
-    return confirming[1] if confirming else APPROVAL_TRANSITIONS[(item_type, kind)][1]
+    return confirming[1] if confirming else target
 
 
 def verification_batch(state: ProjectState, item_ids) -> list:
@@ -1338,6 +1377,167 @@ def _verification_option_form(manifest: dict) -> str:
         len(bugs), "; ".join(_listed_entry(record) for record in bugs))
 
 
+# HOW MUCH OF A GAP'S BOUND RIDES IN THE COMPARED OPTION. The option description is the text
+# `gate_approval` compares character for character and the provider has to echo whole, and a
+# `limits` sentence in this store runs to ~450 characters -- ten of them unabridged is a wall
+# nobody reads and a long echo to compare. So the option carries the bound CUT to this width (the
+# fold is `_one_line`'s, which is the same one `--reason` goes through), and the sentence beside it
+# says where the full one stands. The FULL text is inside the hash either way, through
+# `listed_content_hash(item, HOLE_EXCEPTION_KIND)`: a bound edited past the kernel kills the
+# acceptance whether or not the edit is inside the shown part.
+HOLE_BOUND_SHOWN = 150
+# WHAT THE USER READS BESIDE EACH ID, spelled once because two readers need it: the builder writes
+# it into the record and the option form prints it.
+LISTED_BOUND_FIELD = "bound"
+
+
+def hole_exception_batch(state: ProjectState, item_ids) -> list:
+    """The gaps a hole-exception approval would accept -- refusing BY NAME what it cannot accept.
+
+    THE SECOND BATCH KIND (PR-0012 AC-4), built on `verification`'s shape rather than beside it:
+    the same duplicate refusal, the same `batch_walk_blockers` before anybody is asked, the same
+    all-or-nothing re-check at mint time, the same `BATCH_LIMIT`. What differs is what each entry
+    carries and what the user is therefore signing.
+
+    WHAT MAKES AN ITEM ACCEPTABLE IS THE BOUND AND NOT A HOLE NUMBER, and the first cut of this
+    function had it wrong: it refused anything without `HOLE_NUMBER_FIELD`, which would have locked
+    out the two defects this very order has to put to the user (BUG-0055 needs a spec decision with
+    a migration, BUG-0056 a rule no `PreToolUse` hook can ask today) -- both measured unclosable,
+    both with a bound, neither a numbered hole. The shipped per-item form never asked for the number
+    either (`item_subject_manifest` hashes it only `if field in item`), so the number was a
+    requirement invented here.
+
+    WHAT IS REFUSED, by name and before the question exists: an item with no `HOLE_LIMIT_FIELD`.
+    Accepting one would be the user signing "this stays open" with nothing beside it saying what
+    takes the place of the protection -- exactly the third state CLAUDE.md's house rule forbids.
+    That sentence is also the PROPERTY that tells a gap from a defect: an item states a bound when
+    somebody has judged it unclosable and written down what limits it instead.
+    `tools/test_approvals_dispatch.py::test_a_gap_without_a_bound_is_refused_from_the_exception_batch_by_name`
+
+    NO EVIDENCE IS ASKED, and that is derived rather than decided here: `batch_walk_blockers` asks
+    for the confirming proof only where the walk crosses the type's confirming edge, and this one
+    ends on the off-chain terminal instead (`batch_walk_end`). An accepted exception is a USER
+    statement about risk; a test would be the other verdict.
+    """
+    ids = [str(one) for one in (item_ids or [])]
+    duplicates = sorted({one for one in ids if ids.count(one) > 1})
+    if duplicates:
+        raise ApprovalError(
+            "a batch names %s twice -- an exception cannot be accepted two times by one answer. "
+            "Remedy: list every id once." % ", ".join(duplicates),
+            user_text="Es wurde keine Freigabe erteilt: in der Liste steht derselbe Eintrag "
+                      "mehrfach. " + NEXT_START_OVER)
+    blockers = batch_walk_blockers(state, HOLE_EXCEPTION_KIND, ids)
+    if blockers:
+        raise ApprovalError(
+            "%d of %d listed items cannot be accepted by this approval, so the question is not "
+            "asked: %s" % (len(blockers), len(ids), " | ".join(blockers)),
+            user_text="Es wurde keine Freigabe erteilt: %d der %d Einträge in der Liste können "
+                      "so nicht angenommen werden — dein Assistent muss sie aus der Liste nehmen. "
+                      "%s" % (len(blockers), len(ids), NEXT_START_OVER))
+    records, unfit = [], []
+    for item_id in ids:
+        item = state.read_item(item_id)
+        stated = item.get(HOLE_LIMIT_FIELD)
+        # A BOUND IS A SENTENCE, so a non-string is refused BEFORE it is folded: `_one_line` turns
+        # a list or a mapping into its `str()` and the user would sign `['a', 'b']` as the thing
+        # that limits the gap. The field has no schema of its own (`backlog_types` declares the
+        # name, not the type), so the type question is asked exactly here, where the value becomes
+        # text a person reads.
+        if stated is not None and not isinstance(stated, str):
+            unfit.append("%s states a %s that is not a sentence but a %s -- what the user signs "
+                         "has to be readable text. Remedy: give it one through the kernel, the "
+                         "body on stdin -- `echo '{\"%s\": \"<what bounds it today>\"}' | ... "
+                         "update %s` -- then ask again"
+                         % (item_id, HOLE_LIMIT_FIELD, type(stated).__name__,
+                            HOLE_LIMIT_FIELD, item_id))
+            continue
+        bound = _one_line(stated, HOLE_BOUND_SHOWN)
+        if not bound:
+            # THE REMEDY NAMES THE SHAPE `update` REALLY HAS, and the first cut of this sentence
+            # did not: it offered a `--set` flag the parser does not carry, so a role following it
+            # got a usage error instead of a route (measured 2026-09-12 against a copy of this
+            # repo's own store). `update` reads a JSON body on stdin -- `cli`, the `update` branch.
+            unfit.append("%s states no %s -- what takes the place of the protection is the one "
+                         "thing an acceptance is FOR, so there is nothing here to sign. Remedy: "
+                         "give it one through the kernel, the body on stdin -- "
+                         "`echo '{\"%s\": \"<what bounds it today>\"}' | ... update %s` -- then ask "
+                         "again" % (item_id, HOLE_LIMIT_FIELD, HOLE_LIMIT_FIELD, item_id))
+            continue
+        records.append({
+            GOAL_ITEM_FIELD: item_id,
+            "revision": item.get("revision"),
+            GOAL_SCOPE_HASH_FIELD: listed_content_hash(item, HOLE_EXCEPTION_KIND),
+            LISTED_BOUND_FIELD: bound,
+        })
+    if unfit:
+        raise ApprovalError(
+            # NO SECOND REMEDY HERE: each entry above carries the one that fits it, and a blanket
+            # "take them out of the batch" appended to them contradicted the line before it
+            # (measured 2026-09-12 against a copy of this repo's store: the refusal told a reader
+            # to write the bound AND to drop the item, in one breath).
+            "%d of %d listed items are not acceptable gaps, so the question is not asked: %s"
+            % (len(unfit), len(ids), " | ".join(unfit)),
+            user_text="Es wurde keine Freigabe erteilt: %d der %d Einträge sind keine gemessenen "
+                      "Lücken mit einer Begrenzung — dein Assistent muss sie aus der Liste "
+                      "nehmen. %s" % (len(unfit), len(ids), NEXT_START_OVER))
+    return sorted(records, key=lambda record: record[GOAL_ITEM_FIELD])
+
+
+def hole_exception_subject_manifest(holes) -> dict:
+    """The subject of a hole-exception approval: the gaps, each with what bounds it today.
+
+    `verification_subject_manifest`'s two refusals, for its two reasons -- an EMPTY list would be a
+    permission bound to no item at all, and a list longer than `BATCH_LIMIT` is a question the
+    person answering cannot read through, which on THIS kind is worse than on the other: what they
+    are signing is not "these are repaired" but "these stay open, and this is what limits them".
+    """
+    holes = [dict(record) for record in (holes or []) if isinstance(record, dict)]
+    if not holes:
+        raise ApprovalError(
+            "a hole-exception approval accepts the gaps it lists and this batch lists none. "
+            "Remedy: name the ids on the command line -- an approval bound to an empty list would "
+            "accept nothing and still be minted.",
+            user_text="Es wurde keine Freigabe erteilt: die Liste der Lücken ist leer. "
+                      + NEXT_START_OVER)
+    if len(holes) > BATCH_LIMIT:
+        raise ApprovalError(
+            "a batch carries at most %d items and this one carries %d -- refused at the builder. "
+            "Remedy: cut the list into batches of %d and ask one question per batch."
+            % (BATCH_LIMIT, len(holes), BATCH_LIMIT),
+            user_text="Es wurde keine Freigabe erteilt: die Liste ist zu lang, um sie in einer "
+                      "Frage zu lesen. " + NEXT_START_OVER)
+    return {"holes": holes}
+
+
+def _hole_exception_target_form(manifest: dict) -> str:
+    """The batch as the SENTENCE names it -- `_verification_target_form`'s reason, one step louder.
+
+    What the user is about to sign is that these gaps STAY OPEN, so the sentence says that in plain
+    words rather than counting records, and points at the option where each one stands with its
+    bound.
+    """
+    holes = manifest.get("holes") or []
+    return ("diese %d gemessenen Lücken, die damit offen bleiben — je mit dem, was an die Stelle "
+            "des Schutzes tritt; welche das sind, steht Eintrag für Eintrag in der Freigabe-Option "
+            "darunter" % len(holes))
+
+
+def _hole_exception_option_form(manifest: dict) -> str:
+    """The batch as the APPROVING OPTION carries it: every id with the bound it stands on.
+
+    The compared carrier (`build_question`'s option description, `gate_approval._mismatch` walks
+    every option key), so a relay that drops one id or rewrites one bound changes the text and
+    nothing mints. What this function owes is that every listed id and its bound are IN the text at
+    all: `tools/test_approvals_dispatch.py::test_the_exception_option_names_every_listed_hole_and_its_bound`
+    """
+    holes = manifest.get("holes") or []
+    return "%d Lücken bleiben offen: %s" % (
+        len(holes),
+        "; ".join("%s (%s)" % (record.get(GOAL_ITEM_FIELD), record.get(LISTED_BOUND_FIELD))
+                  if isinstance(record, dict) else str(record) for record in holes))
+
+
 def routine_subject_manifest(role: str, scope: str, trigger: str, cadence: str) -> dict:
     """What a recurring read-only run is bound to (spec II.2, II.10a): the ROLE the dispatcher
     holds the spawn to, the READ scope, the trigger and the cadence -- the four
@@ -1358,7 +1558,8 @@ LINE_MANIFEST_BUILDERS = {"push": push_subject_manifest, "preset": preset_subjec
                           "document_proposal": document_proposal_subject_manifest,
                           "document_revision": document_revision_subject_manifest,
                           PLAN_KIND: plan_subject_manifest,
-                          VERIFICATION_KIND: verification_subject_manifest}
+                          VERIFICATION_KIND: verification_subject_manifest,
+                          HOLE_EXCEPTION_KIND: hole_exception_subject_manifest}
 
 # How long an approval minted from a command-line manifest stays valid, FOR THE KINDS THAT CARRY A
 # CLOCK AT ALL. Which those are is `EXPIRING_KINDS` and the caller asks it (`cli`, the
@@ -1630,7 +1831,7 @@ def _assert_the_list_covers(request: dict, item: dict) -> None:
                       "inzwischen in einer neueren Fassung — die Liste beschreibt ihn nicht mehr. "
                       "Dein Assistent muss dir die aktuelle Liste noch einmal vorlegen. "
                       + NEXT_START_OVER)
-    if listed_content_hash(item) != record.get(GOAL_SCOPE_HASH_FIELD):
+    if listed_content_hash(item, request.get("kind")) != record.get(GOAL_SCOPE_HASH_FIELD):
         raise ApprovalError(
             "the content of %s changed since the list was approved -- an out-of-band edit "
             "invalidated its cover for this item (spec II.4 gate 4). Remedy: re-run the "
@@ -2304,7 +2505,8 @@ TARGET_FORMS = {"push": _push_target_form, "preset": _preset_target_form,
                 "filing_rule": _filing_rule_target_form,
                 "document_proposal": _document_proposal_target_form,
                 "document_revision": _document_revision_target_form,
-                VERIFICATION_KIND: _verification_target_form}
+                VERIFICATION_KIND: _verification_target_form,
+                HOLE_EXCEPTION_KIND: _hole_exception_target_form}
 # WHERE A SUBJECT IS TOO LONG FOR THE SENTENCE, and what carries it instead. `build_question` puts
 # the sentence's target into the approving option too, which is right for every kind whose subject
 # fits in one line; a kind listed here renders a SECOND, fuller form for the option -- the text
@@ -2312,7 +2514,8 @@ TARGET_FORMS = {"push": _push_target_form, "preset": _preset_target_form,
 # absent from this table renders one text in both places, exactly as before, which is what
 # `tools/test_approvals_dispatch.py::test_only_a_kind_with_its_own_option_form_reads_differently_in_the_two_places`
 # holds from both ends.
-OPTION_FORMS = {VERIFICATION_KIND: _verification_option_form}
+OPTION_FORMS = {VERIFICATION_KIND: _verification_option_form,
+                HOLE_EXCEPTION_KIND: _hole_exception_option_form}
 
 
 def kind_label(kind: str) -> str:
@@ -2547,7 +2750,7 @@ def presented_approval_a_program_minted(state: ProjectState, item: dict):
     return apr
 
 
-def approval_card(apr: dict) -> str:
+def approval_card(apr: dict, state: ProjectState = None) -> str:
     """What a minted approval says about itself, for the surfaces that announce one.
 
     ONE COMPOSER, so the hook and the SDK bridge cannot come to describe the same record
@@ -2566,8 +2769,22 @@ def approval_card(apr: dict) -> str:
                   "nicht (%s)." % ", ".join(sorted(IRREVERSIBLE_KINDS)))
     else:
         origin = "Erteilt von einem Menschen, über die Freigabe-Frage des Programms."
+    # A LIST-BOUND APPROVAL HAS NO `item`, and reading that as "keinen Vorgang" told the user the
+    # opposite of the truth: `plan`, `verification` and `hole_exception` bind a LIST, and the
+    # record carries only its digest -- the list itself lives in the consumed request, which is
+    # what `listed_items` reads. Asked only when a state is at hand, and answered from the
+    # PROVENANCE rather than from a count typed anywhere: the same record a later auditor opens.
+    # `tools/test_approvals_dispatch.py::test_the_card_of_a_list_bound_approval_counts_what_it_binds`
+    subject = apr.get("item")
+    if not subject and state is not None:
+        try:
+            listed = listed_items(consumed_request(state, apr))
+        except (ApprovalError, StateError, OSError):
+            listed = ()
+        if listed:
+            subject = "die %d Einträge ihrer Liste" % len(listed)
     return "Freigabe %s (%s) für %s. %s" % (
-        apr.get("id"), apr.get("kind"), apr.get("item") or "keinen Vorgang", origin)
+        apr.get("id"), apr.get("kind"), subject or "keinen Vorgang", origin)
 
 
 def _is_same_file(left, right) -> bool:
@@ -3065,11 +3282,23 @@ def _close_what_the_batch_lists(state: ProjectState, request: dict, apr: dict) -
         state._write_yaml_atomic(state.active_path(item_id), item)
         chain = AUTOMATA[item_type].chain
         end = batch_walk_end(item_type, kind)
+        standing = chain.index(str(item.get("status")))
+        if end in chain:
+            steps = list(chain[standing + 1:chain.index(end) + 1])
+        else:
+            # AN OFF-CHAIN ENDING (`BUG` -> `ACCEPTED_EXCEPTION`): climb the chain to the edge's
+            # SOURCE first and take the ending as the last step. The climb is not decoration -- the
+            # automaton allows that terminal only from the source status (`terminal_from`), so a
+            # listed gap standing at OPEN has to reach TRIAGED before the edge exists at all, and
+            # those steps are free ones. Measured without the climb: a hole captured OPEN was
+            # refused mid-walk, after the APR existed.
+            source = APPROVAL_TRANSITIONS[(item_type, kind)][0]
+            steps = list(chain[standing + 1:chain.index(source) + 1]) + [end]
         # THE INDEX IS REBUILT ONCE FOR THE WHOLE MINT, not once per step -- `mint` regenerates
         # unconditionally after this returns, and the rule is `_transition_locked`'s own: once per
         # operation, not once per item it touches. Measured before it: a batch of 25 on a
         # repo-sized store spent 100 rebuilds inside one hook call.
-        for status in chain[chain.index(str(item.get("status"))) + 1:chain.index(end) + 1]:
+        for status in steps:
             item = state._transition_locked(item_id, status, regenerate=False)
         if is_terminal(item_type, str(item.get("status"))):
             state._archive_locked(item_id, regenerate=False)

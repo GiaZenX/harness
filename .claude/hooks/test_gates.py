@@ -509,6 +509,51 @@ def test_the_registration_is_the_one_the_contract_asks_for():
             % (script, sorted(actual[script]), sorted(tools)))
 
 
+def _gate_scripts_of_this_repo(settings_path):
+    """The gate scripts `settings.json` registers OUT OF THIS REPO'S OWN `.claude/hooks/`.
+
+    A PROPERTY OF THE REGISTERED PATH, not a list: the kit's `gate_approval.py` is registered where
+    it SHIPS (`settings.json`'s own comment says why it may not be copied), so "this repo's own
+    gates" is exactly "the registered command names a file under `.claude/hooks/`". A second gate
+    borrowed from a kit tomorrow is excluded by the same rule with no edit here.
+    """
+    found = set()
+    for _event, matchers in _registered(settings_path).items():
+        for _matcher, commands in matchers.items():
+            for command in commands:
+                for relative in re.findall(r"\$\{CLAUDE_PROJECT_DIR\}(/[^\"\s]+\.py)", command):
+                    if relative.startswith("/.claude/hooks/"):
+                        found.add(os.path.basename(relative))
+    return found
+
+
+_CLAUDE_MD_GATE_ROW_RX = re.compile(r"^\|\s*`(gate_[A-Za-z0-9_]+\.py)`\s*\|", re.MULTILINE)
+
+
+def test_the_gate_table_of_this_file_is_the_registration_itself():
+    """BUG-0268 / H185: `CLAUDE.md` said "die vier Gates dieses Repos" while five were registered
+    and its table listed four rows -- a reader who met gate 5's refusal found no row for it.
+
+    BOTH ENDS, because either alone rots: a gate registered out of `.claude/hooks/` with no row is
+    a gate the overview hides, and a row for a script nothing registers is a gate that does not
+    run. The count itself is no longer anywhere in the prose -- that was the thing that aged -- so
+    this table is the one place that says how many there are.
+
+    THE PARSED SIDES, not a substring search over either file: the registration comes from the JSON
+    the provider reads (`_registered`, the same reader the contract test uses), and the rows come
+    from the document's own table syntax. A sentence in `CLAUDE.md` that merely MENTIONS a gate
+    name is not a row and does not satisfy this.
+    """
+    registered = _gate_scripts_of_this_repo(os.path.join(ROOT, ".claude", "settings.json"))
+    with io.open(os.path.join(ROOT, "CLAUDE.md"), encoding="utf-8") as handle:
+        rows = set(_CLAUDE_MD_GATE_ROW_RX.findall(handle.read()))
+    assert registered, "no gate of this repo is registered at all -- read the settings, not this"
+    assert rows == registered, (
+        "CLAUDE.md's gate table lists %s, `.claude/settings.json` registers %s out of "
+        ".claude/hooks/ -- the table with no row is the overview a refused reader is sent to"
+        % (sorted(rows), sorted(registered)))
+
+
 @pytest.mark.parametrize("script,tool", REGISTERED_PAIRS)
 def test_each_gate_refuses_on_every_tool_name_it_is_registered_for(project, script, tool):
     """The registered name is not the claim -- the process is.
@@ -4570,7 +4615,7 @@ def _tests_by_module():
 
     THE CORPUS IS WHERE THE TESTS LIVE, and that is not one file: an entry of this list closes a
     defect anywhere in this repo, and the test that would notice a reopening lives where the defect
-    lived -- under `tools/` for the kits and the kernel, here for the four gates. Read against
+    lived -- under `tools/` for the kits and the kernel, here for this repo's own gates. Read against
     `test_gates.py` alone, every citation of a `tools/` test was a FALSE RED and the
     module-qualified spelling that avoids it was skipped outright, so the two limits covered for
     each other (measured 2026-09-02, TSK-0109 N11).
@@ -4641,7 +4686,7 @@ def test_every_test_a_hole_names_is_one_that_exists():
 
     THE CORPUS IS WHERE THE TESTS LIVE, and that is not one file: a hole closes a defect anywhere
     in this repo, and the test that would notice a reopening lives where the defect lived -- under
-    `tools/` for the kits and the kernel, here for the four gates.
+    `tools/` for the kits and the kernel, here for this repo's own gates.
 
     Names are matched loosely on purpose, exactly as before: the items carry the abbreviations the
     entries used, so the name is looked up EXACTLY first and only as a substring when nothing

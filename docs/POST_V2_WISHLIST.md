@@ -1866,7 +1866,7 @@ verbotenen Bereich von TSK-0023; diese Runde fasst dort nichts an. Der Befund is
 Abnahmekriterien (Test misst wieder, Ursache benannt, ein Weg der ein Rot dieser Suite bemerkt).
 
 **Was stattdessen begrenzt:** die Suite ist rot und nicht still — wer sie fährt, sieht es sofort;
-und was sie misst, sind die vier Gates dieses Repos, deren Verhalten in Abschnitt 12 mit eigenen
+und was sie misst, sind die Gates dieses Repos, deren Verhalten in Abschnitt 12 mit eigenen
 Ketten steht. Bis BUG-0014 abgearbeitet ist, ist der Sandkasten-Test dieser einen Datei **keine**
 Deckung, und keine Runde darf ihn als solche zitieren.
 
@@ -2297,7 +2297,7 @@ der LF dahinter bleibt der Umbruch, den er war —, und dasselbe blanke CR auf d
 `tools/test_hooks_v2.py::test_a_line_carrying_a_character_its_shell_never_sees_is_refused` und
 `tools/test_hooks_v2.py::test_a_continuation_the_named_shell_does_not_honour_is_not_joined`.
 
-**Was bleibt, benannt.** Die vier `PreToolUse`-Gates **dieses** Repos (`.claude/hooks/`) erben die
+**Was bleibt, benannt.** Die `PreToolUse`-Gates **dieses** Repos (`.claude/hooks/`) erben die
 werkzeugabhängige Fortsetzung, weil `_harness` die Nutzlast durch dasselbe `_compat` liest — die
 CR-**Verweigerung** aber nicht, denn die sitzt in `_kernel.payload`, und `_harness` ruft
 `_compat.load` direkt. `.claude/**` ist verbotener Bereich für den Umsetzer; gemessen wird das vom
@@ -2438,7 +2438,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H134](docs/holes/H134.md) | BUG-0217 | TRIAGED | `blocked` ist ein Zustand, keine Messung (neu, TSK-0117, FR-0082) |
 | [H135](docs/holes/H135.md) | BUG-0218 | TRIAGED | Der Zeugen-Halbteil der Überlappungsprüfung ist eine Stichprobe, keine Sprache (neu, TSK-0118, FR-0021) |
 | [H136](docs/holes/H136.md) | BUG-0219 | VERIFIED | Die Vor-Dispatch-Prüfung hat in einem Kit-Projekt keinen ausführbaren Weg (neu, TSK-0118, FR-0021) |
-| [H137](docs/holes/H137.md) | BUG-0220 | TRIAGED | Ein Haken-Docstring nennt einen Takt, den keine Verfassung mehr nennt (neu, TSK-0118, N2) |
+| [H137](docs/holes/H137.md) | BUG-0220 | VERIFIED | Ein Haken-Docstring nennt einen Takt, den keine Verfassung mehr nennt (neu, TSK-0118, N2) |
 | [H138](docs/holes/H138.md) | BUG-0221 | ACCEPTED_EXCEPTION | Die Konformitätsbefunde des Renderers verweigern nichts: der Datensatz beantwortet eine andere Frage (neu, TSK-0119, FR-0077/FR-0078) |
 | [H139](docs/holes/H139.md) | BUG-0222 | TRIAGED | Die BUILD-Hälfte der Standard-Härtung ist nicht gebaut, weil ihre beiden Wirtsdateien in ein fremdes Kit gespiegelt sind (neu, TSK-0119, FR-0077) |
 | [H140](docs/holes/H140.md) | BUG-0223 | TRIAGED | Die Rangfolge-Prüfung urteilt über das, was der Entwurf DEKLARIERT, und der Kontrast schweigt über das, was er nicht ausrechnen kann (neu, TSK-0119, FR-0077/FR-0078) |
@@ -2467,7 +2467,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H164](docs/holes/H164.md) | BUG-0246 | TRIAGED | Ein Modulname in Backticks wird als Testzitat in ein Loch-Item geschrieben (neu, TSK-0126, DEC-0073) |
 | [H165](docs/holes/H165.md) | BUG-0247 | VERIFIED | Ein positionaler GLOB innerhalb einer erklaerten Wurzel verengte nichts (neu, TSK-0126 Merge, Pruefrunde 1 B2) |
 | H166 | BUG-0248 | OPEN | The docking point (scripts/invoice_intake.py) refuses a mixed-VAT-rate outgoing invoice for booking -- a ledger row carries ONE vat_rate, so a document with 7 % and 19 % positions (ordinary in trade: food beside hardware) is accepted by the norm check and then handed back 'by hand' |
-| H167 | BUG-0249 | OPEN | The session brief does not show the rung and the effort the dispatcher derived: `report.generate_session_brief` builds each `active_tasks` row from a fixed field set (id/status/assigned_role/blocked_by), so DEC-0077 (5) and PR-0010 AC-6 ("shown in the session brief") are unbuilt while the values sit on the task item (new, TSK-0130, PR-0010 AC-6) |
+| H167 | BUG-0249 | VERIFIED | The session brief does not show the rung and the effort the dispatcher derived: `report.generate_session_brief` builds each `active_tasks` row from a fixed field set (id/status/assigned_role/blocked_by), so DEC-0077 (5) and PR-0010 AC-6 ("shown in the session brief") are unbuilt while the values sit on the task item (new, TSK-0130, PR-0010 AC-6) |
 | H168 | BUG-0250 | OPEN | One kit release ships two contradicting ladder texts: the constitutions say the escalation is derived by the kernel and "there is no user-gated escalation ladder any more", while the PMs' own SKILL and all three project_config templates still instruct the retired `sonnet-high -> sonnet-xhigh -> opus-high -> opus-xhigh/max` -- and session_status plus the scaffold still translate the retired `light` rung (new, TSK-0130, PR-0010 AC-3/AC-7, DEC-0076/DEC-0077/DEC-0078) |
 | H169 | BUG-0251 | OPEN | The EFFORT axis of the ladder (DEC-0077 (1)) is derived, written and shown but never applied: the Agent tool has no per-spawn effort parameter, so the child runs on its installed `effort:` pin (new, TSK-0130, PR-0010 AC-6) |
 | H170 | BUG-0252 | OPEN | The office `large` effort (DEC-0078 (2): `high` when the goal's class is large) is unreachable: a `PROC` root carries no `class` field, so every office order gets the default (new, TSK-0130, PR-0010 AC-6) |
@@ -2476,7 +2476,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | H173 | BUG-0255 | OPEN | On Codex the spawn-side hold of the rung does not exist: the Agent tool is not hookable there (`gen_provider_artifacts.CODEX_UNSUPPORTED_TOOLS`), so a climbed order's rung is on the lease and in the header only (new, TSK-0130, PR-0010 AC-6) |
 | H174 | BUG-0256 | DUPLICATE | Doppelt zu BUG-0251: was am Spawn fehlt, ist der EFFORT -- das Modell ist waehlbar |
 | H175 | BUG-0257 | OPEN | Der Zeiger-Sweep kann eine ILLUSTRATION nicht von einem Zeiger unterscheiden -- und den Bestand eines fremden Stores nicht vom eigenen |
-| H176 | BUG-0258 | OPEN | After the generation-4 hole migration docs/POST_V2_WISHLIST.md carries no `### H` entry any more, so test_repo_hygiene::test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole is RED at HEAD b7f282e |
+| H176 | BUG-0258 | VERIFIED | After the generation-4 hole migration docs/POST_V2_WISHLIST.md carries no `### H` entry any more, so test_repo_hygiene::test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole is RED at HEAD b7f282e |
 | H177 | BUG-0259 | OPEN | The empty-lists rule that keeps a kit template from shipping somebody's business reads only LISTS, so every SCALAR term of correspondence.yaml ships as a value the kit chose and a customer letter carries it unchallenged |
 | H178 | BUG-0260 | OPEN | A QA fail classified narrow/mechanical still climbs the rung: the constitutions offer that classification as the alternative to escalating, and the built mechanic counts FAILED RUNS, which no classification is part of -- so the one lever the rule gave QA no longer reaches the model (new, TSK-0130, PR-0010 AC-6, DEC-0034 rule 2 vs parity matrix row 43/45) |
 | H179 | BUG-0261 | OPEN | Ein bestandener Test, der einen Fehler NENNT, sagt nicht, dass der Fehler weg ist -- 106 gemessene Bugs ohne Urteil |
@@ -2485,16 +2485,30 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | H182 | BUG-0264 | OPEN | Four schedule claims survive in the enforcement layer that AC-1 cleaned everywhere else: .claude/hooks/gate_spawn_needs_item.py and .claude/hooks/_harness.py still say the watchers 'run on a weekly schedule', no test reads them, and the reworded watcher definitions now POINT at them (new, TSK-0130, PR-0010 AC-1, DEC-0084) |
 | H183 | BUG-0265 | OPEN | Der Zeiger-Sweep liest in einem Projekt mit installiertem Kit die Skript-Verzeichnisse gar nicht -- auch das eigene Skript des Projekts nicht |
 | H184 | BUG-0266 | OPEN | The project-auditor routine is REMINDED but cannot be DISPATCHED on its own route: `request-approval` offers twelve kinds and neither `routine` nor `analysis`, so the only walkable way to run the auditor is an ordinary work order with a writable allowed_scope -- measured as a process on a scaffolded dev pilot (new, TSK-0130, DEC-0084 (2)(b), confirms H111 four weeks on) |
-| H185 | BUG-0268 | OPEN | CLAUDE.md sagt "die vier Gates dieses Repos", registriert sind fuenf -- und die Datei ist fuer jede Rolle verbotener Bereich |
+| H185 | BUG-0268 | VERIFIED | CLAUDE.md sagt "die vier Gates dieses Repos", registriert sind fuenf -- und die Datei ist fuer jede Rolle verbotener Bereich |
 | H186 | BUG-0269 | OPEN | The radar watcher's Desktop scheduled task is a mechanism this repository can neither ask nor see fire: its day, hour and enabled flag live in the Desktop app, it runs only while that app is open, and a week with the app closed is silent -- the report cadence in radar/ is the only evidence, read by `--due` (corrected under DEC-0089: the task IS the mechanism and its reports DO carry the `-claude` suffix; TSK-0130, PR-0010 AC-1) |
 | H187 | BUG-0270 | OPEN | Der Zeiger-Sweep dieses Repos liest team-kits/ und docs/, nicht tools/ -- 39 Testzeiger in den eigenen Suiten pruefen nichts |
 | H188 | BUG-0272 | OPEN | Gate 1 refuses a READ-ONLY grep as a write to the drive root when its double-quoted pattern carries escaped backticks AND a space: `grep -c "\`a\`, \`b\`" README.md` is rc 2 with 'no tool call in this repo may write C:\' (over-refusal, measured 2026-09-06 in the generation-5 merge, TSK-0133) |
 | H189 | BUG-0273 | OPEN | The radar claim reader admits a cadence sentence that names no mechanism word: 'The watcher duo runs once a week without a human.' passes tools/test_radar_trigger.py by design, because a claim is recognised by its WORD (schedule, automatic, cron, Desktop task, the cloud option's names, a weekday) and a cadence alone is read as intent -- so a sentence asserting agentless recurrence in plain words is judged by nobody (TSK-0133 verify round 1, P6; beside H182) |
 | H190 | BUG-0274 | OPEN | The claim reader's list of names for the rejected cloud routine (`cloud_option.named_as`) has no tripwire at either end: the shipped README's own words for that option ('hosted code routine of the platform', 'sandbox routine against the remote') pass the reader as a mechanism claim (verify round 2 N1, TSK-0133) |
 | H191 | BUG-0275 | OPEN | The ladder-paragraph reader's lead-in branch (`_states_the_scaling_rule`) accepts rung and effort a whole bullet apart while its docstring says a rule states both axes 'in one breath': moving the word effort into the bold lead-in and deleting the effort RULE keeps the constitution qualifying (verify round 2 N2, TSK-0133) |
-| H192 | BUG-0276 | OPEN | A module added under tools/ shadows the team-kits module of the same name for every `python tools/<script>.py` entry point, and nothing measures the collision |
+| H192 | BUG-0276 | VERIFIED | A module added under tools/ shadows the team-kits module of the same name for every `python tools/<script>.py` entry point, and nothing measures the collision |
 | H193 | BUG-0277 | OPEN | scaffold_team warns and continues when the staging carries no write_kit_state.py, so a project installs green with no hook-bundle trust recorded -- and the missing file is a kit-hash input, so every later stamp check refuses the same staging (new, TSK-0135, DEC-0092 (6) rig) |
 | H194 | BUG-0278 | OPEN | The test-shaped-acceptance reader (`dispatch.acceptance_is_test_shaped`, DEC-0097 (2)) claims both kit languages but its negation and word lists are English-shaped: 'ein Test wird rot, ohne den Fix' is refused (`ohne` counted as a negation) and German compounds ('Regressionstest', 'Unittest') are invisible -- false negatives, the order stays on the opus default (TSK-0137 verify round 2, N-e/N-f) |
-| H195 | BUG-0279 | OPEN | The batch route's evidence rule 'a test that NAMES the bug' (DEC-0100 (3), tools/close_measured_pass.py nodes_naming) reads an incidental mention like a measuring one: BUG-0050's only naming test says 'nothing was caught', BUG-0044's is a historical aside -- both would have been VERIFIED by a click (TSK-0138 verify round 2) |
+| H195 | BUG-0279 | VERIFIED | The batch route's evidence rule 'a test that NAMES the bug' (DEC-0100 (3), tools/close_measured_pass.py nodes_naming) reads an incidental mention like a measuring one: BUG-0050's only naming test says 'nothing was caught', BUG-0044's is a historical aside -- both would have been VERIFIED by a click (TSK-0138 verify round 2) |
 | H196 | BUG-0280 | OPEN | A hook a suite starts without its own CLAUDE_PROJECT_DIR judges whatever tree the ambient variable names -- 55 of 65 call sites, and the suite cannot tell an honest one from a forgetful one |
+| H197 | BUG-0281 | OPEN | H7 neu aufgelegt (Ausnahme nie freigegeben): `carries_work` verlangt keinen erreichbaren Endzustand — OFFEN |
+| H198 | BUG-0282 | OPEN | H11 neu aufgelegt (Ausnahme nie freigegeben): Ein Interpreter führt Code aus, den kein Gate lesen kann (neu, Preis des Fixes zu F2) |
+| H199 | BUG-0283 | OPEN | H12 neu aufgelegt (Ausnahme nie freigegeben): Ein Subagent kann sich die Ausnahme von Gate 2 selbst ausstellen |
+| H200 | BUG-0284 | OPEN | H16 neu aufgelegt (Ausnahme nie freigegeben): Der Pfad steht in einer Variablen, das Gate liest den Text (neu, TSK-0008) |
+| H201 | BUG-0285 | OPEN | H21 neu aufgelegt (Ausnahme nie freigegeben): `Push-Location`/`Pop-Location` fehlen im Verzeichnis-Vokabular (neu, TSK-0011) |
+| H202 | BUG-0286 | OPEN | H22 neu aufgelegt (Ausnahme nie freigegeben): Die Read-only-Klassifikation gilt pro Stufe, der Pfad reist weiter (neu, TSK-0011) |
+| H203 | BUG-0287 | OPEN | H25 neu aufgelegt (Ausnahme nie freigegeben): Die Frist, die ein Gate sich zugesteht, und die, nach der es getötet wird (neu, TSK-0013) |
+| H204 | BUG-0288 | OPEN | H32 neu aufgelegt (Ausnahme nie freigegeben): Ein Befehl, den eine Ersetzung einführt (neu, TSK-0019) |
+| H205 | BUG-0289 | OPEN | H38 neu aufgelegt (Ausnahme nie freigegeben): Ein Programm, das ein Hier-Dokument einer Shell übergibt, liest keines der Gates (neu, TSK-0022) |
+| H206 | BUG-0290 | OPEN | H39 neu aufgelegt (Ausnahme nie freigegeben): Endzustände, die dieses Repo nicht ehrlich erreichen kann: TSK `DONE`, BUG `VERIFIED` (neu, TSK-0055) |
+| H207 | BUG-0291 | OPEN | H40 neu aufgelegt (Ausnahme nie freigegeben): Vertragszitationen außerhalb der `.py`-Quellen von `.claude/hooks/` liest kein Stolperdraht (neu, TSK-0058) |
+| H208 | BUG-0292 | OPEN | H99 neu aufgelegt (Ausnahme nie freigegeben): H11 hebt die Vier-Augen-Buchung mit auf: ein Skript trägt eine ungelesene Zeile nach `HEAD` und prägt die zweite Lesung (neu, TSK-0102, FR-0065) |
+| H209 | BUG-0293 | OPEN | H116 neu aufgelegt (Ausnahme nie freigegeben): Die Hook-REGISTRIERUNG wird mitten in der Sitzung neu gelesen — auch zwischen zwei Werkzeugaufrufen einer Runde (neu, TSK-0108, FR-0059) |
+| H210 | BUG-0294 | OPEN | H138 neu aufgelegt (Ausnahme nie freigegeben): Die Konformitätsbefunde des Renderers verweigern nichts: der Datensatz beantwortet eine andere Frage (neu, TSK-0119, FR-0077/FR-0078) |
 

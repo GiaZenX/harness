@@ -286,7 +286,11 @@ def test_the_active_filter_finds_the_store_the_kernel_actually_writes_into(tmp_p
 def test_the_evidence_comes_from_the_tests_that_name_the_bug_and_from_no_other_node(tmp_path):
     """BUG-0090's rule read literally (DEC-0100 (3)), and the correction of the first cut: a defect
     closes on the tests that are ABOUT it, never on whatever node a survey row happened to quote
-    first.
+    first -- and never on an INCIDENTAL mention either, which is BUG-0279 / H195: an id anywhere in
+    a test's span used to count, so a "see also" line or a paragraph about a neighbouring defect
+    would have closed a bug on a click (measured on BUG-0044 and BUG-0050, whose only naming lines
+    are an aside and a "nothing was caught"). The declared place is the docstring's FIRST paragraph
+    or a decorator, and `kernel.naming_tests` is the one reader of it for both callers.
 
     Measured on the real records before the fix: BUG-0002 ("robocopy /MOVE reads as a copy") was
     quoted with `test_board.py::test_a_hostile_field_cannot_add_an_element_or_an_attribute_to_the_

@@ -852,9 +852,17 @@ def test_every_target_form_names_a_live_apr_kind(project):
     # the sentence, and
     # `tools/test_approvals_dispatch.py::test_only_a_kind_with_its_own_option_form_reads_differently_in_the_two_places`
     # holds the other end for every form that has no option form of its own.
+    # `hole_exception` joined in TSK-0140 (PR-0012 AC-4) as the THIRD list-bound form and the
+    # second that splits itself in two, on the same ground: the sentence says how many gaps stay
+    # open, the approving option carries each id WITH what bounds it. Both halves are measured --
+    # `tools/test_approvals_dispatch.py::test_the_exception_option_names_every_listed_hole_and_its_bound`
+    # requires every id and its bound in the option and refuses the ids in the sentence, and
+    # `tools/test_approvals_dispatch.py::test_a_gap_without_a_bound_is_refused_from_the_exception_batch_by_name`
+    # measures what the form is allowed to be asked about at all.
     assert set(approvals.TARGET_FORMS) == {"push", "preset", "filing_correction", "filing_rule",
                                            "document_proposal", "document_revision",
-                                           approvals.PLAN_KIND, approvals.VERIFICATION_KIND}, (
+                                           approvals.PLAN_KIND, approvals.VERIFICATION_KIND,
+                                           approvals.HOLE_EXCEPTION_KIND}, (
         "a new readable form arrived without a measurement of what it renders")
 
 

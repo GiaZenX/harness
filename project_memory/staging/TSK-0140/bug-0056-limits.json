@@ -1,0 +1,3 @@
+{
+  "limits": "what IS refused is every write inside the state tree, measured rc 2 both for the legacy directory under the state root and for the monolith spelling beside `generated/`; what stays open is a write to a file the migration RECORDED as a V1 record while it still lies outside that tree -- the project's own old document until it is migrated, and the sanctioned route (`migrate`) names every such file in its report. Unclosable at this layer as measured: no installed hook reads `search_coverage`/`record_scan_coverage`, and a `PreToolUse` gate that did would have to read the scan record on every write of every session; the merge-side readers L19/L20 are unaffected in either direction."
+}

@@ -1,0 +1,53 @@
+id: BUG-0289
+title: 'H38 neu aufgelegt (Ausnahme nie freigegeben): Ein Programm, das ein Hier-Dokument
+  einer Shell übergibt, liest keines der Gates (neu, TSK-0022)'
+related_pr: PR-0012
+observed: 'Migrated 2026-09-05 as H38 into BUG-0130 with status ACCEPTED_EXCEPTION
+  and approval null -- the user never saw a question for it (measured 2026-09-12 over
+  archive/bug/*). Original finding: **Mechanismus:** beide Gates lesen den Befehlstext
+  erst, nachdem die **Prosa-Entfernung der Kits**
+
+  darüber gelaufen ist (`_harness._prose_removed`). Die entfernt neben dem Nachrichtenargument
+  (H34)
+
+  auch **jeden Rumpf eines Hier-Dokuments** (`gate_write_scope._HEREDOC_RX`), und
+  zwar vollständig
+
+  und ohne den Befehl davor anzusehen. Ein Rumpf ist aber nicht nur, wohin man eine
+  Commit-Nachricht
+
+  schreibt: er ist auch der Weg, auf dem eine Shell — oder jeder andere Interpreter
+  — ein **Programm**
+
+  bekommt. Damit ist jedes Programm, das so übergeben wird, für beide Gates unsichtbar;
+  was es tut,
+
+  steht in einer Spanne, die vor dem ersten Leser gelöscht wird. Der Mechanismus ist
+  die Spanne, nicht
+
+  eine Schreibweise: welches Verb davorsteht und welche Sprache im Rumpf steht, spielt
+  keine Rolle.'
+expected: 'CLOSED red-first by stream B with a test that NAMES this bug id (DEC-0100);
+  fix location: team-kits/*/hooks/gate_write_scope.py _HEREDOC_RX: a heredoc handed
+  to a shell. If the attempt measures it unclosable here, the downgrade carries the
+  measurement and a plain-German sentence (never ''later'').'
+repro: 'read BUG-0130 (status ACCEPTED_EXCEPTION, approval: null); the mechanism:
+  docs/holes/H38.md'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the item ends VERIFIED on a passing test that names it, or ACCEPTED_EXCEPTION
+  on a request the user answered -- never on a migration'
+- 'AC-2: if an exception, its `limits` is the plain-German sentence a non-developer
+  understands'
+source: 'archive BUG-0130; staging/generation-6/refile_unclicked_exceptions.py (lead
+  classification: ja, stream B)'
+limits: '**nichts Technisches** für den Schreibzugriff — dieselbe Begrenzung wie H34:
+  die Prosa-Entfernung ist die der Kits (`gate_write_scope._HEREDOC_RX`). Gemessen
+  begrenzt ist nur die Commit-Hälfte: steht der Commit auf derselben Zeile, verweigert
+  Gate 3 sie wegen des Verbs. **Sozial** — Rollentrennung und Item'
+supersedes: BUG-0130
+hole_number: H205
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:46:36'

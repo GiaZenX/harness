@@ -175,12 +175,17 @@ Damit ist ein Item kein Beiwerk, sondern Eingabe: ein veraltetes Item erzeugt ei
 Auftrag, und der Fehler wird sichtbar statt still zu bleiben. Dieselbe Regel wie oben — die
 Prüfung muss den Teil lesen, der läuft.
 
-## Die vier Gates dieses Repos
+## Die Gates dieses Repos
 
 Seit `SR-0006` (2026-08-04; heute abgelöst durch **`SR-0009`**, das den Auslöser als Eigenschaft
 und den Bereich als Ableitung fasst) steht die Regel nicht mehr allein auf Disziplin.
-`.claude/settings.json` registriert
-vier eigene `PreToolUse`-Hooks aus `.claude/hooks/` — kein Kit, keine Kit-Hooks.
+`.claude/settings.json` registriert eigene
+Gate-Skripte aus `.claude/hooks/` — kein installiertes Kit, und von den Kit-Hooks genau einer: `gate_approval.py` steht zweimal darin (`AskUserQuestion` vor und nach dem Werkzeug) und wird dort referenziert, wo es ausgeliefert wird, weil eine Kopie davon die Prägung nicht mehr erlauben würde (`.claude/settings.json` sagt im eigenen Kopf, warum). **Wie viele es sind, steht hier
+absichtlich nicht**, sondern nur in der Tabelle unten, und die wird gegen die Registrierung
+gemessen: `.claude/hooks/test_gates.py::test_the_gate_table_of_this_file_is_the_registration_itself`
+liest beide Seiten und wird in beide Richtungen rot. Bis 2026-09-12 stand hier „vier", während fünf
+registriert waren und die Tabelle vier Zeilen hatte — eine Zahl in der Prosa altert am Tag, an dem
+ein Gate dazukommt (`BUG-0268`).
 
 **Was beim Sitzungsstart bindet, ist die Registrierung** — welches Skript auf welchem Ereignis
 läuft, und die `agent:`-Bindung. Die **Dateien** werden bei jedem Aufruf frisch gelesen: ein
@@ -210,6 +215,7 @@ auf eine Verweigerung trifft:
 | `gate_lead_write_scope.py` | `Write\|Edit\|MultiEdit\|NotebookEdit` **und** `Bash\|PowerShell` | dem **Sitzungsagenten** jeden Schreibzugriff auf einen geschützten Bereich (unten), **jedem** einen Schreibzugriff auf kanonischen Zustand. Beide Ereignisklassen, weil ein Schreibzugriff durch beide geht: mit nur den Schreibwerkzeugen registriert erreichte eine einzige Bash-Zeile jeden geschützten Pfad (gemessen 2026-08-05, acht Zeilen rc 0) |
 | `gate_spawn_needs_item.py` | `Agent\|Task` | einen Spawn, der kein offenes Item nennt — außer die Definition der gespawnten Rolle erklärt `harness_item: none` |
 | `gate_commit_evidence.py` | `Bash\|PowerShell` | `git commit`, solange kein aktives `EVD` mit `result: pass` den Diff-Hash des Arbeitsbaums nennt — und jede Zeile, deren Teil vor dem Commit nicht **nachweislich nur liest**. Was das heißt, entscheidet `gate_commit_evidence._moves_the_tree_first`, und zwar mit der Einstufung der Kits: die Umleitung der committenden Stufe zählt dazu (die richtet die Shell vor `git` ein), und seit TSK-0019 auch der Befehl, den eine **Kommandoersetzung** in ihr einführt (`_harness.command_line`). Das ist keine Vollständigkeit, sondern hat **zwei** gemessene Grenzen, und beide lassen durch: ein Schreibzugriff, den die Einstufung der Kits als lesend führt (H22), und eine quotierte Spanne hinter einer **Flagschreibweise**, die die Kits als Prosa entfernen, bevor irgendjemand sie liest — unabhängig vom Verb, also auch ohne jede Ersetzung (H34, und H32 als ihr Sonderfall) |
+| `gate_test_scope.py` | `Bash\|PowerShell` | eine Befehlszeile, die eine ganze erklärte Testfläche fährt, ohne das Präfix `DELIVERY_RUN=<ITEM-ID>` zu tragen — der volle Lauf gehört dem Item, das mergt, nicht einem Strom (`DEC-0050`, `FR-0086`). Eine **Auswahl** beurteilt es nicht; was als Verengung zählt, steht in `tools/test_surface.json` und nicht hier |
 | `gate_todo_items.py` | `TodoWrite` | eine Aufgabenliste mit mehr als einem Eintrag ohne Item-Id, oder mit einer Id, die nichts Offenes führt |
 
 **Geschützt ist, was den Durchsetzungsapparat oder das Produkt trägt**, und zwar als Ableitung, nicht

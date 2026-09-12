@@ -49,7 +49,9 @@ source: TSK-0134 red-first rig, row 'shadowing' (project_memory/staging/TSK-0134
   tools/validate.py lines 25-32; tools/radar_routine.py `_kit_generator`; TSK-0134
   expected_outputs RUNGS
 hole_number: H192
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0047
 created: '2026-09-11T02:22:14'
+approved_hash: ec21a8953a205d36e3e4fd92a0223cd53524ae7e279e73ad94fc372c793a36fa
+closed_at: '2026-09-12T09:21:46'

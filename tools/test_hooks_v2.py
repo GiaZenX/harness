@@ -13291,9 +13291,19 @@ def test_the_lead_of_a_scaffolded_project_is_not_read_as_its_own_subagent(tmp_pa
     env = dict(os.environ, CLAUDE_PROJECT_DIR=str(repo))
     env.pop("HARNESS_KERNEL_PATH", None)          # the scaffolded project carries its own kernel
 
+    # THE MODEL THE LEASE ASKS FOR, read off the lease rather than typed: a SCAFFOLDED project has
+    # a kit declaration, so its lease carries a derived rung, and since generation 5 the dispatch
+    # gate refuses a climbed spawn that names no model (DEC-0077 (2)). Without this the fixture
+    # measures that refusal instead of the identity question it is about -- which is what it did at
+    # 1b6d95c. `tools/test_hooks.py::model_the_lease_requires` asks the gate's own predicate.
+    from test_hooks import model_the_lease_requires
+    wanted = model_the_lease_requires(_lease_of(state, task["id"]))
+
     def spawn(**identity):
         payload = dict(spawn_payload(repo, header, run_in_background=False), **identity)
         payload["tool_input"]["run_in_background"] = False
+        if wanted:
+            payload["tool_input"]["model"] = wanted
         return subprocess.run(command, input=json.dumps(payload), capture_output=True,
                               text=True, env=env, timeout=180)
 

@@ -44,7 +44,9 @@ acceptance_criteria:
   text: no docstring or document sentence keeps claiming a guarantee over `### H`
     entries of docs/POST_V2_WISHLIST.md that the code no longer builds
 hole_number: H176
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0047
 created: '2026-09-05T22:41:30'
+approved_hash: 27ff9be3f404a83a3a00f27cce574fa789faacaaf33227460175c7be1a1e2b5d
+closed_at: '2026-09-12T09:21:42'

@@ -1,0 +1,61 @@
+request_id: 4d4771dae6e3429da82275a52c1ffb5b
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0173
+    revision: 1
+    scope_hash: c385f7b66e4aabb7437717d57db243f59b168300249e9adba26d98097f960290
+    bound: 'der Mint-Leser irrt in beide Richtungen, beide gemessen: eine Registrierung
+      mit quotiertem Pfad, der ein **Leerzeichen** enthält, zerlegt `_invoked_s…'
+  - item: BUG-0177
+    revision: 1
+    scope_hash: 2378ec10603d0a5cdeba881e8f1be800ddf9ef84b49e51799b52f64b1d638433
+    bound: die Herkunftsprüfung sieht keine UNMARKIERTE Textänderung (kein Test dieser
+      Suite geht ins Netz; ersetzt durch `source_commit`/`source_blob_sha1` im…
+  - item: BUG-0193
+    revision: 1
+    scope_hash: 12e083402f85871cc6becd0b6ff2a166aea5dacbc427fdd5d0d75dd791cce4f9
+    bound: '„auflösbar" heißt für den Kernel: die Datei ist da und definiert den Namen
+      — GEPARST, nicht gefahren. Ein Test, der existiert und übersprungen wird (…'
+  - item: BUG-0196
+    revision: 1
+    scope_hash: 5b26b90006a9bad4ccec0f24e059f10f9672bc91338cf383123bc03d2136efb6
+    bound: der Laufdatensatz der Routine ist ein Nebenprodukt des Ereignis-Logs und
+      sagt „ein Subagent dieser Rolle hat aufgehört", nicht „ein Audit ist gelaufe…
+  - item: BUG-0206
+    revision: 1
+    scope_hash: 839cb209639f59fb1934f345cfdac54006098f2fec54af118f9fdc9c1c78b935
+    bound: der Melder über ungelesene Prosa unter `docs/` fragt, was **git trägt**
+      (`test_repo_hygiene._carried_files`, `git ls-files -c -o --exclude-standard`)…
+  - item: BUG-0214
+    revision: 1
+    scope_hash: 32aa48c20ed1e4d6d23379df58c313a2aac8c02a0ea7587b336216987c168b82
+    bound: die Zeilennummern der Anlage EÜR, die das Kit ausliefert (`templates/project_memory/master_data.yaml`,
+      `euer_form:`), stammen aus öffentlichen Ausfül…
+  - item: BUG-0218
+    revision: 1
+    scope_hash: c94548fe14ab70340b2d77ab7f58d268a0ccb0dbe7ac12ad51320f0015ba9006
+    bound: 'die Zeugen-Hälfte der Überlappungsprüfung ist eine STICHPROBE, keine Sprache:
+      `witnesses` füllt jeden Wildcard-Lauf mit EINEM Platzhalter-Segment, al…'
+  - item: BUG-0235
+    revision: 1
+    scope_hash: 01d1bbd2835575d29d59a37d630532e653df00aae486401c25fe0fcd508ded59
+    bound: '(a) einen Läufernamen, den erst die Shell herstellt, sieht der billige
+      Vorfilter beider Gate-Hälften nicht — gemessen: `pytest tools/` ist **rc 2**,…'
+  - item: BUG-0241
+    revision: 1
+    scope_hash: a9c4f3465dfd1aa031b147883da6c8a34f008b9dd2ee3cf96d40690f9af5330d
+    bound: 'der erste Leser der drei Harness-Rollentexte löst Item-Ids und Test-Knoten
+      auf und sieht drei Sorten Zeiger nicht: einen Testnamen ohne Backticks, ei…'
+  - item: BUG-0254
+    revision: 1
+    scope_hash: f3d7f9fbad4d1e5133adca3e85425045a47bc781a3a218be574082362e49cbc3
+    bound: the shared vocabulary the generator accepts (`low|medium|high|xhigh|max`,
+      `gen_provider_artifacts.providers_from_project_config`) is one every vendor…
+subject_manifest_hash: 595994ad963f5697de329d9661c374a2314e60b9f69034c3c8533e356bdf5134
+created: '2026-09-12T09:15:49'
+expires_at_epoch: 1789283749.7625346
+mint_code: a5b4bf

@@ -30,7 +30,9 @@ regression_tests:
 - tools/test_routine_feed.py::test_a_run_in_an_earlier_week_leaves_the_routine_due
 - tools/test_routine_feed.py::test_the_routine_is_due_again_on_the_monday_after_a_run
 - tools/test_parallel_streams.py::test_no_text_that_describes_the_audited_role_states_the_cadence_the_code_owns
-status: TRIAGED
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0047
 created: '2026-09-05T20:27:17'
+approved_hash: 5805d24a86aa7d238147d3a6041afe1bb58060994f507af6cf650e9109b63c62
+closed_at: '2026-09-12T09:21:39'

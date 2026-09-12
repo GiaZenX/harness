@@ -1,0 +1,3 @@
+{
+  "limits": "the binding exists in the OTHER direction and is measured: `freeze-wireframe` records the `scope_apr_ref` a wireframe was drawn under, so a wireframe carries its approval even though the approval carries no wireframe; the PM SKILL of dev and research states that order (scope approval first, the wireframe as the delivery work of step 5) and forbids claiming the field exists (corrected 2026-09-06, BUG-0077). Unclosable without a user decision: a wireframe key in `approvals._SCOPE_FIELDS` changes EVERY stored scope hash, so every live approval in every project dies at once and every archived one stops verifying -- a migration, not a fix."
+}

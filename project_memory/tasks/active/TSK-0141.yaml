@@ -1,0 +1,130 @@
+id: TSK-0141
+product_requirement: PR-0012
+derives_from: PR-0012
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-4
+allowed_scope:
+- team-kits/kernel/**
+- tools/test_kernel.py
+- tools/test_state.py
+- tools/test_report.py
+- tools/test_approvals_dispatch.py
+- tools/test_backlog_types.py
+- tools/test_kitupdate.py
+- tools/test_migrate.py
+- tools/test_board.py
+- tools/test_board_browser.py
+- tools/test_parallel_scopes.py
+- tools/test_parallel_streams.py
+- tools/test_schemas.py
+- tools/test_staging_cli.py
+- tools/test_pointer_sweep.py
+- tools/test_gaplog.py
+- tools/test_plan_diagram.py
+- tools/test_ladder.py
+- tools/test_model_ladder.py
+- tools/test_light_kit.py
+- tools/test_research_chain.py
+- tools/test_disposition.py
+- tools/test_close_measured_pass.py
+- tools/close_measured_pass.py
+- tools/lead_package.py
+- tools/lead_package_sizes.json
+- tools/record_lead_package_sizes.py
+- tools/harvest_kit_gaps.py
+forbidden_scope:
+- project_memory/**
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- .claude/agents/**
+- team-kits/*/VERSION
+- team-kits/kernel/known_holes.json
+- tools/conftest.py
+- docs/POST_V2_WISHLIST.md
+- radar/20*.md
+- radar/decided.md
+- team-kits/*/settings/settings.json
+- team-kits/dev-team/**
+- team-kits/office-team/**
+- team-kits/research-team/**
+- team-kits/*.sh
+- team-kits/*.ps1
+- team-kits/*.yaml
+- team-kits/*.py
+- team-kits/*.txt
+- tools/test_hooks.py
+- tools/test_hooks_v2.py
+- docs/**
+- .claude/**
+required_inputs:
+- 'THE USER''S WORD (2026-09-12 09:22): every hole whose fix lies in this repository
+  is FIXED, not accepted; exceptions only for provider/platform/world limits, each
+  with one plain-German sentence. DEC-0100 (a bug closes only on a passing test that
+  NAMES it -- kernel/naming_tests.py, docstring first paragraph or parametrize id);
+  the house rule: closed OR user-accepted exception, no third state; DEC-0101 (this
+  cut was measured: check-scopes over the three orders reports no common tracked file)'
+- 'YOUR LIST -- stream A (kernel), 41 holes + BUG-0271 + G3: report.py H183 H81 H109
+  H108 H110 H127 H179; dispatch.py H44 H52 H54 H156 H157 H171 H194 (+ H184/BUG-0266
+  routine dispatch); state.py H48 H58 H106 H134 H154; scopes.py H135 H142 H143 H148;
+  kitupdate.py H71 H56 H160; approvals.py H132 H111 H130; documents.py H79 H76; backlog_types.py
+  H155 H170 (+ H197/BUG-0281 AUTOMATA done_states, re-filed); migrate.py H86; filing.py
+  H60; references.py H84; board.py H126; sdk_approval.py H133; tools/test_parallel_streams.py
+  H141/BUG-0224 (the verifier''s G4: the same partial fix as H190, the five blind
+  spellings become tested rows); BUG-0271 (the German approval question: PR-0011 AC-7
+  built KIND_LABELS -- measure what remains, close with a test that NAMES BUG-0271);
+  the verifier''s G3: tools/test_approvals_dispatch.py::test_the_card_of_a_list_bound_approval_counts_what_it_binds
+  cannot see `len(listed) + 10` ("2" in "12") -- assert the exact fragment. Read each
+  hole''s BUG item (`hole_number`, mechanism, chain, `limits`) and the code it names;
+  staging/TSK-0140/order-3b-candidates.md carries the class and the file family per
+  row and is the lead''s reading, not the authority -- the item and the code are'
+- 'THE OTHER STREAMS run at the same time in the SAME working tree: B (kits), C (tools
+  and this repo''s own tests). Your allowed_scope is the whole of what you write.
+  A fix that needs a line OUTSIDE it (a kernel rule that lands in a constitution,
+  a hook change that needs a kernel predicate, a test file another stream owns) is
+  NOT written by you: put the exact patch -- file, line, before/after -- under the
+  heading ''Seam handoffs'' in your protocol and repeat it in your final message;
+  the lead carries it to the owner. A red node in a suite you run that another stream''s
+  in-progress edit causes is written down as ''foreign red'' with the node id and
+  left alone'
+- 'HOST RULES with three builders on one machine (DEC-0094/0095 (6), and the gen-4
+  power-off events): ONE pytest at a time per builder, SMALL selections only -- a
+  file or `-k`/node ids that a measured run finishes in under three minutes; never
+  the whole of tools/test_hooks.py or tools/test_hooks_v2.py in one call; timeouts
+  derived from measured durations; NO full run (the goal round''s); no bump_kit_version.py
+  (the goal round stamps once); no known_holes.json regeneration; red-first in a copy
+  without .git under C:/Offline Repos/v2-testbed/_round-scratch/(this task id)/ with
+  the arbiter''s line per row; clock read for every time you write; protocol as you
+  go in project_memory/staging/(this task id)/protocol.md'
+- 'forbidden_scope project_memory/** EXCEPTS project_memory/staging/(this task id)/;
+  state writes through the kernel only: an EVD per closed hole (kind test, run_scope
+  selection, the naming nodes) -- the kernel lock serialises the three streams, retry
+  on a lock refusal; no transition of BUG items by you; the verification batch lines
+  (<= 10 ids per line) for the lead at the end; a hole the attempt measures unclosable
+  in this repository is downgraded with the measured reason and ONE plain-German sentence
+  for `limits` (never ''later'')'
+expected_outputs:
+- 'Per hole ONE row: id | class | mechanism | change (file:line) | red-first row (arbiter''s
+  line) | naming test node | suites run (selection, duration) | EVD -- or, for a measured
+  downgrade, id | why unclosable HERE (measured) | bound | the one plain-German sentence;
+  no third state.'
+- 'COUNTS at the end, honest: closed / downgraded-with-measurement / handed to the
+  user''s patch; ''Seam handoffs'' and ''foreign reds'' as their own sections, empty
+  sections written as empty.'
+- 'The batch lines for the lead: `request-approval verification --batch <= 10 ids`
+  per line, every line built against a store copy first (0 refused); every closed
+  id appears in exactly one line.'
+- 'RUNS: the reading suites of every changed file as small selections, one at a time,
+  listed with durations; ruff over your files; NO stamp, NO full run, NO commit, NO
+  push, NO mint; the protocol names the last clock reading.'
+dependencies:
+- TSK-0140
+rung: opus
+effort: high
+root_revision: 1
+status: READY
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:48:59'

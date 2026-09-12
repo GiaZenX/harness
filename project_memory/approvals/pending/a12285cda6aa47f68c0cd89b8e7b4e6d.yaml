@@ -1,0 +1,62 @@
+request_id: a12285cda6aa47f68c0cd89b8e7b4e6d
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0231
+    revision: 1
+    scope_hash: ace9027e899d7baf85694050efb9150953bc700fcb93361171c6b988fb7022b5
+    bound: eine deklarierte Naht darf breiter sein als das, was zwei Aufträge wirklich
+      teilen. `kernel.scopes.owns_anything_outside` verweigert nur den Totalfal…
+  - item: BUG-0237
+    revision: 1
+    scope_hash: 2e646e8ce4c4b804459ee4970987298fd40810ddab6a01c2ee2e8cc1d711ec96
+    bound: 'das Feld `class` eines Wurzelziels hat in diesem Kernel KEINE Vokabel:
+      kein Schema, kein Validator und keine Erfassung schraenkt den Wert ein, und
+      di…'
+  - item: BUG-0238
+    revision: 1
+    scope_hash: ec36394f8b8c0c430f6782f6a770feb17895e01fcbdc116d72e54d0da4cb0ef7
+    bound: die Dispatch-Verweigerung bei ueberlappenden Bereichen vergleicht den neuen
+      Auftrag nur gegen Leases, die NOCH LAUFEN. Zwei READY-Auftraege mit demse…
+  - item: BUG-0239
+    revision: 1
+    scope_hash: f297e6be247336de7ad72dace5fe8047fa503822853658eef84358ca51b8a33d
+    bound: 'kein gebauter Leser urteilt über den WORTLAUT einer Auftragszeile: ein
+      `TSK`, dessen `expected_outputs` einen Baustein nennt, den kein Abnahmekriteri…'
+  - item: BUG-0240
+    revision: 1
+    scope_hash: 23ee204479d64563e0b7d5f5d40cc7db09922bca13cc547ac48cf62b4dc6849a
+    bound: 'die Rückschau hängt an Anlässen, gebaut ist ein Takt: `_routine.routine_duties`
+      antwortet allein aus Datum und Laufprotokoll. Gemessen je Kit über zw…'
+  - item: BUG-0242
+    revision: 1
+    scope_hash: 7ba34c5ffca4175cf7f617c5db0e650dd1a42558904a21eb08039b22b05c9bee
+    bound: ein Kit-Update, das `memory:` aus einer Rolle entfernt, laesst den Gedaechtnisbaum
+      liegen, den eine aeltere Version unter `.claude/agent-memory/<roll…
+  - item: BUG-0248
+    revision: 1
+    scope_hash: b204438922320d28dc294204c1fa48d92e572eab6cad8669281b9472befc9b1e
+    bound: 'Until closed, the intake REFUSES rather than books: exit 2 with the rates
+      named, nothing staged, nothing booked (tools/test_office_package.py measure…'
+  - item: BUG-0252
+    revision: 1
+    scope_hash: 03754af3cce96c4f4db2240f93aa2b4ad31a4970e844c16b76d92b43e23409e4
+    bound: the default (`medium`) is the value DEC-0078 named for ordinary office
+      work, so nothing runs too high; the office declaration and constitution state…
+  - item: BUG-0253
+    revision: 1
+    scope_hash: 58618175f850f6f9abdb1c231412d243e019557bb827c91a3683ee48e20a239d
+    bound: the harness roles' pins are the user's decision for generation 5 (DEC-0077
+      (4), DEC-0080 (8)) and stand in the role files; the lease says `absent` ra…
+  - item: BUG-0259
+    revision: 1
+    scope_hash: 75f000536d01a5af9503d147ccf3064a499c2b6027b3d029022c7b0b75ab28c6
+    bound: 'What limits it today: the three values are the least loaded terms of the
+      document and each is a defensible German-business default, none of them is a…'
+subject_manifest_hash: a5fe03c1c6269d76ddb065591cfc0af0fcfafb686c5c22999e535b1ce95d8f24
+created: '2026-09-12T09:15:52'
+expires_at_epoch: 1789283752.5859773
+mint_code: ade6a8

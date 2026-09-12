@@ -1,0 +1,137 @@
+id: TSK-0143
+product_requirement: PR-0012
+derives_from: PR-0012
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-4
+allowed_scope:
+- .claude/hooks/test_gates.py
+- tools/test_review_procedure.py
+- tools/test_repo_hygiene.py
+- tools/test_radar_trigger.py
+- tools/test_design_system_contract.py
+- tools/test_migrate_holes.py
+- tools/test_surface.json
+- tools/test_ci_lint_pinned.py
+- tools/gate_suite_margins.py
+- tools/gate_suite_rates.py
+- tools/migrate_holes.py
+- tools/validate.py
+- tools/radar_routine.py
+- tools/normalise_line_endings.py
+- tools/probes/**
+- tools/eval/**
+- docs/**
+- CLAUDE.md
+- README.md
+- HARNESS_LOG.md
+- NOTICES.md
+- ruff.toml
+- .github/**
+- .gitattributes
+- .gitignore
+- user/**
+- radar/README.md
+forbidden_scope:
+- project_memory/**
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- .claude/agents/**
+- team-kits/*/VERSION
+- team-kits/kernel/known_holes.json
+- tools/conftest.py
+- docs/POST_V2_WISHLIST.md
+- radar/20*.md
+- radar/decided.md
+- team-kits/*/settings/settings.json
+- team-kits/**
+- tools/test_hooks.py
+- tools/test_hooks_v2.py
+- tools/test_kernel.py
+- tools/test_state.py
+- tools/test_report.py
+- tools/test_approvals_dispatch.py
+- tools/test_parallel_streams.py
+- tools/test_shortening_net.py
+- tools/fixtures/**
+required_inputs:
+- 'THE USER''S WORD (2026-09-12 09:22): every hole whose fix lies in this repository
+  is FIXED, not accepted; exceptions only for provider/platform/world limits, each
+  with one plain-German sentence. DEC-0100 (a bug closes only on a passing test that
+  NAMES it -- kernel/naming_tests.py, docstring first paragraph or parametrize id);
+  the house rule: closed OR user-accepted exception, no third state; DEC-0101 (this
+  cut was measured: check-scopes over the three orders reports no common tracked file)'
+- 'YOUR LIST -- stream C (tools and this repo''s own tests), 19 holes + BUG-0008/0032
+  + the lead''s three lists: .claude/hooks/test_gates.py H41 H45 H161 (+ H10/BUG-0102
+  the mutation run over .claude/hooks as an instrument, + H206/BUG-0290 which end
+  states this repo reaches today, + H207/BUG-0291 the contract-citation tripwire widened
+  to registration, roles, CLAUDE.md and docs -- both re-filed); tools/test_review_procedure.py
+  H73 H159 H191; tools/test_repo_hygiene.py H122 H187 H181; tools/test_surface.json
+  H152; tools/test_radar_trigger.py H190 (the two-ended list form); tools/gate_suite_margins.py
+  H74; tools/test_design_system_contract.py H85; tools/migrate_holes.py H164; BUG-0008
+  (the untracked PowerShell module cache `Microsoft/` in the repo root -> .gitignore
+  + a hygiene test); BUG-0032 (validate.py''s orphan heuristic reads staging dirs
+  against active item NAMES). AND the lead''s two lists, prepared as exact lines:
+  (i) the user''s shell patch file staging/TSK-0140/h182-harness-patch.md EXTENDED
+  with the newly locked rows -- H14/BUG-0106 gate_commit_evidence.py, H153/BUG-0235
+  gate_test_scope.py (the verifier''s G2), H199/BUG-0283 gate_spawn_needs_item.py,
+  H203/BUG-0287 _harness.py Deadline, plus _harness.py:1596 ''all four gates'' and
+  the one word at test_gates.py:539 -- each as before/after; (ii) for every `nein`
+  row (18 + H198/BUG-0282, H200/BUG-0284, H208/BUG-0292, H209/BUG-0293) ONE `kernel.cli
+  update <BUG> ` JSON line that sets `limits` to the plain-German sentence of the
+  candidates table (the exception question prints `id (limits)`, so the sentence the
+  user reads IS this field), grouped in batches of <= 10 with the `request-approval
+  hole_exception --batch` line under each; (iii) the candidates table header counted
+  from its rows (the verifier''s G1: 105/79 written, 121/95 measured). Read each hole''s
+  BUG item (`hole_number`, mechanism, chain, `limits`) and the code it names; staging/TSK-0140/order-3b-candidates.md
+  carries the class and the file family per row and is the lead''s reading, not the
+  authority -- the item and the code are'
+- 'THE OTHER STREAMS run at the same time in the SAME working tree: A (kernel), B
+  (kits). Your allowed_scope is the whole of what you write. A fix that needs a line
+  OUTSIDE it (a kernel rule that lands in a constitution, a hook change that needs
+  a kernel predicate, a test file another stream owns) is NOT written by you: put
+  the exact patch -- file, line, before/after -- under the heading ''Seam handoffs''
+  in your protocol and repeat it in your final message; the lead carries it to the
+  owner. A red node in a suite you run that another stream''s in-progress edit causes
+  is written down as ''foreign red'' with the node id and left alone'
+- 'HOST RULES with three builders on one machine (DEC-0094/0095 (6), and the gen-4
+  power-off events): ONE pytest at a time per builder, SMALL selections only -- a
+  file or `-k`/node ids that a measured run finishes in under three minutes; never
+  the whole of tools/test_hooks.py or tools/test_hooks_v2.py in one call; timeouts
+  derived from measured durations; NO full run (the goal round''s); no bump_kit_version.py
+  (the goal round stamps once); no known_holes.json regeneration; red-first in a copy
+  without .git under C:/Offline Repos/v2-testbed/_round-scratch/(this task id)/ with
+  the arbiter''s line per row; clock read for every time you write; protocol as you
+  go in project_memory/staging/(this task id)/protocol.md'
+- 'forbidden_scope project_memory/** EXCEPTS project_memory/staging/(this task id)/;
+  state writes through the kernel only: an EVD per closed hole (kind test, run_scope
+  selection, the naming nodes) -- the kernel lock serialises the three streams, retry
+  on a lock refusal; no transition of BUG items by you; the verification batch lines
+  (<= 10 ids per line) for the lead at the end; a hole the attempt measures unclosable
+  in this repository is downgraded with the measured reason and ONE plain-German sentence
+  for `limits` (never ''later'')'
+expected_outputs:
+- 'Per hole ONE row: id | class | mechanism | change (file:line) | red-first row (arbiter''s
+  line) | naming test node | suites run (selection, duration) | EVD -- or, for a measured
+  downgrade, id | why unclosable HERE (measured) | bound | the one plain-German sentence;
+  no third state.'
+- 'COUNTS at the end, honest: closed / downgraded-with-measurement / handed to the
+  user''s patch; ''Seam handoffs'' and ''foreign reds'' as their own sections, empty
+  sections written as empty.'
+- 'The batch lines for the lead: `request-approval verification --batch <= 10 ids`
+  per line, every line built against a store copy first (0 refused); every closed
+  id appears in exactly one line.'
+- 'RUNS: the reading suites of every changed file as small selections, one at a time,
+  listed with durations; ruff over your files; NO stamp, NO full run, NO commit, NO
+  push, NO mint; the protocol names the last clock reading.'
+dependencies:
+- TSK-0140
+rung: opus
+effort: high
+root_revision: 1
+status: READY
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:49:01'

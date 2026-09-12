@@ -1,0 +1,143 @@
+id: TSK-0142
+product_requirement: PR-0012
+derives_from: PR-0012
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-4
+allowed_scope:
+- team-kits/dev-team/**
+- team-kits/office-team/**
+- team-kits/research-team/**
+- team-kits/scaffold_team.sh
+- team-kits/scaffold_team.ps1
+- team-kits/init_project_memory.sh
+- team-kits/init_project_memory.ps1
+- team-kits/registry.yaml
+- team-kits/repo_kit_owned.txt
+- team-kits/preset_config.py
+- team-kits/write_kit_state.py
+- team-kits/gen_provider_artifacts.py
+- team-kits/model_tiers.yaml
+- install.sh
+- install.ps1
+- tools/test_hooks.py
+- tools/test_hooks_v2.py
+- tools/test_office_duties.py
+- tools/test_office_package.py
+- tools/test_role_contracts.py
+- tools/test_reference_skills.py
+- tools/test_shared_skill_contract.py
+- tools/test_e2e.py
+- tools/test_design_conformance.py
+- tools/test_finance_dashboard.py
+- tools/test_context_budget.py
+- tools/test_user_defaults.py
+- tools/test_kit_neutrality.py
+- tools/test_model_pins.py
+- tools/test_handover_marker.py
+- tools/test_routine_feed.py
+- tools/test_presets.py
+- tools/test_shortening_net.py
+- tools/test_parity_sources.py
+- tools/parity_sources.py
+- tools/constitution_section_pins.json
+- tools/pin_constitution_sections.py
+- tools/provider_observations.json
+- tools/fixtures/**
+forbidden_scope:
+- project_memory/**
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- .claude/agents/**
+- team-kits/*/VERSION
+- team-kits/kernel/known_holes.json
+- tools/conftest.py
+- docs/POST_V2_WISHLIST.md
+- radar/20*.md
+- radar/decided.md
+- team-kits/*/settings/settings.json
+- team-kits/kernel/**
+- docs/**
+- .claude/**
+- tools/test_kernel.py
+- tools/test_state.py
+- tools/test_report.py
+- tools/test_approvals_dispatch.py
+- tools/test_review_procedure.py
+- tools/test_repo_hygiene.py
+required_inputs:
+- 'THE USER''S WORD (2026-09-12 09:22): every hole whose fix lies in this repository
+  is FIXED, not accepted; exceptions only for provider/platform/world limits, each
+  with one plain-German sentence. DEC-0100 (a bug closes only on a passing test that
+  NAMES it -- kernel/naming_tests.py, docstring first paragraph or parametrize id);
+  the house rule: closed OR user-accepted exception, no third state; DEC-0101 (this
+  cut was measured: check-scopes over the three orders reports no common tracked file)'
+- 'YOUR LIST -- stream B (kits), 41 holes + BUG-0030/0055/0056: gate_ledger_valid.py
+  H62 H64 H68 H67 H117 (+ BUG-0030 two literal backspace bytes); gate_write_scope.py
+  H15 H47 (+ H201/BUG-0285 Push-Location/Pop-Location vocabulary, H204/BUG-0288 prose
+  removal before the substitution reader, H205/BUG-0289 _HEREDOC_RX heredoc handed
+  to a shell, H202/BUG-0286 read-only classification per stage while the path travels
+  -- all four re-filed, measure first whether the kits'' gate still has them); _routine.py
+  H112 H158; _compat.py H57 H66; _kernel.py H61; gate_dispatch.py H51; constitution/AGENTS.md
+  H77 H59 H178 H94 (re-pin through tools/pin_constitution_sections.py after reading
+  what drifted); skills/project-manager/SKILL.md H168; office guard_fs_tripwire.py
+  H129 H72 H123; office _duties.py H113 H124; office templates/repo/scripts H75 H90
+  H91 H118 H119 H166; office correspondence.yaml H177; dev templates/repo/scripts
+  H139 H140 (+ H210/BUG-0294 kit_design_render.py rc 3 and gate_design_sighted, re-filed);
+  dev gate_design_sighted.py H82; dev skills H107; scaffold_team.sh H55; scaffold_team.ps1
+  H88 H193; tools/test_hooks_v2.py H70 H180; BUG-0055 (scope manifest without a wireframe
+  field -- FIX, the user refused the exception); BUG-0056 (a recorded V1 file outside
+  the state tree is writable -- FIX). Read each hole''s BUG item (`hole_number`, mechanism,
+  chain, `limits`) and the code it names; staging/TSK-0140/order-3b-candidates.md
+  carries the class and the file family per row and is the lead''s reading, not the
+  authority -- the item and the code are'
+- 'THE OTHER STREAMS run at the same time in the SAME working tree: A (kernel), C
+  (tools and this repo''s own tests). Your allowed_scope is the whole of what you
+  write. A fix that needs a line OUTSIDE it (a kernel rule that lands in a constitution,
+  a hook change that needs a kernel predicate, a test file another stream owns) is
+  NOT written by you: put the exact patch -- file, line, before/after -- under the
+  heading ''Seam handoffs'' in your protocol and repeat it in your final message;
+  the lead carries it to the owner. A red node in a suite you run that another stream''s
+  in-progress edit causes is written down as ''foreign red'' with the node id and
+  left alone'
+- 'HOST RULES with three builders on one machine (DEC-0094/0095 (6), and the gen-4
+  power-off events): ONE pytest at a time per builder, SMALL selections only -- a
+  file or `-k`/node ids that a measured run finishes in under three minutes; never
+  the whole of tools/test_hooks.py or tools/test_hooks_v2.py in one call; timeouts
+  derived from measured durations; NO full run (the goal round''s); no bump_kit_version.py
+  (the goal round stamps once); no known_holes.json regeneration; red-first in a copy
+  without .git under C:/Offline Repos/v2-testbed/_round-scratch/(this task id)/ with
+  the arbiter''s line per row; clock read for every time you write; protocol as you
+  go in project_memory/staging/(this task id)/protocol.md'
+- 'forbidden_scope project_memory/** EXCEPTS project_memory/staging/(this task id)/;
+  state writes through the kernel only: an EVD per closed hole (kind test, run_scope
+  selection, the naming nodes) -- the kernel lock serialises the three streams, retry
+  on a lock refusal; no transition of BUG items by you; the verification batch lines
+  (<= 10 ids per line) for the lead at the end; a hole the attempt measures unclosable
+  in this repository is downgraded with the measured reason and ONE plain-German sentence
+  for `limits` (never ''later'')'
+expected_outputs:
+- 'Per hole ONE row: id | class | mechanism | change (file:line) | red-first row (arbiter''s
+  line) | naming test node | suites run (selection, duration) | EVD -- or, for a measured
+  downgrade, id | why unclosable HERE (measured) | bound | the one plain-German sentence;
+  no third state.'
+- 'COUNTS at the end, honest: closed / downgraded-with-measurement / handed to the
+  user''s patch; ''Seam handoffs'' and ''foreign reds'' as their own sections, empty
+  sections written as empty.'
+- 'The batch lines for the lead: `request-approval verification --batch <= 10 ids`
+  per line, every line built against a store copy first (0 refused); every closed
+  id appears in exactly one line.'
+- 'RUNS: the reading suites of every changed file as small selections, one at a time,
+  listed with durations; ruff over your files; NO stamp, NO full run, NO commit, NO
+  push, NO mint; the protocol names the last clock reading.'
+dependencies:
+- TSK-0140
+rung: opus
+effort: high
+root_revision: 1
+status: READY
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:49:00'

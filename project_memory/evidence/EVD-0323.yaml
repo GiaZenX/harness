@@ -1,0 +1,13 @@
+id: EVD-0323
+kind: review
+related:
+- TSK-0140
+result: pass
+summary: 'verifier PASS for diff:95f1a6f5adec3ace56434e4750803f2b81e402fe39879c196739871a9d099653
+  -- TSK-0140 round 2 (harness-verifier Opus high): F1-F11 fixed or named rest, G1-G4
+  handed to the 3b streams; stamps 2026.09.12-2 x3, ruff, validate, index = store'
+artifact_refs:
+- staging/TSK-0140/verify-round-2.md
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:49:45'

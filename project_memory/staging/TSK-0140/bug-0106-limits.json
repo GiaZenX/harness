@@ -1,0 +1,3 @@
+{
+  "limits": "the remedy gate 3 prints (`kernel.cli evidence --result pass --summary <digest>`) is one the session agent MUST be able to run -- it is how the verifier's verdict is recorded at all -- so this is not closable by refusing it. What bounds it: the evidence is an immutable record with an author, and `gate_commit_evidence` still demands an ACTIVE `EVD` naming the worktree's own diff hash, so a pass recorded in advance stops covering the tree at the next change. A lead that records a verdict the verifier did not give writes a lie into the state rather than slipping past a gate, and the verifier's report stands beside it as a second document."
+}

@@ -65,11 +65,15 @@ def mint_from_can_use_tool(state: ProjectState, request_id: str, answer: str) ->
     return approvals.mint(state, request_id, answer)
 
 
-def card(apr: dict) -> str:
+def card(apr: dict, state=None) -> str:
     """The same card the approval hook prints, for a program that wants to log what it just did.
 
     Bound to `approvals.approval_card` rather than re-composed here, for the reason the composer
     exists: the difference between the two routes is precisely what the card has to make visible,
     so two spellings of it would be the one drift that matters.
+
+    `state` is optional for the same reason it is there: a LIST-bound approval carries no `item`,
+    and its list lives in the consumed request -- pass the state and the card counts the entries,
+    leave it out and it says what it can.
     """
-    return approvals.approval_card(apr)
+    return approvals.approval_card(apr, state)

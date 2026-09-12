@@ -1,0 +1,16 @@
+id: EVD-0322
+kind: test
+related:
+- BUG-0067
+result: pass
+summary: 'TSK-0140: the test that NAMES BUG-0067, re-run on the closing tree'
+artifact_refs:
+- project_memory/staging/TSK-0140/run-bug-0067.log
+run_command: python -B -m pytest tools/test_hooks.py::test_both_seeding_scripts_carry_the_same_refusal
+  tools/test_hooks.py::test_the_bash_home_probe_tells_a_launcher_that_carries_home_from_one_that_drops_it
+  tools/test_hooks.py::test_the_seeding_script_refuses_the_tree_that_ships_the_templates
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:22:17'

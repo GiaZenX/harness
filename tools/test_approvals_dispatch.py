@@ -4877,6 +4877,200 @@ def _ask_the_batch(state, bugs):
             approvals.verification_batch(state, [bug["id"] for bug in bugs])))
 
 
+def _measured_hole(state, title="a measured gap", bound="the role says so, no gate", triage=True):
+    """A BUG carrying a `hole_number` and the sentence that says what bounds it -- the AC-4 shape.
+
+    `triage=False` leaves it at OPEN, which is where most of this repository's own hole items that
+    were captured by the migration door actually stand.
+    """
+    goal = state.capture("PR", dict(PR_FIELDS, title="Kasse"))
+    fields = {"title": title, "related_pr": goal["id"], "observed": "the chain runs",
+              "expected": "it should not", "repro": "r", "severity": "medium",
+              "acceptance_criteria": [{"id": "AC-1", "text": "closed or accepted"}]}
+    if bound is not None:
+        fields[approvals.HOLE_LIMIT_FIELD] = bound
+    hole = state.capture("BUG", fields, hole=True)
+    if triage:
+        state.transition(hole["id"], "TRIAGED")
+    return state.read_item(hole["id"])
+
+
+def _ask_the_exception_batch(state, holes):
+    return approvals.create_pending_request(
+        state, approvals.HOLE_EXCEPTION_KIND,
+        manifest=approvals.hole_exception_subject_manifest(
+            approvals.hole_exception_batch(state, [hole["id"] for hole in holes])))
+
+
+def test_a_batch_of_accepted_exceptions_ends_on_the_off_chain_terminal(state):
+    """PR-0012 AC-4: one answer accepts a whole batch of measured gaps, and every listed one ends
+    on `ACCEPTED_EXCEPTION` -- the terminal BESIDE the BUG chain -- not on the chain's confirming
+    end.
+
+    RED WITHOUT THE `batch_walk_end` BRANCH for an off-chain target: the walk reads the type's
+    confirming end and takes a gap the user ACCEPTED to VERIFIED, i.e. writes "measured gone" for
+    something nobody measured -- and for a gap standing at OPEN it does not even get that far,
+    because `chain.index(end)` has no index for a status beside the chain.
+
+    A GAP AT OPEN IS IN THE BATCH TOO, and that is the second half of the walk: the automaton
+    allows this terminal only FROM TRIAGED (`backlog_types`, `terminal_from`), so the walk climbs
+    the free edge first. Without the climb the mint refuses mid-walk, after the APR exists.
+    """
+    triaged = _measured_hole(state, "a gap somebody looked at")
+    fresh = _measured_hole(state, "a gap captured by the migration door", triage=False)
+    assert state.read_item(fresh["id"])["status"] == "OPEN"
+    mint_via_hook(state, _ask_the_exception_batch(state, [triaged, fresh]))
+    for hole in (triaged, fresh):
+        body = state.read_anywhere(hole["id"])
+        body = body[0] if isinstance(body, tuple) else body
+        assert body["status"] == approvals.HOLE_EXCEPTION_STATUS, (hole["id"], body["status"])
+        assert not os.path.exists(state.active_path(hole["id"])), (
+            "%s ended on a terminal and was not archived" % hole["id"])
+
+
+def test_a_gap_without_a_bound_is_refused_from_the_exception_batch_by_name(state):
+    """CLAUDE.md's house rule, at the one place a click could break it: a gap is CLOSED or carries
+    an accepted exception that says WHAT BOUNDS IT -- there is no third state, so an item with no
+    `limits` sentence is refused BY NAME before the question exists.
+
+    THE BOUND IS THE PROPERTY, NOT A HOLE NUMBER, and the other direction measures exactly that: a
+    DEFECT that states a bound -- BUG-0055's and BUG-0056's shape, measured unclosable without a
+    spec decision and without a rule a PreToolUse hook can ask -- is acceptable on this route,
+    while a numbered hole that states none is not. A refusal keyed on `hole_number` would have
+    locked out the two items this order has to put to the user.
+
+    RED WITHOUT the bound refusal in `hole_exception_batch`: the user is asked to sign
+    "this stays open" with nothing beside it saying what takes the place of the protection.
+    """
+    good = _measured_hole(state)
+    boundless = _measured_hole(state, "a gap with no bound", bound=None)
+
+    with pytest.raises(approvals.ApprovalError) as without_bound:
+        approvals.hole_exception_batch(state, [good["id"], boundless["id"]])
+    assert boundless["id"] in str(without_bound.value)
+    assert approvals.HOLE_LIMIT_FIELD in str(without_bound.value)
+    assert good["id"] not in str(without_bound.value), "the refusal named the healthy entry too"
+
+    # THE OTHER DIRECTION: a defect with NO hole number but WITH a bound is acceptable
+    bounded_defect = _repaired_bug(state, "unclosable without a spec decision", measured=False)
+    path = state.active_path(bounded_defect["id"])
+    body = state._read_yaml(path)
+    body[approvals.HOLE_LIMIT_FIELD] = "the wireframe carries its own approval reference instead"
+    state._write_yaml_atomic(path, body)
+    accepted = approvals.hole_exception_batch(state, [good["id"], bounded_defect["id"]])
+    assert {record[approvals.GOAL_ITEM_FIELD] for record in accepted} == {
+        good["id"], bounded_defect["id"]}
+    assert not state.read_item(bounded_defect["id"]).get(approvals.HOLE_NUMBER_FIELD)
+
+
+def test_the_exception_option_names_every_listed_hole_and_its_bound(state):
+    """The compared carrier: the approving option's description is what `gate_approval` matches
+    character for character, so every listed id AND the bound it stands on have to be IN it -- a
+    user who reads only the option still reads what each acceptance costs.
+
+    RED WITHOUT `_hole_exception_option_form` registered in `OPTION_FORMS`: the option falls back
+    to the generic text and the bounds never reach the person signing them.
+    """
+    holes = [_measured_hole(state, "gap %d" % n, bound="what limits gap %d is this" % n)
+             for n in range(3)]
+    question = approvals.build_question(_ask_the_exception_batch(state, holes))
+    description = str(question["options"][0]["description"])
+    for n, hole in enumerate(holes):
+        assert hole["id"] in description, (hole["id"], description)
+        assert "what limits gap %d is this" % n in description, description
+        assert hole["id"] not in question["question"], question["question"]
+
+
+def test_a_batch_kind_given_a_positional_id_is_sent_to_the_flag_with_that_id_in_hand(capsys):
+    """`hole_exception` took a positional id until PR-0012 AC-4 gave it the list form, so a role
+    with the older habit types one -- and the refusal has to carry the id it was given rather than
+    tell it that none was named.
+
+    RED WITHOUT the order of the two checks in `cli`'s request-approval branch: the
+    "none was named" refusal fires first, so the message says the opposite of what happened and its
+    remedy drops the id the caller supplied.
+
+    BOTH DIRECTIONS: with neither id nor list the "none was named" message is the right one, and
+    its verb stays neutral -- `verification` closes what it lists, `hole_exception` accepts that it
+    stays open and closes nothing.
+    """
+    from kernel import cli
+
+    code = cli.main(["--root", "nowhere", "request-approval", approvals.HOLE_EXCEPTION_KIND,
+                     "BUG-0102"])
+    said = capsys.readouterr().err
+    assert code != 0, said
+    assert "BUG-0102" in said, said
+    assert "--batch" in said, said
+
+    code = cli.main(["--root", "nowhere", "request-approval", approvals.HOLE_EXCEPTION_KIND])
+    said = capsys.readouterr().err
+    assert code != 0 and "none was named" in said, said
+    assert "closes the items" not in said, (
+        "the verb claims a closing an exception never does: %s" % said)
+
+
+def test_a_bound_that_is_not_a_sentence_is_refused_before_it_becomes_text(state):
+    """The bound is what the user READS, so a value that is not text is refused rather than folded:
+    `_one_line` would turn a list into its `str()` and the approving option would carry
+    `['a', 'b']` as the thing that limits the gap.
+
+    RED WITHOUT the isinstance check in `hole_exception_batch`: the batch builds, and the option
+    the gate compares character for character shows the user a Python repr.
+
+    THE FIELD HAS NO SCHEMA of its own -- `backlog_types` declares the NAME, not the type -- so
+    this is asked where the value becomes readable text and nowhere else.
+    """
+    hole = _measured_hole(state)
+    path = state.active_path(hole["id"])
+    body = state._read_yaml(path)
+    body[approvals.HOLE_LIMIT_FIELD] = ["a list", "of bounds"]
+    state._write_yaml_atomic(path, body)
+    with pytest.raises(approvals.ApprovalError) as refused:
+        approvals.hole_exception_batch(state, [hole["id"]])
+    assert hole["id"] in str(refused.value) and "list" in str(refused.value)
+
+
+def test_the_card_of_a_list_bound_approval_counts_what_it_binds(state):
+    """A list-bound approval carries no `item`, and the card read that as "keinen Vorgang" -- the
+    opposite of the truth for the one kind whose whole point is that it binds several.
+
+    RED WITHOUT the `listed_items(consumed_request(...))` branch: the card announces a batch of
+    gaps as an approval for no item at all, on the surface a user meets right after clicking.
+
+    THE COUNT COMES FROM THE PROVENANCE and not from the caller: the APR file keeps only the
+    manifest digest, so what is counted is the list the consumed request carries -- the record a
+    later auditor opens.
+    """
+    holes = [_measured_hole(state, "gap %d" % n) for n in range(2)]
+    request = _ask_the_exception_batch(state, holes)
+    mint_via_hook(state, request)
+    apr = state._read_yaml(os.path.join(state.root, "approvals", "APR-0001.yaml"))
+    assert apr.get("item") is None, apr
+    assert "2" in approvals.approval_card(apr, state), approvals.approval_card(apr, state)
+    assert "keinen Vorgang" not in approvals.approval_card(apr, state)
+    # ...and without a state it says what it can rather than counting nothing
+    assert "keinen Vorgang" in approvals.approval_card(apr)
+
+
+def test_a_batch_stops_covering_a_hole_whose_bound_moved(state):
+    """The sentence that says what bounds a gap is the one thing the acceptance is FOR, so an edit
+    to it past the kernel kills the cover -- exactly as an edit to a goal's scope kills a plan's.
+
+    RED WITHOUT `content_question`: a listed hole bound to the per-item SCOPE hash instead of its
+    own kind's manifest, because `HOLE_LIMIT_FIELD` is not one of `_SCOPE_FIELDS` -- so the bound
+    could be rewritten under a standing acceptance and the mint would close the gap anyway.
+    """
+    hole = _measured_hole(state)
+    request = _ask_the_exception_batch(state, [hole])
+    path = state.active_path(hole["id"])
+    edited = state._read_yaml(path)
+    edited[approvals.HOLE_LIMIT_FIELD] = "nothing bounds it, actually"
+    state._write_yaml_atomic(path, edited)
+    mint_via_hook(state, request, expect_success=False)
+    assert state.read_item(hole["id"])["status"] == "TRIAGED"
+
+
 def test_the_batch_mint_walks_every_listed_bug_to_verified_and_archives_it(state):
     """PR-0012 AC-1, through the REAL PostToolUse hook: one answer closes the whole batch -- every
     listed defect walks TRIAGED -> APPROVED -> FIXED -> VERIFIED on the Evidence that named it,
@@ -5063,9 +5257,20 @@ def test_only_a_kind_with_its_own_option_form_reads_differently_in_the_two_place
     rebuilt from a form, the older questions change text and every live pending request dies.
     """
     assert set(approvals.OPTION_FORMS) <= set(approvals.APR_KINDS)
-    manifest = {"bugs": [{approvals.GOAL_ITEM_FIELD: "BUG-0009", "revision": 1,
-                          approvals.GOAL_SCOPE_HASH_FIELD: "0" * 64,
-                          approvals.LISTED_EVIDENCE_FIELD: "EVD-0009"}]}
+    # ONE RECORD, UNDER EVERY KEY A LIST-BOUND BUILDER USES, so a second batch kind is measured by
+    # this test on the day it arrives instead of reading as "the form renders nothing": the entry
+    # is the same signed-item record either way (`listed_items` is what makes it one), and the key
+    # is the builder's own manifest parameter. `manifest_parameters` is the reader.
+    from kernel.cli import manifest_parameters
+    entry = {approvals.GOAL_ITEM_FIELD: "BUG-0009", "revision": 1,
+             approvals.GOAL_SCOPE_HASH_FIELD: "0" * 64,
+             approvals.LISTED_EVIDENCE_FIELD: "EVD-0009",
+             approvals.LISTED_BOUND_FIELD: "what bounds it today"}
+    manifest = {key: [entry]
+                for kind in approvals.OPTION_FORMS
+                for key in manifest_parameters(approvals.LINE_MANIFEST_BUILDERS[kind])}
+    assert len(manifest) == len(approvals.OPTION_FORMS), (
+        "two option-form kinds share a manifest key, so this probe can no longer tell them apart")
     for kind, form in approvals.OPTION_FORMS.items():
         assert kind in approvals.TARGET_FORMS, (
             "%s renders an option form but no sentence form" % kind)
@@ -5161,9 +5366,18 @@ def test_a_batch_mint_leaves_the_index_as_fresh_as_a_per_step_rebuild_would(stat
     mint_via_hook(state, _ask_the_batch(state, [first, second]))
 
     index_path = os.path.join(state.root, "generated", "index.yaml")
+    # THE STAMP IS NOT PART OF THE SUBJECT and has to come out of the comparison: `generated_at`
+    # has SECOND resolution (`state._now_iso`), so two writes that straddle a second boundary
+    # differ in it while the content is identical -- and whether they do is the HOST's load, not
+    # this walk's doing. Measured 2026-09-12: this node passed solo (52.1 s) and failed inside a
+    # six-suite run of 442 s on the same tree, which is the BUG-0262 / H180 class arriving in
+    # another test. Everything the walk really owes -- every item row -- is still compared.
     after_the_mint = state._read_yaml(index_path)
     state.generate_index()
-    assert state._read_yaml(index_path) == after_the_mint
+    rebuilt = state._read_yaml(index_path)
+    assert {key: value for key, value in rebuilt.items() if key != "generated_at"} == {
+        key: value for key, value in after_the_mint.items() if key != "generated_at"}
+    assert "generated_at" in rebuilt, "the stamp this comparison excludes stopped existing"
     listed = {str(row.get("id")) for row in (after_the_mint.get("items") or [])}
     assert first["id"] not in listed and second["id"] not in listed, sorted(listed)
 
@@ -5264,5 +5478,5 @@ def test_the_batch_flag_belongs_to_the_kinds_whose_resolver_reads_it():
     from kernel import cli
 
     assert cli.kinds_reading_argument(cli.BATCH_ARGUMENT) == frozenset(
-        {approvals.VERIFICATION_KIND})
+        {approvals.VERIFICATION_KIND, approvals.HOLE_EXCEPTION_KIND})
     assert cli.kinds_reading_argument("no-such-argument") == frozenset()

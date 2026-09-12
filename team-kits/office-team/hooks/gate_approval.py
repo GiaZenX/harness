@@ -377,7 +377,7 @@ def handle_post_tool_use(data):
                         % (apr["id"], request_id, approvals.minted_via(apr)))
     sys.stderr.write("[team-kit %s] approval %s recorded for %s.\n%s\n"
                      % (HOOK, apr["id"], apr.get("item") or apr["kind"],
-                        approvals.approval_card(apr)))
+                        approvals.approval_card(apr, state)))
     sys.exit(0)
 
 

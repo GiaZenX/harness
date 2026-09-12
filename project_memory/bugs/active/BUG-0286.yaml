@@ -1,0 +1,38 @@
+id: BUG-0286
+title: 'H22 neu aufgelegt (Ausnahme nie freigegeben): Die Read-only-Klassifikation
+  gilt pro Stufe, der Pfad reist weiter (neu, TSK-0011)'
+related_pr: PR-0012
+observed: 'Migrated 2026-09-05 as H22 into BUG-0114 with status ACCEPTED_EXCEPTION
+  and approval null -- the user never saw a question for it (measured 2026-09-12 over
+  archive/bug/*). Original finding: **Mechanismus:** ob eine Stufe schreibt, beantwortet
+  die Klassifikation der Kits **pro Stufe**, und
+
+  die Wörter einer lesenden Stufe fallen damit als Schreibkandidaten weg. Eine Pipe,
+  eine
+
+  Kommandosubstitution und eine Patch-Datei tragen den Pfad aber über diese Grenze:
+  die lesende Stufe
+
+  **nennt** ihn, die schreibende **benutzt** ihn, und keine der beiden zeigt beides.'
+expected: 'CLOSED red-first by stream B with a test that NAMES this bug id (DEC-0100);
+  fix location: team-kits/*/hooks read-only classification: the path travels with
+  the stage. If the attempt measures it unclosable here, the downgrade carries the
+  measurement and a plain-German sentence (never ''later'').'
+repro: 'read BUG-0114 (status ACCEPTED_EXCEPTION, approval: null); the mechanism:
+  docs/holes/H22.md'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the item ends VERIFIED on a passing test that names it, or ACCEPTED_EXCEPTION
+  on a request the user answered -- never on a migration'
+- 'AC-2: if an exception, its `limits` is the plain-German sentence a non-developer
+  understands'
+source: 'archive BUG-0114; staging/generation-6/refile_unclicked_exceptions.py (lead
+  classification: ja, stream B)'
+limits: '**nichts Technisches**, dieselbe Begrenzung wie H11 — die Reparaturstelle
+  liegt in der Read-only-Klassifikation der Kits'
+supersedes: BUG-0114
+hole_number: H202
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:46:27'

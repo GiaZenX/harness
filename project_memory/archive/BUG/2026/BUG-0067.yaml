@@ -32,7 +32,9 @@ acceptance_criteria:
 - id: AC-3
   text: measured with BUG-0052 in one stroke where the mechanism allows -- both are
     'a run writes the workshop's own state'
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0047
 created: '2026-08-25T06:50:59'
+approved_hash: c877393e0aba934e969031c55ae34ab07d93f07b67b88fac1f972a0a1f970e58
+closed_at: '2026-09-12T09:21:37'

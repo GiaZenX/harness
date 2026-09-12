@@ -231,9 +231,20 @@ def test_the_research_chain_runs_from_the_question_to_a_merge_through_the_shippe
     state = project.state()
     lease = state._read_yaml(os.path.join(state.root, "tasks", "leases", "TSK-0001.lease.yaml"))
     header = dispatch.dispatch_header(lease)
+    # THE MODEL THE LEASE ASKS FOR, read off the lease rather than typed -- this project has a kit
+    # installed, so its lease carries a derived rung and a spawn that names no model is refused for
+    # the climb alone (DEC-0077 (2)). The chain under test is the question-to-merge one, so that
+    # refusal has to be out of the way rather than measured here; it is measured in
+    # `tools/test_ladder.py::test_a_spawn_below_the_lease_rung_is_refused_and_one_that_names_it_passes`.
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from test_hooks import model_the_lease_requires
+    tool_input = {"subagent_type": "researcher",
+                  "prompt": "objective: beide Arme messen\n%s\noutput: Diff" % header}
+    wanted = model_the_lease_requires(lease)
+    if wanted:
+        tool_input["model"] = wanted
     spawn = {"hook_event_name": "PreToolUse", "tool_name": "Agent", "cwd": project.path,
-             "tool_input": {"subagent_type": "researcher",
-                            "prompt": "objective: beide Arme messen\n%s\noutput: Diff" % header}}
+             "tool_input": tool_input}
     code, err = project.hook("gate_dispatch.py", spawn)
     assert code == 0, err
     # the counter-direction on the same lease: an INSTALLED role this task was not planned for is

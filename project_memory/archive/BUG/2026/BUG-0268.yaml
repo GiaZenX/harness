@@ -31,7 +31,9 @@ acceptance_criteria:
   text: The correction is made by whoever may write CLAUDE.md -- the user -- because
     every role's scope forbids it
 hole_number: H185
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0047
 created: '2026-09-06T14:46:35'
+approved_hash: 4f10b361995e9ba884844528074182e45e06a3f2f3d175460b795782765126c5
+closed_at: '2026-09-12T09:21:44'

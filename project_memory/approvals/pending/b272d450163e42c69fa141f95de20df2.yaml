@@ -1,0 +1,46 @@
+request_id: b272d450163e42c69fa141f95de20df2
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0178
+    revision: 1
+    scope_hash: 13cc429ac62d7738fecc5f93851c24b02bccb3ba56cbe4e3f3e83717ec3314f3
+    bound: drei Grenzen EINES V1-Erkenners, den `migrate` und `report` schon benutzen
+      — ein Speicher außerhalb des Zustandsverzeichnisses, ein umbenannter darin…
+  - item: BUG-0212
+    revision: 1
+    scope_hash: 88046c0904ab918de71f902a983782b6cdbcaa860eda97921a04af3bfd2667d9
+    bound: 'die Hälfte der Zerstörungsregel, die sagt WAS zerstört, bleibt eine Vokabelliste
+      (`guard_fs_tripwire.NAMING_DESTRUCTION` / `SWEEPING_DESTRUCTION`): o…'
+  - item: BUG-0224
+    revision: 1
+    scope_hash: 870ccdf0da5d18f1ae28a8099452cbb8f252552ad77e7e56fb02a6452907939b
+    bound: '`tools/test_parallel_streams.py`s `_CADENCE_IN_PROSE` ist eine AUFZÄHLUNG
+      von Takt-Adverbien (`weekly`, `daily`, `monthly`, `every week` …). Ein Takt…'
+  - item: BUG-0234
+    revision: 1
+    scope_hash: 6f51207ce67245d8749da01e976e26ab65ddf49bb3d2aac638ed97679444573b
+    bound: die Aufzählung `options_that_narrow` sagt, nach welcher Option eine Zeile
+      die erklärte Fläche nicht mehr ganz fährt — eine Tatsache über den LÄUFER,…
+  - item: BUG-0265
+    revision: 1
+    scope_hash: 0d918f21608370fa8e4d658d313804a59a7f71a58ebe8a4dde0b4552a95cc68a
+    bound: 'What takes the place of it: the enumeration carries a tripwire at BOTH
+      ends in `tools/test_pointer_sweep.py::test_the_root_files_the_sweep_skips_are_…'
+  - item: BUG-0273
+    revision: 1
+    scope_hash: a744c35df668fc2944dbf04d0f393e71500ea77e29e0905fca005d78c08f2f99
+    bound: 'The damage is bounded: the reader''s subject is three short texts (radar/README.md,
+      two watcher definitions), all rewritten in generation 5 and read b…'
+  - item: BUG-0274
+    revision: 1
+    scope_hash: 82903be8e5427d57448fd199ca4502df5d8929598ba7667f13a896ce50ee1c5d
+    bound: 'No protection is lost today: the shipped README makes no cloud claim,
+      and the three listed names catch the phrasings anyone has actually typed (m10,…'
+subject_manifest_hash: d641e329d985386e56346ce59b1f349bed58bbee4ea73690fa96b16fd76e8517
+created: '2026-09-12T09:15:47'
+expires_at_epoch: 1789283747.6862075
+mint_code: 0ebcff

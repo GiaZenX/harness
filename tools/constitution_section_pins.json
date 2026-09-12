@@ -2,7 +2,7 @@
   "dev-team": {
     "agents/project-manager.md": {
       "(preamble)": {
-        "digest": "2c828b5a0294e330",
+        "digest": "d23ec620fb861ebf",
         "hooks": []
       },
       "Answering WHY / what the target is — the decisions before the code": {
@@ -65,7 +65,7 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "fefbee74c0fc1f00",
+        "digest": "ba23ff2044eabbbe",
         "hooks": [
           "session_status"
         ]
@@ -93,7 +93,7 @@
         "hooks": []
       },
       "2. Hard enforcement (NEVER skip — these are the rules real runs broke)": {
-        "digest": "5354c7175394a0e0",
+        "digest": "601b1767fccc8bda",
         "hooks": [
           "clear_handover_marker",
           "format_on_write",
@@ -137,7 +137,7 @@
         "hooks": []
       },
       "5a. Your work loop — the SEQUENCE, and the duties that have no gate behind them": {
-        "digest": "d135d18b92b32b88",
+        "digest": "63a5cc428b044fec",
         "hooks": [
           "gate_design_sighted",
           "gate_write_scope",
@@ -227,7 +227,7 @@
         ]
       },
       "Defects (bugs)": {
-        "digest": "8a0116b4eab79404",
+        "digest": "1896b64030612faf",
         "hooks": []
       },
       "First start after a fresh install": {
@@ -276,7 +276,7 @@
         "hooks": []
       },
       "Work loop (every cycle — every \"capture\"/\"transition\" below runs through the kernel's entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)": {
-        "digest": "c4ac1b1e0fc58026",
+        "digest": "f87e61a88d5f0559",
         "hooks": [
           "gate_design_sighted",
           "gate_dispatch",
@@ -387,7 +387,7 @@
         ]
       },
       "4a. Your work loop — the SEQUENCE, and the duties that have no gate behind them": {
-        "digest": "2f616aa666b6b199",
+        "digest": "212a5b6ebd2212c2",
         "hooks": [
           "gate_write_scope",
           "guard_agent_spawn",
@@ -410,14 +410,14 @@
         ]
       },
       "7. Models & presets": {
-        "digest": "6033442d613c3894",
+        "digest": "13a1cca11c112b18",
         "hooks": [
           "gate_filing",
           "session_status"
         ]
       },
       "8. Behavior": {
-        "digest": "ee46c9b92e43d23b",
+        "digest": "e54480ec748cfa6d",
         "hooks": []
       },
       "9. Git & data": {
@@ -513,11 +513,11 @@
         "hooks": []
       },
       "Wishes that arrive, runs that go wrong": {
-        "digest": "fd8ee47c3a9fbe88",
+        "digest": "ae8744617f56846f",
         "hooks": []
       },
       "Work loop (every cycle)": {
-        "digest": "e31e02ad3712734d",
+        "digest": "fd8dee7d7bd5b9e6",
         "hooks": [
           "gate_proc_approved",
           "gate_write_scope",
@@ -529,7 +529,7 @@
   "research-team": {
     "agents/project-manager.md": {
       "(preamble)": {
-        "digest": "ef4b131642d3e134",
+        "digest": "126b187ca3550069",
         "hooks": []
       },
       "Answering WHY / what the target is — the decisions before the code": {
@@ -589,7 +589,7 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "1572aadadb86e6ac",
+        "digest": "c4f506272e0ad70b",
         "hooks": [
           "session_status"
         ]
@@ -621,7 +621,7 @@
         "hooks": []
       },
       "2. Hard enforcement (NEVER skip)": {
-        "digest": "b2ba9cc34aa3c8c2",
+        "digest": "bd07b92c59c42aa0",
         "hooks": [
           "clear_handover_marker",
           "format_on_write",
@@ -662,7 +662,7 @@
         "hooks": []
       },
       "5a. Your work loop — the SEQUENCE, and the duties that have no gate behind them": {
-        "digest": "0978a3f4df7038d1",
+        "digest": "e564e612d052cfbd",
         "hooks": [
           "gate_write_scope",
           "guard_agent_spawn",
@@ -747,7 +747,7 @@
         ]
       },
       "Defects, changes and the inbox": {
-        "digest": "862a78b9935c2023",
+        "digest": "a61e0199473c44d6",
         "hooks": []
       },
       "FZulG / BSFZ application (you own the application; the Methodologist assesses the science)": {
@@ -796,7 +796,7 @@
         "hooks": []
       },
       "Work loop (every cycle — every \"capture\"/\"transition\" below runs through the kernel's entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)": {
-        "digest": "2ea3a87dd89a40f1",
+        "digest": "32a44404644c3253",
         "hooks": [
           "gate_write_scope",
           "guard_yaml_valid"

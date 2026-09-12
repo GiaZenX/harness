@@ -1223,7 +1223,10 @@ def _holes_in_the_store():
 
 
 def test_every_hole_is_one_index_row_one_prose_file_and_one_item():
-    """The hole index of `docs/POST_V2_WISHLIST.md`, its prose files, and the items -- all three ways.
+    """The hole index of `docs/POST_V2_WISHLIST.md`, its prose files, and the items -- all three
+    ways, and the reader that closes BUG-0258 / H176: the guard that stood here was RED from
+    b7f282e on because the migration had removed both of its subjects, so nothing held entry and
+    overview against each other at all.
 
     WHY THIS SUBJECT AND NOT THE OLD ONE: until the migration (TSK-0126, `migrate-holes`) a hole was
     a `### H<n>` section of that document plus a row in a summary table, and the guard here compared
@@ -2267,3 +2270,47 @@ def test_a_suite_the_default_run_does_not_collect_is_named_with_its_own_run_comm
     assert not unnamed, (
         "CLAUDE.md carries no pytest line that names these suites, so a round has no way to learn "
         "they exist: %s" % unnamed)
+
+
+def _top_level_modules_of(directory):
+    """The names `import <name>` resolves to when `directory` is on the path -- modules and packages.
+
+    Both shapes, because both shadow: a `<name>.py` beside the entry point and a `<name>/` package
+    with an `__init__.py` are the same name to the import system.
+    """
+    found = set()
+    for entry in sorted(os.listdir(directory)):
+        path = os.path.join(directory, entry)
+        if entry.endswith(".py") and os.path.isfile(path):
+            found.add(entry[:-len(".py")])
+        elif os.path.isdir(path) and os.path.isfile(os.path.join(path, "__init__.py")):
+            found.add(entry)
+    return found
+
+
+def test_no_module_under_tools_shadows_one_of_the_kit_tree(): # noqa: D401
+    """BUG-0276 / H192: a module added under `tools/` shadows the `team-kits/` module of the same
+    name for every `python tools/<script>.py` entry point, and nothing measured the collision.
+
+    THE MECHANISM IS PYTHON'S OWN PATH ORDER, not a defect of any script: a script started as
+    `python tools/validate.py` puts `tools/` at the FRONT of `sys.path`, ahead of the `team-kits/`
+    the script then adds -- so `import gen_provider_artifacts` finds the neighbour rather than the
+    kit's. Measured 2026-09-11 in a `.git`-less copy (`_round-scratch/TSK-0134/tree`): a five-line
+    stub written to `tools/gen_provider_artifacts.py` turned `python tools/validate.py` from
+    `all structural checks passed` into `ImportError: cannot import name 'load_tiers'` before a
+    single structural check ran. The LOUD direction is the lucky one; a stub that happened to define
+    the names the entry point imports would have been used with no error at all.
+
+    THE SUBJECTS ARE DERIVED from the two directories, so a module added on either side is compared
+    with no edit here, and the check is over NAMES rather than over imports: importing the kit tree
+    to find out would be the very shadowing this measures.
+    """
+    tools_modules = _top_level_modules_of(os.path.join(ROOT, "tools"))
+    kit_modules = _top_level_modules_of(os.path.join(ROOT, "team-kits"))
+    assert kit_modules, "no importable module found under team-kits/ -- this would be vacuous"
+    assert tools_modules, "no importable module found under tools/ -- this would be vacuous"
+    collisions = sorted(tools_modules & kit_modules)
+    assert not collisions, (
+        "these names exist under BOTH tools/ and team-kits/, so every `python tools/<script>.py` "
+        "entry point resolves them to the tools/ copy: %s. Remedy: rename the tools/ one, or load "
+        "the kit module BY PATH as `tools/radar_routine.py::_kit_generator` does." % collisions)

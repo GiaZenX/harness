@@ -1,0 +1,61 @@
+request_id: c03bb540582d4abf8a079bfa9b7d4a79
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0128
+    revision: 1
+    scope_hash: a6ad0bb406dd86290a4be5ff27aef6b2ca4edeb8e39430f9472a40784e7dcfa9
+    bound: 'die Grenze ist gemessen und liegt außerhalb des Gates: die Zeilenlänge,
+      ab der die nicht unterbrechbare Stelle die Frist reißt, kann auf diesem Host…'
+  - item: BUG-0141
+    revision: 1
+    scope_hash: f899b57f26d40517e50cb1c82bf89a866130f41052f301bf9f50c61d9bb79929
+    bound: 'an die Stelle des Schutzes treten drei Begrenzungen: die erste Verletzung
+      wird blockiert und präzise angeleitet; der Durchlass ist zustandsgenau prot…'
+  - item: BUG-0142
+    revision: 1
+    scope_hash: 02e46bc5a861d7b93b2a4979a2bf6699ec849841f6f1aee196fb0f5d7136a619
+    bound: 'Preis des F1-Fixes: ein gebundenes Kind, dessen `SubagentStop` nie ankommt,
+      ist nach dem TTL-Sweep für den Untätigkeits-Melder unsichtbar. An die Ste…'
+  - item: BUG-0145
+    revision: 1
+    scope_hash: 64c9ed90354715003390550d53c7bcbc3e2416722758cdce3ab01fc8eb1d6ffa
+    bound: die Lebensdauer von `stop_hook_active` ist ungemessen; die Fehlrichtung
+      ist stumm, nie schleifend, und kein ausgelieferter Text behauptet mehr als „a…
+  - item: BUG-0170
+    revision: 1
+    scope_hash: 78f432cc577590c259a06c1029be7acbd475b2633837646944cf10a9b66b9047
+    bound: ein Client-Startmodus, der die Projekteinstellungen nicht lädt, entfernt
+      alle vier Registrierungsflächen des Kits, während die Dateiwerkzeuge im Proj…
+  - item: BUG-0181
+    revision: 1
+    scope_hash: 363d782f7ca911f5798aff3a7b2499befc69a4b630ae149c681fca313f2a0cfb
+    bound: ohne `git` kann die Vier-Augen-Buchung Alt- von Neuzeilen nicht unterscheiden
+      und TRITT ZURÜCK statt zu verweigern; die Gegenrichtung säße auf genau…
+  - item: BUG-0198
+    revision: 1
+    scope_hash: b7f7b011aaf122e60d845bf420916815c1f6cfe99847a62ea10190bbe322f988
+    bound: nach einem Verzeichniswechsel läuft die Registrierung des Ziels, aber die
+      Hook-DATEIEN des Startorts (`${CLAUDE_PROJECT_DIR}` bleibt stehen, und gena…
+  - item: BUG-0199
+    revision: 1
+    scope_hash: fa33d7b2f56cb331f67be6c76b935ff936e9b71dddc9281c6fec0be48c6ed145
+    bound: ein Verzeichniswechsel bringt Subagenten und `agent:`-Bindung des Ziels
+      NICHT mit, obwohl der Changelog „agents" nennt — gemessen am Task-Fehler, an…
+  - item: BUG-0230
+    revision: 1
+    scope_hash: 484526c01d9f60f4642a058f20ed5ef476fa03f18c582051af5563321ce159d4
+    bound: 'welche Datums-Schreibweisen ein `MST` annimmt, entscheidet der Interpreter:
+      `backlog_types.normalised_date` ist `date.fromisoformat`, und die liest `…'
+  - item: BUG-0251
+    revision: 1
+    scope_hash: bb4341d2172c8c7666e4ffe7545fca3d5751d775aed58b3be011da4e178ca194
+    bound: the RUNG axis is applied (the Agent tool's `model` parameter overrides
+      the child's pin, measured 2026-09-05 21:43, rig `probe-agent-override`; `gate_…
+subject_manifest_hash: b67df7582b20f61e3175b4a47e166ed25e05fc9e43655b1ee9e9a607c5f4819b
+created: '2026-09-12T09:15:48'
+expires_at_epoch: 1789283748.1987545
+mint_code: 23083c

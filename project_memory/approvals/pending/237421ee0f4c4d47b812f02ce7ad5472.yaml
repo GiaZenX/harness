@@ -1,0 +1,62 @@
+request_id: 237421ee0f4c4d47b812f02ce7ad5472
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0151
+    revision: 1
+    scope_hash: d5fe155697da150d7dba408cdca8fc60e3b466eca82572d956e94e31f1ac261b
+    bound: nichts treibt ein Projekt in die Phasen 6–9 — der Merge ist der einzige
+      gebaute Forderer der evidence-Schublade, und ein Solo-Projekt auf `main` merg…
+  - item: BUG-0152
+    revision: 1
+    scope_hash: 6229fb5de1f110b4bdd2687cd30605b6c698ea389ad71072569412e60b0f648a
+    bound: '`document_sources` erzwingt nichts: kein Gate liest die Liste, ein nicht
+      begangenes Interview sieht aus wie „nichts zu melden" — aber ein leerer Plan…'
+  - item: BUG-0153
+    revision: 1
+    scope_hash: a7a355ca6aecb539e3fd3ca0b27f89a96340159d0e90cb0af428bd2b51852ea3
+    bound: kein Kit-Hook merkt selbst, dass sein Fenster abläuft — jede Grenze in
+      einem Kit-Hook ist ein Versprechen des Hooks, keine Durchsetzung; die Konstruk…
+  - item: BUG-0159
+    revision: 1
+    scope_hash: d4f6f84bef1e0e356ba362a41150a63b1e3fbd5ecef90a5d24aa5dfb9ae3bf6f
+    bound: die Köder- und Geschwisterprüfung des Ledger-Gates wird **nur befragt,
+      wenn dieselbe Zeile eine blockierte Operation trägt**. Ein Lauf eines unbewach…
+  - item: BUG-0164
+    revision: 1
+    scope_hash: 118816bc2bf768d7ffcf7d29d66d1eafda51562bb8bc8cb2ac99e66c857ad839
+    bound: 'gemessene Grenzen der Vier-Augen-Wand, je im Eintrag: die Aufräum-Ausnahme
+      vergleicht Vorlage+Dateiname statt Ort (ein Platzhalterwechsel läuft ohne…'
+  - item: BUG-0167
+    revision: 1
+    scope_hash: a44cd6bf1bc9fdb5e1d294126a1db8d67a3448fb16a16ac077d9c641be7096d0
+    bound: 'gemessene Grenzen des E-Rechnungs-Geldpfads, je im Eintrag: der Wächter
+      ist Arithmetik, nicht Semantik (`FR-0065` trägt die zweite Lesung); BR-CO-14…'
+  - item: BUG-0168
+    revision: 1
+    scope_hash: 22eb04f391d7d83a4ccd19ad1601d99f3f377ddb7478509b314f8e7f3e22acbb
+    bound: 'gemessene Grenzen des neuen Dokument-Schreibwegs, je im Eintrag: der Listeneintrag-Prosakanal
+      (einziger Kanal ohne Wortlaut in der Karte, dreifach be…'
+  - item: BUG-0174
+    revision: 1
+    scope_hash: a252c405585973fae88450edc01822c340fade76b41623bbabdc6f96ec779928
+    bound: sieben benannte Grenzen der internen Sicht-Schleife für Design-Entwürfe,
+      je mit gemessenem Preis der Alternative; der Kern — ein gestagter Entwurf er…
+  - item: BUG-0176
+    revision: 1
+    scope_hash: de97c152bfef9c7a588c2885b3536a36ac1707a71759988d9da89ca04d6f845f
+    bound: 'die Ableitung der Referenz-Skills erzwingt nichts: der Fehler ist vorhergesagt
+      und nicht gemessen, der Dispatch-Header gewährt nichts, die Fluchttür…'
+  - item: BUG-0180
+    revision: 1
+    scope_hash: 19736946861e1ee49738a0f4202b8f2c0334edda6bb74e19ba79ad664cc7e0fb
+    bound: der Rollback ist byte-gleich nur über die aufgezeichnete Menge; ältere
+      Sicherungen tragen keine und werden mit Grund verweigert statt geraten, und
+      di…
+subject_manifest_hash: a98508c0863bccef0c6583f5553da864701778ea591208b747d443524c377a04
+created: '2026-09-12T09:15:50'
+expires_at_epoch: 1789283750.9073985
+mint_code: 65eed3

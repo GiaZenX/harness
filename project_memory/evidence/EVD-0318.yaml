@@ -1,0 +1,14 @@
+id: EVD-0318
+kind: test
+related:
+- BUG-0258
+result: pass
+summary: 'TSK-0140: the test that NAMES BUG-0258, re-run on the closing tree'
+artifact_refs:
+- project_memory/staging/TSK-0140/run-bug-0258.log
+run_command: python -B -m pytest tools/test_repo_hygiene.py::test_every_hole_is_one_index_row_one_prose_file_and_one_item
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T08:24:53'

@@ -1,0 +1,45 @@
+id: BUG-0287
+title: 'H25 neu aufgelegt (Ausnahme nie freigegeben): Die Frist, die ein Gate sich
+  zugesteht, und die, nach der es getötet wird (neu, TSK-0013)'
+related_pr: PR-0012
+observed: 'Migrated 2026-09-05 as H25 into BUG-0117 with status ACCEPTED_EXCEPTION
+  and approval null -- the user never saw a question for it (measured 2026-09-12 over
+  archive/bug/*). Original finding: **Mechanismus:** `_harness.registered_timeout`
+  liest die Frist bei **jedem Aufruf** aus
+
+  `.claude/settings.json`. Der Provider hat seine eigene beim **Sitzungsstart** gebunden.
+  Solange
+
+  eine Sitzung läuft, sind die beiden Zahlen entkoppelt: wer die Datei schreiben darf,
+  setzt die
+
+  Zahl hoch, die sich das Gate zugesteht, ohne die zu ändern, nach der getötet wird
+  — und ein Gate,
+
+  das noch entscheidet, wenn der Provider aufhört zuzuhören, wird getötet, was der
+  Provider als
+
+  „hook error, carry on", also als **Durchlass** liest.'
+expected: 'The fix lies in .claude/hooks/_harness.py Deadline (this repo''s own gate),
+  forbidden to every role of this repo: the exact patch goes to the user''s shell
+  patch file (h182 precedent); until applied, an exception with this sentence: Wer
+  die Schutzdateien schreiben darf, kann auch die Frist hochsetzen, die sich eine
+  Pruefung zugesteht; nur du kannst das von aussen aendern.'
+repro: 'read BUG-0117 (status ACCEPTED_EXCEPTION, approval: null); the mechanism:
+  docs/holes/H25.md'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the item ends VERIFIED on a passing test that names it, or ACCEPTED_EXCEPTION
+  on a request the user answered -- never on a migration'
+- 'AC-2: if an exception, its `limits` is the plain-German sentence a non-developer
+  understands'
+source: 'archive BUG-0117; staging/generation-6/refile_unclicked_exceptions.py (lead
+  classification: gesperrt, stream -)'
+limits: Wer die Schutzdateien schreiben darf, kann auch die Frist hochsetzen, die
+  sich eine Pruefung zugesteht; nur du kannst das von aussen aendern.
+supersedes: BUG-0117
+hole_number: H203
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:46:30'

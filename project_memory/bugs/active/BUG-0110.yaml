@@ -22,8 +22,13 @@ observed: '**Mechanismus:** ob eine Stufe lesend ist, beantwortet die Klassifika
 severity: low
 hole_number: H18
 source: docs/holes/H18.md
-limits: jeweils dort benannt; H18/H19/H23 sind Über-Verweigerungen, also Reibung statt
-  Loch, und H13/H14/H15 nennen in ihrem Eintrag, was an der Stelle steht
+limits: 'an OVER-refusal, not a hole: nothing gets through, a read-only line is turned
+  away. `cp`, `robocopy`, `xcopy` and `tar` are not read-only to the kits'' own classification
+  -- rightly, they write their target -- so gate 1 collects EVERY word of such a stage,
+  source and target alike. What it costs is a refused copy whose operand names a protected
+  tree. The way round it is measured and cheap: spell the copy as a Python script
+  under the round''s scratch root (`C:/Offline Repos/v2-testbed/_round-scratch/<TSK-ID>/`),
+  which CLAUDE.md prescribes anyway, or run it from a shell outside the session.'
 status: TRIAGED
 revision: 1
 approval_ref: null

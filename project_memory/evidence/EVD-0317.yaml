@@ -1,0 +1,14 @@
+id: EVD-0317
+kind: test
+related:
+- BUG-0276
+result: pass
+summary: 'TSK-0140: the test that NAMES BUG-0276, re-run on the closing tree'
+artifact_refs:
+- project_memory/staging/TSK-0140/run-bug-0276.log
+run_command: python -B -m pytest tools/test_repo_hygiene.py::test_no_module_under_tools_shadows_one_of_the_kit_tree
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T08:24:45'

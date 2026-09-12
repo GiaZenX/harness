@@ -1,0 +1,3 @@
+{
+  "limits": "the DEADLINE half is closed and only the judgement is spent: `_harness.Deadline` reads the registered `timeout` out of `.claude/settings.json` and refuses BEFORE the provider can kill the hook -- which matters because a killed hook is read as 'hook error, carry on', i.e. as an ALLOW (measured 2026-08-05: five candidates on unroutable UNC hosts, rc 0 after 211.3 s against a registered 120). What remains is that a line whose candidates spend the budget is REFUSED instead of judged, and it may take up to four fifths of the registered time to say so. Fail-closed in both halves: the answer is never an allow."
+}

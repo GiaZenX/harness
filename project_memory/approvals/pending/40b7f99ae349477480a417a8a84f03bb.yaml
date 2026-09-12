@@ -1,0 +1,26 @@
+request_id: 40b7f99ae349477480a417a8a84f03bb
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0260
+    revision: 1
+    scope_hash: 0a9724b8d8b81401d007e61c5b53d20061f0a48157c85e1dbdc64b86bb65b1e3
+    bound: 'The climb is bounded and cheap in the wrong direction: it goes UP one
+      rung per failed run and is capped at the role''s top (`ladder_for_order`, measur…'
+  - item: BUG-0261
+    revision: 1
+    scope_hash: d364e1f3cfba34254a9d3313cac0b94d776cdd68948217526b4bceed080ab270
+    bound: 'What takes the place of it: nothing invents a verdict. Every row of the
+      table carries its measured line and its verdict WORD is the measurement, not…'
+  - item: BUG-0264
+    revision: 1
+    scope_hash: 611ae90441222ed6aedb3276af79951de32d980e418f72138f70ed2652c0aaa9
+    bound: 'The four sentences GRANT nothing and refuse nothing: `gate_spawn_needs_item`
+      decides the exemption on the frontmatter key `harness_item:` in the role…'
+subject_manifest_hash: a267a337a39f3ac10f75752e271bf36f61552e48a9656be101938988c6afa5b3
+created: '2026-09-12T09:15:53'
+expires_at_epoch: 1789283753.0778193
+mint_code: 262c8b

@@ -1,0 +1,61 @@
+request_id: 6d67a154baa54a19baf762ef21500a43
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0208
+    revision: 1
+    scope_hash: 47b052054a9eca9c198b31e727bc95adb914a2da82aff3a34d1db95b927665a9
+    bound: 'die Fristenmeldung liest die Uhr der lokalen Maschine einmal je Sitzungsstart
+      (`_duties.briefing`, `datetime.date.today()`): eine Sitzung über Mitter…'
+  - item: BUG-0210
+    revision: 1
+    scope_hash: 7c99bd3e329c4ea7b4c7c872c2c7a53837dbf8f762e98a49affec108349c56f9
+    bound: 'die Ablaufregel für eine offene Freigabe-Anfrage steht DREIMAL: in `approvals.open_requests`
+      (je Datei über `pending_request`), in `report.generate_s…'
+  - item: BUG-0211
+    revision: 1
+    scope_hash: 6dae7de807eb1fb5260540f0093ad6c322b50c12129dbf8f8f3930efdbacb8ca
+    bound: 'eine Handänderung an einem erzeugten Diagramm sieht zwischen zwei Zustandsschreibvorgängen
+      niemand: `plan_diagram.is_pristine` unterscheidet `pristin…'
+  - item: BUG-0215
+    revision: 1
+    scope_hash: 74c677174732b37886274c6b912af0ed43468fe547ddbee7bf9715c95a2e8994
+    bound: 'die Plan-Freigabe (`approvals.PLAN_KIND`) bricht absichtlich die Ein-Item-Bindung:
+      EINE Antwort lässt jedes Ziel ihrer Liste die Kante `DRAFT -> APPR…'
+  - item: BUG-0216
+    revision: 1
+    scope_hash: d259e17e6c18559123dde77bae4c7ae3e51f8afbb6c324b9792a4af9c03ad89b
+    bound: die zweite Mint-Route (`kernel/sdk_approval.py`, der Einstieg aus dem Agent-SDK-`canUseTool`)
+      kann die dritte Bedingung von `approvals._assert_mintin…
+  - item: BUG-0217
+    revision: 1
+    scope_hash: c568f537a34ca5b28ae28d45de8a320da53e583fd137b2bd6cecd6b19d3064e0
+    bound: '`blocked` ist ein Zustand und keine Messung: niemand prüft nach, ob der
+      Browser wirklich fehlte. Gemessen am Piloten mit dem ausgelieferten `gate_git…'
+  - item: BUG-0222
+    revision: 1
+    scope_hash: 60dd7151ae2554f63273c9fbfde05493eeecd4cdee97258fb99fc6c9ed71da32
+    bound: 'die BUILD-Hälfte von `FR-0077` (C1/C2/C3 im `browser_smoke()`, B3 über
+      `kit_checks._frontend_sources()`) ist nicht gebaut: beide Wirtsdateien liefern…'
+  - item: BUG-0223
+    revision: 1
+    scope_hash: 263a4c66c0216ab54a1c2800b014bb5625bfc6616a3c1e8da5749d6bb5d9a869
+    bound: 'die Rangfolge-Regel urteilt über `[data-view]`-Container, also über das,
+      was der Entwurf DEKLARIERT: dasselbe Markup mit zwei `data-primary-action` i…'
+  - item: BUG-0225
+    revision: 1
+    scope_hash: af5f290d16242950f93c02a8b23416837310bc847f45d6a0f149b436415a466b
+    bound: die Überlappungsprüfung unterscheidet seit dieser Nacharbeit, was der Aufrufer
+      GENANNT hat (ein `--root`, das kein Verzeichnis ist, und eine `--only`…
+  - item: BUG-0226
+    revision: 1
+    scope_hash: 2498e28ef6ec1546fa4fac023fd2e787d4dbf85b0d50fea5138ab8a87c4b105f
+    bound: eine erklärte Naht, die die GESAMTE Ownership eines der beiden Aufträge
+      deckt, wird seit dieser Nacharbeit verweigert (rc 1) — eine, die nur einen TE…
+subject_manifest_hash: 351499cd88c25968813db2fa37236c0e86cd0864da3e097c3182b851d33e004c
+created: '2026-09-12T09:15:52'
+expires_at_epoch: 1789283752.078215
+mint_code: 244b13

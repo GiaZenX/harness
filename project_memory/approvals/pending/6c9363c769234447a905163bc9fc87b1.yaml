@@ -1,0 +1,21 @@
+request_id: 6c9363c769234447a905163bc9fc87b1
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0255
+    revision: 1
+    scope_hash: aacd7c61994f77cdc9d0dc6a7b0801a8aed010f296a1457fb2f60d9108443268
+    bound: Codex support is BETA (README); the Claude side holds the rung at the spawn;
+      on Codex the lease and header still say what the state derived, so the a…
+  - item: BUG-0269
+    revision: 1
+    scope_hash: 0f75f0277c8284cfa93f26c585261448fa6dbf58844181eeb9dfccc4d8f84d4e
+    bound: 'The damage is bounded and named. What the repository cannot read -- the
+      task''s day, hour and enabled flag -- it does not claim: `starts_itself` needs…'
+subject_manifest_hash: 1c86523a14e891c9407c20f8c949d50eb5d732ac76b19428c4e73a45955bea03
+created: '2026-09-12T09:15:48'
+expires_at_epoch: 1789283748.7063887
+mint_code: 82ff20

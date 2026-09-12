@@ -17,8 +17,13 @@ observed: '**Mechanismus:** die Zugehörigkeitsprüfung antwortet in **beide** R
 severity: low
 hole_number: H19
 source: docs/holes/H19.md
-limits: jeweils dort benannt; H18/H19/H23 sind Über-Verweigerungen, also Reibung statt
-  Loch, und H13/H14/H15 nennen in ihrem Eintrag, was an der Stelle steht
+limits: 'the other half of the same over-refusal, and it is the price of a membership
+  test that must answer in BOTH directions: `rm -rf team-kits` names every protected
+  file under it without spelling one, so a candidate naming an ANCESTOR -- a bare
+  `..`, a drive letter, the repo root -- is read as a write to everything beneath.
+  Measured: `cp -r docs ..` is rc 2. Nothing gets through; what it costs is a refused
+  line with a relative target above the repo. The way round it: name the target absolutely
+  and outside the repo.'
 status: TRIAGED
 revision: 1
 approval_ref: null

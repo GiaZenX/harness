@@ -47,7 +47,9 @@ limits: 'The values are not lost, only unshown: `create_lease` writes them on th
 source: TSK-0130 stream protocol AC-6; measurement 2026-09-05 22:18:14 on pilots/dev;
   kernel/report.py:227-235; kernel/schemas/session_brief.yaml
 hole_number: H167
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0047
 created: '2026-09-05T22:20:06'
+approved_hash: 1eada6ee6c82b4f8982cae6f1c6f8035996d077f54e2082d9d65257b64b451df
+closed_at: '2026-09-12T09:21:40'

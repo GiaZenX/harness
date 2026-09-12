@@ -1,0 +1,63 @@
+request_id: f7054afb296b47df971764686c931d0c
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0102
+    revision: 1
+    scope_hash: 9e9fdedaf116e25e7c259b0f87d1bc6da3aac108ed6739a428a218e2be9fbd90
+    bound: die beiden gefundenen Hälften sind geschlossen und je durch einen roten
+      Test gedeckt; für die dritte gibt es keinen Ersatz, sondern eine ungestellte…
+  - item: BUG-0133
+    revision: 1
+    scope_hash: 7809e77a1ad932255ff9e2fb2d7a03c28ae04573c0e413a67c33bf091130633a
+    bound: vier gemessene Grenzen des Zeiger-Wächters aus TSK-0009, je im Eintrag;
+      keine berührt eine Gate-Entscheidung. Der lebende Bestand ist in den ersten
+      d…
+  - item: BUG-0137
+    revision: 1
+    scope_hash: c31623b5e953b7d5ebd4d23710f2ed7b8a6e17f1b4da086d7f19f728cb92a68e
+    bound: 'zwei gemessene Grenzen der Arbiter-Härtung aus TSK-0063, je im Eintrag:
+      die Sitzungswache verlangt die Seh-Eigenschaft auch von shell-freien Registri…'
+  - item: BUG-0157
+    revision: 1
+    scope_hash: 25525939c375036de1cf8db60e9c2380b73dae17ccc06915911c9d461da2f451
+    bound: ein Zielwort, dessen Pfad die Shell erst durch Expansion **herstellt oder
+      beendet** (`$f`, `${…}`, `${X:-…}`, Glob), steht so nicht im Text — dieser…
+  - item: BUG-0162
+    revision: 1
+    scope_hash: ca5d9a1febaf0109332b7c8dcd9267b8a6aa9491a7610180360f6d1e255194a6
+    bound: der Vollständigkeits-Draht des Ledger-Gates fragt nach **Mustern** (zwei
+      Leser, Vereinigung), also sieht er eine vierte Ausnahme nicht, die **gar kei…
+  - item: BUG-0163
+    revision: 1
+    scope_hash: d6c267102905ae0d169452036c426bec213ff70535f58f6a17563e37cb7362f1
+    bound: 'vier gemessene Grenzen des Lesers der Merge-Rückstandsliste, je im Eintrag:
+      ein Eintrag, den `open()` mit etwas anderem als `OSError` ablehnt, bricht…'
+  - item: BUG-0165
+    revision: 1
+    scope_hash: 220cc7d6fbe7ec4abf38652bc40f1a4ed64cea76a34c08e1ab86d8327ac71780
+    bound: 'vier gemessene Grenzen der Entscheidungs-zuerst-Runde, je im Eintrag:
+      jede Id in einem Begrenzer, der länger ist als sie selbst, bleibt ungeprüft
+      (16…'
+  - item: BUG-0166
+    revision: 1
+    scope_hash: e2205972684dfe63fcb102dad9fc51271348532f913cb84892741587f55099e5
+    bound: 'gemessene Grenzen der schnelleren Gate-Suite, je im Eintrag: kein Schutz
+      gegen einen zweiten Läufer (und die Suite drückt als Nachbar selbst stärker,…'
+  - item: BUG-0169
+    revision: 1
+    scope_hash: 863d90a453d87be0dda20ee20c792774e5a67d46b7ab2c065c72b925dd4d2029
+    bound: 'gemessene Grenzen der Wertsprache-Regel, je im Eintrag: kein Gate erzwingt
+      sie (Freitext); der Prosa-Test liest Anker und Ehrlichkeit, nicht Richtung…'
+  - item: BUG-0171
+    revision: 1
+    scope_hash: 6520a7d6c22307cbbc93ec968583197aace115398a7e2b3aeff45619afd5db7f
+    bound: 'gemessene Grenzen der Besitz-Ableitung für die Dokument-Schreibroute,
+      je im Eintrag: eine erfundene Zweitdatei ohne `staging/`-Präfix sieht der Leser…'
+subject_manifest_hash: 72494ab275660f69546fbcfe6f6cd079570284725a2e57856f62d843fb7648c3
+created: '2026-09-12T09:15:49'
+expires_at_epoch: 1789283749.2271147
+mint_code: 9831a9

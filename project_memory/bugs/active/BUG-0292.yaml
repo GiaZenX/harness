@@ -1,0 +1,33 @@
+id: BUG-0292
+title: 'H99 neu aufgelegt (Ausnahme nie freigegeben): H11 hebt die Vier-Augen-Buchung
+  mit auf: ein Skript trägt eine ungelesene Zeile nach `HEAD` und prägt die zweite
+  Lesung (neu, TSK-0102, FR-0065)'
+related_pr: PR-0012
+observed: 'Migrated 2026-09-05 as H99 into BUG-0188 with status ACCEPTED_EXCEPTION
+  and approval null -- the user never saw a question for it (measured 2026-09-12 over
+  archive/bug/*). Original finding: **Mechanismus.** `gate_second_booking` ruht auf
+  zwei Annahmen, und beide sind Ableitungen aus
+
+  `H11`s Interpreter-Ausnahme, nicht aus einer eigenen Schranke:'
+expected: 'Not closable in this repository (H11''s interpreter class reaches the four-eyes
+  ledger booking): an accepted exception the USER clicks, asked with this sentence:
+  Dieselbe Luecke wie beim Programm-Start: ein Skript kann eine Buchungszeile eintragen,
+  die niemand vorher gelesen hat.'
+repro: 'read BUG-0188 (status ACCEPTED_EXCEPTION, approval: null); the mechanism:
+  docs/holes/H99.md'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the item ends VERIFIED on a passing test that names it, or ACCEPTED_EXCEPTION
+  on a request the user answered -- never on a migration'
+- 'AC-2: if an exception, its `limits` is the plain-German sentence a non-developer
+  understands'
+source: 'archive BUG-0188; staging/generation-6/refile_unclicked_exceptions.py (lead
+  classification: nein, stream -)'
+limits: 'Dieselbe Luecke wie beim Programm-Start: ein Skript kann eine Buchungszeile
+  eintragen, die niemand vorher gelesen hat.'
+supersedes: BUG-0188
+hole_number: H208
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:46:46'

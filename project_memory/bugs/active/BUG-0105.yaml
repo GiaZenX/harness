@@ -14,8 +14,15 @@ observed: '**Mechanismus:** `_harness.decision_inputs` schützt genau die Dateie
 severity: low
 hole_number: H13
 source: docs/holes/H13.md
-limits: jeweils dort benannt; H18/H19/H23 sind Über-Verweigerungen, also Reibung statt
-  Loch, und H13/H14/H15 nennen in ihrem Eintrag, was an der Stelle steht
+limits: 'what IS protected is every module the gate really loaded while deriving its
+  answer -- `_harness.decision_inputs` asks the interpreter through `sys.modules`
+  rather than reading a list, so the stamper and `kernel.hashing` are covered the
+  moment they run, and a producer that is renamed or split is followed on the day
+  it changes. What stays open is the FILE granularity: a NEW file beside `tools/bump_kit_version.py`,
+  and a module the stamper imports lazily in a branch this gate never enters, are
+  not loaded and so not protected. Bounded because such a file decides nothing until
+  something imports it, and that import is a second change standing in the same commit
+  diff gate 3 judges.'
 status: TRIAGED
 revision: 1
 approval_ref: null

@@ -1,0 +1,14 @@
+id: EVD-0321
+kind: test
+related:
+- BUG-0279
+result: pass
+summary: 'TSK-0140: the test that NAMES BUG-0279, re-run on the closing tree'
+artifact_refs:
+- project_memory/staging/TSK-0140/run-bug-0279.log
+run_command: python -B -m pytest tools/test_close_measured_pass.py::test_the_evidence_comes_from_the_tests_that_name_the_bug_and_from_no_other_node
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T08:25:13'

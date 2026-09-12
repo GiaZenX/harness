@@ -1,0 +1,27 @@
+request_id: 1eb81e42d24749fd9d023bd16d6cb02f
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0257
+    revision: 1
+    scope_hash: 2dc133d2a7cacd344f25a5c9e0a5a744141f5e67c05999743c5e2e47ef8249ff
+    bound: 'What takes the place of it: the sweep is a REPORT, not a gate -- it exits
+      1 and no hook waits on it, so a noisy finding costs a reader a second and n…'
+  - item: BUG-0270
+    revision: 1
+    scope_hash: 690b7ca413a2ba03a6969a67cec89566bc370bf464b85c8d7e0d1681748e4dd1
+    bound: 'Not closed in this round and why: widening the subject to `tools/` turns
+      the four fixture strings of `tools/test_pointer_sweep.py` red at once, and t…'
+  - item: BUG-0280
+    revision: 1
+    scope_hash: 20cd59b7183f8d00b70ecbe91dad0ce80a8f65e97bc0983f7aa26496d4748efe
+    bound: 'What takes the place of the check, measured rather than hoped: (1) the
+      ambient value is a THROWAWAY tree (`.pytest_cache/ambient-project/`), so the
+      w…'
+subject_manifest_hash: 9ffc3ac14cf9dfbda0fc478bb79ef4f4beed8b365d13ad2d2470c2a12750af76
+created: '2026-09-12T09:15:50'
+expires_at_epoch: 1789283750.2919135
+mint_code: 1a961e

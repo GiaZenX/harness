@@ -47,7 +47,9 @@ limits: 'Bounded today by the lead''s hand: the verifier read all 14 single-node
 source: project_memory/staging/TSK-0138/verify-round-2.md (B2 rest); tools/close_measured_pass.py
   nodes_naming; DEC-0100 (3); staging/TSK-0131/survey-table.md header
 hole_number: H195
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0047
 created: '2026-09-11T18:49:14'
+approved_hash: 1a3e5c370f244b43891501f4863dd9bcc077ec6410797cc11ea8f41132ebbbce
+closed_at: '2026-09-12T09:21:48'

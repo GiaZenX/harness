@@ -21,8 +21,15 @@ observed: '**Mechanismus:** die Shell-Hälfte von Gate 1 und die Zeilenform-Prü
 severity: low
 hole_number: H15
 source: docs/holes/H15.md
-limits: jeweils dort benannt; H18/H19/H23 sind Über-Verweigerungen, also Reibung statt
-  Loch, und H13/H14/H15 nennen in ihrem Eintrag, was an der Stelle steht
+limits: 'the coupling is deliberate and the alternative is worse: a SECOND answer
+  to ''is this stage read-only'' is the drift this repository has paid for repeatedly,
+  so gate 1 borrows the kits'' own reader (`gate_write_scope._tokenise`, `_pipelines`,
+  `_stage_is_read_only`, `_redirect_targets`, `_walk`, `_operator`) through `_from_kit`.
+  The price is a dependency on UNDERSCORED names. Bounded because the failure direction
+  is LOUD and closed: a renamed helper makes the borrow raise, and a gate that cannot
+  execute refuses (spec II.4 fail-closed) instead of allowing -- and `.claude/hooks/test_gates.py`
+  drives every registered pair through the real hook process, so a broken borrow is
+  red before it ships.'
 status: TRIAGED
 revision: 1
 approval_ref: null

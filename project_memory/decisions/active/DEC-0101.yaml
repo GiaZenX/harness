@@ -1,0 +1,45 @@
+id: DEC-0101
+title: 'Der Lead misst an JEDEM Schnitt die Aufteilbarkeit (Zusatz zu DEC-0087 (2)
+  / DEC-0099 (2)): bevor ein Auftrag READY geht, laeuft der Bereichsabgleich ueber
+  den moeglichen Split -- mehrere Bauer, wo die Dateimengen gemessen disjunkt sind,
+  einer, wo nicht; ''ich nehme an, das ueberlappt'' ist der Solo-Reflex, den DEC-0092
+  fuer den PM der Kits mit dem Fakten-Checkpoint faengt und den der Lead dieses Repos
+  gerade gezeigt hat'
+context: 'USER 2026-09-12 ~09:40: ''Wieso hast du ihn (den parallelen Weg) nicht selbst
+  genommen? Und wird das mit dem Orchestrator in den Kits auch so passieren?'' MEASURED
+  on the lead''s own conduct in PR-0012: orders 1-3 were cut at the points where the
+  user''s click was needed and then handed to ONE builder each; the ~120 holes of
+  order 3 went to one builder for 2 h 09 although their fixes lie in different file
+  families; the lead never ran check-scopes or dispatch.goal_partition over a candidate
+  split -- it ASSUMED overlap (tools/test_*.py is shared) instead of measuring, the
+  exact habit DEC-0087 (2) names (''always solo where parallel would pay'') and DEC-0092
+  (3)/(5) built the checkpoint and the retrospective rule against -- for the kits''
+  PM, not for this repo''s lead, who spawns without a lease and therefore without
+  the mirror.'
+decision: '(1) At every cut of this repo the lead runs the partition measurement before
+  READY: check-scopes over the candidate orders (or kernel dispatch.goal_partition
+  over the file sets the items name) and writes the result into the round log -- ''splits
+  into N disjoint sets'' -> N orders in parallel (DEC-0087 (2)), ''one set'' -> one
+  builder; the assumption is never the answer. (2) The kits'' PM already has the mirror
+  (DEC-0092 (3) line (a): the measured partition before every builder start) and the
+  retrospective rule (wall-clock against measured-disjoint sets); whether it ACTS
+  on the mirror is measured by that rule and by report.lease_distribution, not promised
+  here -- the first real projects after the rollout are the measurement. (3) The harness-lead
+  role text of this repo carries this step (the next order touching .claude/agents/harness-lead.md),
+  and the lead applies it by hand from today: order 3b of PR-0012 is cut by measured
+  file sets. (4) A seam between parallel orders is resolved at the goal round (the
+  merge check), as generations 3-5 did.'
+consequences: 'Faster wall-clock where the work is truly disjoint; no more solo-by-default
+  in this repo; the kits'' PM is measured the same way. Cost: one kernel line per
+  cut. Rejected: parallel by class or by feel (the seams of generation 3-5 were the
+  price); a hook for the lead (the lead has no lease surface here -- the discipline
+  stands in the role text and the round log).'
+work:
+- PR-0012
+source: user message 2026-09-12 ~09:40; the round log generation-6-streams.md (orders
+  1-3, the 2 h 09 of TSK-0140); DEC-0087 (2); DEC-0092 (3)/(5); DEC-0099 (2); kernel
+  dispatch.goal_partition (TSK-0135)
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-12T09:34:16'

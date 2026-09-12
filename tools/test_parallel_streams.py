@@ -559,10 +559,8 @@ def test_no_text_that_describes_the_audited_role_states_the_cadence_the_code_own
     time. The description is the surface the ROUTER reads, so this is not cosmetic: a cadence that
     changes in the code would leave a wrong one on the routing surface of three kits at once.
 
-    WHAT IS NOT IN THE SUBJECT, and is a named residue rather than a silence: `hooks/_routine.py`'s
-    own module docstring still says "every kit's constitution rides that role on a weekly rhythm",
-    which no constitution does any more (`H137`). That file is a mirrored hook and was outside this
-    round's scope.
+    THE MIRRORED HOOK'S OWN MODULE DOCSTRING is the neighbouring subject and has its own reader
+    since TSK-0140: `test_the_shipped_routine_module_claims_no_cadence_for_a_text_it_does_not_own`.
     """
     from test_routine_feed import routine_module
     judged = 0
@@ -581,6 +579,39 @@ def test_no_text_that_describes_the_audited_role_states_the_cadence_the_code_own
                     "`_routine.audit_period_id` is what decides it:\n%s"
                     % (os.path.relpath(path, ROOT), ", ".join(found), block[:400]))
     assert judged >= 2 * len(KITS), "only %d block(s) read -- the subject stopped matching" % judged
+
+
+def test_the_shipped_routine_module_claims_no_cadence_for_a_text_it_does_not_own():
+    """BUG-0220 / H137: the mirrored `hooks/_routine.py` said in its own module docstring that every
+    kit's constitution rides the audited role on a weekly rhythm -- which none of the three does any
+    more, so a shipped file asserted a cadence for three files it does not own and nothing read it.
+
+    THE SUBJECT IS THE MODULE DOCSTRING AND NOTHING ELSE OF THE FILE, parsed rather than searched:
+    the cadence legitimately stands in `audit_period_id`'s own docstring, because that function IS
+    the cadence -- so a reader over the whole file would refuse the one place the rule allows. The
+    module docstring is the place that speaks ABOUT other files, which is where house rule 3's
+    "prefer naming a location over quoting another file" bites.
+
+    THE CADENCE READER IS THE SAME ONE the role texts are judged by (`_CADENCE_IN_PROSE`), with the
+    same measured blind spots (`BUG-0224` / H141: a period written as a number of days, a weekday or
+    a duration token is invisible to it). Sharing it is the point -- a second spelling here would be
+    a second answer to "does this sentence state a cadence".
+    """
+    import ast
+    judged = 0
+    for kit in KITS:
+        path = os.path.join(TEAM_KITS, kit, "hooks", "_routine.py")
+        with io.open(path, encoding="utf-8") as handle:
+            module = ast.parse(handle.read())
+        docstring = ast.get_docstring(module) or ""
+        assert docstring, "%s carries no module docstring -- the subject stopped existing" % path
+        judged += 1
+        found = sorted({hit.group(0) for hit in _CADENCE_IN_PROSE.finditer(docstring)})
+        assert not found, (
+            "%s states a cadence (%s) in the docstring that speaks about OTHER files, while "
+            "`audit_period_id` is the one place that owns it: %s"
+            % (os.path.relpath(path, ROOT), ", ".join(found), docstring[:400]))
+    assert judged == len(KITS), "only %d of %d kits read" % (judged, len(KITS))
 
 
 @pytest.mark.parametrize("text,fires", [

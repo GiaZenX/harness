@@ -1,0 +1,62 @@
+request_id: 9f25d06d17e14dbdb8cb50300516d1bd
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0182
+    revision: 1
+    scope_hash: ab9d73bedf11734bbd4e20cb6d30abb4cff83fa187c953fbdb096a6c7c5d2b3b
+    bound: zwei identische Buchungen EINES Belegs teilen sich ein Lesepaar, solange
+      keine `invoice_no` gesetzt ist; mit ihr greift `ledger_add.validate_cross`.…
+  - item: BUG-0183
+    revision: 1
+    scope_hash: 54df0e7ca80a9183f20132afac9ad507b429ee9d76b77c3ec90402dded1c50e3
+    bound: der gerenderte Aktenplan-Baum zeigt den PLAN und nicht die Platte — er
+      beschreibt die Form mit `<year>`-Platzhaltern. Der Abgleich Plan↔Platte ist
+      di…
+  - item: BUG-0190
+    revision: 1
+    scope_hash: 4b36f763470cb21a3ccb8082d4bc17cd0a2c1a4a3bd5782ea8b7b94fc84c4eda
+    bound: 'der Umfang eines QS-Laufs ist Prosa: kein Feld im Evidence-Datensatz und
+      kein Hook zählt, ob die Suite einmal oder zehnmal lief. Begrenzt durch den R…'
+  - item: BUG-0191
+    revision: 1
+    scope_hash: 4936e56bfb2d0d1221032785d0ed092af858d19a1352d6444f7ac463e1f375b7
+    bound: 'der Design-Brief trennt ZIEL von SCHREIBWEISE nur als Prosa: eine Prozessregel,
+      die in den Brief gerät, fängt nichts, weil das Decision-Item Freitext…'
+  - item: BUG-0192
+    revision: 1
+    scope_hash: 9ff65e960662afb3f68cfc9ece40194941f80f4584c620fad39797f91191d94f
+    bound: eine Evidenz, die GAR KEINEN Laufumfang erklärt, zählt weiter wie bisher
+      — die Erklärungspflicht lässt sich auf einem unveränderlichen Typ nicht nach…
+  - item: BUG-0194
+    revision: 1
+    scope_hash: dcedbaca1d8fded19f0bd9668bc64814b04282db51315e91e2fc980de5130a0b
+    bound: 'einen Check, dessen Datei der Kernel nicht parsen kann (ein Testfile in
+      einer anderen Sprache), beantwortet er mit UNENTSCHIEDEN: eine Warnung, kein…'
+  - item: BUG-0197
+    revision: 1
+    scope_hash: c6523441461a8710d8fcb476922bb38c60a66b4ee98027df00546d7f0aa210fb
+    bound: 'das Fristenregister kennt kein „erledigt": nichts im Kit hält fest, dass
+      eine Voranmeldung abgegeben oder ein Aufbewahrungsjahr geprüft wurde, also s…'
+  - item: BUG-0201
+    revision: 1
+    scope_hash: efe9a4f4aefc4890499bac500ecaadd761d4b19f04c797416d39764b3b7a3fbb
+    bound: nichts startet den Generator nach einer Buchung; der Datenstand im Kopf
+      trägt das **nicht**, weil er nur das jüngste Ledgerdatum ist (ein Nachtrag lä…
+  - item: BUG-0202
+    revision: 1
+    scope_hash: d4e24c5745baf5e62f1d4e0088f8c71ff40e106418dad3e79e971359c47008f2
+    bound: 'die Seite sagt beides selbst: „gerechnet beim Öffnen der Seite aus der
+      Uhr dieses Rechners" und woher die 30 Tage kommen (§ 286 Abs. 3 BGB); ohne Skr…'
+  - item: BUG-0203
+    revision: 1
+    scope_hash: 351d687fe37abd0657e76cc1e85dd2678c80b4c436fd029e4a2bb189ff4c4324
+    bound: 'zwei Folgen einer Wurzel: (1) `_BLOCKED_SCRIPT_RX` kennt den Generator
+      nicht, er läuft gegen einen ungültigen Ledger — begrenzt dadurch, dass er selb…'
+subject_manifest_hash: f241cff44c344bc2f9d27a0e78b7b59251f491b252c9037917fa0291b75aee30
+created: '2026-09-12T09:15:51'
+expires_at_epoch: 1789283751.5383468
+mint_code: 976fbb

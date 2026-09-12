@@ -1,0 +1,3 @@
+{
+  "limits": "what IS protected is every module the gate really loaded while deriving its answer -- `_harness.decision_inputs` asks the interpreter through `sys.modules` rather than reading a list, so the stamper and `kernel.hashing` are covered the moment they run, and a producer that is renamed or split is followed on the day it changes. What stays open is the FILE granularity: a NEW file beside `tools/bump_kit_version.py`, and a module the stamper imports lazily in a branch this gate never enters, are not loaded and so not protected. Bounded because such a file decides nothing until something imports it, and that import is a second change standing in the same commit diff gate 3 judges."
+}
