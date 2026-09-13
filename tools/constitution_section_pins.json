@@ -53,7 +53,7 @@
         "hooks": []
       },
       "0. Authority & who you are (READ FIRST)": {
-        "digest": "a57bb4d94aba4c02",
+        "digest": "321d44739e2beda3",
         "hooks": [
           "gate_write_scope",
           "guard_harness_selfmod",
@@ -65,7 +65,7 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "d118ea31e9537816",
+        "digest": "8385bc57db77584a",
         "hooks": [
           "gate_dispatch",
           "session_status"
@@ -277,7 +277,7 @@
         "hooks": []
       },
       "Work loop (every cycle — every \"capture\"/\"transition\" below runs through the kernel's entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)": {
-        "digest": "f87e61a88d5f0559",
+        "digest": "e3798341cce4a362",
         "hooks": [
           "gate_design_sighted",
           "gate_dispatch",
@@ -328,7 +328,7 @@
         "hooks": []
       },
       "0. Authority & who you are (READ FIRST)": {
-        "digest": "e03d59026fa34476",
+        "digest": "19f60c0dda5ec683",
         "hooks": [
           "gate_write_scope",
           "guard_memory_budget"
@@ -584,7 +584,7 @@
         "hooks": []
       },
       "0. Authority & who you are (READ FIRST)": {
-        "digest": "eb39e792e277c6a5",
+        "digest": "33f108336e782548",
         "hooks": [
           "gate_write_scope",
           "guard_harness_selfmod",
@@ -596,7 +596,7 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "b9c68d38789b8161",
+        "digest": "af89734f301534e1",
         "hooks": [
           "gate_dispatch",
           "session_status"
@@ -804,7 +804,7 @@
         "hooks": []
       },
       "Work loop (every cycle — every \"capture\"/\"transition\" below runs through the kernel's entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)": {
-        "digest": "32a44404644c3253",
+        "digest": "2a9ad4c427e20a04",
         "hooks": [
           "gate_write_scope",
           "guard_yaml_valid"

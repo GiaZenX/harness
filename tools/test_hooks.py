@@ -20024,6 +20024,131 @@ def test_a_line_that_writes_a_script_and_runs_it_is_refused_in_every_kit(prd_rep
 
 
 @pytest.mark.parametrize("kit_hooks", [HOOKS, OFFICE_HOOKS, RESEARCH_HOOKS])
+def test_the_write_and_run_rule_reads_the_effective_command_word_in_every_kit(prd_repo, kit_hooks):
+    """BUG-0304 / H219: the five one-call spellings that wrote a script and ran it while the rule
+    of BUG-0298 looked elsewhere -- a runner behind an assignment or an `exec`/`command` prefix,
+    the file fed to an executor through `<`, and a substitution handing the file's text to `eval`.
+
+    MEASURED rc 0 AND EXECUTED BY A REAL SHELL (TSK-0149 verify round 1, F2, real hook processes in
+    all three kits). Three mechanisms, not five spellings, and each row below is one of them:
+      * the reader took `stage[0]` for the command word, so any PREFIX hid the path behind it;
+      * `_operand_words` drops a redirect target by design, so `bash < run.sh` handed the shell a
+        script no reader saw;
+      * an evaluator's file sits inside a substitution and is nobody's operand.
+
+    THE EVERYDAY TWINS ARE HALF THIS TEST, one per mechanism, because each closure could have taken
+    one with it: `A=1 ./build.sh`, `exec bash tools/ci.sh` and `bash < tools/ci.sh` all run a file
+    the same line does NOT write, and all three stay rc 0. Without them a rule that simply refused
+    every prefix, every `<` and every `eval` would pass this test.
+
+    RED WITHOUT THE FIX, measured in a .git-less copy outside the repo (TSK-0150): with
+    `gate_write_scope.py` restored to 92d746a all five refusals come back rc 0 while the three
+    everyday lines are unchanged.
+    """
+    write = "printf 'x' > run.sh"
+    for line in (write + " ; A=1 ./run.sh",
+                 write + " ; exec ./run.sh",
+                 write + " ; command ./run.sh",
+                 write + " ; bash < run.sh",
+                 "cat <<'EOF' > run.sh" + NL + "printf x > project_memory/b1h.yaml" + NL + "EOF"
+                 + NL + ' ; eval "$(cat run.sh)"'):
+        refused = _write_scope_in(prd_repo, line, kit_hooks)
+        assert refused.returncode == 2, (kit_hooks, line, refused.stdout, refused.stderr)
+        assert "RUNS it in the same call" in refused.stderr, (line, refused.stderr[:400])
+
+    for line in ("A=1 ./build.sh",
+                 "exec bash tools/ci.sh",
+                 "bash < tools/ci.sh",
+                 'eval "$(cat tools/ci.sh)"'):
+        allowed = _write_scope_in(prd_repo, line, kit_hooks)
+        assert allowed.returncode == 0, (kit_hooks, line, allowed.stdout, allowed.stderr)
+
+
+@pytest.mark.parametrize("kit_hooks", [HOOKS, OFFICE_HOOKS, RESEARCH_HOOKS])
+def test_a_prefix_words_own_option_does_not_hide_the_command_word_in_any_kit(prd_repo, kit_hooks):
+    """BUG-0304 / H219, the class the verifier of TSK-0150 measured still open (round 1, F2): the
+    write-and-run rule steps over the prefix WORDS and stepped over none of their OPTIONS, so one
+    flag put the real program into the operand role and five more lines wrote a script and ran it
+    unrefused.
+
+    MEASURED rc 0 AT EVERY REGISTERED HOOK of the dev pilot and EXECUTED by a real shell:
+    `exec -a foo bash run.sh` (which reopens the original H214 pair), `nice -n 5 ./run.sh`,
+    `sudo -u me ./run.sh`, `command -p ./run.sh`, `env -i ./run.sh`. It is NOT the remainder the
+    code and `docs/holes/H219.md` name (a prefix word the reader does not carry, `nohup`): it is a
+    mechanism of its own, and it is closed fail-closed -- an option where the command word belongs
+    makes the word UNKNOWN and every operand of that stage is read as something it may start.
+
+    THE EVERYDAY TWINS ARE HALF THIS TEST, one per prefix that carries an option: `nice -n 5 make`,
+    `sudo -u me ls` and `env -i bash tools/ci.sh` all have an unknown command word too, and all
+    three stay rc 0 -- because this rule refuses a name only where the SAME LINE also writes it.
+    A blanket "refuse a prefix with an option" would pass the rows above and fail these three.
+
+    THE ROW THAT PROVES THE ATTRIBUTION, and it is the one a flat pair of sets loses:
+    `sudo -u root tee run.sh ; bash run.sh` writes through an unknown stage and runs in another, so
+    it must stay refused while `env -i bash tools/ci.sh` -- unknown stage, nothing written -- stays
+    allowed. The difference is that a write and a run are compared across DIFFERENT sources.
+
+    RED WITHOUT THE FIX, measured in a copy outside the repo: with
+    `_the_command_word_is_unknown` returning False the five lines above come back rc 0.
+    """
+    write = "printf 'x' > run.sh"
+    for line in (write + " ; exec -a foo bash run.sh",
+                 write + " ; nice -n 5 ./run.sh",
+                 write + " ; sudo -u me ./run.sh",
+                 write + " ; command -p ./run.sh",
+                 write + " ; env -i ./run.sh",
+                 "sudo -u root tee run.sh ; bash run.sh"):
+        refused = _write_scope_in(prd_repo, line, kit_hooks)
+        assert refused.returncode == 2, (kit_hooks, line, refused.stdout, refused.stderr)
+        assert "RUNS it in the same call" in refused.stderr, (line, refused.stderr[:400])
+
+    for line in ("nice -n 5 make",
+                 "sudo -u me ls",
+                 "env -i bash tools/ci.sh",
+                 "command -p ls",
+                 "exec -a foo bash tools/ci.sh"):
+        allowed = _write_scope_in(prd_repo, line, kit_hooks)
+        assert allowed.returncode == 0, (kit_hooks, line, allowed.stdout, allowed.stderr)
+
+
+def test_every_evaluator_word_refuses_a_line_that_writes_what_it_evaluates(prd_repo):
+    """BUG-0304 / H219, the mutation row for `gate_write_scope._EVALUATOR_WORDS`: every entry is
+    the SOLE reason one line is refused, so an entry nobody needs and an entry silently carried by
+    a neighbouring rule are both red.
+
+    THE PROCESS MEASURES THE ENTRY THAT SHIPS and the in-process half measures the mutation: the
+    shipped hook refuses `eval` over a written file, and the same call with the entry taken out of
+    the set comes back allowed. Running one PROCESS per mutated set is not possible -- the set
+    lives in the module the process imports -- so the mutation is driven against the module that
+    the hook process loads, which is the same file.
+
+    WHAT IS DELIBERATELY NOT IN THE SET, and this test would go red if it were added without a
+    measurement: PowerShell's `Invoke-Expression`/`iex`. The pair was measured on the POSIX path
+    only; a word here that nobody drove through a real shell is a claim.
+    """
+    gate = load_kit_module("gate_write_scope_eval", os.path.join(HOOKS, "gate_write_scope.py"))
+    assert gate._EVALUATOR_WORDS, "an empty set makes both ends of this test vacuous"
+
+    refused = _write_scope_in(prd_repo, "printf 'x' > run.sh ; eval \"$(cat run.sh)\"", HOOKS)
+    assert refused.returncode == 2 and "RUNS it in the same call" in refused.stderr, refused.stderr
+
+    for word in sorted(gate._EVALUATOR_WORDS):
+        line = "printf 'x' > run.sh ; %s \"$(cat run.sh)\"" % word
+        tokens = gate._tokenise(gate.prose_removed_view(line, "Bash").replace("\n", " ; "))
+        with pytest.raises(SystemExit) as blocked:
+            gate._refuse_a_script_this_line_writes_and_runs(tokens, gate._null_sinks("Bash"))
+        assert blocked.value.code == 2, (word, blocked.value.code)
+        kept = gate._EVALUATOR_WORDS
+        try:
+            gate._EVALUATOR_WORDS = frozenset(kept - {word})
+            gate._refuse_a_script_this_line_writes_and_runs(tokens, gate._null_sinks("Bash"))
+        except SystemExit:
+            raise AssertionError("%r earns nothing: the line is refused without it" % word)
+        finally:
+            gate._EVALUATOR_WORDS = kept
+
+
+@pytest.mark.parametrize("kit_hooks", [HOOKS, OFFICE_HOOKS, RESEARCH_HOOKS])
 def test_a_command_substitution_is_not_read_as_a_write_by_the_stage_around_it(prd_repo, kit_hooks):
     """The over-refusal the BUG-0298 rule brought with it, closed at its mechanism (TSK-0149).
 

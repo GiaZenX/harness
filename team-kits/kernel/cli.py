@@ -49,8 +49,8 @@ import subprocess
 import sys
 import time
 
-from . import (approvals, board, checkpoints, dispatch, documents, filing, gaplog, hashing,
-               holes, kitupdate, migrate, plan_diagram, presets, report, scopes,
+from . import (approvals, board, checkpoints, dispatch, documents, duties, filing, gaplog,
+               hashing, holes, kitupdate, migrate, plan_diagram, presets, report, scopes,
                staging)
 from .backlog_types import (
     AREA_FIELD,
@@ -854,6 +854,14 @@ def build_parser() -> argparse.ArgumentParser:
     # (`approvals.EXPIRING_KINDS`; refused for the others). REQUIRED for a routine (PR-0011
     # AC-8): a standing permission for a recurring run is what the user is signing, and how long
     # it stands is the part of it only the user can decide -- the question renders the date.
+    # THE USER'S ANSWER ABOUT A GOAL NOBODY VERIFIED (DEC-0113). Not a claim the PM makes about
+    # the project -- the words the user said when asked, once per goal, before the acceptance
+    # question goes out. Refused for every other kind by the branch below, because a kind that
+    # cannot be accepted has no such question.
+    request.add_argument("--unverified-answer", default=None, metavar="TEXT",
+                         help="what the user answered when asked whether accepting this goal "
+                              "without any verification run is intended (DEC-0113); for "
+                              "`acceptance`, refused for every other kind")
     request.add_argument("--expires-in-days", type=float, default=None, metavar="DAYS",
                          help="how many days the approval stays valid; required for `routine`, "
                               "optional for the other time-boxed kinds (default one hour), refused "
@@ -1100,6 +1108,21 @@ def build_parser() -> argparse.ArgumentParser:
                      help="the message that stopped it, verbatim")
     gap.add_argument("--title", default="", help="a one-line name (defaults to the start of --tried)")
     gap.add_argument("--item", default="", help="the item this happened under, if there is one")
+    # THE DONE SIDE OF A DERIVED DUTY (BUG-0197 / H113). A kit's deadline register derives what
+    # is OWED and had no way to record that it was DONE, so two of its five feeds stood until their
+    # SOURCE changed. The KEY is what both sides re-derive -- the register prints it beside each
+    # duty -- and `kernel/duties.py` carries why it is content-addressed rather than an id.
+    duty_done = sub.add_parser(
+        duties.COMMAND,
+        help="record that a derived duty was met (the register prints the key beside the duty)")
+    duty_done.add_argument("--key", required=True,
+                           help="the duty's key, as the deadline register printed it")
+    duty_done.add_argument("--what", required=True,
+                           help="the duty's own sentence as it stood -- a reader a year from now "
+                                "cannot re-derive the wording of a feed that has changed")
+    duty_done.add_argument("--note", required=True,
+                           help="what actually happened (\"Voranmeldung Q3 am 10.10. "
+                                "uebermittelt\")")
     archive = sub.add_parser("archive", help="move a terminal item to archive/")
     archive.add_argument("item_id")
     # THE PRE-DISPATCH CHECK OF THE CUT (DEC-0062 (1)/(2), stream D requirement C-1). On the
@@ -1868,6 +1891,11 @@ def main(argv=None) -> int:
                     "a %s approval carries no clock (it is invalidated by its content, not by "
                     "time), so --expires-in-days is refused for it. Remedy: drop the flag."
                     % args.kind)
+            if args.unverified_answer is not None and args.kind != "acceptance":
+                raise UsageError(
+                    "--unverified-answer records the user's answer to DEC-0113's question, which "
+                    "is asked before an ACCEPTANCE and before nothing else; a %s approval has no "
+                    "such question. Remedy: drop the flag." % args.kind)
             batched = kinds_reading_argument(BATCH_ARGUMENT)
             if getattr(args, BATCH_ARGUMENT, None) and args.kind not in batched:
                 raise UsageError(
@@ -1899,7 +1927,9 @@ def main(argv=None) -> int:
                         "a %s approval is bound to an ITEM and none was named. Remedy: `%s "
                         "request-approval %s <ITEM_ID>`."
                         % (args.kind, INVOCATION, args.kind))
-                pending = approvals.create_pending_request(state, args.kind, args.item_id)
+                pending = approvals.create_pending_request(
+                    state, args.kind, args.item_id,
+                    unverified_answer=args.unverified_answer)
             elif args.kind == approvals.ROUTINE_KIND:
                 # THE ONE LINE KIND THAT HANGS FROM AN ITEM (`approvals.ROUTINE_KIND`): the flags
                 # build what the run is bound to, the root is what the dispatcher reads the
@@ -2073,6 +2103,20 @@ def main(argv=None) -> int:
             print("%s revised (%d bytes): %s" % (result["document"], result["bytes"],
                                                  ", ".join(result["changes"])))
             print("the staged revision is unchanged and still in %s" % args.proposal)
+            return 0
+        if args.command == duties.COMMAND:
+            done = duties.record_done(state, args.key, args.what, args.note)
+            print("duty %s: %s (%s)"
+                  % (done["duty_key"], "recorded" if done["recorded"] else "already recorded",
+                     done["done_at"]))
+            # WHICH DUTY IT WAS is printed back, because a key is a digest: a user who pasted the
+            # wrong one has exactly one chance to see it, and it is this line.
+            print("what: %s" % done["what"])
+            print("note: %s" % done["note"])
+            # THE REGISTER IS DERIVED AT THE NEXT SESSION START, so nothing about this session's
+            # briefing changes -- said here rather than left to look like a bug.
+            print("NOT changed here: this session's briefing was derived before this record. The "
+                  "duty drops out of the register at the next session start.")
             return 0
         if args.command == gaplog.COMMAND:
             entry = gaplog.record(state, args.tried, args.refused, args.title, args.item)

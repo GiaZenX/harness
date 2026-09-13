@@ -1,0 +1,24 @@
+id: EVD-0457
+kind: test
+related:
+- BUG-0151
+result: pass
+summary: 'SUPERSEDES EVD-0452. Rework 1 after the verifier''s F1: DEC-0113''s two
+  fields now have ONE writer and it is enforced, not claimed -- `state._REQUEST_PATH_FIELDS`
+  refuses them in a capture body and in an update, `state._record_the_unverified_answer_locked`
+  is the only door past that, and the approvals docstring says what is built. Measured
+  without it (mutation in a copy outside the repo): `update` accepts an invented answer
+  and the acceptance card shows it to the user as their own. F4 in the same row: the
+  German question is true for what is missing -- the bare sentence only when NO kind
+  of run exists, otherwise it names the kinds (`_the_german_question`); mutation `whole
+  = True` turns the node red.'
+artifact_refs:
+- staging/TSK-0150/runs.md
+run_command: python -B -m pytest "tools/test_approvals_dispatch.py::test_a_goal_with_no_verification_run_is_asked_about_once"
+  "tools/test_approvals_dispatch.py::test_the_unverified_answer_has_one_writer_and_no_body_may_carry_it"
+  "tools/test_approvals_dispatch.py::test_a_spoken_manifest_field_reaches_the_sentence_and_no_entry_is_dead"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T14:45:47'

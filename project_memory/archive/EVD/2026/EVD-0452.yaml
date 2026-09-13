@@ -1,0 +1,20 @@
+id: EVD-0452
+kind: test
+related:
+- BUG-0151
+result: pass
+summary: 'DEC-0113 built: the acceptance request refuses to go out until the user
+  has been asked once per goal whether accepting a goal nobody verified is intended;
+  the answer is written on the goal by the request path and the acceptance card names
+  the missing run. No refusal of the acceptance itself. Red-first seen in a .git-less
+  copy (DID NOT RAISE).'
+artifact_refs:
+- staging/TSK-0150/runs.md
+run_command: python -B -m pytest "tools/test_approvals_dispatch.py::test_a_goal_with_no_verification_run_is_asked_about_once"
+  "tools/test_approvals_dispatch.py::test_a_spoken_manifest_field_reaches_the_sentence_and_no_entry_is_dead"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T10:09:21'
+closed_at: '2026-09-13T14:47:56'

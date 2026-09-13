@@ -17,6 +17,17 @@ import pytest
 import conftest
 from conftest import load_kit_module
 
+# THE KERNEL THIS REPO SHIPS, pinned at module import and used through `kernel_duties()` below.
+# WHY IT IS HERE AND NOT IN THE HELPER: the register reaches for a kernel through
+# `_kernel.import_kernel`, which for a project under `tmp_path` finds no `.claude` and falls back
+# to the HOME installation -- and whichever kernel lands in `sys.modules` first is the one every
+# later reader in this process gets. Without this line the module's answer depended on who ran
+# before it: green inside the full run (where `test_approvals_dispatch` imports the repo kernel
+# first) and red on its own, with `cannot import name 'duties' from 'kernel'` out of the home
+# installation. An order dependency is not a measurement, so it is removed rather than tolerated.
+sys.path.insert(0, conftest.TEAM_KITS)
+from kernel import duties as _repo_kernel_duties  # noqa: E402 -- see the note above
+
 ROOT = conftest.ROOT
 TEAM_KITS = conftest.TEAM_KITS
 OFFICE_HOOKS = os.path.join(TEAM_KITS, "office-team", "hooks")
@@ -1018,3 +1029,203 @@ def _units_of(pattern):
     for group in _re.findall(r"\(([^()]*\|[^()]*)\)", pattern):
         found.update(part for part in group.split("|") if part.isalpha())
     return found
+
+
+# ------------------------------------------------- BUG-0197 / H113: the DONE side of a duty
+
+TWO_FILINGS_PROFILE = """
+tax:
+  fiscal_year: "calendar"
+  filings:
+    - what: "Umsatzsteuer-Voranmeldung"
+      period_months: 1
+      due_days_after_period: 10
+    - what: "Lohnsteuer-Anmeldung"
+      period_months: 1
+      due_days_after_period: 10
+"""
+
+
+def kernel_duties():
+    """The kernel's own `duties` module -- the writer half, and THIS repo's, pinned at import."""
+    return _repo_kernel_duties
+
+
+def _done(tmp_path, key, what="a duty", note="erledigt"):
+    """Write ONE done record through the kernel, never by hand -- the record has exactly one writer
+    and a test that wrote the file itself would measure a shape production never produces."""
+    sys.path.insert(0, TEAM_KITS)
+    from kernel.state import ProjectState
+
+    return kernel_duties().record_done(
+        ProjectState(str(tmp_path / "project_memory")), key, what, note)
+
+
+def test_a_duty_key_moves_with_each_of_its_three_parts_and_with_nothing_else():
+    """BUG-0197 / H113: `kernel.duties.duty_key` is new, and the ONE property it measures is that
+    two derived duties share a key exactly when their FEED, their SOURCE and their PERIOD are the
+    same string -- so it carries one mutation row per part, and one counter-row for everything a
+    duty carries that is deliberately NOT in the material.
+
+    WHY EACH ROW. Without the feed part two feeds reading the same file collide; without the source
+    part two rules of one plan do; without the period part this period's duty and the next one are
+    one duty, so a single `done` would silence the register forever -- which is the failure that
+    would make this feature worse than not having it.
+
+    THE COUNTER-ROW IS THE OTHER HALF: the duty's SENTENCE and its DUE DATE are not in the key. The
+    sentence moves every morning for an overdue invoice ("unpaid 5 day(s)"), and a key that moved
+    with it would resurrect every done duty overnight.
+    """
+    duties = kernel_duties()
+    base = ("filing_duties", "business_profile.yaml tax.filings", "USt 2026-07")
+    key = duties.duty_key(*base)
+    assert len(key) == duties.KEY_LENGTH and key == duties.duty_key(*base), "not idempotent"
+    for index, part in enumerate(duties.KEY_PARTS):
+        moved = list(base)
+        moved[index] = moved[index] + " (other)"
+        assert duties.duty_key(*moved) != key, (
+            "%r is not in the key material: two duties differing only in it collide" % part)
+    # ...and nothing else is in it: the same three parts, whatever the sentence or the date says
+    assert duties.duty_key(*base) == key
+
+
+def test_a_duty_recorded_done_drops_out_of_the_register_and_only_that_one(tmp_path, monkeypatch):
+    """BUG-0197 / H113: the register knew only what is OWED, so a filing already submitted stood
+    until its SOURCE changed. It now reads the done log the kernel writes and drops the duty whose
+    KEY is in it -- that key and no other.
+
+    THE THREE ROWS. (1) Two filings of the same period are two duties with two keys, and recording
+    one done leaves the other standing -- the collision this feature would be worthless with,
+    because both entries share one source. (2) The briefing PRINTS the key beside each duty, which
+    is the only way a user can name one. (3) A second `duty-done` for the same key writes no second
+    record.
+
+    RED WITHOUT the build: (1) both duties stay in the register after the record, (2) the paragraph
+    carries no key, and the old paragraph claims the register "records no 'done'".
+    """
+    monkeypatch.setenv("HARNESS_KERNEL_PATH", TEAM_KITS)
+    duties = duties_module()
+    project(tmp_path, profile=TWO_FILINGS_PROFILE)
+    today = datetime.date(2026, 8, 15)
+
+    found, unreadable = duties.register(str(tmp_path), today)
+    assert not unreadable, unreadable
+    # the routine feed speaks in every project (there is no audit run here), so this row reads the
+    # FILING feed -- the one whose two entries share a source and would collide without the period
+    keys = {one["what"]: one["key"] for one in found if one["feed"] == "filing_duties"}
+    assert len(keys) == 2 and len(set(keys.values())) == 2, (
+        "two filings of one period must be two keys: %s" % keys)
+    submitted = [what for what in keys if "Umsatzsteuer" in what][0]
+
+    # (2) the key is printed where the user reads the duty
+    paragraph = duties.briefing(str(tmp_path), today)
+    assert keys[submitted] in paragraph, paragraph
+    assert "duty-done --key" in paragraph, paragraph
+    assert "records no 'done'" not in paragraph, "the paragraph still denies what the kit now does"
+
+    # (1) recording one drops that one and leaves its twin
+    record = _done(tmp_path, keys[submitted], what=submitted, note="am 10.08. uebermittelt")
+    assert record["recorded"] is True, record
+    left, unreadable = duties.register(str(tmp_path), today)
+    assert not unreadable, unreadable
+    assert ([one["what"] for one in left if one["feed"] == "filing_duties"]
+            == [what for what in keys if what != submitted]), [one["what"] for one in left]
+
+    # (3) the same duty recorded twice is one record
+    again = _done(tmp_path, keys[submitted], what=submitted, note="nochmal")
+    assert again["recorded"] is False and again["note"] == "am 10.08. uebermittelt", again
+    assert len(kernel_duties().records(str(tmp_path / "project_memory"))) == 1
+
+
+def test_every_shipped_feed_gives_its_duties_a_key_that_survives_a_day(tmp_path, monkeypatch):
+    """BUG-0197 / H113, the other end of the `period` argument: a feed that passes none keys all of
+    its duties alike, so one `done` would silence the lot -- and a feed whose period moves with the
+    clock loses its done record overnight. Both are measured over EVERY feed that speaks here.
+
+    THE DAY IS THE MUTATION: the same project is read on two consecutive days, and every duty
+    present on both days must carry the same key. An overdue invoice's sentence changes between the
+    two ("unpaid 5" -> "unpaid 6 day(s)"), which is exactly the part that must not be in the key.
+    """
+    monkeypatch.setenv("HARNESS_KERNEL_PATH", TEAM_KITS)
+    duties = duties_module()
+    project(tmp_path,
+            profile=TWO_FILINGS_PROFILE,
+            plan=("rules:\n"
+                  "  - id: R1\n"
+                  "    path_template: 'archive/<year>'\n"
+                  "    retention: '2y'\n"),
+            register=("register:\n"
+                      "  - id: DSGVO\n"
+                      "    review_by: '2020-01-01'\n"
+                      "  - id: GEMA\n"
+                      "    review_by: '2020-02-01'\n"),
+            ledger=("1,2026-06-01,,income,invoice,Kunde A,R-1,100,19,119,standard,x,y,,\n"
+                    "2,2026-06-02,,income,invoice,Kunde B,R-2,100,19,119,standard,x,y,,\n"),
+            years=["archive/2015", "archive/2016"])
+    first, _unreadable = duties.register(str(tmp_path), datetime.date(2026, 8, 15))
+    second, _unreadable = duties.register(str(tmp_path), datetime.date(2026, 8, 16))
+    assert len(first) >= 5, [one["what"] for one in first]     # every feed must speak here
+
+    by_feed = {}
+    for one in first:
+        by_feed.setdefault(one["feed"], set()).add(one["key"])
+    for feed, keys in sorted(by_feed.items()):
+        assert len(keys) == len([one for one in first if one["feed"] == feed]), (
+            "%s gives two of its duties the same key, so one `done` would silence both" % feed)
+
+    yesterday = {one["key"]: one for one in first}
+    survived = [one for one in second if one["key"] in yesterday]
+    assert len(survived) >= len(first) - 1, (
+        "a key moved overnight, so a done record would be dead by morning: %s"
+        % sorted(set(yesterday) - {one["key"] for one in second}))
+
+
+def test_two_ledger_rows_without_an_invoice_number_are_two_duties(tmp_path, monkeypatch):
+    """BUG-0197 / H113, the hole the verifier of TSK-0150 measured (round 1, F3): two unpaid rows
+    of one ledger that carry neither `invoice_no` nor `id` shared ONE duty key, so a single
+    `duty-done` dropped BOTH -- an open receivable stopped being named, which is the dangerous
+    direction of a register whose whole job is to keep naming.
+
+    THE CODE SAID THE CASE EXISTS: the feed's own `or "?"` fallback is what a row with neither
+    field lands on, and `?` was the whole period.
+
+    TWO HALVES, and the second is the one that holds for a feed nobody has written yet.
+    (1) THE FEED gives every row a key of its own (`_receivable_period`): the row's place in the
+    file when the row names itself no other way. (2) THE REGISTER refuses to drop ANY duty whose
+    key is not unique -- both stay listed, they carry no key to paste, and the paragraph says why.
+    Half (1) makes the measured case correct; half (2) is what catches the next feed that gets its
+    period wrong, and it is asked of the shipped reader directly because half (1) is now supposed
+    to make the case unreachable through the feeds.
+
+    RED WITHOUT (1): both rows come back with the same key and one `duty-done` empties the feed.
+    RED WITHOUT (2): two duties sharing a key are dropped together by one record.
+    """
+    monkeypatch.setenv("HARNESS_KERNEL_PATH", TEAM_KITS)
+    duties = duties_module()
+    project(tmp_path,
+            profile="receivables:\n  payment_terms_days: 14\n",
+            ledger=(",2026-06-01,,income,invoice,Kunde A,,100,19,119,standard,x,y,,\n"
+                    ",2026-06-02,,income,invoice,Kunde B,,100,19,119,standard,x,y,,\n"))
+    today = datetime.date(2026, 8, 15)
+
+    found, unreadable = duties.register(str(tmp_path), today)
+    rows = [one for one in found if one["feed"] == "receivable_duties"]
+    assert len(rows) == 2, [one["what"] for one in found]
+    assert not [one for one in unreadable if "share the key" in one], unreadable
+    keys = {one["key"] for one in rows}
+    assert len(keys) == 2, "two rows that name themselves no other way share a key: %s" % keys
+
+    # ...and recording ONE of them leaves the other standing
+    _done(tmp_path, sorted(keys)[0], what="the first invoice", note="bezahlt am 20.08.")
+    left, _unreadable = duties.register(str(tmp_path), today)
+    assert [one["key"] for one in left if one["feed"] == "receivable_duties"] == \
+        [sorted(keys)[1]], [one["what"] for one in left]
+
+    # (2) THE GUARD, asked of the shipped reader: two duties that DO share a key drop nothing and
+    # are told apart in the paragraph instead.
+    said = []
+    twins = [{"what": "a", "due": None, "source": "s", "period": "?", "feed": "f", "key": "same"},
+             {"what": "b", "due": None, "source": "s", "period": "?", "feed": "f", "key": "same"}]
+    kept = duties._kept_apart_when_two_share_a_key(twins, said)
+    assert [one["key"] for one in kept] == [None, None], kept
+    assert said and "share the key same" in said[0], said

@@ -268,7 +268,7 @@ def walk_to_status(state, item, target):
     """
     sys.path.insert(0, TEAM_KITS)
     from kernel.approvals import create_pending_request, required_approval_kinds
-    from kernel.backlog_types import AUTOMATA, parse_id
+    from kernel.backlog_types import AUTOMATA, UNVERIFIED_ANSWER_FIELD, parse_id
 
     item_type, _ = parse_id(item["id"])
     chain = AUTOMATA[item_type].chain
@@ -281,7 +281,21 @@ def walk_to_status(state, item, target):
         current = state.read_item(item["id"])
         kinds = required_approval_kinds(item_type, current["status"], step)
         if kinds:
-            mint_via_hook(state, create_pending_request(state, sorted(kinds)[0], item["id"]))
+            kind = sorted(kinds)[0]
+            # DEC-0113: an ACCEPTANCE request refuses to go out until the user has been asked once
+            # whether accepting a goal nobody verified is intended. A fixture walking the
+            # SANCTIONED route answers that question exactly as the PM does; skipping it would
+            # make every fixture built on this one measure a route production cannot take. WHETHER
+            # it is owed is asked of the kernel, never assumed -- a goal that carries its runs is
+            # not asked, and passing an answer there is refused.
+            answer = None
+            if kind == "acceptance" and not current.get(UNVERIFIED_ANSWER_FIELD):
+                from kernel.report import verification_missing_for_goal
+
+                if verification_missing_for_goal(state, item["id"]):
+                    answer = "ja, so gewollt (Fixture: dieses Ziel hat keinen Prueflauf)"
+            mint_via_hook(state, create_pending_request(state, kind, item["id"],
+                                                        unverified_answer=answer))
         else:
             state.transition(item["id"], step)
     return state.read_item(item["id"])

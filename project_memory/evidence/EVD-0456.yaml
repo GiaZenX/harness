@@ -1,0 +1,36 @@
+id: EVD-0456
+kind: test
+related:
+- TSK-0150
+result: fail
+summary: 'The ONE full run of TSK-0150: `DELIVERY_RUN=TSK-0150 python -B -m pytest
+  tools/ -q` -- 4 failed, 5144 passed, 14 skipped in 8058 s (2:14:18), 2026-09-13
+  10:28..12:42. WHAT HAPPENED TO EACH RED: (1) test_hooks.py::test_every_span_that_presents_the_command_surface_names_all_of_it
+  -- the new `duty-done` subcommand was missing from the four spans that present the
+  entry point''s surface; added to the three constitutions and README, node re-run
+  green. (2) test_repo_hygiene.py::test_every_test_pointer_this_repo_writes_resolves
+  -- eight sites, five of them this round''s own `::test_y` EXAMPLES, which that reader
+  reads as citations; rewritten so no example node id is spelled anywhere, plus docs/holes/H155.md
+  re-pointed at the test that replaced the one BUG-0303 renamed. Node re-run green.
+  (3) test_shortening_net.py::test_no_section_of_a_pinned_instruction_file_disappears_unnoticed
+  -- the edited constitution and PM-skill sections re-pinned with `tools/pin_constitution_sections.py
+  --write --note ...`; node re-run green. (4) test_hooks.py::test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requires
+  -- the text lives in .claude/hooks/gate_commit_evidence.py, this order''s forbidden
+  scope; it is BUG-0297 / H213 and stays red until the user applies project_memory/staging/TSK-0141/s4-gate-commit-evidence-patch.md.
+  The full run was NOT repeated after that repair: what changed is text (four surface
+  lists, five docstring/skill sentences, one refusal string, one hole document, two
+  pin files), and what reads it was re-run as selections -- the three nodes above
+  plus tools/test_ladder.py and tools/test_role_contracts.py (98 passed / 75 s). SEPARATE
+  RUN, as its own: `DELIVERY_RUN=TSK-0150 python -B -m pytest .claude/hooks/test_gates.py
+  -q` -- 3 failed, 552 passed in 2663 s (44:22); the hole-index node was repaired
+  with `tools/migrate_holes.py --reindex` and re-run green, the other two are BUG-0297
+  and the pre-existing H138 pointer plus ONE handback (H155''s archived item names
+  the test BUG-0303 renamed; the item is canonical state and outside this order''s
+  scope).'
+artifact_refs:
+- staging/TSK-0150/runs.md
+run_command: DELIVERY_RUN=TSK-0150 python -B -m pytest tools/ -q
+run_scope: full
+revision: 1
+approval_ref: null
+created: '2026-09-13T13:41:50'

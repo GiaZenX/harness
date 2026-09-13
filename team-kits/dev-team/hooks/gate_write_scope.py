@@ -1012,8 +1012,17 @@ def _pipelines(tokens):
     return out
 
 
-def _stage_verb(stage):
-    for token in stage:
+def _command_word_at(stage):
+    """(index, word) of the word this stage really RUNS -- the first one that is not a prefix.
+
+    THE INDEX IS HALF THE ANSWER, and leaving it out cost an over-refusal measured while building
+    TSK-0150: `_operand_words` read `stage[1:]`, which assumes the command word is `stage[0]`, so
+    with a prefix in front the command word itself was counted as an OPERAND -- and `A=1
+    ./build.sh`, a line that writes nothing at all, came back "this line WRITES ./build.sh and RUNS
+    it in the same call" from every kit. Where the operands START and which word RUNS are one fact,
+    so they are one walk.
+    """
+    for index, token in enumerate(stage):
         low = str(token).lower()
         if "=" in low and not low.startswith("-"):
             continue  # VAR=value prefix
@@ -1021,8 +1030,35 @@ def _stage_verb(stage):
             continue
         if _operator(token).lower() in ("(", ")", "{", "}", "&", "&&", "||", ";", "|"):
             continue  # grouping punctuation is not a verb
-        return os.path.basename(low.replace("\\", "/"))
-    return ""
+        return index, token
+    return None, ""
+
+
+def _effective_command_word(stage):
+    """The word this stage really RUNS -- the first one that is not a prefix, as the shell reads it.
+
+    THE WORD AND NOT ITS BASENAME, because two readers need different halves of it and a second
+    walk over the same prefixes is how they came to disagree: `_stage_verb` wants the program NAME
+    (`bash`), while the rule that refuses a line writing and running a script wants the word as
+    WRITTEN (`./run.sh`), because only that spelling can name a file this line put on disk.
+    Measured 2026-09-13 (BUG-0304 / H219, F2 of the TSK-0149 verification, real hook processes in
+    all three kits): that rule read `stage[0]` instead, so `printf 'x' > run.sh ; A=1 ./run.sh`,
+    `... ; exec ./run.sh` and `... ; command ./run.sh` were rc 0 and the real shell ran the script
+    -- the prefix stood where the reader looked for the path.
+
+    WHAT COUNTS AS A PREFIX is what the shell steps over before it decides which program starts: an
+    assignment, and the wrapper words that take a command as their argument. The list is the one
+    `_stage_verb` already carried; it is not widened here, and what it does not carry is the H219
+    remainder named at `_refuse_a_script_this_line_writes_and_runs`.
+    `tools/test_hooks.py::test_the_write_and_run_rule_reads_the_effective_command_word_in_every_kit`
+    """
+    return _command_word_at(stage)[1]
+
+
+def _stage_verb(stage):
+    """The PROGRAM this stage starts, folded to a bare name -- `_effective_command_word`'s reading."""
+    word = _effective_command_word(stage)
+    return os.path.basename(str(word).lower().replace("\\", "/")) if word != "" else ""
 
 
 # The verbs whose FLAGGED argument can be a free-text message rather than a path this line touches —
@@ -1547,8 +1583,12 @@ def _operand_words(stage):
     class the docstring of `_refuse_a_script_this_line_writes_and_runs` already names.
     `tools/test_hooks.py::test_a_command_substitution_is_not_read_as_a_write_by_the_stage_around_it`
     """
+    # AFTER THE COMMAND WORD, which is not always `stage[0]`: a prefix (`A=1`, `exec`, `command`)
+    # stands in front of it, and reading from index 1 made the command word its own operand -- see
+    # `_command_word_at` for the line that measured it.
+    index = _command_word_at(stage)[0]
     words, skip, inside, dollar = [], False, 0, False
-    for token in stage[1:]:
+    for token in stage[(0 if index is None else index) + 1:]:
         operator = _operator(token)
         if inside:
             # depth is counted over CHARACTERS, so a nested substitution closing as `))` in one
@@ -1576,6 +1616,79 @@ def _operand_words(stage):
             continue
         words.append(token)
     return words
+
+
+# A WORD THAT EVALUATES ITS OWN ARGUMENTS AS SHELL CODE. It is not `runs_the_file_it_is_handed`'s
+# question -- that one asks whether a word runs a FILE handed to it, and `eval` runs a STRING -- so
+# a second name here rather than a widening there, which would have made every caller of that
+# reader treat `eval` as a shell taking a script path. What makes it belong to the rule below is
+# data flow: `eval "$(cat run.sh)"` executes the CONTENT of a file this line may have just written,
+# and no operand of that stage is the file (`run.sh` sits inside a substitution).
+# ONE MEASURED WORD AND NOT A FAMILY. `eval` is the spelling that was measured executing a written
+# file (H219); PowerShell's `Invoke-Expression`/`iex` do the same thing on the other path and are
+# deliberately NOT here, because the write-and-run pair has been measured on the POSIX path only
+# and a word in this set that nobody drove through a real shell is a claim, not a rule. That
+# remainder is named at `_refuse_a_script_this_line_writes_and_runs` with this sentence. The set
+# carries its own mutation row --
+# `tools/test_hooks.py::test_every_evaluator_word_refuses_a_line_that_writes_what_it_evaluates`
+# refuses one line per entry and asserts the same line passes with the entry taken out.
+_EVALUATOR_WORDS = frozenset(("eval",))
+# WHAT SEPARATES THE WORDS INSIDE AN EVALUATED ARGUMENT. The argument arrives as ONE token when it
+# is quoted (`"$(cat run.sh)"`), so the names in it have to be read out of the token rather than
+# off the token list -- shell punctuation and whitespace are the separators, and everything between
+# them is read as a possible file name. Deliberately fail-closed: it can only make this rule refuse
+# a line that ALSO writes the name it finds.
+_INSIDE_AN_EVALUATED_WORD_RX = re.compile(r"""[\s$()`'"|;&<>]+""")
+
+
+def _the_command_word_is_unknown(stage):
+    """Could this reader NOT name the program this stage starts -- because an OPTION stands where
+    the command word should be?
+
+    MEASURED (TSK-0150 verify round 1, F2, against the dev pilot's whole registered PreToolUse Bash
+    battery, with a real shell as arbiter): `_command_word_at` steps over the prefix WORDS
+    (`sudo`, `env`, `command`, `exec`, `time`, `nice`) and not over their own options, so in
+    `printf 'x' > run.sh ; exec -a foo bash run.sh` the word `-a` became the "command word", the
+    real program slid into the operand role, and the line was rc 0 at every registered hook while
+    bash executed it. `nice -n 5 ./run.sh`, `sudo -u me ./run.sh`, `command -p ./run.sh` and
+    `env -i ./run.sh` were the same mechanism. `exec -a foo bash run.sh` even reopened the original
+    H214 pair.
+
+    WHY NOT A LIST OF WHICH PREFIX TAKES WHICH OPTION. That is a vocabulary per program, it is
+    different on every host's coreutils, and this repository's own gate answered the same question
+    the other way round years earlier (`_harness._executed_words`): a stage whose verb the reader
+    cannot name is a stage whose OPERANDS are treated as what it may start. So an option where the
+    command word belongs makes the word UNKNOWN, and the caller reads the operands fail-closed.
+
+    WHAT IT COSTS, and it is measured beside the attack rows: nothing on an everyday line, because
+    such a stage is then read as RUNNING its operands and the rule only refuses a name the SAME
+    LINE also WRITES -- `nice -n 5 make`, `sudo -u me ls` and `env -i bash tools/ci.sh` write
+    nothing and stay rc 0.
+    `tools/test_hooks.py::test_a_prefix_words_own_option_does_not_hide_the_command_word_in_any_kit`
+    """
+    word = _command_word_at(stage)[1]
+    return bool(word) and str(word).startswith("-")
+
+
+def _executed_input_redirect_targets(stage):
+    """The files this stage is handed on STANDARD INPUT -- what an executor among them RUNS.
+
+    `printf 'x' > run.sh ; bash < run.sh` was rc 0 and executed by the real shell (BUG-0304 / H219,
+    measured in all three kits): the reader looked at OPERANDS, and `_operand_words` drops a
+    redirect target by design, so the shell was handed a script the rule could not see.
+
+    ONLY A PLAIN `<`, which is what `_INPUT_REDIRECT_RX` matches: `<<` opens a here-document whose
+    next word is a DELIMITER -- a label, never a file -- and `<<<` is a string. Reading either as a
+    file name would refuse a line over a word that names nothing on disk.
+    """
+    targets, pending = [], False
+    for token in stage:
+        if pending:
+            targets.append(token)
+            pending = False
+            continue
+        pending = bool(_INPUT_REDIRECT_RX.match(_operator(token)))
+    return targets
 
 
 def _refuse_a_script_this_line_writes_and_runs(all_tokens, sinks):
@@ -1613,42 +1726,96 @@ def _refuse_a_script_this_line_writes_and_runs(all_tokens, sinks):
     script keeps minting, bounded by the file being on disk where the gates judge every write it
     then makes, and by the line naming the file twice where it does not.
 
-    AND THE ONE-CALL FORM IS NOT FULLY CLOSED EITHER -- `H219` (`BUG-0304`) carries the five
-    spellings, each measured rc 0 here and EXECUTED by a real shell (TSK-0149 verify round 1, F2,
-    real hook processes in all three kits):
+THE FIVE SPELLINGS OF `H219` (`BUG-0304`) ARE CLOSED SINCE TSK-0150, each as a mechanism and
+    not as a spelling -- they were measured rc 0 here and EXECUTED by a real shell (TSK-0149 verify
+    round 1, F2, real hook processes in all three kits):
 
-      * a runner behind an assignment prefix -- `printf 'x' > run.sh ; A=1 ./run.sh`;
-      * a runner behind a wrapper word -- `... ; exec ./run.sh` and `... ; command ./run.sh`;
-      * the file fed to an executor through a REDIRECT rather than as an operand -- `bash < run.sh`;
-      * a substitution that reads the file and hands the text to `eval` -- `eval "$(cat run.sh)"`.
+      * a runner behind an assignment prefix (`printf 'x' > run.sh ; A=1 ./run.sh`) or behind a
+        wrapper word (`; exec ./run.sh`, `; command ./run.sh`) -- the rule reads the EFFECTIVE
+        command word (`_effective_command_word`), which is the word the shell starts;
+      * the file fed to an executor through a REDIRECT rather than as an operand (`bash < run.sh`)
+        -- `_executed_input_redirect_targets`;
+      * a substitution that reads the file and hands the text to `eval` (`eval "$(cat run.sh)"`)
+        -- `_EVALUATOR_WORDS`, whose words run every name they mention.
 
-    None of them is a regression of the rule below: the same five were rc 0 before it existed, so
-    what this paragraph got wrong was its own completeness, not the mechanism. They are three
-    mechanisms (the effective command word after prefixes and wrappers, an input redirect into an
-    executor, and data flow through a substitution), which is why they are ONE hole entry with
-    three parts rather than a fix this round made: closing one of the three would leave the entry
-    describing a class it no longer has, and every widening of this rule in TSK-0149 produced a
-    measured over-refusal that a later run had to catch.
+    The everyday twins stay rc 0 and are measured beside them, because each of the three closures
+    could have taken one with it: `A=1 ./build.sh` alone, `exec bash tools/ci.sh` and
+    `bash < tools/ci.sh` all run a file this line does not write.
+
+A PREFIX WORD'S OWN OPTION was the first rework of this rule, and it is closed as its own
+    mechanism rather than as five spellings: `exec -a foo bash run.sh`, `nice -n 5 ./run.sh`,
+    `sudo -u me ./run.sh`, `command -p ./run.sh` and `env -i ./run.sh` were rc 0 at every registered
+    hook of the dev pilot while a real shell executed them (TSK-0150 verify round 1, F2), because
+    the option stood where the command word belongs and the real program slid into the operand
+    role. `_the_command_word_is_unknown` reads that stage fail-closed -- see it for why a table of
+    which prefix takes which option would be the wrong answer.
+
+    WHAT IS STILL OPEN IN THE ONE-CALL FORM, named with what it is bounded by: a prefix word the
+    shell steps over that `_command_word_at` does not carry at all (`nohup`, `timeout`, `xargs`,
+    `stdbuf` and the next one nobody has heard of) -- such a word becomes the command word itself,
+    so the stage is not "unknown" and its operands are read as written rather than as started;
+    the list is a vocabulary, and the same vocabulary is the one `_harness._executed_words` in this
+    repository's own gate had to grow twice. Plus PowerShell's evaluator
+    (`Invoke-Expression`/`iex`), left out of `_EVALUATOR_WORDS` because the pair was measured on
+    the POSIX path only; and the interpreter class above. All three are the H11 bound: the file
+    stands on disk where every write it then makes is judged.
     `tools/test_hooks.py::test_a_line_that_writes_a_script_and_runs_it_is_refused_in_every_kit`
+    `tools/test_hooks.py::test_the_write_and_run_rule_reads_the_effective_command_word_in_every_kit`
     """
     pipelines = [_stages_of(pipeline) for pipeline in _pipelines(all_tokens)]
-    written, run = {}, set()
-    for stages in pipelines:
-        for stage in stages:
+    # WHERE each reading came from, and not just THAT it was read. A stage whose command word this
+    # reader cannot name (`_the_command_word_is_unknown`) is read BOTH ways -- its operands may be
+    # what it writes and may be what it starts -- and a rule comparing two flat sets would then
+    # refuse that stage against itself: `env -i bash tools/ci.sh` writes nothing and starts a file
+    # nothing on the line wrote. So a write and a run are compared only across DIFFERENT sources,
+    # which is what the rule's own sentence says anyway ("puts a file on disk AND hands that same
+    # file to a shell"). A redirect is its own source, one per pipeline, so `bash run.sh > run.sh`
+    # still counts as two.
+    # `tools/test_hooks.py::test_a_prefix_words_own_option_does_not_hide_the_command_word_in_any_kit`
+    written, run, spelling = {}, {}, {}
+    for pipeline_index, stages in enumerate(pipelines):
+        for stage_index, stage in enumerate(stages):
             if not stage:
                 continue
+            where = ("stage", pipeline_index, stage_index)
             verb = _stage_verb(stage)
-            if _compat.runs_the_file_it_is_handed(verb):
-                # the operands of a RUNNER are what it executes, never what it writes
+            if _the_command_word_is_unknown(stage):
+                # FAIL-CLOSED: every operand may be the program, so every operand is read as RUN --
+                # and as WRITTEN, because nothing here says this stage is read-only either. Both
+                # readings carry the SAME source, so the stage cannot refuse itself.
                 for token in _operand_words(stage):
-                    run.update(_name_readings(token))
+                    for name in _name_readings(token):
+                        run.setdefault(name, set()).add(where)
+                        written.setdefault(name, set()).add(where)
+                        spelling.setdefault(name, str(token))
+                continue
+            if verb in _EVALUATOR_WORDS:
+                # AN EVALUATOR RUNS EVERY NAME ITS WORDS MENTION, substitution interiors included:
+                # what it executes is a STRING, and the string is built out of exactly those words
+                # (H219). Read out of the raw tokens, because the argument is one token when it is
+                # quoted -- which is the spelling that was measured.
+                for token in stage[1:]:
+                    for word in _INSIDE_AN_EVALUATED_WORD_RX.split(str(token)):
+                        for name in _name_readings(word) if word else ():
+                            run.setdefault(name, set()).add(where)
+                continue
+            if _compat.runs_the_file_it_is_handed(verb):
+                # the operands of a RUNNER are what it executes, never what it writes -- and so is
+                # what it is handed on STANDARD INPUT (H219)
+                for token in _operand_words(stage):
+                    for name in _name_readings(token):
+                        run.setdefault(name, set()).add(where)
+                for token in _executed_input_redirect_targets(stage):
+                    for name in _name_readings(token):
+                        run.setdefault(name, set()).add(where)
                 continue
             if _stage_is_read_only(stage):
                 continue
             for token in _operand_words(stage):
                 for name in _name_readings(token):
-                    written.setdefault(name, str(token))
-        for stage in stages:
+                    written.setdefault(name, set()).add(where)
+                    spelling.setdefault(name, str(token))
+        for stage_index, stage in enumerate(stages):
             # THE FILE AS THE COMMAND WORD ITSELF (`./run.sh`) is the same act without a shell name
             # -- but only where the word is spelled as a PATH. A command word with no directory
             # separator is what the shell looks up on PATH, so it names no file this line could
@@ -1658,20 +1825,26 @@ def _refuse_a_script_this_line_writes_and_runs(all_tokens, sinks):
             # classifies as read-only), and the gate refused the ONE command line that records an
             # Evidence -- measured in the TSK-0149 full run, three nodes, "this line WRITES python".
             # The separator is asked of the RAW word, before `_name_readings` folds the `./` away.
-            word = str(stage[0]) if stage else ""
+            # ...and it is the EFFECTIVE command word, not `stage[0]`: an assignment or an
+            # `exec`/`command`/`env` in front of it is a prefix the shell steps over, and reading
+            # the first token instead is what left `A=1 ./run.sh` rc 0 (H219).
+            command_word = _effective_command_word(stage) if stage else ""
+            word = str(command_word)
             if "/" in word or "\\" in word:
-                for name in _name_readings(stage[0]):
-                    run.add(name)
-    for pipeline in _pipelines(all_tokens):
+                for name in _name_readings(command_word):
+                    run.setdefault(name, set()).add(("stage", pipeline_index, stage_index))
+    for pipeline_index, pipeline in enumerate(_pipelines(all_tokens)):
         for target in _redirect_targets(pipeline, sinks):
             for name in _name_readings(target):
-                written.setdefault(name, str(target))
-    for name in sorted(run & set(written)):
+                written.setdefault(name, set()).add(("redirect", pipeline_index))
+                spelling.setdefault(name, str(target))
+    for name in sorted(name for name in run if name in written
+                       if any(one != other for one in written[name] for other in run[name])):
         _kernel.block(
             HOOK,
             "this line WRITES %s and RUNS it in the same call, so what it will do is not on this "
             "line: every gate here inspects the text of the call, and the text of a script is data "
-            "until the shell reaches it (BUG-0298/H214)." % written[name],
+            "until the shell reaches it (BUG-0298/H214)." % spelling.get(name, name),
             remedy="split it in two calls -- write the file, then run it. The write is judged as a "
                    "write and the run is judged against the file that is then on disk, which is "
                    "what makes both inspectable.")

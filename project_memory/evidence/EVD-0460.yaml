@@ -1,0 +1,17 @@
+id: EVD-0460
+kind: review
+related:
+- TSK-0150
+result: pass
+summary: 'verifier PASS for diff:ae687d46633bc2607ea25b16412511840eabdb9b5fffe5a67919812c004e0990
+  -- PR-0012 order 5 (TSK-0150, harness-verifier Opus high, round 2): DEC-0112 shaped
+  form, DEC-0113 once-per-goal question, H113 duty-done, BUG-0303 value not type,
+  BUG-0304 effective command word; stamp 2026.09.13-6; full run EVD-0456 5144 passed
+  / 1 red (S4 arbiter) after mechanism fixes; reading suites after the rework'
+artifact_refs:
+- staging/TSK-0150/verify-round-2.md
+run_command: git diff HEAD --stat
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T15:25:25'

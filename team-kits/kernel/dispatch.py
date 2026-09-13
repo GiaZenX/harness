@@ -2400,19 +2400,11 @@ def _carries_its_own_criteria(item_type: str) -> bool:
     names no criterion at all and one whose criteria exist nowhere. Answering it here would put a
     second reader on it, one lifecycle step early.
 
-    WHAT THE TWO TOGETHER DO NOT CATCH, measured through the shipped kit hook as a process rather
-    than derived: the universe `validate_dispatch` resolves against is NOT the origin alone. It is
-    `_known_acceptance_ids_locked` -- the root, the origin AND the approved amendments -- so a
-    reference that exists only on the ROOT resolves. An order whose origin is a `BUG` with an EMPTY
-    criteria list and whose `acceptance_refs` name a criterion of the goal is therefore excused from
-    the architect step by THIS predicate and then measured against the GOAL's criteria -- the very
-    goal whose architect step is missing. Measured through the shipped kit hook as a process, and
-    the LEASE is granted in all three: empty criteria + no refs -> spawn rc 2 ("carries no
-    acceptance_refs"); empty criteria + a ref that exists nowhere -> spawn rc 2; empty criteria + a
-    ref that exists on the root -> spawn rc 0. That last line is the remainder, and it is `H218`
-    (`BUG-0303`) in `docs/POST_V2_WISHLIST.md` -- it stood under `H155` until DEC-0103 closed that
-    entry's other half, and it was given a record of its own so this pointer survives the close.
-    `tools/test_approvals_dispatch.py::test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it`
+    THE VALUE IS ASKED ONE CALLER UP SINCE TSK-0150 (`_origin_brings_its_own_criteria`,
+    BUG-0303 / H218), and the split is deliberate rather than a leftover: this predicate stays the
+    question about the TYPE -- "is this a place criteria can live" -- and the caller asks the
+    second half, "and does this one hold any". Both are needed, and neither is the other: the type
+    half is derived from the field contract and needs no store, the value half needs the item.
 
     DERIVED FROM THE FIELD CONTRACT, not from a list of type names: `validate_dispatch` looks for a
     task's criteria in `CRITERIA_FIELDS`, so a type whose contract declares one of those fields is
@@ -2426,6 +2418,48 @@ def _carries_its_own_criteria(item_type: str) -> bool:
 
     declared = _contract_fields().get(item_type, ())
     return any(field in declared for field in CRITERIA_FIELDS)
+
+
+def _origin_brings_its_own_criteria(state: ProjectState, origin: str) -> bool:
+    """Does THIS origin really bring the criteria the architect-step exemption assumes (BUG-0303)?
+
+    THE ONE PROPERTY: an origin excuses the step when its type can carry criteria AND its stored
+    list names at least one. Until 2026-09-13 only the first half was asked, and the second was
+    left to `validate_dispatch` one lifecycle step later -- which resolves an order's references
+    against the root, the origin AND the amendments TOGETHER, so an order under a `BUG` with
+    `acceptance_criteria: []` was excused here and then measured against the criteria of exactly
+    the goal whose architect step was missing. Measured through the shipped kit hook as a process
+    (TSK-0122 verify round 2/3): the lease was granted in all three cases and the spawn refused two
+    of them -- no reference at all and a reference existing nowhere -- while a reference of the
+    ROOT came through rc 0. That third line was H218, and it is what asking the value closes: the
+    exemption falls away, the step is owed, and the lease refuses before any spawn exists.
+
+    UNREADABLE IS NOT EXEMPT. An origin this store cannot read (archived, deleted, malformed) buys
+    no exemption: the answer is "the step is owed", which costs an architect round that may not
+    have been necessary and is recoverable with one `capture SR`. The opposite spelling would hand
+    out work under a goal nobody designed on the strength of a file nobody could open -- the same
+    direction `SR_EXEMPT_CLASSES` argues for a class the vocabulary does not know.
+
+    WHAT IS STILL OPEN AND IS NOT THIS PREDICATE'S TO CLOSE, named with its measurement rather than
+    left to be found: an origin that DOES carry criteria excuses the step, and the order's
+    `acceptance_refs` may still name a criterion that exists only on the ROOT -- `validate_dispatch`
+    resolves against the union and lets it through. The exemption's premise ("this order is measured
+    against the origin") is then false again, one class narrower than before. Closing it means
+    narrowing the resolution universe, which is the OTHER direction BUG-0303 offers and a contract
+    change of its own; it stays in `docs/holes/H218.md` with this sentence.
+    `tools/test_approvals_dispatch.py::test_an_origin_that_names_no_criterion_excuses_no_architect_step`
+    """
+    try:
+        origin_type, _ = parse_id(origin)
+    except ValueError:
+        return False
+    if not _carries_its_own_criteria(origin_type):
+        return False
+    try:
+        item = state.read_item(origin)
+    except Exception:  # noqa: BLE001 -- an origin nobody can read excuses nothing; see above
+        return False
+    return any(field_elements(item.get(field)) for field in CRITERIA_FIELDS)
 
 
 def _the_kit_ships_the_architect_step(state: ProjectState) -> bool:
@@ -2530,12 +2564,16 @@ def architect_step_owed(state: ProjectState, task: dict, root: dict) -> bool:
     ("Your `TSK` -- `derives_from` names the SR"), so in a kit project the duty would never have
     fired at all.
 
-    The exemption is now bound to what it MEANS: an origin excuses the architect step when its
-    type is a place a work order's criteria can LIVE (`_carries_its_own_criteria`) -- a defect, a
-    change request, an experiment. Such an order is measured against that item and is the case FR-0085 rules out ("not
-    wanted: an SR for every bugfix task"). An `SR` origin carries no criteria field, so it excuses
-    nothing by itself; it satisfies the duty exactly when it IS the accepted architect step, which
-    the scan below already answers -- one rule, no second branch for the type the rule is about.
+    The exemption is now bound to what it MEANS: an origin excuses the architect step when it
+    really BRINGS the criteria the order is measured against -- its type is a place they can live
+    (a defect, a change request, an experiment) AND its own list names at least one
+    (`_origin_brings_its_own_criteria`). Such an order is the case FR-0085 rules out ("not wanted:
+    an SR for every bugfix task"). An `SR` origin carries no criteria field, so it excuses nothing
+    by itself; it satisfies the duty exactly when it IS the accepted architect step, which the scan
+    below already answers -- one rule, no second branch for the type the rule is about. An origin
+    with an EMPTY list excuses nothing either, since TSK-0150 and for the same reason read the other
+    way round: nothing measures that order except the goal, and the goal is what the step is about
+    (BUG-0303 / H218).
     """
     owed, _why = _the_kit_delivery_of_the_architect_step(state)
     if not owed:
@@ -2546,11 +2584,7 @@ def architect_step_owed(state: ProjectState, task: dict, root: dict) -> bool:
         origin = str(origin)
         if origin == str(root.get("id")):
             continue
-        try:
-            origin_type, _ = parse_id(origin)
-        except ValueError:
-            continue      # an unparseable origin is refused at creation, not weighed here
-        if _carries_its_own_criteria(origin_type):
+        if _origin_brings_its_own_criteria(state, origin):
             return False
     from .report import origin_root_conflict
 
@@ -2582,7 +2616,7 @@ def _assert_the_architect_step_happened_locked(state: ProjectState, task: dict, 
     a lease that predates this rule does not carry a spawn past it.
 
     WHOM IT ASKS: every order under the goal EXCEPT one whose origin brings its own criteria --
-    the property is `_carries_its_own_criteria` and the argument is there. An order deriving from a
+    the property is `_origin_brings_its_own_criteria` and the argument is there. An order deriving from a
     technical requirement is asked like any other, and is answered by that requirement being
     ACCEPTED. A goal of an exempt class is never asked -- see `SR_EXEMPT_CLASSES` for which, and
     why the exemption rather than the duty is the closed set.
@@ -3178,143 +3212,49 @@ def _the_run_was_classified_as_not_climbing(task: dict) -> bool:
     return bool(wrote) and wrote != str(task.get("assigned_role") or "")
 
 
-# A TEST IS A THING THAT IS RUN AND YIELDS A VERDICT, and that is the property the three readers
-# below encode -- NOT "the word `test` occurs". The first version of this reader searched for the
-# bare word and granted the cheap rung to `docs/test-plan.md` and to the criterion "no test needed
-# for this rename" (both measured against the shipped dev declaration, verifier round 1, B1). A
-# document whose NAME contains the word is not a test, and a sentence that DENIES one is not an
-# acceptance.
-# WHAT THE THREE READERS DO NOT READ, said rather than implied: a test named without the word (a
-# compound -- `unittest.py`, and the German `Regressionstest` too, because no rule here could tell
-# that tail from the one in `latest`; a suite called `checks/`), a verdict word outside
-# `_VERDICT_WORDS`, and whether the named file exists or passes. Each of those REFUSES the ask and
-# leaves the order on the more expensive default, which is the direction this reader fails in on
-# purpose -- B1 was the other one. The compound row is measured, not claimed:
-# `tools/test_ladder.py::test_the_acceptance_reader_reads_a_test_and_not_the_word`. That last one is the same trade as before: this reader
-# decides a RUNG, not a merge, and the verifier checks the slice either way.
+# A TEST IS NAMED, NEVER DESCRIBED -- DEC-0112, and that is the whole of what the readers below
+# decide. Until 2026-09-13 this block also read the acceptance SENTENCE: the word `test`, a verdict
+# word, and a negation apparatus (clausal and prepositional deniers, correlatives, a determiner
+# grammar for the complement) that was meant to tell a promised test from a denied one. Four
+# verification rounds found four holes in that apparatus, every one of them in the DANGEROUS
+# direction -- a sentence denying a test bought the cheap rung -- and the last of them (BUG-0296 /
+# H212, the ambiguous German article `der`) was closable by no word at all. DEC-0102 (3) made it a
+# class question; the user answered B on 2026-09-13. So the kernel judges no natural language here
+# any more. What is left is an ADDRESS: a test module's path, with or without the node a runner
+# appends to it.
+#
+# WHAT THAT COSTS, dangerous direction first, and it is why the answer was cheap: nothing. A
+# description now keeps the EXPENSIVE default rung, which is the direction every one of the four
+# holes was failing in. The price is on the other side and it is real: an acceptance that truly
+# names a test in prose ("der Regressionstest wird rot") loses the sonnet ask until it writes the
+# file down. That is one edit in the order, and it is the edit that makes the acceptance
+# addressable at all. The lease's `why` says the shaped form on every refusal, so nobody has to
+# find this comment to learn what to write.
+# `tools/test_ladder.py::test_a_described_test_buys_nothing_since_the_prose_reader_is_retired`
+
+# A TEST TRAY, as a whole path component: `test` or `tests` and nothing that merely contains those
+# letters -- the caller below asks it with `fullmatch`.
 _WORD_TEST_RX = re.compile(r"(?<![a-z0-9])tests?(?![a-z0-9])", re.IGNORECASE)
 # A TEST MODULE'S OWN NAME: the separator after (or before) the word is what every runner's
 # convention has in common, and it is exactly what a document title does not have --
 # `test-plan.md` and `testimonials.md` fail it, `test_x.py`, `x_test.go`, `x.test.ts`, `x_spec.rb`
 # pass it.
 _TEST_MODULE_RX = re.compile(r"\A(?:test[_.].+|.+[_.]test|.+[_.]spec)\.[a-z0-9]+\Z", re.IGNORECASE)
-# A RUNNER OR A NODE ID -- a test named as something one EXECUTES.
-_RUNNER_RX = re.compile(r"(?<![a-z0-9])(?:pytest|::test_|npm test|go test|cargo test)", re.IGNORECASE)
-# THE VERDICT A TEST YIELDS, in the two languages the kits are written in. An enumeration, and the
-# only one here -- held at BOTH ends by
-# `tools/test_ladder.py::test_the_acceptance_reader_needs_a_verdict_word_and_every_listed_one_earns_its_place`:
-# every entry must be the sole reason one sentence counts, and no entry may be one the sentence
-# would pass without.
-_VERDICT_WORDS = ("red", "green", "rot", "gruen", "grün", "fail", "fails", "failing", "passes",
-                  "passing", "faellt", "fällt", "schlaegt fehl", "schlägt fehl")
-_VERDICT_RX = re.compile(r"(?<![a-z0-9])(?:%s)(?![a-z0-9])"
-                         % "|".join(word.replace(" ", r"\s+") for word in _VERDICT_WORDS),
-                         re.IGNORECASE)
-# A SENTENCE THAT DENIES, AND THE TWO GRAMMATICAL CLASSES ARE READ DIFFERENTLY -- BUG-0278. A
-# CLAUSAL negator denies the clause it stands in, so "kein Test wird rot" and "tests are not
-# required here" are refusals whatever else the sentence says. A PREPOSITIONAL one denies only its
-# own COMPLEMENT, which is why one list would not do: read as clausal, `ohne` refused this
-# repository's own red-first formula -- "ein Test wird rot, ohne den Fix" -- while its English twin
-# was granted, because `without` was in neither list.
-#
-# A VOCABULARY AND NOT A PATTERN, so the tripwire below can walk it: an entry ending in `*` stands
-# for the word AND its inflections (`kein*` is keine/keinen/keiner), which is the one spelling
-# convention here. The list is held at BOTH ends by
-# `tools/test_ladder.py::test_every_listed_denial_word_is_the_reason_its_sentence_is_refused` --
-# every entry is the SOLE reason one sentence is refused, and no entry is carried by a neighbour.
-# It is an enumeration that fails in the DANGEROUS direction when it is short: a missing word makes
-# a sentence that denies a test read as one that promises one, and that GRANTS the cheap rung.
-# Round 1 of this item's verification measured exactly that gap -- `never` and `none` were listed
-# and their German twins `nie`/`niemals`/`nirgend*` were not, so "Ein Test wird niemals rot" bought
-# the cheap rung.
-_CLAUSAL_DENIERS = ("no", "not", "never", "none", "nothing", "neither", "nor",
-                    "nicht", "nie", "niemals", "kein*", "nirgend*", "weder")
-_PREPOSITIONAL_DENIERS = ("ohne", "without")
-# THE CORRELATIVE NEGATION, which both languages build the same way: `neither ... nor`,
-# `weder ... noch`. Round 2 of this item's verification measured the construction granting the
-# cheap rung; round 3 measured each HALF doing the same on its own -- "Neither of the tests goes
-# red after the rename" and "No fix ships; nor does a test go red", where the sentence split at `;`
-# hands `nor` its own clause. So the OPENING half of every pair is an ordinary negation and stands
-# in `_CLAUSAL_DENIERS` above -- `neither` and `weder` never appear outside one. The CLOSING half
-# is not symmetric across the two languages and is not derivable: English `nor` denies on its own
-# and is listed; German `noch` does NOT -- "noch ein Test wird rot" promises a second test -- and
-# is deliberately absent. This table is what keeps the construction from being half covered: its
-# tripwire asserts every OPENING half is a listed denier, and carries one measured row per pair for
-# the closing half, which is the one thing a word list cannot decide about itself.
-# `tools/test_ladder.py::test_every_listed_denial_word_is_the_reason_its_sentence_is_refused`
-# WHAT IT COSTS, on the cheap side and measured: "neither here nor there the test goes red" is an
-# idiom that denies nothing, and it is refused -- an unnecessary expensive rung, never a grant.
-_CORRELATIVE_DENIERS = (("neither", "nor"), ("weder", "noch"))
-
-
-def _word_alternation(words) -> str:
-    """The alternation of a denial vocabulary: a trailing `*` becomes "and its inflections"."""
-    return "|".join(word[:-1] + r"\w*" if word.endswith("*") else word for word in words)
-
-
-_DENIES_RX = re.compile(r"(?<![a-z0-9])(?:%s)(?![a-z0-9])" % _word_alternation(_CLAUSAL_DENIERS),
-                        re.IGNORECASE)
-_PREPOSITION_DENIES_RX = re.compile(
-    r"(?<![a-z0-9])(?:%s)(?![a-z0-9])" % _word_alternation(_PREPOSITIONAL_DENIERS), re.IGNORECASE)
-# WHERE A CLAUSE ENDS, for the complement above: the punctuation a writer separates clauses with.
-_CLAUSE_END_RX = re.compile(r"[,;:.!?]")
-# WHERE A PREPOSITION'S COMPLEMENT ENDS, and it is a DEFINITION rather than a width. A preposition
-# governs exactly ONE noun phrase, and a noun phrase is opened by its determiner -- so the
-# complement runs to the clause end or to the NEXT determiner, whichever comes first, with the
-# determiner that opens the complement itself skipped. Nothing here has to find the finite verb,
-# which is what the two rejected readings both tried to approximate.
-#
-# WHAT WAS REJECTED AND WHY, both measured on this item: reading the complement to the END OF THE
-# CLAUSE made the FRONTED form swallow its main clause ("Without the fix a test goes red." was
-# refused, round 1 of the verification); reading it as a WIDTH of three words flipped to the
-# DANGEROUS side from the fourth word on -- "The result goes red without any new regression test"
-# was granted although it denies a test (round 2). A width is the wrong shape for a phrase whose
-# length is free; the determiner is what really ends one.
-#
-# A NOUN PHRASE MAY CONTAIN A SECOND ONE, and that is where the determiner rule needed its own
-# answer (round 3 of this item's verification measured the class, which is bigger than the German
-# genitive the first note named): both languages postmodify a noun with another noun phrase --
-# German by the GENITIVE ("ohne die Hilfe eines Tests"), English by `of` ("without the help of a
-# test") -- and the complement has to run through it, or a denial reads as a promise. So a
-# determiner does NOT end the complement when it is an unambiguous genitive form or stands
-# directly after `of`.
-#
-# THE PRICE OF THAT, dangerous direction FIRST: the AMBIGUOUS German genitive articles are not
-# read as genitives -- `der` and `einer` are also nominative and dative, and nothing here can tell
-# which -- so "ohne die Hilfe einer Probe, die rot wird" ends its complement early and can still
-# buy the cheap rung. Unambiguous forms (`des`, `eines`, `dessen`, `deren`) are covered. The other
-# direction is cheap and stated second: a determiner MISSING from the list below only lengthens a
-# complement, which can cost an unnecessary refusal and the expensive rung, never a grant.
-#
-# THE LIST IS A CLOSED GRAMMATICAL CLASS, not a vocabulary of content words: the articles and
-# quantifiers of the two languages the kits are written in. `kein*`/`no` are deniers already and
-# are not repeated here.
-#
-# A TRAILING `-` TAKES THE GERMAN DECLENSION AND NOT ANY TAIL, which is a NARROWER convention than
-# the deniers' `*` on purpose: with `\w*` the entry `ein` swallowed the adjective `einzigen`, so
-# "ohne einen einzigen neuen Test" ended its complement before the test word and granted the cheap
-# rung -- measured while building this. A determiner's tail is one of five endings, and that set is
-# the definition.
-# `tools/test_ladder.py::test_a_german_acceptance_line_is_read_like_its_english_twin`
-_DECLENSION = "(?:e|en|em|er|es)?"
-_DETERMINERS = ("the", "a", "an", "any", "some", "each", "every", "this", "that", "these", "those",
-                "der", "die", "das", "den", "dem", "des", "ein-", "jed-", "dies-", "jen-", "all-")
-_DETERMINER_RX = re.compile(r"(?<![a-z0-9])(?:%s)(?![a-z0-9])" % "|".join(
-    word[:-1] + _DECLENSION if word.endswith("-") else word for word in _DETERMINERS),
-    re.IGNORECASE)
-# A GERMAN COMPOUND'S HEAD IS ITS LAST ELEMENT, so `Regressionstest` and `Unittest` ARE the test
-# word -- invisible to `_WORD_TEST_RX`, which asks for a word boundary an agglutinating language
-# does not put there. Two conditions keep the English tail-collisions out, and both are measured
-# rather than guessed: the compound is a NOUN (capitalised, as every German noun is), and its stem
-# is at least `_COMPOUND_STEM_MIN` characters -- `pro`test, `con`test, `la`test all carry 2-3.
-# WHAT STILL GETS THROUGH, said rather than left to be found: a capitalised English superlative at
-# the start of a sentence ("Greatest ...") carries a 4-character stem and would be read as the test
-# word; it needs a verdict word in the same sentence to matter, and the direction it fails in is
-# the cheap rung, which is why it is named here instead of chased with a word list.
-# `tools/test_ladder.py::test_a_german_acceptance_line_is_read_like_its_english_twin`
-_COMPOUND_STEM_MIN = 4
-_COMPOUND_TEST_RX = re.compile(
-    r"(?<![A-Za-z0-9])[A-ZÄÖÜ][a-zäöüß]{%d,}tests?(?![a-z0-9])" % (_COMPOUND_STEM_MIN - 1))
+# WHAT SURROUNDS AN ADDRESS IN A WRITTEN LINE AND IS NOT PART OF IT -- a DEFINITION rather than a
+# table of punctuation marks: everything at either end of the word that a path cannot contain.
+# Quotes, backticks, brackets, the German guillemets and the sentence's own comma all fall under
+# it, and so does the next mark nobody thought of. Only the ends are read: a mark INSIDE the word
+# belongs to the path (`x.test.ts`, `a-b/c_d.py`).
+_AROUND_AN_ADDRESS_RX = re.compile(r"\A[^\w]+|[^\w]+\Z")
+# WHERE A RUNNER'S NODE ADDRESS BEGINS. Everything from the first double colon on belongs to the
+# node -- the class prefix and the parametrisation case with it -- so the file half is what stands
+# before it. This is the separator pytest, and by convention the other runners' node syntaxes, use.
+# NO EXAMPLE NODE ID IS WRITTEN OUT ANYWHERE IN THIS BLOCK, and that is a rule rather than a style:
+# a statement in this repository that spells a file name, two colons and a test name is read as a
+# CITATION of that test, and `tools/test_repo_hygiene.py::test_every_test_pointer_this_repo_writes_resolves`
+# then asks for a test of that name. An illustration would be a citation of a test nobody wrote --
+# measured in the TSK-0150 full run, five sites at once, in this file and in four kit texts.
+_NODE_SEPARATOR = "::"
 
 
 def _path_names_a_test(word: str) -> bool:
@@ -3322,8 +3262,14 @@ def _path_names_a_test(word: str) -> bool:
 
     The word is split on both separators, because an order writes either. A document under a
     `docs/` tray keeps its name: `docs/test-plan.md` is a plan ABOUT tests and buys nothing.
+
+    A PATH AND NOT A WRITTEN WORD: the typography around an address belongs to
+    `_names_a_test_artefact` and is stripped there, once. Until 2026-09-13 this reader stripped
+    quotes and backticks a second time, and the mutation row for the typography level stayed green
+    because of it -- a level with two owners is a level nothing measures
+    (`tools/test_ladder.py::test_the_shaped_form_is_an_address_at_three_levels`).
     """
-    parts = [part for part in re.split(r"[\\/]+", word.strip().strip("\"'`")) if part]
+    parts = [part for part in re.split(r"[\\/]+", word) if part]
     if not parts:
         return False
     if any(_WORD_TEST_RX.fullmatch(part) for part in parts[:-1]):
@@ -3331,105 +3277,45 @@ def _path_names_a_test(word: str) -> bool:
     return bool(_TEST_MODULE_RX.match(parts[-1]))
 
 
-def _mentions_a_test(text: str) -> bool:
-    """Does this span name a test at all -- as a runner, as a path, or as the word?
+def _names_a_test_artefact(word: str) -> bool:
+    """THE ONE PROPERTY this reader measures: is this word the ADDRESS OF A TEST -- a test module's
+    path, alone or carrying the node address a runner appends to it (DEC-0112)?
 
-    The one reader both the positive question and the denial question below use, so "what counts
-    as naming a test" cannot drift between them.
+    Three levels, and each one has its own row in the test named below, because a claim about a
+    word is a claim about how the word was WRITTEN: the PATH (a test module's name or a test tray
+    component -- `_path_names_a_test`), the NODE suffix after it (dropped, so a module path with a
+    node name behind a double colon is the same address as the module path alone), and the
+    TYPOGRAPHY around it (a criterion writes the address in backticks, in quotes, in brackets or
+    with a comma after it, and none of that is part of the path).
+    `tools/test_ladder.py::test_the_shaped_form_is_an_address_at_three_levels`
     """
-    if _RUNNER_RX.search(text):
-        return True
-    if any(_path_names_a_test(word) for word in text.split()):
-        return True
-    return bool(_WORD_TEST_RX.search(text) or _COMPOUND_TEST_RX.search(text))
-
-
-def _denies_a_test(sentence: str) -> bool:
-    """Does this sentence refuse a test -- clausally, or by a preposition over its own complement?
-
-    See `_DENIES_RX` for why the two classes are read differently (BUG-0278).
-    """
-    if _DENIES_RX.search(sentence):
-        return True
-    for first, second in _CORRELATIVE_DENIERS:
-        opened = re.search(r"(?<![a-z0-9])%s(?![a-z0-9])" % first, sentence, re.IGNORECASE)
-        if opened and re.search(r"(?<![a-z0-9])%s(?![a-z0-9])" % second,
-                                sentence[opened.end():], re.IGNORECASE):
-            return True
-    for negator in _PREPOSITION_DENIES_RX.finditer(sentence):
-        rest = sentence[negator.end():]
-        clause_end = _CLAUSE_END_RX.search(rest)
-        within_clause = rest[:clause_end.start()] if clause_end else rest
-        if _mentions_a_test(_complement_of(within_clause)):
-            return True
-    return False
-
-
-# A DETERMINER THAT OPENS A POSTMODIFIER rather than the next phrase -- see the note above. The
-# English `of` stands before it; the German genitive is IN it, and only the unambiguous forms count.
-_POSTMODIFIER_RX = re.compile(r"(?:\bof\s+$)", re.IGNORECASE)
-_GENITIVE_DETERMINERS = ("des", "eines", "dessen", "deren")
-
-
-def _complement_of(within_clause: str) -> str:
-    """The ONE noun phrase a preposition governs -- see `_DETERMINERS` for why it ends there.
-
-    The determiner that OPENS the complement is skipped, because that one belongs to it; the next
-    one begins the phrase after it, and that is where this stops -- UNLESS that next one opens a
-    postmodifier of the same phrase (an `of`-phrase or a genitive), in which case the complement
-    runs on through it.
-    `tools/test_ladder.py::test_a_german_acceptance_line_is_read_like_its_english_twin`
-    """
-    text = within_clause.lstrip()
-    opener = _DETERMINER_RX.match(text)
-    rest = text[opener.end():] if opener else text
-    cut = 0
-    while True:
-        following = _DETERMINER_RX.search(rest, cut)
-        if following is None:
-            return rest
-        word = following.group(0).lower()
-        before = rest[:following.start()]
-        if word in _GENITIVE_DETERMINERS or _POSTMODIFIER_RX.search(before):
-            cut = following.end()       # a postmodifier of the same phrase -- keep going
-            continue
-        return rest[:following.start()]
-
-
-def _sentence_names_a_test(sentence: str) -> bool:
-    """Does THIS sentence name a test as an artefact or as an action, and not deny one."""
-    if _denies_a_test(sentence):
-        return False
-    if _RUNNER_RX.search(sentence):
-        return True
-    if any(_path_names_a_test(word) for word in sentence.split()):
-        return True
-    return bool((_WORD_TEST_RX.search(sentence) or _COMPOUND_TEST_RX.search(sentence))
-                and _VERDICT_RX.search(sentence))
+    stripped = _AROUND_AN_ADDRESS_RX.sub("", str(word))
+    return bool(stripped) and _path_names_a_test(stripped.split(_NODE_SEPARATOR, 1)[0])
 
 
 def acceptance_is_test_shaped(task: dict, root: dict) -> bool:
-    """Does this order's acceptance name a TEST -- the condition DEC-0097 (2) puts on an ask below
-    the class default.
+    """Does this order's acceptance NAME a test -- the condition DEC-0097 (2) puts on an ask below
+    the class default, in the shaped form DEC-0112 made the only one.
 
-    TWO FEEDS, ONE PROPERTY: the order's `expected_outputs` must name a test ARTEFACT (a path in a
-    test tray or a test module's own name), and an acceptance criterion this order refers to must
-    carry a SENTENCE that names a test as an artefact, as a runner, or as an action with a verdict
-    -- and does not deny one. The reason for the condition is FR-0091 precision 2 and Anthropic's
-    own threshold ("if you could describe the diff in one sentence"): a slice small enough for the
-    cheap rung can be handed a pass/fail oracle, and one that can only be described in prose cannot.
+    TWO FEEDS, ONE READER: a word of the order's `expected_outputs`, or a word of an acceptance
+    criterion this order refers to, is the address of a test (`_names_a_test_artefact`). Since
+    DEC-0112 it is literally the same call on both feeds -- before it, the outputs were read as
+    addresses and the criterion as prose, and that difference was the whole of BUG-0278/BUG-0296.
+    The reason for the condition is FR-0091 precision 2 and Anthropic's own threshold ("if you
+    could describe the diff in one sentence"): a slice small enough for the cheap rung can be
+    handed a pass/fail oracle. DEC-0112's addition is that the order has to WRITE that oracle down.
     `tools/test_ladder.py::test_an_ask_below_the_default_is_granted_only_for_a_test_shaped_acceptance`
+    `tools/test_ladder.py::test_a_described_test_buys_nothing_since_the_prose_reader_is_retired`
     """
     for output in field_elements(task.get("expected_outputs")):
-        if _path_names_a_test(str(output)):
+        if any(_names_a_test_artefact(word) for word in str(output).split()):
             return True
     wanted = {str(ref) for ref in field_elements(task.get("acceptance_refs"))}
     for criterion in field_elements(root.get("acceptance_criteria")):
         if not isinstance(criterion, dict) or str(criterion.get("id")) not in wanted:
             continue
-        flat = re.sub(r"\s+", " ", str(criterion.get("text") or ""))
-        if any(_sentence_names_a_test(sentence)
-               for sentence in re.split(r"(?<=[.!?;])\s+", flat)):
+        if any(_names_a_test_artefact(word)
+               for word in str(criterion.get("text") or "").split()):
             return True
     return False
 
@@ -3574,7 +3460,10 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
                       % (order_rung, default_rung))
     else:
         start_why += (", the order asks %s below the default %s; refused: the acceptance names no "
-                      "test, only a description" % (order_rung, default_rung))
+                      "test in the shaped form -- write the test's address (a test module "
+                      "path, with or without the node a runner appends after a double colon) into "
+                      "an expected output or into the criterion (DEC-0112)"
+                      % (order_rung, default_rung))
     per_rung = ladder["failed_runs_per_rung"]
     chosen = rungs[min(rungs.index(start) + int(failed_runs) // per_rung, rungs.index(top))]
     # THE RUNG STEPS THAT WERE GRANTED, not the ones the threshold derived -- `top` caps the climb,

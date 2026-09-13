@@ -1,0 +1,19 @@
+id: EVD-0453
+kind: test
+related:
+- BUG-0197
+result: pass
+summary: 'H113 built: `duty-done --key` records through the kernel that a derived
+  duty was met, the office register drops exactly that key and the session paragraph
+  prints the key beside each duty. Red-first seen in a .git-less copy (KeyError ''key'').'
+artifact_refs:
+- staging/TSK-0150/runs.md
+run_command: python -B -m pytest "tools/test_office_duties.py::test_a_duty_key_moves_with_each_of_its_three_parts_and_with_nothing_else"
+  "tools/test_office_duties.py::test_a_duty_recorded_done_drops_out_of_the_register_and_only_that_one"
+  "tools/test_office_duties.py::test_every_shipped_feed_gives_its_duties_a_key_that_survives_a_day"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T10:09:23'
+closed_at: '2026-09-13T14:47:59'

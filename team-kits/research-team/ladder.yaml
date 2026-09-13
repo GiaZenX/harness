@@ -70,13 +70,14 @@ escalation:
 # `build: opus` as a single value, `create-task --rung sonnet` on a mechanical slice came back opus,
 # so the cheapest rung was unreachable for every builder -- against the user's own rule ("Sonnet nur
 # fuer ganz kleine Sachen") and against Anthropic's guidance for edits you can describe precisely.
-# The ask is granted only when the order's ACCEPTANCE NAMES A TEST -- an expected output that is a
-# test module (`test_x.py`, `x_test.go`, `x.test.ts`, `x_spec.rb`) or lies in a `test`/`tests`
-# tray, or a criterion SENTENCE naming a test as a runner or with its verdict ('the regression
-# test goes red'). A document merely named after tests (`docs/test-plan.md`) and a sentence that
-# denies one ('no test needed here') do not count; the reader is
-# `dispatch.acceptance_is_test_shaped` and it, not this comment, is the authority (FR-0091
-# precision 2). A description keeps the default, and the lease's `why` says which it was.
+# The ask is granted only when the order's ACCEPTANCE NAMES A TEST, and since DEC-0112 only in the
+# SHAPED form: the ADDRESS of a test -- a test module (`test_x.py`, `x_test.go`, `x.test.ts`,
+# `x_spec.rb`) or a file in a `test`/`tests` tray, with or without the `::node` a runner appends --
+# standing in an expected output or in a referenced criterion. A DESCRIPTION counts for nothing,
+# and so does a document merely named after tests (`docs/test-plan.md`): the reader judged prose
+# until 2026-09-13 and four verification rounds found four holes in that judgement, all of them
+# granting the cheap rung. The reader is `dispatch.acceptance_is_test_shaped` and it, not this
+# comment, is the authority (FR-0091 precision 2); the lease's `why` names the shaped form.
 classes:
   planning: opus                        # DEC-0095 (2): the orchestrator is a standing cost
   architecture: top                     # DEC-0095 (4a): the one bought call per large goal

@@ -1,0 +1,18 @@
+id: EVD-0454
+kind: test
+related:
+- BUG-0303
+result: pass
+summary: 'H218 built: the architect-step exemption asks the VALUE of the origin''s
+  criteria list, so an origin with an empty list excuses nothing and the lease refuses
+  before a spawn exists; the residue (a filled origin whose order names a ROOT criterion)
+  is measured as its own row. Red-first seen in a .git-less copy.'
+artifact_refs:
+- staging/TSK-0150/runs.md
+run_command: python -B -m pytest "tools/test_approvals_dispatch.py::test_an_origin_that_names_no_criterion_excuses_no_architect_step"
+  "tools/test_approvals_dispatch.py::test_only_an_origin_that_carries_criteria_excuses_the_architect_step"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T10:09:26'

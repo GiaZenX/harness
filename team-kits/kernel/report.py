@@ -3088,6 +3088,40 @@ def accepted_without_a_verdict(state: ProjectState, active_items: dict = None) -
     return owed
 
 
+def verification_missing_for_goal(state: ProjectState, goal_id: str,
+                                  active_items: dict = None) -> list:
+    """The QA evidence kinds with no PASSING verdict anywhere under this goal -- the emptiness
+    DEC-0113 makes the PM ask the user about before it requests the goal's acceptance (H59).
+
+    THE SUBJECT IS THE GOAL AND EVERYTHING THAT HANGS FROM IT, because a verification run is
+    recorded about the TASK it measured and almost never about the goal: asking the goal id alone
+    would report "nobody verified" for a goal whose every task carries a passing `test` record.
+    `accepted_without_a_verdict` asks the neighbouring question -- one task at a time, for the
+    validator's warning; this one asks it once for a goal, for a question a human answers, and
+    both read `qa_verdicts_by_subject` so the two cannot come to disagree about what a verdict is.
+
+    WHAT IT CANNOT SEE, said rather than left to be found: an ARCHIVED task's evidence. The
+    subjects are the goal plus the ACTIVE items that name it as their root, so a goal whose only
+    verified task was archived before the acceptance reads as unverified and the user is asked a
+    question they could have been spared. That is the over-asking direction, and the answer to it
+    is a sentence in a chat -- while the other direction would be silence about a goal nobody
+    measured, which is the whole of H59.
+    `tools/test_approvals_dispatch.py::test_a_goal_with_no_verification_run_is_asked_about_once`
+    """
+    if active_items is None:
+        active_items = _active_map(state)
+    subjects = {str(goal_id)}
+    subjects.update(item_id for item_id, (_type, item) in active_items.items()
+                    if str(item.get("product_requirement") or "") == str(goal_id))
+    by_subject = qa_verdicts_by_subject(state)
+    answered = set()
+    for subject in subjects:
+        verdicts = by_subject.get(subject) or {}
+        answered.update(kind for kind in QA_EVIDENCE_KINDS
+                        if (verdicts.get(kind) or {}).get("result") == PASSING_RESULT)
+    return sorted(set(QA_EVIDENCE_KINDS) - answered)
+
+
 def _check_accepted_tasks_carry_a_verdict(state: ProjectState, active_items: dict) -> list:
     """The finding `accepted_without_a_verdict` produces -- see it for the derivation."""
     return [

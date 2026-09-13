@@ -3064,20 +3064,66 @@ def _kits_reader(harness):
     return harness._from_kit("gate_write_scope")
 
 
+def _stepping_branches_of(function):
+    """The `if ...: continue` branches in one function's source -- a branch that steps over a word."""
+    tree = ast.parse(textwrap.dedent(inspect.getsource(function)))
+    return [node for node in ast.walk(tree) if isinstance(node, ast.If)
+            and node.body and all(isinstance(step, ast.Continue) for step in node.body)]
+
+
+def _the_kits_prefix_walk(reader):
+    """The kits' function that WALKS PAST the prefix words -- `_stage_verb` or what it delegates to.
+
+    THE NAME WAS THE WRONG THING TO PIN, and that is measured rather than foreseen: this reader
+    parsed `_stage_verb` directly until 2026-09-13, when the kits moved the walk one function down
+    into `_command_word_at` -- one walk for two facts, which word a stage runs and where its
+    operands start. `ast.parse` then found no branch at all and the assert below took the WHOLE
+    gate suite down at COLLECTION, which is the loudest possible way to learn that a test encoded
+    a neighbour's shape instead of its property.
+
+    THE PROPERTY IS "the function whose source carries the stepping branches", and the way to it
+    is the CALL GRAPH from `_stage_verb`, walked breadth-first with a visited set -- not a name and
+    not a fixed depth. A fixed depth was tried while writing this and was wrong within the hour:
+    `_stage_verb` delegates to `_effective_command_word`, which delegates to `_command_word_at`,
+    and the walk sits two hops down. A depth is the same kind of claim as a name.
+    """
+    queue, seen = [reader._stage_verb], set()
+    while queue:
+        function = queue.pop(0)
+        if id(function) in seen:
+            continue
+        seen.add(id(function))
+        try:
+            branches = _stepping_branches_of(function)
+            tree = ast.parse(textwrap.dedent(inspect.getsource(function)))
+        except (OSError, TypeError, SyntaxError):
+            continue
+        if branches:
+            return function, branches
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+                continue
+            called = getattr(reader, node.func.id, None)
+            if callable(called) and id(called) not in seen:
+                queue.append(called)
+    return reader._stage_verb, []
+
+
 def _skip_branches(reader):
-    """`[(the branch as text, the words it is PROVEN to step over)]` of the kits' `_stage_verb`.
+    """`[(the branch as text, the words it is PROVEN to step over)]` of the kits' prefix walk.
 
     THE BRANCHES AND NOT THE TUPLES IN THEM, which is what makes a skip written as a predicate
     visible at all (DEC-0018). Kept apart from `_skipped_words` on purpose: the test that asks
     whether every branch has a cell must not ask the function that BUILDS the cells, or the two
     agree by construction and a generator that reads only tuples stays green.
+
+    WHICH function carries the walk is `_the_kits_prefix_walk`'s question -- see it for why the
+    name is not pinned here.
     """
-    tree = ast.parse(textwrap.dedent(inspect.getsource(reader._stage_verb)))
-    branches = [node for node in ast.walk(tree) if isinstance(node, ast.If)
-                and node.body and all(isinstance(step, ast.Continue) for step in node.body)]
+    _walk, branches = _the_kits_prefix_walk(reader)
     assert branches, (
-        "the kits' `_stage_verb` steps over nothing any more, so the axis that crosses what it "
-        "steps over could not be generated")
+        "the kits' `_stage_verb` steps over nothing any more, and neither does anything it calls, "
+        "so the axis that crosses what it steps over could not be generated")
     return [(ast.unparse(branch.test),
              sorted({word for word in _witnesses(branch.test) if _steps_over(reader, word)}))
             for branch in branches]

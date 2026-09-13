@@ -90,14 +90,23 @@ RUN_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 GAVE_UP_EVENT = "gave_up"
 
 
-def duty(what, due, source):
+def duty(what, due, source, period=""):
     """One dated obligation, in the shape every feed of every kit reports.
 
     It lives here rather than beside the office register because this module is the one both kinds
-    of caller share, and a second definition of the same three keys is how the two wordings of the
+    of caller share, and a second definition of the same four keys is how the two wordings of the
     old hand-written nags drifted apart.
+
+    `period` IS WHAT MAKES THIS DUTY THIS ONE within its feed and source, and it is the third fact
+    the done record is keyed on (`kernel.duties.duty_key`, BUG-0197 / H113): a filing period, the
+    oldest expired archive year, an invoice number. It has to stay the SAME FROM DAY TO DAY -- a
+    part that moves with the clock ("5 days overdue") would give the duty a new key every morning
+    and make every done record dead by noon. A feed that passes none gets `""`, and its duties are
+    then keyed on feed+source alone: that is correct for a feed with ONE duty per source and wrong
+    for one with many, which is why every shipped feed passes one.
+    `tools/test_office_duties.py::test_every_shipped_feed_gives_its_duties_a_key_that_survives_a_day`
     """
-    return {"what": what, "due": due, "source": source}
+    return {"what": what, "due": due, "source": source, "period": period}
 
 
 def audit_period_id(day):
@@ -302,7 +311,11 @@ def routine_duties(root, today):
             % (AUDIT_ROLE,
                ", ".join("%s (%s)" % (one, status) for one, status in occasions[:5]),
                when.strftime(RUN_TIME_FORMAT) if when is not None else "none"),
-            due, "%s/ item records" % STATE_DIRNAME))
+            due, "%s/ item records" % STATE_DIRNAME,
+            # THE PERIOD OF AN OCCASION-DRIVEN RUN IS THE WEEK IT IS OWED IN, not the list of
+            # occasions: that list grows as more items reach the end of their chain, and a key that
+            # moved with it would resurrect the duty the moment a second item finished.
+            "occasion %s" % period))
         return duties, unreadable
     duties.append(duty(
         "the %s has not run in %s (last run in this project's event log: %s) — propose it to the "
@@ -314,7 +327,7 @@ def routine_duties(root, today):
         "No hook starts a run"
         % (AUDIT_ROLE, period,
            when.strftime(RUN_TIME_FORMAT) if when is not None else "none", AUDIT_ROLE, AUDIT_ROLE),
-        due, "%s/.audit run records" % STATE_DIRNAME))
+        due, "%s/.audit run records" % STATE_DIRNAME, period))
     return duties, unreadable
 
 

@@ -1,0 +1,20 @@
+id: EVD-0455
+kind: test
+related:
+- BUG-0304
+result: pass
+summary: 'H219 built as three mechanisms: the effective command word after prefixes,
+  an input redirect into an executor, and `eval` over a substitution; the four everyday
+  twins stay rc 0. Measured as real hook processes in all three kits; red-first seen
+  in a .git-less copy (rc 0, empty stderr).'
+artifact_refs:
+- staging/TSK-0150/runs.md
+run_command: python -B -m pytest "tools/test_hooks.py::test_the_write_and_run_rule_reads_the_effective_command_word_in_every_kit"
+  "tools/test_hooks.py::test_every_evaluator_word_refuses_a_line_that_writes_what_it_evaluates"
+  "tools/test_hooks.py::test_a_line_that_writes_a_script_and_runs_it_is_refused_in_every_kit"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T10:09:28'
+closed_at: '2026-09-13T14:47:57'

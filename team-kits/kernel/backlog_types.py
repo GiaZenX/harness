@@ -723,6 +723,19 @@ HOLE_LIMIT_FIELD = "limits"
 # the question "does this name resolve" is asked of a parsed list.
 HOLE_TEST_FIELD = "regression_tests"
 
+# WHAT THE USER ANSWERED ABOUT A GOAL NOBODY VERIFIED (DEC-0113, H59/BUG-0151). A small project
+# working on `main` alone never merges, so the one built demander of the evidence drawer
+# (`gate_git`) never fires and a goal can be ACCEPTED with no verification run behind it. The
+# kernel derives that debt already (`report.verification_missing_for_goal`) and the user decided
+# it is a QUESTION and not a refusal: the PM asks once per goal, in plain German, and the request
+# path writes the answer here. Two fields and not one, because the acceptance card has to name
+# BOTH halves and is built from the item alone (`approvals.item_subject_manifest`): what the user
+# said, and which verification runs were missing at the moment they said it. Optional for the
+# reason every field added to a stored type is optional here -- a goal already accepted must not
+# become a validator error the day the field exists.
+UNVERIFIED_ANSWER_FIELD = "unverified_acceptance_answer"
+UNVERIFIED_MISSING_FIELD = "unverified_acceptance_missing"
+
 # WHAT A HOLE OWES *ONCE IT IS STORED*, and it is NOT its type's full contract. A `BUG` owes
 # `expected`, `repro` and `acceptance_criteria` because it is a defect somebody is going to CLOSE;
 # a hole is a defect nobody is closing -- that is what makes it a hole -- so those three would be a
@@ -873,7 +886,15 @@ def work_is_stated(value) -> bool:
 
 
 OPTIONAL_FIELDS = {
-    "PR": ("user_story",),      # optional for class == technical_enabler
+    # `user_story` is optional for class == technical_enabler; the two UNVERIFIED_* fields are
+    # DEC-0113's record on the goal -- see their definition for why the goal carries them and why
+    # a root that never reaches an acceptance edge does not.
+    "PR": ("user_story", UNVERIFIED_ANSWER_FIELD, UNVERIFIED_MISSING_FIELD),
+    # THE RESEARCH ROOT CARRIES THE SAME PAIR, and for the same reason rather than by symmetry:
+    # `APPROVAL_TRANSITIONS` gives `RQ` an `acceptance` edge exactly as it gives `PR` one, so the
+    # request path writes these two on an `RQ` as well. A root type WITHOUT that edge never
+    # reaches DEC-0113's question and gets no entry here.
+    "RQ": (UNVERIFIED_ANSWER_FIELD, UNVERIFIED_MISSING_FIELD),
     "FR": ("related_pr",),
     # THE SYSTEM SIDE OF A BUG (FR-0054). `related_pr` is the product root a bug is filed under
     # and it stays mandatory; a bug in the software rather than in the product hits a SYSTEM

@@ -19,10 +19,13 @@ A FEED THAT CANNOT READ ITS SOURCE SAYS SO instead of returning nothing. An empt
 unreadable one are not the same answer. The kit already draws that line one surface over, with the
 reason written out: `session_status.main`'s "KIT MERGE BACKLOG UNREADABLE" notice.
 
-THE HONEST LIMIT OF THE WHOLE REGISTER, once, here, so no feed repeats it: this kit records that
-something is OWED, never that it was DONE. There is no submission record for a tax filing, no
-payment record beyond the ledger's own column, no "handled" flag anywhere (`H113`). Two consequences
-are built rather than promised, and each is measured:
+WHAT THE REGISTER RECORDS AND WHAT IT DOES NOT, once, here, so no feed repeats it. It derives
+what is OWED out of records the business already keeps, and since BUG-0197 / H113 it also reads
+what was recorded as DONE: `duty-done --key <digest>` writes one line through the kernel, and a
+duty whose key is in that log drops out of the register -- only that key, so the next period's duty
+appears by itself. What is still absent is any record of the DOING: no submission record for a tax
+filing, no payment record beyond the ledger's own column, no "handled" flag on a document. Two
+consequences of deriving rather than storing are built rather than promised, and each is measured:
 
   * NO FEED REACHES BACK OVER ITS OWN HISTORY. The tax feed names the period that just closed and
     not the ones before it; the retention feed names ONE review per RULE, however many year folders
@@ -273,7 +276,11 @@ def filing_duties(root, today):
         duties.append(_duty(
             "%s for %s%s" % (what, _period_label(year, first, last),
                              " (%s)" % basis if basis else ""),
-            due, "%s tax.filings" % PROFILE))
+            due, "%s tax.filings" % PROFILE,
+            # THE PLAN'S OWN `what` IS PART OF THE PERIOD HERE, because every filing entry shares
+            # one source: two filings of the same quarter (a VAT return and a payroll return) would
+            # otherwise key to the same digest and one `done` would silence both.
+            "%s %s" % (what, _period_label(year, first, last))))
     return duties, unreadable
 
 
@@ -416,7 +423,11 @@ def retention_duties(root, today):
             "%d year folder(s) under %s/ are past their retention (%s), the oldest being %d — "
             "review them with the user; nothing here deletes"
             % (len(expired), prefix, retention, oldest),
-            datetime.date(oldest + span, 12, 31), "%s rule %s" % (FILING_PLAN, rule_id)))
+            datetime.date(oldest + span, 12, 31), "%s rule %s" % (FILING_PLAN, rule_id),
+            # THE OLDEST EXPIRED YEAR and not the count: the count rises as the next year expires,
+            # while the oldest folder stays the oldest until it is dealt with -- and dealing with
+            # it is exactly what a done record says.
+            str(oldest)))
         if len(duties) >= MAX_PER_FEED:
             return duties, unreadable
     return duties, unreadable
@@ -470,7 +481,11 @@ def receivable_duties(root, today):
     for path in _ledger_files(root):
         try:
             with open(path, encoding="utf-8", newline="") as handle:
-                for row in csv.DictReader(handle):
+                # THE ROW'S PLACE IN THE FILE travels with it, because it is what tells two rows
+                # apart when neither carries an invoice number (`_receivable_period`). `start=2`:
+                # the header is line 1, so the first data row is line 2 and the number is the one a
+                # human counts in the file.
+                for line, row in enumerate(csv.DictReader(handle), start=2):
                     if str(row.get(LEDGER_PAYMENT_DATE) or "").strip():
                         continue
                     if str(row.get(LEDGER_DIRECTION) or "").strip() != RECEIVABLE_DIRECTION:
@@ -487,13 +502,34 @@ def receivable_duties(root, today):
                         "invoice %s to %s is unpaid %d day(s) past your %d-day terms"
                         % (str(row.get("invoice_no") or row.get("id") or "?"),
                            str(row.get("counterparty") or "?"), (today - due).days, terms),
-                        due, os.path.relpath(path, root).replace(os.sep, "/")))
+                        due, os.path.relpath(path, root).replace(os.sep, "/"),
+                        _receivable_period(row, line)))
                     if len(duties) >= MAX_PER_FEED:
                         return duties, unreadable
         except OSError:
             unreadable.append("%s could not be read, so its open invoices are not counted"
                               % os.path.relpath(path, root).replace(os.sep, "/"))
     return duties, unreadable
+
+
+def _receivable_period(row, line):
+    """What makes ONE unpaid invoice this one, within its own ledger file.
+
+    THE INVOICE NUMBER WHERE THERE IS ONE, and the ROW otherwise. The number alone was measured
+    wrong (TSK-0150 verify round 1, F3): the code's own `or "?"` fallback says a row may carry
+    neither `invoice_no` nor `id`, and two such rows then shared a duty key -- one `duty-done` and
+    BOTH open receivables vanished from the register, which is the dangerous direction (a debt
+    stops being named).
+
+    NOT THE DAY COUNT AND NOT THE SENTENCE: `what` carries "unpaid N day(s)", which moves every
+    morning, and a key that moved with it would be dead by noon. The LINE is the row's place in the
+    file it was read from, which stands still as long as nobody re-sorts the ledger; a re-sorted
+    ledger makes a duty look new again, which is the over-reporting direction this register errs in
+    everywhere else.
+    `tools/test_office_duties.py::test_two_ledger_rows_without_an_invoice_number_are_two_duties`
+    """
+    named = str(row.get("invoice_no") or row.get("id") or "").strip()
+    return named if named else "row %d (%s)" % (line, str(row.get("counterparty") or "?"))
 
 
 def review_duties(root, today):
@@ -517,10 +553,10 @@ def review_duties(root, today):
         due = _iso_date(entry.get("review_by"))
         if due is None or due >= today:
             continue
+        entry_name = str(entry.get("id") or entry.get("topic") or entry.get("title") or "?")
         duties.append(_duty(
-            "compliance entry %s is past its review date"
-            % str(entry.get("id") or entry.get("topic") or entry.get("title") or "?"),
-            due, COMPLIANCE_REGISTER))
+            "compliance entry %s is past its review date" % entry_name,
+            due, COMPLIANCE_REGISTER, "%s %s" % (entry_name, due.isoformat())))
     return duties, unreadable
 
 
@@ -532,6 +568,65 @@ def review_duties(root, today):
 # `tools/test_routine_feed.py::test_the_routine_notice_appears_and_clears_in_every_kit_that_ships_it`.
 FEEDS = (filing_duties, retention_duties, receivable_duties, review_duties,
          _routine.routine_duties)
+
+
+def _key_them_and_read_the_done_register(root, duties, unreadable):
+    """Give every duty its `key` and answer which keys this project has already recorded as DONE.
+
+    ONE PLACE FOR THE DIGEST, and it is here rather than in `duty()`: the construction belongs to
+    the kernel (`kernel.duties.duty_key`), and a feed that reached for it would pay that import per
+    duty and fail per duty. Here it is one reach for the whole register.
+
+    A PROJECT WHOSE KERNEL CANNOT BE REACHED KEEPS EVERY DUTY and says so. That is the
+    over-reporting direction, and it is the only safe one for a register -- the same choice
+    `kernel.duties.done_keys` makes for a log it cannot read. A duty then carries no key, the
+    briefing names none, and nothing is dropped.
+    """
+    try:
+        import _kernel  # noqa: PLC0415 -- the bridge is imported lazily, as everywhere in this file
+
+        kernel_duties = _kernel.kernel_module("duties", root)
+        for one in duties:
+            one["key"] = kernel_duties.duty_key(one.get("feed"), one.get("source"),
+                                                one.get("period"))
+        return kernel_duties.done_keys(_state_dir(root))
+    except BaseException as exc:  # noqa: BLE001 -- a briefing must never refuse a session
+        unreadable.append(
+            "the done register could not be read here (%s), so every duty below stands even if it "
+            "has already been dealt with" % exc.__class__.__name__)
+        return set()
+
+
+def _kept_apart_when_two_share_a_key(duties, unreadable):
+    """Duties whose key is NOT unique are kept, whatever the done register holds, and the briefing
+    says why.
+
+    THE GENERAL HALF OF F3 (TSK-0150 verify round 1): the specific defect was the receivable feed's
+    period, and that is fixed where it belongs -- but "every feed gives every duty a key of its
+    own" is a claim about feeds nobody has written yet, and the cost of it being wrong is a debt
+    that silently stops being named. So the register checks the property instead of trusting it: a
+    key that appears twice drops NOTHING, both duties stay listed, and the paragraph carries an
+    `unreadable` line naming the collision. The duties also lose their printed key, because a key
+    that cannot be acted on safely is one nobody should be invited to paste.
+
+    THE DIRECTION IS OVER-REPORTING, like everything else in this register: a duty already dealt
+    with keeps being named until its feed can tell it apart from its neighbour.
+    `tools/test_office_duties.py::test_two_ledger_rows_without_an_invoice_number_are_two_duties`
+    """
+    counted = {}
+    for one in duties:
+        if one.get("key"):
+            counted[one["key"]] = counted.get(one["key"], 0) + 1
+    shared = sorted(key for key, many in counted.items() if many > 1)
+    for key in shared:
+        unreadable.append(
+            "%d duties share the key %s, so recording one of them as done would silence the "
+            "others -- they stay listed and carry no key until their feed tells them apart"
+            % (counted[key], key))
+    for one in duties:
+        if one.get("key") in shared:
+            one["key"] = None
+    return duties
 
 
 def register(root, today=None, budget=None):
@@ -566,6 +661,17 @@ def register(root, today=None, budget=None):
             one["feed"] = feed.__name__
         duties += found
         unreadable += problems
+    # WHAT WAS RECORDED AS DONE DROPS OUT, and only by its own key: the NEXT period's duty is a
+    # different `period`, so a different digest, and it appears by itself with nothing to expire
+    # (BUG-0197 / H113). Outside the per-feed budget on purpose -- it is one read for the whole
+    # register, and a feed that ran must not have its answer half-filtered.
+    # ...and only when something was found: with nothing owed there is nothing to key and nothing
+    # to drop, so a project that owes nothing keeps saying nothing -- reaching for the kernel there
+    # would turn an empty briefing into an "INCOMPLETE" line about a register nobody needed
+    # (`tools/test_office_duties.py::test_a_project_that_owes_nothing_gets_no_paragraph`).
+    done = _key_them_and_read_the_done_register(root, duties, unreadable) if duties else set()
+    duties = _kept_apart_when_two_share_a_key(duties, unreadable)
+    duties = [one for one in duties if one.get("key") not in done]
     duties.sort(key=lambda one: (one["due"] or datetime.date.max, one["what"]))
     return duties, unreadable
 
@@ -599,6 +705,19 @@ def _named_fairly(duties, limit):
     return sorted(chosen, key=lambda one: (one["due"] or datetime.date.max, one["what"]))
 
 
+def _named_line(one):
+    """One duty as the briefing prints it -- with the KEY that names it to `duty-done`.
+
+    The key is what a user pastes back, so it stands in the same bracket as the date and the
+    source rather than in a second list nobody lines up by hand (BUG-0197 / H113). A duty with no
+    key -- the answer when the done register was unreadable -- prints as it always did, and the
+    `unreadable` line beside the paragraph is what says why.
+    """
+    dated = ("%s [by %s, %s" % (one["what"], one["due"].isoformat(), one["source"])
+             if one["due"] else "%s [%s" % (one["what"], one["source"]))
+    return dated + ("; key %s]" % one["key"] if one.get("key") else "]")
+
+
 def briefing(root, today=None):
     """The one session-start paragraph, or "" when this project owes nothing it can see.
 
@@ -622,14 +741,14 @@ def briefing(root, today=None):
         named = _named_fairly(duties, MAX_NAMED)
         parts.append(
             "DUE / OVERDUE (%d, %d of them past their date): %s%s. This register PROPOSES — it "
-            "files nothing, pays nothing, deletes nothing and spawns nothing — and it records no "
-            "'done': every entry stands until its own source changes (a period closes, a payment "
-            "date is entered, a folder is emptied, a run happens). Put what matters to the user in "
-            "your FIRST paragraph and let them decide."
-            % (len(duties), len(overdue),
-               "; ".join("%s [by %s, %s]" % (one["what"], one["due"].isoformat(), one["source"])
-                         if one["due"] else "%s [%s]" % (one["what"], one["source"])
-                         for one in named),
+            "files nothing, pays nothing, deletes nothing and spawns nothing. When one of these "
+            "has been dealt with, record it ONCE with `python scripts/harness.py duty-done --key "
+            "<the key beside it> --what \"<the duty>\" --note \"<what happened>\"`; it then "
+            "drops out at the next session start. Everything not recorded that way stands until "
+            "its own source changes (a period closes, a payment date is entered, a folder is "
+            "emptied, a run happens). Put what matters to the user in your FIRST paragraph and let "
+            "them decide."
+            % (len(duties), len(overdue), "; ".join(_named_line(one) for one in named),
                " …" if len(duties) > len(named) else ""))
     if unreadable:
         parts.append(

@@ -1,0 +1,24 @@
+id: EVD-0459
+kind: test
+related:
+- BUG-0197
+result: pass
+summary: 'SUPERSEDES EVD-0453. Rework 1 after the verifier''s F3: two unpaid ledger
+  rows carrying neither `invoice_no` nor `id` shared one duty key, so a single `duty-done`
+  dropped BOTH open receivables. Two halves: the receivable feed gives every ROW a
+  period of its own (`_receivable_period`), and the register drops NO duty whose key
+  is not unique (`_kept_apart_when_two_share_a_key`, with an `unreadable` line saying
+  why) -- the second is the general one and catches the next feed nobody has written
+  yet. Both mutations red in a copy outside the repo. The closure text of H113 changed
+  with it.'
+artifact_refs:
+- staging/TSK-0150/runs.md
+run_command: python -B -m pytest "tools/test_office_duties.py::test_two_ledger_rows_without_an_invoice_number_are_two_duties"
+  "tools/test_office_duties.py::test_a_duty_recorded_done_drops_out_of_the_register_and_only_that_one"
+  "tools/test_office_duties.py::test_a_duty_key_moves_with_each_of_its_three_parts_and_with_nothing_else"
+  "tools/test_office_duties.py::test_every_shipped_feed_gives_its_duties_a_key_that_survives_a_day"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T14:45:49'

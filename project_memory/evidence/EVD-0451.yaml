@@ -1,0 +1,19 @@
+id: EVD-0451
+kind: test
+related:
+- BUG-0296
+result: pass
+summary: 'DEC-0112 built: the cheap-rung reader grants only the shaped form (a test
+  address), the prose negation reader is out of the decision, and the retired prose
+  family is now the measurement that a description buys nothing. Red-first seen in
+  a .git-less copy.'
+artifact_refs:
+- staging/TSK-0150/runs.md
+run_command: python -B -m pytest "tools/test_ladder.py::test_a_described_test_buys_nothing_since_the_prose_reader_is_retired"
+  "tools/test_ladder.py::test_the_acceptance_reader_grants_only_a_named_address" "tools/test_ladder.py::test_the_shaped_form_is_an_address_at_three_levels"
+  "tools/test_ladder.py::test_an_ask_below_the_default_is_granted_only_for_a_test_shaped_acceptance"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T10:09:18'

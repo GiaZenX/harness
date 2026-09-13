@@ -73,6 +73,8 @@ from .backlog_types import (
     STATUS_DEPENDENT_FIELDS,
     TASK_TYPES,
     TSK_PLAN_FIELDS,
+    UNVERIFIED_ANSWER_FIELD,
+    UNVERIFIED_MISSING_FIELD,
     TransitionError,
     assert_transition,
     confirming_edge,
@@ -100,6 +102,31 @@ _KERNEL_SET = ("id", "status", "revision", "approval_ref", "created")
 # its own discount off the next rung, which is exactly what BUG-0260 AC-2 asks to be impossible.
 # `tools/test_state.py::test_the_fail_classification_is_refused_at_both_doors`
 _ROLE_JUDGED_FIELDS = (FAIL_CLASS_FIELD, FAIL_CLASS_BY_FIELD)
+
+# THE USER'S OWN ANSWER, AND THE THIRD FIELD PAIR NO CALLER MAY TYPE -- DEC-0113, and the reason is
+# the same one `_ROLE_JUDGED_FIELDS` has in a different costume. These two say WHAT THE USER SAID
+# when the PM asked whether accepting a goal nobody verified is intended, and what was missing at
+# that moment; the acceptance card then shows both to that same user as their own words. A body
+# that could carry them writes the user's answer for them -- measured by the verifier of TSK-0150
+# (F1, as a process in the dev pilot): `update PR-0002 {"unverified_acceptance_answer": "ja klar
+# (nie gefragt)"}` came back rc 0 and the next `request-approval acceptance` printed that sentence
+# in the card as the user's, while `report.verification_missing_for_goal` was never asked at all --
+# "once per goal" became "never".
+# ONE DOOR, and it is `_record_the_unverified_answer_locked` below: the approval REQUEST path calls
+# it, nothing else does, and it is the only place that asks the store what is really missing.
+# `tools/test_approvals_dispatch.py::test_the_unverified_answer_has_one_writer_and_no_body_may_carry_it`
+_REQUEST_PATH_FIELDS = (UNVERIFIED_ANSWER_FIELD, UNVERIFIED_MISSING_FIELD)
+_REQUEST_PATH_REMEDY = (
+    "these record what the USER answered when asked whether a goal nobody verified is meant to be "
+    "accepted (DEC-0113), and the approval REQUEST path is what writes them: `python "
+    "scripts/harness.py request-approval acceptance <ROOT_ID> --unverified-answer \"<their "
+    "words>\"`. A body that carried them would put words in the user's mouth that the acceptance "
+    "card then shows back to them. Remedy: drop the fields and ask.")
+
+
+def _request_path_offences(fields: dict) -> list:
+    """The DEC-0113 fields this body may not carry -- see `_REQUEST_PATH_FIELDS` for why."""
+    return [name for name in _REQUEST_PATH_FIELDS if name in fields]
 _ROLE_JUDGED_REMEDY = (
     "these are the fail classification of a run (DEC-0107): the VERIFYING role writes them with "
     "its verdict (`python scripts/harness.py evidence --kind test --result fail --fail-class "
@@ -861,6 +888,10 @@ class ProjectState:
         if judged:
             raise StateError("capture %s carries %s -- %s"
                              % (item_type, ", ".join(judged), _ROLE_JUDGED_REMEDY))
+        asked = _request_path_offences(fields)
+        if asked:
+            raise StateError("capture %s carries %s -- %s"
+                             % (item_type, ", ".join(asked), _REQUEST_PATH_REMEDY))
         provided_kernel_fields = [k for k in _KERNEL_SET if k in fields]
         if provided_kernel_fields:
             raise StateError(
@@ -1422,6 +1453,34 @@ class ProjectState:
             self._regenerate_index_locked()
             return item
 
+    def _record_the_unverified_answer_locked(self, item_id: str, answer, missing) -> dict:
+        """Write DEC-0113's pair onto a goal -- the ONE door past `_REQUEST_PATH_FIELDS`.
+
+        FOR A CALLER THAT ALREADY HOLDS THE LOCK, like `staging.freeze_design`'s pair above: the
+        approval request path holds it from before it reads the item until after it has written the
+        request, and the lock is not reentrant. There is no unlocked twin on purpose -- the only
+        caller is inside that hold, and a second entry point would be a second door.
+
+        PAST THE EDIT PATH AND NOT THROUGH IT, the same shape `dispatch` uses for DEC-0107's stamp:
+        `_update_item_locked` refuses these two fields for everybody, and a flag that excused one
+        caller would be a flag anybody can pass.
+
+        NO REVISION BUMP, and that is a decision rather than an omission. `_update_item_locked`
+        bumps only when a HASHED field moves, and neither of these is hashed for a goal -- while a
+        goal's SCOPE approval is signed on its `revision`, so a bump here would invalidate an
+        approval the user already gave, for a field that approval never covered. What makes the
+        write visible where it has to be is the ACCEPTANCE manifest, which carries both fields
+        directly (`approvals.item_subject_manifest`), so the user signs the answer itself and an
+        edit to it past the kernel kills that approval rather than riding on it.
+        `tools/test_approvals_dispatch.py::test_the_unverified_answer_has_one_writer_and_no_body_may_carry_it`
+        """
+        item = self.read_item(item_id)
+        item[UNVERIFIED_ANSWER_FIELD] = str(answer)
+        item[UNVERIFIED_MISSING_FIELD] = list(missing)
+        self._write_yaml_atomic(self.active_path(item_id), item)
+        self._regenerate_index_locked()
+        return item
+
     def update_item(self, item_id: str, changes: dict) -> dict:
         """Edit an item through the kernel. Changing a hashed field of an item
         with a current approval invalidates it ATOMICALLY (spec II.2)."""
@@ -1442,6 +1501,9 @@ class ProjectState:
         judged = _role_judged_offences(item_type, changes)
         if judged:
             raise StateError("%s: %s -- %s" % (item_id, ", ".join(judged), _ROLE_JUDGED_REMEDY))
+        asked = _request_path_offences(changes)
+        if asked:
+            raise StateError("%s: %s -- %s" % (item_id, ", ".join(asked), _REQUEST_PATH_REMEDY))
         forbidden = [k for k in changes if k in _KERNEL_SET]
         if forbidden:
             raise StateError(

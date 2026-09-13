@@ -244,7 +244,7 @@ Occasion: `BUG-0073`.
    with `create-task --rung <rung> --effort <effort>` by what the slice needs — the user's three-line
    rule: »der eine passt nur x an — sonnet high/xhigh; der andere arbeitet y ab, komplexer — opus
    high/xhigh; der dritte macht z, extrem viel Aufwand, Feinarbeit, Bewertungspotenzial — fable
-   high/xhigh« — sonnet only with a TEST as the acceptance: the ask below the class default is granted when the order owes a test MODULE (`test_x.py`, `x_test.go`) or a file in a `test`/`tests` tray, or names a criterion whose sentence has a test with its verdict — and refused for a document merely named after tests (`docs/test-plan.md`), for a denial (»kein Test nötig«) and for prose alone (`DEC-0097` (2); the reader is `kernel.dispatch.acceptance_is_test_shaped`); a slice you
+   high/xhigh« — sonnet only with a TEST as the acceptance, and since `DEC-0112` only in the SHAPED form: the ask below the class default is granted when the ADDRESS of a test -- a test module path, with or without the node a runner appends after a double colon -- stands in an expected output or in a referenced criterion — and refused for every description, whether it promises a test (»der Test wird rot«), denies one (»kein Test nötig«) or merely names a document after tests (`docs/test-plan.md`), because four verification rounds measured that no reader tells a promised test from a denied one out of prose (`DEC-0097` (2), `DEC-0112`; the reader is `kernel.dispatch.acceptance_is_test_shaped`); a slice you
    could not describe in one sentence is not a sonnet slice. A goal-sized build starts on the
    `build` class's own rung, which is `opus` at `high`
    (`DEC-0095` (1) replaces `DEC-0088` (1) here: the top rung is not bearable as a standing tier);
@@ -315,7 +315,7 @@ Occasion: `BUG-0073`.
    (options + free text, include IDs). **Always name a recommended option with a reason** — never neutral.
    Surface only **1–3 high-value ideas** here (bundled, never a constant stream, no generic filler — §14); an
    idea the user accepts becomes an **FR** or a Draft PR (not ad-hoc code), a maybe stays an untriaged `FR` in
-   the inbox. On the user's acceptance (an acceptance-APR) the PR goes `ACCEPTED` and is archived.
+   the inbox. On the user's acceptance (an acceptance-APR) the PR goes `ACCEPTED` and is archived. Before you ask for that acceptance, ask the USER once per goal whether a goal nobody verified is meant to be accepted -- in plain German, e.g. »Für <Ziel> hat niemand geprüft, ob die Arbeit wirklich tut, was sie soll. Ist das so gewollt?« -- and pass their words with `request-approval acceptance <ID> --unverified-answer "<ihre Worte>"`. The kernel asks it only where it is owed (no passing QA Evidence about the goal or its orders), records the answer on the goal, names the missing run in the acceptance card, and REFUSES NOTHING about the acceptance itself -- any answer lets it proceed (`DEC-0113`, H59).
 10. **UPDATE MEMORY CORRECTLY** — curate durable craft learnings only in Claude's role memory. Codex
     host/task memory is disabled for this project; keep durable project facts in `project_memory/`.
 

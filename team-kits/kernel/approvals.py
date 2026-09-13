@@ -66,7 +66,10 @@ from .backlog_types import (
     HOLE_EXCEPTION_STATUS,
     HOLE_LIMIT_FIELD,
     HOLE_NUMBER_FIELD,
+    QA_EVIDENCE_KINDS,
     ROOT_TYPE_BY_KIT,
+    UNVERIFIED_ANSWER_FIELD,
+    UNVERIFIED_MISSING_FIELD,
     confirming_edge,
     is_terminal,
     parse_id,
@@ -122,7 +125,22 @@ MANIFEST_LABELS = {
     "from_content": "bisheriger Inhalt (Prüfsumme)",
     "to_version": "auf Version",
     "to_content": "neuer Inhalt (Prüfsumme)",
+    UNVERIFIED_MISSING_FIELD: "ohne Nachweis geblieben",
+    UNVERIFIED_ANSWER_FIELD: "Antwort des Nutzers dazu",
 }
+# WHAT MUST STAND IN THE SENTENCE AND NOT ONLY IN THE OPTION, as a property of the FIELD rather
+# than a list per kind: a manifest key whose value WARNS about the subject instead of describing
+# it. `build_question` already puts the manifest into the sentence where the subject IS a manifest
+# (a routine, an item-less kind); a field named here is spoken even when the sentence otherwise
+# names an item, because a warning the user only meets in an option description is a warning they
+# can sign without reading. DEC-0113 is the occasion: a goal that nobody verified is accepted by
+# the same card as any other, so the missing runs and the user's own recorded answer to
+# "hier hat niemand geprüft -- ist das so gewollt?" belong in the sentence itself.
+# BOTH ENDS ARE HELD by
+# `tools/test_approvals_dispatch.py::test_a_spoken_manifest_field_reaches_the_sentence_and_no_entry_is_dead`:
+# every entry appears in the sentence of a question whose manifest carries it, and no entry is one
+# the sentence would say anyway.
+SPOKEN_MANIFEST_FIELDS = frozenset((UNVERIFIED_MISSING_FIELD, UNVERIFIED_ANSWER_FIELD))
 # The one line kind that HANGS FROM AN ITEM: a routine approval is built from flags (role, scope,
 # trigger, cadence) and minted FOR a root, because `dispatch._covering_routine_apr` reads it off
 # that root's approvals. `cli` treats it as both -- an item id AND the flags -- which no other kind
@@ -1649,12 +1667,21 @@ def item_subject_manifest(item: dict, kind: str) -> dict:
         manifest["revision"] = item.get("revision")
         return manifest
     if kind == "acceptance":
-        return {
+        manifest = {
             "item": item["id"],
             "revision": item.get("revision"),
             "delivered_commit": item.get("delivered_commit"),
             "evidence_refs": item.get("evidence_refs", []),
         }
+        # DEC-0113: what the goal carries about a MISSING verification run travels into the hash
+        # and, through `SPOKEN_MANIFEST_FIELDS`, into the sentence -- `if field in item`, exactly
+        # as the hole kind does it, so a goal that was verified signs the manifest it always did.
+        # The two fields are written by the request path (`create_pending_request`) and by nothing
+        # else, so what the card shows is what the user was asked, not what somebody typed after.
+        manifest.update({field: item[field]
+                         for field in (UNVERIFIED_MISSING_FIELD, UNVERIFIED_ANSWER_FIELD)
+                         if field in item})
+        return manifest
     if kind == HOLE_EXCEPTION_KIND:
         # WHAT THE USER IS SIGNING, and it is deliberately more than the id: an acceptance of a gap
         # is an acceptance of a described gap. The mechanism (`observed`), what should happen
@@ -2237,6 +2264,88 @@ def _assert_the_pair_commits_an_edge(item_id: str, kind: str) -> None:
     )
 
 
+def _the_german_question(item_id: str, missing) -> str:
+    """DEC-0113's question, in the plain German the user is asked in -- and TRUE for what is
+    missing rather than for the worst case.
+
+    TWO FORMS BECAUSE THERE ARE TWO FACTS, and writing one sentence for both was an over-alarm the
+    verifier of TSK-0150 measured (round 1, F4): with a passing `test` run on the goal the kernel
+    still said »hat niemand geprüft« -- nobody checked -- while what it meant was that two of
+    three kinds of run were missing. DEC-0113 speaks of a goal accepted "without ANY verification
+    run", so the bare sentence belongs to exactly that case and the other one names what is
+    missing. A sentence that over-alarms is as wrong as one that reassures: the user answers the
+    question they are read, and the two questions are not the same question.
+
+    THE KINDS ARE NAMED AS THEY ARE STORED, in English, and that is deliberate rather than lazy:
+    they are the words the user sees in the evidence drawer, in the validator's warning and in the
+    session-start briefing, so translating them here would be the only place they read differently.
+    `tools/test_approvals_dispatch.py::test_a_goal_with_no_verification_run_is_asked_about_once`
+    """
+    whole = set(missing) == set(QA_EVIDENCE_KINDS)
+    if whole:
+        return ("»Für %s hat niemand geprüft, ob die Arbeit wirklich tut, was sie "
+                "soll. Ist das so gewollt?«" % item_id)
+    return ("»Für %s fehlt noch der Nachweis der Art %s -- diese Prüfung hat niemand gemacht. "
+            "Ist das so gewollt?«" % (item_id, ", ".join(missing)))
+
+
+def _record_the_unverified_answer(state: ProjectState, item: dict, answer) -> dict:
+    """DEC-0113 (H59 / BUG-0151): the once-per-goal question about a goal nobody verified.
+
+    THE QUESTION IS THE PM'S AND THE RECORD IS THE KERNEL'S. A small project working on `main`
+    alone never merges, so `gate_git` -- the one built demander of a verification run -- never
+    fires, and a goal reaches its acceptance with an empty evidence drawer. The user chose C on
+    2026-09-13: no refusal of the ACCEPTANCE, one plain-German question before it is requested,
+    and the answer written where it survives the chat.
+
+    THIS IS THE ONLY WRITE, and since the rework of TSK-0150 that sentence is BUILT rather than
+    claimed: `state._REQUEST_PATH_FIELDS` refuses both fields in a capture body and in an update,
+    and `state._record_the_unverified_answer_locked` is the one door past that refusal. Until then
+    the sentence was false in the dangerous direction -- the verifier measured `update PR-0002
+    {"unverified_acceptance_answer": "ja klar (nie gefragt)"}` at rc 0 and the next acceptance card
+    showed that invented sentence to the user as their own, with the store never asked what was
+    really missing.
+
+    EXACTLY ONCE PER GOAL, which is the half a flag alone would not give: an answer already on the
+    goal is not asked for again and cannot be overwritten by a second request, and a goal that HAS
+    a passing run is never asked at all. What IS refused here is the request that skips the
+    question -- not the acceptance, which proceeds on any answer, including "nein".
+    `tools/test_approvals_dispatch.py::test_a_goal_with_no_verification_run_is_asked_about_once`
+    """
+    from . import report          # local: `report` imports this module at load time
+
+    given = None if answer is None else str(answer).strip()
+    if item.get(UNVERIFIED_ANSWER_FIELD) is not None:
+        if given:
+            raise ApprovalError(
+                "%s already carries the user's answer about the missing verification run (%r) -- "
+                "DEC-0113 asks that question ONCE per goal, so a second answer would overwrite "
+                "what the user actually said. Remedy: drop --unverified-answer."
+                % (item["id"], item[UNVERIFIED_ANSWER_FIELD]))
+        return item
+    missing = report.verification_missing_for_goal(state, item["id"])
+    if not missing:
+        if given:
+            raise ApprovalError(
+                "%s carries a passing verification run of every kind, so DEC-0113's question does "
+                "not arise for it and there is nothing to record. Remedy: drop "
+                "--unverified-answer." % item["id"])
+        return item
+    if not given:
+        raise ApprovalError(
+            "%s is about to be accepted with no passing QA Evidence of kind(s) %s about the goal "
+            "or any of its active orders (H59). DEC-0113: ask the user ONCE, in plain German -- %s "
+            "-- and pass what they say: `request-approval acceptance %s --unverified-answer "
+            "\"<ihre Worte>\"`. The acceptance is NOT refused by this and no answer is the wrong "
+            "one; what is refused is asking the user to sign an acceptance nobody told them was "
+            "unmeasured."
+            % (item["id"], ", ".join(missing), _the_german_question(item["id"], missing),
+               item["id"]),
+            user_text=_the_german_question(item["id"], missing) + " Das ist erlaubt -- es soll nur "
+                      "einmal gefragt und festgehalten werden, bevor die Abnahme kommt.")
+    return state._record_the_unverified_answer_locked(item["id"], given, missing)
+
+
 def create_pending_request(
     state: ProjectState,
     kind: str,
@@ -2244,6 +2353,7 @@ def create_pending_request(
     manifest: dict = None,
     ttl_seconds: float = 24 * 3600.0,
     approval_expires: float = None,
+    unverified_answer: str = None,
 ) -> dict:
     """Phase 1 of the protocol: persist the immutable pending request.
 
@@ -2251,6 +2361,9 @@ def create_pending_request(
     (epoch seconds, routine/analysis only per spec II.10a) bounds how long the
     resulting APPROVAL stays valid. Two different clocks -- conflating them would
     either expire live approvals or leave routine approvals standing forever.
+
+    `unverified_answer` is the user's own words about a goal nobody verified, and it is read on
+    the `acceptance` kind alone -- see `_record_the_unverified_answer` (DEC-0113).
     """
     if kind not in APR_KINDS:
         raise ApprovalError(
@@ -2279,6 +2392,12 @@ def create_pending_request(
         revision = None
         if item_id is not None:
             item = state.read_item(item_id)
+            if kind == "acceptance":
+                # BEFORE the manifest and before the revision is read, because this may WRITE the
+                # goal: a manifest built first would name a revision and a field set the stored
+                # item no longer has, and the mint's re-check would then kill the approval the
+                # user just signed (DEC-0113).
+                item = _record_the_unverified_answer(state, item, unverified_answer)
             revision = item.get("revision")
             if manifest is None:
                 # the manifest FIRST, so a kind that is not item-derived at all keeps its own
@@ -2661,6 +2780,17 @@ def build_question(request: dict) -> dict:
         # twice and reads like a machine to the person who has to judge it. With an item, the
         # item stays in front of the manifest: that is what a routine approval hangs from.
         target = ("%s %s" % (target, rendered)) if request["item"] else rendered
+    # A WARNING THE SENTENCE SAYS ITSELF (`SPOKEN_MANIFEST_FIELDS`), appended to whatever target
+    # the branches above produced -- so it reaches the kinds that name an item as well as the ones
+    # that render their manifest. A kind whose generic branch already rendered the whole manifest
+    # would say it twice, which is why the fields already IN the target are dropped here.
+    spoken = ["%s: %s" % (MANIFEST_LABELS.get(field, field),
+                          _render_manifest_value(field, (request.get("subject_manifest") or {})[field]))
+              for field in sorted(SPOKEN_MANIFEST_FIELDS)
+              if field in (request.get("subject_manifest") or {})]
+    spoken = [entry for entry in spoken if entry not in target]
+    if spoken:
+        target = "%s -- ACHTUNG: %s" % (target, "; ".join(spoken))
     revision = ("" if request["revision"] is None
                 else " (Revision %s)" % request["revision"])
     question = "Freigabe erbeten: %s für %s%s. [APR-REQ:%s]" % (

@@ -327,15 +327,16 @@ def test_an_ask_below_the_default_is_granted_only_for_a_test_shaped_acceptance(s
         acceptance names no test;
     (c) an ask below the class FLOOR -> never granted, and carrying a test does not buy it: the
         QA class starts and floors on opus, so its band is empty by declaration;
-    (d) a criterion whose sentence DENIES a test ("no test needed for this rename") -> opus;
+    (d) a criterion that only DESCRIBES a test ("no test needed for this rename") -> opus;
     (e) an expected output that is a DOCUMENT named after tests (`docs/test-plan.md`) -> opus.
     The acceptance CRITERION is the second feed and is measured too: an order whose outputs are
-    prose but whose referenced AC names a test is case (a).
+    prose but whose referenced AC names a test ADDRESS is case (a).
 
     (d) AND (e) ARE THE VERIFIER'S B1 OF ROUND 1, measured on this same shipped declaration: the
     first reader searched for the WORD and granted the cheap rung to both. The reader's own two
-    ends are `test_the_acceptance_reader_reads_a_test_and_not_the_word` and
-    `test_the_acceptance_reader_needs_a_verdict_word_and_every_listed_one_earns_its_place`.
+    ends are `test_the_acceptance_reader_grants_only_a_named_address` and
+    `test_the_shaped_form_is_an_address_at_three_levels`; that a DESCRIPTION buys nothing at all
+    since DEC-0112 is `test_a_described_test_buys_nothing_since_the_prose_reader_is_retired`.
 
     OFFICE IS THE UNCHANGED THIRD KIT: its build class is the bare rung `pin`, so its builder
     leases sonnet with or without an ask and no band sentence appears in the answer at all.
@@ -363,7 +364,7 @@ def test_an_ask_below_the_default_is_granted_only_for_a_test_shaped_acceptance(s
         answer["why"]
     kept = asking_sonnet(new_goal(state, "described only"), expected_outputs=["docs/design.md"])
     assert kept[dispatch.RUNG_KEY] == "opus", kept[dispatch.LADDER_KEY]
-    assert "refused: the acceptance names no test, only a description" in \
+    assert "refused: the acceptance names no test in the shaped form" in \
         kept[dispatch.LADDER_KEY]["why"], kept[dispatch.LADDER_KEY]["why"]
     # THE SECOND FEED is the goal's AC text, reached through this order's `acceptance_refs`: the
     # same ask and the same prose output, decided by the criterion alone.
@@ -373,22 +374,24 @@ def test_an_ask_below_the_default_is_granted_only_for_a_test_shaped_acceptance(s
         "PR_FIELDS' AC-1 says 'order completes' and names no test, so this row is case (b): %s"
         % by_criterion[dispatch.LADDER_KEY]["why"])
     testing = new_goal(state, "criterion with a test",
-                       acceptance_criteria=[{"id": "AC-1", "text": "the regression test goes green"}])
+                       acceptance_criteria=[{"id": "AC-1",
+                                             "text": "`tools/test_x.py::test_renamed` goes green"}])
     from_criterion = asking_sonnet(testing, expected_outputs=["docs/third.md"])
     assert from_criterion[dispatch.RUNG_KEY] == "sonnet", from_criterion[dispatch.LADDER_KEY]
-    # (d) a criterion that DENIES a test, in the sentence that carries the word -- the first
-    # reader granted this one (verifier round 1, B1)
-    denied = new_goal(state, "a denial",
+    # (d) a criterion that only TALKS about tests -- the first reader granted this one (verifier
+    # round 1, B1) and every later reader had to argue about the negation in it; since DEC-0112 it
+    # is refused for the same reason as any other prose, which is that it names no address.
+    denied = new_goal(state, "a description",
                       acceptance_criteria=[{"id": "AC-1", "text": "no test needed for this rename"}])
     refused = asking_sonnet(denied, expected_outputs=["src/renamed.py"])
     assert refused[dispatch.RUNG_KEY] == "opus", refused[dispatch.LADDER_KEY]
-    assert "refused: the acceptance names no test, only a description" in \
+    assert "refused: the acceptance names no test in the shaped form" in \
         refused[dispatch.LADDER_KEY]["why"], refused[dispatch.LADDER_KEY]["why"]
     # (e) a DOCUMENT named after tests -- the second case the first reader granted
     named_after = asking_sonnet(new_goal(state, "a plan about tests"),
                                 expected_outputs=["docs/test-plan.md"])
     assert named_after[dispatch.RUNG_KEY] == "opus", named_after[dispatch.LADDER_KEY]
-    assert "refused: the acceptance names no test, only a description" in \
+    assert "refused: the acceptance names no test in the shaped form" in \
         named_after[dispatch.LADDER_KEY]["why"], named_after[dispatch.LADDER_KEY]["why"]
     # (c) below the FLOOR, with a test-shaped acceptance: the QA class has no band to give
     below = asking_sonnet(first, role="quality-engineer", type="review",
@@ -412,18 +415,26 @@ def test_an_ask_below_the_default_is_granted_only_for_a_test_shaped_acceptance(s
             shown["why"]
 
 
-def test_the_acceptance_reader_reads_a_test_and_not_the_word():
+def _reads(text):
+    """The acceptance CRITERION feed of `dispatch.acceptance_is_test_shaped`, one sentence wide."""
+    return dispatch.acceptance_is_test_shaped(
+        {"acceptance_refs": ["AC-1"]},
+        {"acceptance_criteria": [{"id": "AC-1", "text": text}]})
+
+
+def test_the_acceptance_reader_grants_only_a_named_address():
     """`dispatch.acceptance_is_test_shaped`'s two ends, as the unit the derivation above calls.
 
-    A TEST IS A THING THAT IS RUN AND YIELDS A VERDICT. The rows below are the two ends of that
-    property: on one side an artefact or an action that really is one, on the other a word that
-    merely occurs -- a document NAMED after tests, a compound, a sentence that DENIES a test. The
-    second column is what verifier round 1 measured green on the first reader (B1): both
-    `docs/test-plan.md` and "no test needed for this rename" bought the cheap rung.
+    A TEST IS NAMED, NEVER DESCRIBED (DEC-0112). The rows below are the two ends of that property:
+    on one side a word that is the ADDRESS of a test -- a test module, a file in a test tray, an
+    address with the node a runner appends to it -- on the other everything that merely talks about
+    one. The second column carries the two cases verifier round 1 measured green on the FIRST
+    reader (B1): `docs/test-plan.md` and "no test needed for this rename" both bought the cheap
+    rung; and, since DEC-0112, the sentences the prose reader used to grant as well.
 
     WHY A UNIT AND NOT ONLY THE LEASE ROWS: the derivation above can only afford five goals, and a
-    vocabulary needs more rows than a derivation has occasions. The lease rows keep the two cases
-    that were actually measured wrong.
+    reader needs more rows than a derivation has occasions. The lease rows keep the two cases that
+    were actually measured wrong.
     """
     grants = [
         ({"expected_outputs": ["tools/test_x.py"]}, {}),
@@ -431,13 +442,15 @@ def test_the_acceptance_reader_reads_a_test_and_not_the_word():
         ({"expected_outputs": ["pkg/x_test.go"]}, {}),
         ({"expected_outputs": ["web/x.test.ts"]}, {}),
         ({"expected_outputs": ["lib/x_spec.rb"]}, {}),
+        ({"expected_outputs": ["tools/test_x.py::test_y green"]}, {}),
         ({"acceptance_refs": ["AC-1"]},
-         {"acceptance_criteria": [{"id": "AC-1", "text": "der Test wird rot"}]}),
+         {"acceptance_criteria": [{"id": "AC-1", "text": "tools/test_x.py wird rot"}]}),
         ({"acceptance_refs": ["AC-1"]},
          {"acceptance_criteria": [{"id": "AC-1", "text": "pytest tools/test_x.py passes"}]}),
         ({"acceptance_refs": ["AC-1"]},
          {"acceptance_criteria": [{"id": "AC-1", "text": "it renames one symbol. "
-                                                         "the regression test goes green."}]}),
+                                                         "`tools/test_x.py::test_renamed` goes "
+                                                         "green."}]}),
     ]
     refusals = [
         ({"expected_outputs": ["docs/test-plan.md"]}, {}),
@@ -451,19 +464,12 @@ def test_the_acceptance_reader_reads_a_test_and_not_the_word():
          {"acceptance_criteria": [{"id": "AC-1", "text": "kein Test noetig, nur ein Rename"}]}),
         ({"acceptance_refs": ["AC-1"]},
          {"acceptance_criteria": [{"id": "AC-1", "text": "a test plan is written"}]}),
+        # THE ADDRESS IS UNDER THE WRONG CRITERION: this order refers to AC-2, so AC-1's address is
+        # not its acceptance -- the `wanted` filter, and the one row that measures it.
         ({"acceptance_refs": ["AC-2"]},
-         {"acceptance_criteria": [{"id": "AC-1", "text": "the test goes red"}]}),
-        # THE TWO ROWS THE DENIAL GUARD ALONE REFUSES: word AND verdict AND a negation in the same
-        # sentence. Without them the guard was dead -- rig row 16 stayed green on its removal,
-        # because the other denial rows carry no verdict word and fail the action half anyway.
-        ({"acceptance_refs": ["AC-1"]},
-         {"acceptance_criteria": [{"id": "AC-1", "text": "no test goes red after this rename"}]}),
-        ({"acceptance_refs": ["AC-1"]},
-         {"acceptance_criteria": [{"id": "AC-1", "text": "kein Test schlaegt fehl nach dem Rename"}]}),
-        # THE ENGLISH TAIL-COLLISIONS, which is what the compound rule has to keep out: a
-        # lower-case `latest`/`protest` carries no capital and a stem of two or three characters.
-        # The German compound itself is GRANTED since BUG-0278 -- that row lives in
-        # `test_a_german_acceptance_line_is_read_like_its_english_twin` with the rest of its family.
+         {"acceptance_criteria": [{"id": "AC-1", "text": "tools/test_x.py goes red"}]}),
+        # THE ENGLISH TAIL-COLLISIONS, which the module-name convention has to keep out: a
+        # `latest`/`protest` carries no separator around the word.
         ({"acceptance_refs": ["AC-1"]},
          {"acceptance_criteria": [{"id": "AC-1", "text": "the latest run passes"}]}),
         ({"acceptance_refs": ["AC-1"]},
@@ -475,172 +481,102 @@ def test_the_acceptance_reader_reads_a_test_and_not_the_word():
         assert not dispatch.acceptance_is_test_shaped(task, root), (task, root)
 
 
-def test_a_german_acceptance_line_is_read_like_its_english_twin():
-    """BUG-0278: the reader claimed both kit languages and was built on English word boundaries.
+def test_the_shaped_form_is_an_address_at_three_levels():
+    """`dispatch._names_a_test_artefact` is new in TSK-0150 and claims THREE levels -- the PATH,
+    the NODE address after it, and the TYPOGRAPHY around it -- so it carries one MUTATION row per
+    level (DEC-0111 (6)): the level is switched off in the module and the row that needs it flips.
 
-    EIGHT measured classes, four rounds of verification deep, and every one of them GRANTED the
-    cheap rung on a sentence that denies a test -- the direction this module's own comment calls
-    the wrong one. `ohne` read as a clausal negator; a German compound invisible to a
-    word-boundary matcher; the German twins of `never`/`none` missing; a complement read to the end
-    of the clause, which in the FRONTED form swallows the main clause; `nothing` and the
-    correlative `neither ... nor` / `weder ... noch` missing; a complement read as three WORDS,
-    which let every longer noun phrase escape; each HALF of a correlative standing alone; and a
-    noun phrase POSTMODIFIED by a second one -- a German genitive or an English `of`-phrase --
-    ending the complement before the test word.
-
-    THE COUNTERWEIGHTS ARE HALF THIS TEST, because widening a reader is how a grant becomes free:
-    a preposition whose COMPLEMENT is the test still denies, however long the phrase; both fronted
-    forms stay promises; `noch` stays a plain adverb ("noch ein Test wird rot" promises a second
-    test, and the German closing half is deliberately not a denier); and the English words that
-    merely end in the same four letters (`latest`, `protest`) buy nothing.
+    A row that stays green under its own mutation is a level the reader does not really have, and
+    the counterweight beside each row is what keeps the mutation honest -- the level must not grant
+    anything on its own.
     """
-    def reads(text):
-        return dispatch.acceptance_is_test_shaped(
-            {"acceptance_refs": ["AC-1"]},
-            {"acceptance_criteria": [{"id": "AC-1", "text": text}]})
+    # LEVEL 1, THE PATH: the module-name convention is what decides, and nothing else.
+    assert dispatch._names_a_test_artefact("tools/test_x.py")
+    assert not dispatch._names_a_test_artefact("tools/plan.py")
+    kept_path = dispatch._path_names_a_test
+    try:
+        dispatch._path_names_a_test = lambda word: False
+        assert not dispatch._names_a_test_artefact("tools/test_x.py"), \
+            "the path level is not what decides -- something else grants this address"
+    finally:
+        dispatch._path_names_a_test = kept_path
 
+    # LEVEL 2, THE NODE ADDRESS: a runner's `::node` suffix is dropped before the path is read.
+    assert dispatch._names_a_test_artefact("tools/test_x.py::TestC::test_y[case-1]")
+    assert not dispatch._names_a_test_artefact("::test_y"), "a node without a file names no test"
+    kept_separator = dispatch._NODE_SEPARATOR
+    try:
+        dispatch._NODE_SEPARATOR = "\x00"
+        assert not dispatch._names_a_test_artefact("tools/test_x.py::test_y"), \
+            "the node level is dead -- the suffix is not what this row needed"
+    finally:
+        dispatch._NODE_SEPARATOR = kept_separator
+
+    # LEVEL 3, THE TYPOGRAPHY: a criterion writes the address in backticks, in quotes, in brackets,
+    # in German guillemets or with the sentence's comma after it.
+    for written in ("`tools/test_x.py`", '"tools/test_x.py"', "(tools/test_x.py)",
+                    "»tools/test_x.py«", "tools/test_x.py,"):
+        assert dispatch._names_a_test_artefact(written), written
+    assert not dispatch._names_a_test_artefact("`docs/plan.md`"), \
+        "stripping the typography must not grant what the path refuses"
+    kept_around = dispatch._AROUND_AN_ADDRESS_RX
+    try:
+        dispatch._AROUND_AN_ADDRESS_RX = re.compile(r"(?!)")
+        assert not dispatch._names_a_test_artefact("`tools/test_x.py`"), \
+            "the typography level is dead -- the backticks were never in the way"
+    finally:
+        dispatch._AROUND_AN_ADDRESS_RX = kept_around
+
+
+def test_a_described_test_buys_nothing_since_the_prose_reader_is_retired():
+    """DEC-0112 / BUG-0296 (H212): the cheap-rung reader stops judging natural language, so every
+    sentence of the four verification rounds that argued about a NEGATION -- promise and denial
+    alike -- now comes out the same way, refused, and no word list decides a rung any more.
+
+    THE ROWS ARE THE RETIRED ONES, kept because they are the measurement. The first block used to
+    be GRANTED by the prose reader (a test word plus a verdict, `ohne` over a complement that is
+    not the test, a German compound); the second block was REFUSED by it, and each entry of the
+    second block cost a verification round of its own: `nie`/`niemals`/`nirgends`, `nothing`, the
+    correlative `neither ... nor` / `weder ... noch` whole and in halves, a complement read to the
+    clause end, a complement read three words wide, a noun phrase postmodified by a genitive or an
+    `of`-phrase, and finally the ambiguous German article `der` that no word could reach -- which
+    is the case that put the class to the user.
+
+    WHAT MAKES IT RED: put any negation reader back into `acceptance_is_test_shaped` and the first
+    block grants again.
+
+    THE COUNTERWEIGHT is the last block: the same sentences with the test's ADDRESS written into
+    them are granted, denial or no denial -- which is exactly the trade DEC-0112 chose. A sentence
+    that denies a test AND names its address buys the cheap rung, and that is not a hole: the order
+    is then measured by the address, and the verifier reads the slice either way.
+    """
     for text in ("ein Test wird rot, ohne den Fix",
                  "a test goes red without the fix",
                  "Ohne den Fix wird ein Test rot.",
                  "Without the fix a test goes red.",
                  "der Regressionstest schlaegt fehl",
-                 "der Regressionstest schlägt fehl",
                  "der Unittest wird rot",
-                 "noch ein Test wird rot"):
-        assert reads(text) is True, text
+                 "noch ein Test wird rot",
+                 "der Test wird rot",
+                 "the regression test goes green"):
+        assert _reads(text) is False, text
 
-    for text in (# a correlative, whole and in halves
-                 "Neither the test nor the probe goes red",
+    for text in ("Neither the test nor the probe goes red",
                  "Weder ein Test noch ein Nachweis wird rot",
-                 "Neither of the tests goes red after the rename",
-                 "No fix ships; nor does a test go red",
                  "Nothing makes a test go red",
-                 # ...a noun phrase that carries a second one inside it
+                 "Das Ergebnis wird ohne den Nachweis der Tests rot",
                  "Das Ergebnis wird ohne die Hilfe eines Tests rot",
-                 "Das Ergebnis wird ohne den Nachweis eines Tests rot",
                  "The result goes red without the help of a test",
-                 "The result goes red without the support of any regression test",
-                 # ...a complement is as long as its noun phrase, not three words
                  "Das Ergebnis wird ohne einen einzigen neuen Test rot",
-                 "Das Ergebnis wird ohne jeden weiteren neuen Regressionstest rot",
-                 "The result goes red without any new regression test",
-                 "The rename passes without a single new unit test",
-                 "Das Ergebnis wird ohne einen neuen Test rot",
-                 # ...and everything the earlier rounds already held
                  "Ein Test wird niemals rot",
-                 "Ein Test wird nie rot",
                  "Ein Test wird nirgends rot",
-                 "Ein Test wird nirgendwo rot",
-                 "die Abnahme erfolgt ohne Test, der Name bleibt",
-                 "das Ergebnis wird ohne Regressionstest rot",
-                 "the result goes red without a regression test",
-                 "kein Test schlaegt fehl nach dem Rename",
                  "tests are not required here",
-                 "the rename is done; no test goes red after it",
-                 "the latest run passes",
-                 "der protest schlaegt fehl"):
-        assert reads(text) is False, text
+                 "kein Test schlaegt fehl nach dem Rename"):
+        assert _reads(text) is False, text
 
-
-def test_every_listed_denial_word_is_the_reason_its_sentence_is_refused():
-    """BUG-0278's enumeration, held at BOTH ends -- and it is the list that fails DANGEROUSLY.
-
-    `_CLAUSAL_DENIERS` is what tells a sentence that DENIES a test from one that promises one, and
-    a word missing from it does not cost a refusal: it GRANTS the cheap rung on a sentence saying
-    the test never goes red. Three rounds of this item's verification found a hole in it three
-    times -- `nie`/`niemals`/`nirgend*`, then `nothing`, then each half of a correlative -- which
-    is why both ends are mechanical here.
-
-    END ONE -- EVERY ENTRY EARNS ITS PLACE: a sentence built from it carries a test word AND a
-    verdict, so it is refused ONLY because the entry denies; against a reader built WITHOUT that
-    entry the same sentence is granted. `nie` and `niemals` therefore both earn their place, since
-    a word boundary keeps `nie` out of `niemals`.
-
-    END TWO -- NO CORRELATIVE IS HALF COVERED: for every pair in `_CORRELATIVE_DENIERS` the OPENING
-    half must be a listed denier, because a half of a correlative is an ordinary negation. The
-    CLOSING half is not symmetric and is not derivable, so it carries a measured row per pair:
-    English `nor` denies alone and is listed, German `noch` does not ("noch ein Test wird rot"
-    promises a second test) and is absent.
-
-    WHAT THIS CANNOT SEE, and it is the reason the list keeps needing rounds: a word that is NOT in
-    it. No tripwire over a vocabulary finds the entry nobody wrote; that is what a reader with a
-    sentence in hand is for.
-    """
-    import re as _re
-
-    sentences = {"no": "no test goes red",
-                 "not": "a test does not go red",
-                 "never": "a test never goes red",
-                 "none": "none of the tests goes red",
-                 "nothing": "nothing makes a test go red",
-                 "neither": "neither of the tests goes red after the rename",
-                 "nor": "the fix ships; nor does a test go red",
-                 "nicht": "ein Test wird nicht rot",
-                 "nie": "ein Test wird nie rot",
-                 "niemals": "ein Test wird niemals rot",
-                 "kein*": "kein Test wird rot",
-                 "nirgend*": "ein Test wird nirgends rot",
-                 "weder": "weder ein Test wird rot"}
-    assert set(sentences) == set(dispatch._CLAUSAL_DENIERS), (
-        "a denial word without a measured sentence is an entry nothing holds: %s"
-        % (set(sentences) ^ set(dispatch._CLAUSAL_DENIERS)))
-
-    for word, sentence in sorted(sentences.items()):
-        assert dispatch._sentence_names_a_test(sentence) is False, (word, sentence)
-        without = _re.compile(
-            r"(?<![a-z0-9])(?:%s)(?![a-z0-9])"
-            % dispatch._word_alternation([one for one in dispatch._CLAUSAL_DENIERS if one != word]),
-            _re.IGNORECASE)
-        kept = dispatch._DENIES_RX
-        try:
-            dispatch._DENIES_RX = without
-            assert dispatch._sentence_names_a_test(sentence) is True, (
-                "%r is carried by another entry -- the sentence is refused without it" % word)
-        finally:
-            dispatch._DENIES_RX = kept
-
-    # ...and no correlative is half covered: the OPENING half of every pair is a listed denier.
-    closing = {("neither", "nor"): ("the fix ships; nor does a test go red", False),
-               ("weder", "noch"): ("noch ein Test wird rot", True)}
-    assert set(closing) == set(dispatch._CORRELATIVE_DENIERS), (
-        set(closing) ^ set(dispatch._CORRELATIVE_DENIERS))
-    for (opening, second), (sentence, promises) in sorted(closing.items()):
-        assert opening in dispatch._CLAUSAL_DENIERS, (
-            "%r opens a correlative and is not a listed denier, so the construction is only half "
-            "covered" % opening)
-        assert dispatch._sentence_names_a_test(sentence) is promises, (second, sentence)
-        assert (second in dispatch._CLAUSAL_DENIERS) is not promises, (
-            "%r is listed as a denier although it promises on its own, or the other way round"
-            % second)
-
-
-def test_the_acceptance_reader_needs_a_verdict_word_and_every_listed_one_earns_its_place():
-    """`dispatch._VERDICT_WORDS` is the one ENUMERATION in the reader, and it is held at BOTH ends.
-
-    END ONE -- the vocabulary is NEEDED: a sentence with the word `test` and no verdict at all is
-    refused, so the list is what carries the action half rather than decorating it.
-    END TWO -- no entry is DEAD and none is redundant: for every entry a sentence built from that
-    entry is accepted, and the SAME sentence with the entry taken out of the vocabulary is refused.
-    The vocabulary is read off the module, never copied here, so an entry added tomorrow is walked
-    the day it ships and an entry nobody needs fails the second half.
-    """
-    assert not dispatch._sentence_names_a_test("the test is described here")
-    original = dispatch._VERDICT_RX
-    try:
-        for word in dispatch._VERDICT_WORDS:
-            sentence = "der Test %s" % word
-            assert dispatch._sentence_names_a_test(sentence), (
-                "%r is in the vocabulary and carries no sentence" % word)
-            rest = [other for other in dispatch._VERDICT_WORDS if other != word]
-            assert rest, dispatch._VERDICT_WORDS
-            dispatch._VERDICT_RX = re.compile(
-                r"(?<![a-z0-9])(?:%s)(?![a-z0-9])"
-                % "|".join(other.replace(" ", r"\s+") for other in rest), re.IGNORECASE)
-            assert not dispatch._sentence_names_a_test(sentence), (
-                "%r earns nothing: %r still counts without it" % (word, sentence))
-    finally:
-        dispatch._VERDICT_RX = original
-    assert dispatch._sentence_names_a_test("der Test wird rot")
+    for text in ("Ohne tools/test_x.py wird nichts abgenommen",
+                 "kein weiterer Test noetig, `tools/test_x.py::test_y` bleibt gruen"):
+        assert _reads(text) is True, text
 
 
 def test_a_declared_pin_default_is_clamped_up_to_the_floor_and_the_answer_says_the_clamped_rung(store):

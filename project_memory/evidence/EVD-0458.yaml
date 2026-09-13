@@ -1,0 +1,25 @@
+id: EVD-0458
+kind: test
+related:
+- BUG-0304
+result: pass
+summary: 'SUPERSEDES EVD-0455. Rework 1 after the verifier''s F2: a prefix word''s
+  own OPTION put the real program into the operand role, so `exec -a foo bash run.sh`,
+  `nice -n 5 ./run.sh`, `sudo -u me ./run.sh`, `command -p ./run.sh` and `env -i ./run.sh`
+  were rc 0 at every registered hook while a real shell executed them. Closed as a
+  mechanism: an option where the command word belongs makes the word UNKNOWN and every
+  operand of that stage is read as something it may start (`_the_command_word_is_unknown`),
+  plus the per-source attribution that keeps such a stage from refusing itself. 13
+  attack lines rc 2 and 14 everyday lines rc 0, driven as processes in all three kits;
+  mutation in a copy: the five come back rc 0.'
+artifact_refs:
+- staging/TSK-0150/runs.md
+run_command: python -B -m pytest "tools/test_hooks.py::test_a_prefix_words_own_option_does_not_hide_the_command_word_in_any_kit"
+  "tools/test_hooks.py::test_the_write_and_run_rule_reads_the_effective_command_word_in_every_kit"
+  "tools/test_hooks.py::test_every_evaluator_word_refuses_a_line_that_writes_what_it_evaluates"
+  "tools/test_hooks.py::test_a_line_that_writes_a_script_and_runs_it_is_refused_in_every_kit"
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T14:45:48'

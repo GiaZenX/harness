@@ -4843,70 +4843,74 @@ def test_the_remedy_for_an_already_triaged_wish_names_what_it_became(state):
     assert "CONVERTED" in str(untriaged.value) and "resulting_item" in str(untriaged.value)
 
 
-def test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it(state):
-    """The remainder BUG-0303 / H218 carries, written as a test so it rots visibly, not quietly.
+def test_an_origin_that_names_no_criterion_excuses_no_architect_step(state):
+    """BUG-0303 / H218, built: the architect-step exemption asks the VALUE of the origin's criteria
+    list and no longer only its TYPE, so an order under a `BUG` with `acceptance_criteria: []` is
+    asked for the step like any other -- and the reference that exists only on the ROOT no longer
+    reaches a spawn, because no lease is minted for it.
 
-    THE CHAIN, and it is the one the round-3 verification measured through the shipped hook rather
-    than the one the comment first claimed. `_carries_its_own_criteria` asks the TYPE, so a `BUG`
-    with an EMPTY criteria list excuses the architect step. What then measures the order is
-    `validate_dispatch`, and the universe it resolves against is `_known_acceptance_ids_locked` --
-    the root, the origin AND the approved amendments together. So a reference that exists only on
-    the ROOT resolves, and the order is dispatched against the criteria of exactly the goal whose
-    architect step is missing.
+    THIS TEST REPLACES `test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it`,
+    which was written to go red on exactly this change and did (measured 2026-09-13 in a .git-less
+    copy: three of its four assertions fail against the built kernel). What that test asserted as
+    the remainder is asserted here as the fix, in the same three cases and the same order.
 
-    THE TWO CASES THAT DO NOT GET THROUGH are asserted here too, because they are what BOUNDS the
-    remainder: no reference at all, and a reference that exists nowhere.
+    THE FOUR ROWS. (1) A hollow origin excuses nothing: the step is owed. (2) A FILLED origin still
+    excuses it -- FR-0085's whole point ("not wanted: an SR for every bugfix task") -- so this is
+    not a blanket duty. (3) The lease is where the refusal now lands, and its message names the
+    step. (4) The root-only reference, the rc 0 line of the measured chain, no longer gets through:
+    all three orders under the hollow origin are refused before a header exists.
 
-    THIS TEST IS WRITTEN TO GO RED. The day the exemption asks the VALUE instead of the type -- or
-    the resolution is narrowed to the origin -- the first assertion fails, and BUG-0303 / H218 is
-    the entry to correct. It was H155's second class until DEC-0103 closed the other half and
-    BUG-0237 was closed on it; the class got its own record so that closing the parent orphans no
-    pointer.
+    WHAT IS DELIBERATELY NOT CLOSED and is measured here as the boundary of the fix: an origin that
+    DOES carry criteria excuses the step even when the order's own `acceptance_refs` name a
+    criterion of the ROOT -- `validate_dispatch` resolves against root, origin and amendments
+    together. Row (5) measures that it is still so, so the residue in `docs/holes/H218.md` cannot
+    quietly stop being true in either direction.
     """
     pr = state.capture("PR", dict(PR_FIELDS))
     approve_scope(state, pr["id"])
     hollow = state.capture("BUG", {
         "title": "a defect with no criteria of its own", "related_pr": pr["id"], "observed": "o",
         "expected": "e", "repro": "r", "severity": "low", "acceptance_criteria": []})
+    filled = state.capture("BUG", {
+        "title": "a defect that brings its own", "related_pr": pr["id"], "observed": "o",
+        "expected": "e", "repro": "r", "severity": "low",
+        "acceptance_criteria": [{"id": "FIX-1", "text": "no crash"}]})
 
-    def order(refs, scope):
+    def order(origin, refs, scope):
         task = dispatch.create_task(state, dict(TSK_FIELDS, product_requirement=pr["id"],
-                                                derives_from=hollow["id"], type="bugfix",
+                                                derives_from=origin, type="bugfix",
                                                 acceptance_refs=list(refs),
                                                 allowed_scope=[scope]))
         state.transition(task["id"], "READY")
         return task
 
-    # the exemption itself: the TYPE excuses, whatever the list holds
-    assert not dispatch.architect_step_owed(
-        state, state.read_item(order(["AC-1"], "src/probe/**")["id"]), state.read_item(pr["id"]))
-
-    # ...and no ACCEPTED SR exists anywhere in this store
+    root = state.read_item(pr["id"])
+    # (1) the hollow origin excuses nothing...
+    hollow_order = order(hollow["id"], ["AC-1"], "src/probe/**")
+    assert dispatch.architect_step_owed(state, state.read_item(hollow_order["id"]), root)
+    # (2) ...and the filled one still does
+    filled_order = order(filled["id"], ["FIX-1"], "src/filled/**")
+    assert not dispatch.architect_step_owed(state, state.read_item(filled_order["id"]), root)
+    # ...with no ACCEPTED SR anywhere in this store, so (2) is the exemption and not a satisfied duty
     assert not list(state.iter_active_items("SR"))
 
-    # WHERE THE CRITERIA ARE RESOLVED IS THE SPAWN, not the lease: `create_lease` grants in all
-    # three cases and `validate_dispatch` is what refuses two of them. That split is part of the
-    # measured chain -- the verifier read it off the shipped hook, which goes through
-    # `validate_dispatch` -- and stating it as "the lease refuses" would be a claim the code does
-    # not build.
-    def spawn(task):
-        lease = dispatch.create_lease(state, task["id"])
-        header = dispatch.parse_header(dispatch.dispatch_header(lease))
-        return dispatch.validate_dispatch(state, header, TSK_FIELDS["assigned_role"])
+    # (3)/(4) the LEASE refuses every order under the hollow origin -- including case 3 of the
+    # measured chain, the reference that exists only on the root, which used to spawn rc 0
+    for refs, scope in ((["AC-1"], "src/remainder/**"), ([], "src/none/**"),
+                        (["AC-9"], "src/ghost/**")):
+        with pytest.raises(DispatchError, match="technical requirement|architect|SR"):
+            dispatch.create_lease(state, order(hollow["id"], refs, scope)["id"])
 
-    # case 1: no reference at all -- the lease is granted, the spawn is refused
-    with pytest.raises(DispatchError, match="carries no acceptance_refs"):
-        spawn(order([], "src/none/**"))
-    # case 2: a reference that exists nowhere -- same
-    with pytest.raises(DispatchError, match="exist nowhere"):
-        spawn(order(["AC-9"], "src/ghost/**"))
-    # case 3: a reference that exists ON THE ROOT -- granted through both. This is the remainder.
-    assert spawn(order(["AC-1"], "src/remainder/**")), (
-        "BUG-0303 / H218 no longer holds -- correct the entry, this is not a defect in the "
-        "test")
+    # (5) THE RESIDUE, measured so it cannot rot: a FILLED origin excuses the step even when the
+    # order names only the ROOT's criterion, and that order spawns.
+    across = order(filled["id"], ["AC-1"], "src/across/**")
+    assert not dispatch.architect_step_owed(state, state.read_item(across["id"]), root), (
+        "the residue named in docs/holes/H218.md is gone -- correct the entry, this is not a "
+        "defect in the test")
+    lease = dispatch.create_lease(state, across["id"])
+    assert dispatch.validate_dispatch(state, dispatch.parse_header(dispatch.dispatch_header(lease)),
+                                      TSK_FIELDS["assigned_role"])
 
-
-# ============================================ PR-0012 AC-1: the BATCH form of a repaired bug's close
 
 def _plant_a_naming_test(state, item_id, names=True):
     """Write a real pytest node beside the state, naming `item_id` in its docstring's first
@@ -5791,3 +5795,204 @@ def test_a_question_taken_back_on_this_run_is_not_reported_dead_in_the_same_brea
     dead = [line for line in lines if line.startswith("dead (")][0]
     assert request["request_id"] in taken, taken
     assert request["request_id"] not in dead, dead
+
+
+def _a_goal_nobody_verified(state):
+    """A PR with one order and no Evidence anywhere -- the shape H59 measured in two dev pilots."""
+    pr = state.capture("PR", dict(PR_FIELDS))
+    mint_via_hook(state, approvals.create_pending_request(state, "scope", pr["id"]))
+    dispatch.create_task(state, dict(TSK_FIELDS, product_requirement=pr["id"],
+                                     derives_from=pr["id"],
+                                     allowed_scope=a_scope_of_its_own(state)))
+    return state.read_item(pr["id"])
+
+
+def test_a_goal_with_no_verification_run_is_asked_about_once(state):
+    """DEC-0113 (H59 / BUG-0151): a goal nobody verified is ASKED about before its acceptance is
+    requested -- once per goal, in plain German, and the answer travels into the acceptance card.
+
+    THE FOUR ROWS ARE THE DECISION. (1) The request that skips the question is refused, and the
+    refusal carries the German sentence the PM is to put to the user -- without that half nothing
+    makes the question happen, which is exactly the state H59 records (the kernel derived the debt,
+    the validator warned, the session start said it, and nothing moved). (2) With the answer the
+    request goes out AND the goal carries what the user said plus the runs that were missing when
+    they said it. (3) The SECOND request needs no answer -- once per goal -- and offering one is
+    refused rather than silently overwriting the user's words. (4) A goal that HAS a passing
+    verification run is never asked at all and its card carries neither field.
+
+    NO REFUSAL OF THE ACCEPTANCE, which is the other half of the user's answer C: the request goes
+    out on ANY answer. The row below signs a goal off with a recorded "nein, war nicht geplant" --
+    the acceptance proceeds and the sentence stands in the card where the user reads it again.
+
+    ROW (5) IS THE SENTENCE ITSELF, added after the verifier of TSK-0150 measured it over-alarming
+    (round 1, F4): with a passing `test` run on the goal the question still read »hat niemand
+    geprüft« while what was missing was two kinds of three. DEC-0113 speaks of a goal accepted
+    "without ANY verification run", so the bare sentence belongs to that case alone and the partial
+    one names what is missing -- an over-alarm is a false claim like any other, and the user answers
+    the question they are read.
+
+    RED WITHOUT the build: row (1) creates a request and nothing is asked; rows (2)/(4) find no
+    field on the goal and nothing about the missing run in the question text.
+    """
+    goal = _a_goal_nobody_verified(state)
+
+    # (1) the request that skips the question
+    with pytest.raises(ApprovalError) as refusal:
+        approvals.create_pending_request(state, "acceptance", goal["id"])
+    said = str(refusal.value)
+    assert "niemand geprüft" in said and "Ist das so gewollt?" in said, said
+    assert "--unverified-answer" in said and "DEC-0113" in said, said
+    assert backlog_types.UNVERIFIED_ANSWER_FIELD not in state.read_item(goal["id"]), \
+        "a refused request wrote the goal"
+
+    # (2) the answer travels onto the goal and into the card
+    request = approvals.create_pending_request(
+        state, "acceptance", goal["id"],
+        unverified_answer="nein, war nicht geplant -- wir nehmen es trotzdem ab")
+    stored = state.read_item(goal["id"])
+    assert stored[backlog_types.UNVERIFIED_ANSWER_FIELD].startswith("nein, war nicht geplant")
+    assert stored[backlog_types.UNVERIFIED_MISSING_FIELD] == sorted(
+        backlog_types.QA_EVIDENCE_KINDS), stored[backlog_types.UNVERIFIED_MISSING_FIELD]
+    question = approvals.build_question(request)["question"]
+    assert "nein, war nicht geplant" in question, question
+    for kind in backlog_types.QA_EVIDENCE_KINDS:
+        assert kind in question, (kind, question)
+    # ...and the hash covers what the sentence says, so an edit past the kernel kills the approval
+    assert request["subject_manifest"][backlog_types.UNVERIFIED_ANSWER_FIELD] == \
+        stored[backlog_types.UNVERIFIED_ANSWER_FIELD]
+
+    # (3) ONCE per goal: the second request carries the answer without being given one again...
+    again = approvals.create_pending_request(state, "acceptance", goal["id"])
+    assert "nein, war nicht geplant" in approvals.build_question(again)["question"]
+    # ...and a second answer is refused instead of overwriting the first
+    with pytest.raises(ApprovalError) as second:
+        approvals.create_pending_request(state, "acceptance", goal["id"],
+                                         unverified_answer="doch, geprüft")
+    assert "ONCE per goal" in str(second.value) and "DEC-0113" in str(second.value), str(second.value)
+    assert state.read_item(goal["id"])[backlog_types.UNVERIFIED_ANSWER_FIELD].startswith("nein")
+
+    # (4) a goal somebody DID verify is not asked at all
+    verified = state.capture("PR", dict(PR_FIELDS))
+    mint_via_hook(state, approvals.create_pending_request(state, "scope", verified["id"]))
+    order = dispatch.create_task(state, dict(TSK_FIELDS, product_requirement=verified["id"],
+                                             derives_from=verified["id"],
+                                             allowed_scope=a_scope_of_its_own(state)))
+    for kind in sorted(backlog_types.QA_EVIDENCE_KINDS):
+        # `run_scope: full`, and that is not decoration: a PASS from a selection is dropped for
+        # the delivery question (DEC-0061), so a project whose only records are selections has
+        # not verified anything -- and DEC-0113's question is exactly the one it then gets.
+        state.capture("EVD", {"kind": kind, "result": "pass", "related": [order["id"]],
+                              "summary": "the %s run" % kind, "run_scope": "full",
+                              "artifact_refs": ["staging/x/r.log"],
+                              "run_command": "python -B -m pytest tools/test_x.py"})
+    quiet = approvals.create_pending_request(state, "acceptance", verified["id"])
+    assert backlog_types.UNVERIFIED_ANSWER_FIELD not in quiet["subject_manifest"], \
+        quiet["subject_manifest"]
+    assert backlog_types.UNVERIFIED_ANSWER_FIELD not in state.read_item(verified["id"])
+    with pytest.raises(ApprovalError) as pointless:
+        approvals.create_pending_request(state, "acceptance", verified["id"],
+                                         unverified_answer="ja")
+    assert "does not arise" in str(pointless.value), str(pointless.value)
+
+    # (5) THE SENTENCE IS TRUE FOR WHAT IS MISSING. A goal with ONE passing kind is still asked --
+    # the question is owed -- but it may not tell the user that nobody measured anything.
+    partly = state.capture("PR", dict(PR_FIELDS))
+    mint_via_hook(state, approvals.create_pending_request(state, "scope", partly["id"]))
+    half = dispatch.create_task(state, dict(TSK_FIELDS, product_requirement=partly["id"],
+                                            derives_from=partly["id"],
+                                            allowed_scope=a_scope_of_its_own(state)))
+    state.capture("EVD", {"kind": "test", "result": "pass", "related": [half["id"]],
+                          "summary": "the test run", "run_scope": "full",
+                          "artifact_refs": ["staging/x/r.log"],
+                          "run_command": "python -B -m pytest tools/test_x.py"})
+    with pytest.raises(ApprovalError) as partial:
+        approvals.create_pending_request(state, "acceptance", partly["id"])
+    said = str(partial.value)
+    assert "hat niemand gepr\u00fcft, ob" not in said, said
+    assert "fehlt noch der Nachweis der Art" in said, said
+    assert "diese Prüfung hat niemand gemacht" in said, said
+    for kind in sorted(set(backlog_types.QA_EVIDENCE_KINDS) - {"test"}):
+        assert kind in said, (kind, said)
+    # ...and the goal with NO run at all still gets the bare sentence
+    assert "hat niemand gepr\u00fcft, ob" in approvals._the_german_question(
+        "PR-0009", sorted(backlog_types.QA_EVIDENCE_KINDS))
+
+
+def test_a_spoken_manifest_field_reaches_the_sentence_and_no_entry_is_dead(state):
+    """`approvals.SPOKEN_MANIFEST_FIELDS` is the property "this manifest key WARNS about the
+    subject", so it is held at both ends: every entry reaches the question SENTENCE, and no entry
+    is one the sentence would carry anyway (DEC-0113).
+
+    END ONE -- IT REACHES THE SENTENCE: for every entry, a question built over a manifest that
+    carries it names the entry's value in `question`, not only in an option description. A field
+    that only made it into the option is a warning the user can sign without reading, which is
+    what this table exists to prevent.
+    END TWO -- NO ENTRY IS DEAD: with the entry removed from the table the same sentence no longer
+    carries it. An entry the generic branch would render anyway earns nothing here.
+    """
+    goal = _a_goal_nobody_verified(state)
+    request = approvals.create_pending_request(state, "acceptance", goal["id"],
+                                               unverified_answer="ja, so gewollt")
+    manifest = request["subject_manifest"]
+    assert set(approvals.SPOKEN_MANIFEST_FIELDS) <= set(manifest), (
+        "this fixture must carry every spoken field, or the ends below measure nothing: %s"
+        % (set(approvals.SPOKEN_MANIFEST_FIELDS) - set(manifest)))
+    kept = approvals.SPOKEN_MANIFEST_FIELDS
+    try:
+        for field in sorted(kept):
+            approvals.SPOKEN_MANIFEST_FIELDS = kept
+            spoken = approvals.build_question(request)["question"]
+            rendered = approvals._render_manifest_value(field, manifest[field])
+            assert rendered in spoken, (field, spoken)
+            approvals.SPOKEN_MANIFEST_FIELDS = frozenset(kept - {field})
+            without = approvals.build_question(request)["question"]
+            assert rendered not in without, (
+                "%r earns nothing: the sentence says it without the table" % field)
+    finally:
+        approvals.SPOKEN_MANIFEST_FIELDS = kept
+
+
+def test_the_unverified_answer_has_one_writer_and_no_body_may_carry_it(state):
+    """DEC-0113 / BUG-0151, the half the verifier of TSK-0150 measured missing (F1): the two fields
+    that record what the USER answered about a goal nobody verified have exactly ONE writer, and
+    that is enforced at both doors instead of asserted in a docstring.
+
+    WHAT WAS MEASURED WITHOUT THE REFUSAL, as a process in the dev pilot: `update PR-0002
+    {"unverified_acceptance_answer": "ja klar (nie gefragt)"}` came back rc 0, and the very next
+    `request-approval acceptance PR-0002` printed that invented sentence in the approval card as
+    the user's own -- while `report.verification_missing_for_goal` was never asked, so "once per
+    goal" had become "never". The same through `capture`, with an invented missing-list beside it.
+
+    BOTH ENDS. (1) Neither field may ride in a `capture` body or in an `update`, and the refusal
+    names the route that does write them. (2) The request path still writes them, and what it
+    writes is what the store really says is missing -- so the door is a door and not a wall.
+
+    RED WITHOUT the refusal: (1) both calls come back with an item carrying a sentence the user
+    never said. RED WITHOUT the door: the request path cannot record anything at all and DEC-0113
+    is unbuildable -- which is why both ends stand in one node.
+    """
+    goal = _a_goal_nobody_verified(state)
+    invented = {backlog_types.UNVERIFIED_ANSWER_FIELD: "ja klar (nie gefragt)",
+                backlog_types.UNVERIFIED_MISSING_FIELD: ["test"]}
+
+    # (1a) the EDIT door
+    for field, value in sorted(invented.items()):
+        with pytest.raises(Exception) as refused:
+            state.update_item(goal["id"], {field: value})
+        assert field in str(refused.value) and "request-approval acceptance" in str(refused.value), \
+            str(refused.value)
+    assert backlog_types.UNVERIFIED_ANSWER_FIELD not in state.read_item(goal["id"])
+
+    # (1b) the CAPTURE door -- the same body that made a whole goal with the answer already on it
+    with pytest.raises(Exception) as at_capture:
+        state.capture("PR", dict(PR_FIELDS, **invented))
+    assert "request-approval acceptance" in str(at_capture.value), str(at_capture.value)
+
+    # (2) ...and the ONE door still writes, with what the STORE says is missing and not what a
+    # caller passed: this fixture has no Evidence at all, so every QA kind is owed.
+    approvals.create_pending_request(state, "acceptance", goal["id"],
+                                     unverified_answer="ja, so gewollt")
+    stored = state.read_item(goal["id"])
+    assert stored[backlog_types.UNVERIFIED_ANSWER_FIELD] == "ja, so gewollt"
+    assert stored[backlog_types.UNVERIFIED_MISSING_FIELD] == sorted(
+        backlog_types.QA_EVIDENCE_KINDS), stored[backlog_types.UNVERIFIED_MISSING_FIELD]

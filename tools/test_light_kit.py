@@ -634,10 +634,10 @@ def test_the_pilot_rig_leases_three_orders_of_different_size_per_kit(tmp_path):
             # class's band (default opus, floor pin) -- so what refuses it here is the ACCEPTANCE,
             # and the ladder line says so on a scaffolded project rather than in a fixture. The
             # rig's small order owes `src/small/README.md` and names AC-1 ("done"): a description,
-            # no test. RED WITHOUT the test condition: this row leases sonnet and the sentence is
+            # no test address (DEC-0112). RED WITHOUT the test condition: this row leases sonnet and the sentence is
             # absent -- the cheap rung handed to an order with no pass/fail oracle.
             assert sizes["small"]["ask"][dispatch.RUNG_KEY] == "sonnet", sizes["small"]["ask"]
-            assert "refused: the acceptance names no test, only a description" in \
+            assert "refused: the acceptance names no test in the shaped form" in \
                 sizes["small"]["dispatch"]["ladder_line"], sizes["small"]["dispatch"]
         assert sizes["small"]["measured_disjoint"] is None, "the first builder carries evidence it never needed"
         assert sizes["medium"]["measured_disjoint"] and sizes["large"]["measured_disjoint"], kit
