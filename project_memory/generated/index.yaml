@@ -1,4 +1,4 @@
-generated_at: '2026-09-13T15:25:25'
+generated_at: '2026-09-13T15:28:59'
 items:
 - id: APR-0001
   type: APR
@@ -444,6 +444,12 @@ items:
   status: null
   revision: null
   approval_ref: null
+- id: APR-0075
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
 - id: BUG-0069
   type: BUG
   title: GitHub CI is red on every push -- the delivery suite passes locally but fails
@@ -484,23 +490,10 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: BUG-0151
-  type: BUG
-  title: Nichts treibt ein Projekt in die Phasen 6–9 — offen, die Leere ist jetzt
-    gesagt (neu, TSK-0082)
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: BUG-0161
   type: BUG
   title: Die Gates dieses Repos erben die halbe CR-Härtung der Kits — offen, Werkbank,
     `DEC-0022` (TSK-0084)
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0197
-  type: BUG
-  title: Das Fristenregister kennt kein „erledigt" (neu, TSK-0107, FR-0034)
   status: TRIAGED
   revision: 1
   approval_ref: null
@@ -537,34 +530,11 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0296
-  type: BUG
-  title: Der mehrdeutige deutsche Genitivartikel (`der`, `einer`) beendet ein Präpositionskomplement
-    zu früh -- eine so formulierte Verneinung kauft die billige Sprosse
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0297
   type: BUG
   title: Die gedruckte Abhilfe des Commit-Gates dieses Repos ist rc 2, bis der Nutzer
     den S4-Patch fährt -- seit TSK-0144 hält ein Test in tools/ das rot, bis er gefahren
     ist
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0303
-  type: BUG
-  title: Die Befreiung vom Architektenschritt fragt den TYP des Ursprungs, nicht den
-    WERT -- ein BUG mit leerer Kriterienliste befreit, und eine Referenz, die nur
-    an der WURZEL existiert, loest am Spawn auf (zweite Restklasse von H155/BUG-0237)
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0304
-  type: BUG
-  title: 'H214-Rest: die Ein-Aufruf-Form ''Datei schreiben und ausführen'' bleibt
-    offen, wenn der Läufer hinter einem Präfixwort steht, die Datei per Umleitung
-    in den Interpreter geht oder eine Substitution sie an eval reicht'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -4028,6 +3998,12 @@ items:
   revision: 1
   approval_ref: null
 - id: EVD-0460
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0461
   type: EVD
   title: null
   status: null

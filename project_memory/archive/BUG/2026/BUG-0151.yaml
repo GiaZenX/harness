@@ -19,7 +19,9 @@ limits: 'nichts treibt ein Projekt in die Phasen 6–9 — der Merge ist der ein
   Forderer der evidence-Schublade, und ein Solo-Projekt auf `main` merged nie (Pilot
   3: 11 DONE/0 Evidence; Pilot 4 H2: 0). Die Leere ist seit TSK-0082 bei jedem Sitzungsstart
   GESAGT statt unsichtbar; ob das reicht, misst der Live-Testlauf'
-status: TRIAGED
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0075
 created: '2026-09-05T20:24:12'
+approved_hash: 4f9a59554ccf0a698e84022691c68d18c26d27897d133f45a36abb0bdbdfbdd0
+closed_at: '2026-09-13T15:27:51'

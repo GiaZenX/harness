@@ -2369,7 +2369,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H56](docs/holes/H56.md) | BUG-0148 | ACCEPTED_EXCEPTION | Ein abgebrochener Brückenlauf lässt ein gemischtes Bündel stehen — offen, erholbar (neu, TSK-0081) |
 | [H57](docs/holes/H57.md) | BUG-0149 | VERIFIED | Ein Interpreter-Heredoc ist vor `gate_ledger_valid` unsichtbar (neu, Preis des TSK-0081-Fixes) |
 | [H58](docs/holes/H58.md) | BUG-0150 | VERIFIED | `TSK DONE → VALIDATED` fordert keine Evidence — offen als Semantik-Entscheidung (neu, TSK-0082) |
-| [H59](docs/holes/H59.md) | BUG-0151 | TRIAGED | Nichts treibt ein Projekt in die Phasen 6–9 — offen, die Leere ist jetzt gesagt (neu, TSK-0082) |
+| [H59](docs/holes/H59.md) | BUG-0151 | VERIFIED | Nichts treibt ein Projekt in die Phasen 6–9 — offen, die Leere ist jetzt gesagt (neu, TSK-0082) |
 | [H60](docs/holes/H60.md) | BUG-0152 | VERIFIED | `document_sources` erzwingt nichts — offen, doppelt begrenzt (neu, TSK-0082) |
 | [H61](docs/holes/H61.md) | BUG-0153 | VERIFIED | Kein Kit-Hook merkt, dass sein Fenster abläuft — offen, Schließrichtung gebaut (neu, TSK-0082) |
 | [H62](docs/holes/H62.md) | BUG-0154 | VERIFIED | Die Köder-Prüfung des Ledger-Gates urteilt segmentweit — offen, Kandidat gemessen und zurückgestellt (neu, TSK-0083) |
@@ -2415,7 +2415,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H110](docs/holes/H110.md) | BUG-0194 | ACCEPTED_EXCEPTION | Einen Check, den der Kernel nicht lesen kann, beantwortet er mit UNENTSCHIEDEN (neu, TSK-0106, FR-0039) |
 | [H111](docs/holes/H111.md) | BUG-0195 | VERIFIED | Die Freigabe, auf der die Auditor-Routine reitet, hat in keinem Kit einen Erzeuger (neu, TSK-0107, FR-0038) |
 | [H112](docs/holes/H112.md) | BUG-0196 | VERIFIED | Der Laufdatensatz der Routine ist ein Nebenprodukt und sagt nicht, was er zu sagen scheint (neu, TSK-0107, FR-0038) |
-| [H113](docs/holes/H113.md) | BUG-0197 | TRIAGED | Das Fristenregister kennt kein „erledigt" (neu, TSK-0107, FR-0034) |
+| [H113](docs/holes/H113.md) | BUG-0197 | VERIFIED | Das Fristenregister kennt kein „erledigt" (neu, TSK-0107, FR-0034) |
 | [H114](docs/holes/H114.md) | BUG-0198 | ACCEPTED_EXCEPTION | Nach `/cd` läuft die Registrierung des ZIELVERZEICHNISSES, aber die Hook-DATEIEN des Startverzeichnisses (neu, TSK-0108, FR-0059) |
 | [H115](docs/holes/H115.md) | BUG-0199 | ACCEPTED_EXCEPTION | `/cd` bringt die Subagenten und die `agent:`-Bindung des Ziels NICHT mit, obwohl der Changelog „agents" nennt (neu, TSK-0108, FR-0059) |
 | [H116](docs/holes/H116.md) | BUG-0200 | ACCEPTED_EXCEPTION | Die Hook-REGISTRIERUNG wird mitten in der Sitzung neu gelesen — auch zwischen zwei Werkzeugaufrufen einer Runde (neu, TSK-0108, FR-0059) |
@@ -2512,13 +2512,13 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | H209 | BUG-0293 | ACCEPTED_EXCEPTION | H116 neu aufgelegt (Ausnahme nie freigegeben): Die Hook-REGISTRIERUNG wird mitten in der Sitzung neu gelesen — auch zwischen zwei Werkzeugaufrufen einer Runde (neu, TSK-0108, FR-0059) |
 | H210 | BUG-0294 | VERIFIED | H138 neu aufgelegt (Ausnahme nie freigegeben): Die Konformitätsbefunde des Renderers verweigern nichts: der Datensatz beantwortet eine andere Frage (neu, TSK-0119, FR-0077/FR-0078) |
 | [H211](docs/holes/H211.md) | BUG-0295 | VERIFIED | Ein DEC-Verweis in einem Python-Docstring einer ausgelieferten Kit-Datei wird von keinem Leser beurteilt, wenn die Anfuehrungszeichen-Paarung ihn verschluckt (2 von 190, gemessen) |
-| [H212](docs/holes/H212.md) | BUG-0296 | OPEN | Der mehrdeutige deutsche Genitivartikel (`der`, `einer`) beendet ein Präpositionskomplement zu früh -- eine so formulierte Verneinung kauft die billige Sprosse |
+| [H212](docs/holes/H212.md) | BUG-0296 | VERIFIED | Der mehrdeutige deutsche Genitivartikel (`der`, `einer`) beendet ein Präpositionskomplement zu früh -- eine so formulierte Verneinung kauft die billige Sprosse |
 | [H213](docs/holes/H213.md) | BUG-0297 | OPEN | Die gedruckte Abhilfe des Commit-Gates dieses Repos ist rc 2, bis der Nutzer den S4-Patch fährt -- seit TSK-0144 hält ein Test in tools/ das rot, bis er gefahren ist |
 | H214 | BUG-0298 | VERIFIED | Kit-Seite der H11-Klasse: ein Heredoc, das in einer Zeile erst in eine Datei geschrieben und dann von der Shell ausgeführt wird (`cat <<EOF > run.sh ; bash run.sh`), passiert jeden Kit-Hook |
 | [H215](docs/holes/H215.md) | BUG-0299 | VERIFIED | Der H196-Startleser folgt einem argv, das ein Name hält, aber nicht dem PROGRAMMWORT, das erst ein lokaler Name auflöst -- heute ohne Opfer |
 | [H216](docs/holes/H216.md) | BUG-0300 | VERIFIED | Der Stopper-Leser des Beweis-Vokabular-Tests begründet seine Unterscheidung (kann nicht zurückkehren vs. endet irgendwo) mit einer Zählung, die kein roter Test hält |
 | [H217](docs/holes/H217.md) | BUG-0301 | VERIFIED | Der Beweis-Vokabular-Leser entschuldigt eine ganze Spanne, sobald irgendwo vor dem nächsten Backtick eine berechnete Flagge (`--%s`) steht -- eine echte Auslassung daneben bleibt stumm |
-| [H218](docs/holes/H218.md) | BUG-0303 | OPEN | Die Befreiung vom Architektenschritt fragt den TYP des Ursprungs, nicht den WERT -- ein BUG mit leerer Kriterienliste befreit, und eine Referenz, die nur an der WURZEL existiert, loest am Spawn auf (zweite Restklasse von H155/BUG-0237) |
-| [H219](docs/holes/H219.md) | BUG-0304 | OPEN | H214-Rest: die Ein-Aufruf-Form 'Datei schreiben und ausführen' bleibt offen, wenn der Läufer hinter einem Präfixwort steht, die Datei per Umleitung in den Interpreter geht oder eine Substitution sie an eval reicht |
+| [H218](docs/holes/H218.md) | BUG-0303 | VERIFIED | Die Befreiung vom Architektenschritt fragt den TYP des Ursprungs, nicht den WERT -- ein BUG mit leerer Kriterienliste befreit, und eine Referenz, die nur an der WURZEL existiert, loest am Spawn auf (zweite Restklasse von H155/BUG-0237) |
+| [H219](docs/holes/H219.md) | BUG-0304 | VERIFIED | H214-Rest: die Ein-Aufruf-Form 'Datei schreiben und ausführen' bleibt offen, wenn der Läufer hinter einem Präfixwort steht, die Datei per Umleitung in den Interpreter geht oder eine Substitution sie an eval reicht |
 | H220 | BUG-0305 | OPEN | Über-Verweigerung der Schreiben-und-Ausführen-Regel: eine reine LESE-Stufe mit unbekanntem Kommandowort (`sudo -u me cat tools/ci.sh ; bash tools/ci.sh`) gilt als Schreiber, und der Satz behauptet 'this line WRITES tools/ci.sh' |
 

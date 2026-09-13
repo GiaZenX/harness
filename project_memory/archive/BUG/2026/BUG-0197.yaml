@@ -21,7 +21,9 @@ limits: 'das Fristenregister kennt kein „erledigt": nichts im Kit hält fest, 
 regression_tests:
 - tools/test_office_duties.py::test_a_rule_with_many_years_past_retention_is_one_duty_that_names_the_oldest_and_the_count
 - tools/test_office_duties.py::test_no_feed_can_take_every_slot_of_the_briefing_from_another
-status: TRIAGED
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0075
 created: '2026-09-05T20:26:13'
+approved_hash: d0a928cef19befeb61efd0effe950f98ff23835fbb4daa0283b16c9ec369447b
+closed_at: '2026-09-13T15:27:53'

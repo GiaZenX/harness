@@ -66,7 +66,9 @@ source: project_memory/staging/TSK-0146/protocol.md (Rework 1, F7); BUG-0237 `li
   zweiter Absatz; tools/test_approvals_dispatch.py::test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it;
   gemessen TSK-0122 Pruefrunde 2/3 am ausgelieferten Haken
 hole_number: H218
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0075
 created: '2026-09-13T01:55:23'
+approved_hash: 955abbb6ce8a5dbf6d750308bb48c5ae28765e970cfdd7b0ea5129bcee2d285a
+closed_at: '2026-09-13T15:27:59'

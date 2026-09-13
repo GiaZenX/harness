@@ -33,7 +33,9 @@ limits: 'Eine Befehlszeile, die erst eine Skriptdatei schreibt und sie dann star
   selbst steht sichtbar in der Zeile; dieselbe Grenze wie beim selbstgeschriebenen
   Skript (H11).'
 hole_number: H219
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0075
 created: '2026-09-13T07:37:38'
+approved_hash: 4894d6b6abbe2ce87c93d4259f3a0f4eadca4e64e0570d71705cbc38ef985035
+closed_at: '2026-09-13T15:28:02'

@@ -30,7 +30,9 @@ limits: 'Ein Satz, der eine Prüfung mit einem doppeldeutigen deutschen Artikel 
   Modellstufe. Begrenzt: der Auftrag läuft dann nur auf einer billigeren Stufe, nichts
   wird geschrieben oder freigegeben; die Stelle steht im Code benannt.'
 hole_number: H212
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0075
 created: '2026-09-12T14:03:16'
+approved_hash: 0edd4fd80ff36241881f46cc452ace3fe0615d3bb2fb99bcb1f262a0f19ec207
+closed_at: '2026-09-13T15:27:56'
