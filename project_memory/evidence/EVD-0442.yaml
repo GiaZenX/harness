@@ -1,0 +1,25 @@
+id: EVD-0442
+kind: test
+related:
+- BUG-0302
+result: pass
+summary: 'SUPERSEDES EVD-0434 for the sweep half (F8): the sweep reported the ids
+  it MEANT to take back and died on the first one it could not, and a question taken
+  back on the run was named as dead in the same breath. It now reports what it really
+  withdrew, carries the ones it could not take back under their own key and prints
+  them, and subtracts the withdrawn from the dead line. The developer sentences of
+  pending_request and withdraw_request name the fourth outcome. The withdrawal door
+  itself is unchanged and stays as EVD-0434 measured it.'
+artifact_refs:
+- staging/TSK-0146/protocol.md
+run_command: python -B -m pytest tools/test_approvals_dispatch.py::test_a_withdrawn_request_stops_being_open_and_mints_nothing
+  tools/test_approvals_dispatch.py::test_a_request_whose_items_are_all_archived_is_reported_dead
+  tools/test_approvals_dispatch.py::test_the_stale_sweep_takes_back_what_has_stood_too_long_and_leaves_the_rest
+  tools/test_approvals_dispatch.py::test_withdrawing_needs_a_reason_and_only_works_on_a_pending_question
+  tools/test_approvals_dispatch.py::test_the_stale_sweep_reports_what_it_really_withdrew_and_survives_one_that_cannot_be
+  tools/test_approvals_dispatch.py::test_a_question_taken_back_on_this_run_is_not_reported_dead_in_the_same_breath
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T01:45:37'

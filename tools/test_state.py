@@ -1378,3 +1378,153 @@ def test_a_work_order_that_expects_nothing_is_refused_at_both_entrances(state, c
     assert scalar["expected_outputs"] == "src/y.py", "a scalar that says something was refused"
     mixed = dispatch.create_task(state, _order_body(pr["id"], ["", "src/z.py"]))
     assert mixed["expected_outputs"] == ["", "src/z.py"], "one real entry is enough"
+
+
+def test_a_goal_class_outside_the_vocabulary_is_refused_at_both_doors(state):
+    """BUG-0237 / H155 (DEC-0103): the goal size is a closed vocabulary, and both doors that
+    WRITE a goal say so.
+
+    BOTH DOORS, for the reason every other closed vocabulary here is checked at both: a value
+    refused at capture and then written by an `update` is not refused at all -- and `class` is not
+    a hashed field, so the edit path takes it without so much as a revision bump.
+
+    RED without the two `_CLOSED_VOCABULARY` entries: `capture PR` with `feature` returns an item,
+    and `dispatch.SR_EXEMPT_CLASSES` then decides about a word nobody declared.
+    """
+    with pytest.raises(StateError, match="unknown PR class"):
+        state.capture("PR", dict(PR_FIELDS, **{"class": "feature"}))
+    goal = state.capture("PR", dict(PR_FIELDS))
+    with pytest.raises(StateError, match="unknown PR class"):
+        state.update_item(goal["id"], {"class": "feature"})
+    assert state.read_item(goal["id"])["class"] == "normal"
+    # ...and the research root is bound by the same derivation, not by the name `PR`
+    with pytest.raises(StateError, match="unknown RQ class"):
+        state.capture("RQ", {"title": "q", "class": "exploratory", "question": "why",
+                             "motivation": "m", "acceptance_criteria": [{"id": "AC-1", "text": "t"}],
+                             "out_of_scope": [], "priority": "high"})
+
+
+def test_the_goal_class_refusal_names_every_word_and_what_it_does(state):
+    """DEC-0103 asks for the four words AND what each does, in the sentence the role meets.
+
+    A refusal that printed only `large, normal, small, technical_enabler` would send a role who
+    does not know the difference to look the words up somewhere -- and the difference is exactly
+    what it is choosing: an architecture round, an effort, a user story.
+
+    RED without `_vocabulary_listing`: the message carries the four words and none of their
+    sentences, so every `in message` below fails.
+    """
+    from kernel.backlog_types import GOAL_CLASSES
+
+    with pytest.raises(StateError) as refusal:
+        state.capture("PR", dict(PR_FIELDS, **{"class": "feature"}))
+    message = str(refusal.value)
+    for word, klass in GOAL_CLASSES.items():
+        assert word in message, (word, message)
+        assert klass.does in message, (word, message)
+    # the other vocabularies are bare sets and keep printing as they did
+    with pytest.raises(StateError) as other:
+        state.capture("EVD", {"kind": "test", "related": ["PR-0001"], "result": "maybe",
+                              "summary": "s", "artifact_refs": ["staging/x"],
+                              "run_command": "pytest", "run_scope": "selection"})
+    assert "(" not in str(other.value).split("Remedy: use one of ")[1].split(" -- ")[0], str(other.value)
+
+
+def test_the_fail_classification_is_refused_at_both_doors(state):
+    """DEC-0107: the PM has no command for the classification, and neither has the judged role.
+
+    BOTH DOORS AND BOTH FIELDS. `fail_class` without `fail_class_by` buys nothing at the counter,
+    so the field a hand would actually reach for is the AUTHOR one -- a body naming
+    `fail_class_by: quality-engineer` on its own order would be a free rung. Both are refused where
+    every other body arrives, and the refusal names the one door that writes them.
+
+    RED without `_ROLE_JUDGED_FIELDS`: `capture TSK` takes the pair and `update` rewrites it, which
+    is the habitual action DEC-0107 was decided against.
+    """
+    from kernel.backlog_types import FAIL_CLASS_BY_FIELD, FAIL_CLASS_FIELD
+
+    goal = state.capture("PR", dict(PR_FIELDS))
+    fields = {
+        "product_requirement": goal["id"], "derives_from": goal["id"], "type": "implementation",
+        "assigned_role": "backend-developer", "acceptance_refs": ["AC-1"], "required_inputs": [],
+        "allowed_scope": ["src/"], "forbidden_scope": ["secrets/"], "expected_outputs": ["src/x.py"],
+        "dependencies": [],
+    }
+    from kernel import dispatch
+
+    for field in (FAIL_CLASS_FIELD, FAIL_CLASS_BY_FIELD):
+        with pytest.raises(StateError, match="fail classification"):
+            dispatch.create_task(state, dict(fields, **{field: "mechanical"}))
+    task = dispatch.create_task(state, dict(fields))
+    for field in (FAIL_CLASS_FIELD, FAIL_CLASS_BY_FIELD):
+        with pytest.raises(StateError, match="fail classification") as refusal:
+            state.update_item(task["id"], {field: "mechanical"})
+        assert "--fail-class" in str(refusal.value), str(refusal.value)
+    assert FAIL_CLASS_FIELD not in state.read_item(task["id"])
+
+
+def test_the_fail_classification_on_a_record_is_the_declared_vocabulary(state):
+    """R2 (verifier round 2): where the field IS allowed on a body, the word is closed.
+
+    MEASURED against the shipped CLI before this entry: `capture EVD` with `fail_class: banana`
+    returned `EVD-0001`, rc 0, and stored the word -- while the very same word one field over was
+    refused. Nothing reads this copy for a rung (`dispatch.count_failed_run_locked` reads the
+    ORDER), so an invented word would have stood in an immutable record with no other check to
+    meet it. That asymmetry is what the closed vocabularies exist to remove.
+
+    BOTH ENDS OF THE DERIVATION, because the entry is a SUBTRACTION and not a spelled pair: the
+    record type takes the declared words and nothing else, and the order type -- the one subtracted
+    -- still refuses the field itself, so the subtraction is not a door.
+    """
+    from kernel import dispatch
+    from kernel.backlog_types import FAIL_CLASSES, FAIL_CLASS_FIELD
+
+    goal = make_pr(state)
+    for word in sorted(FAIL_CLASSES):
+        state.capture("EVD", evidence_fields(result="fail", **{FAIL_CLASS_FIELD: word}))
+    with pytest.raises(StateError, match="unknown EVD %s" % FAIL_CLASS_FIELD) as refusal:
+        state.capture("EVD", evidence_fields(result="fail", **{FAIL_CLASS_FIELD: "banana"}))
+    for word in FAIL_CLASSES:
+        assert word in str(refusal.value), str(refusal.value)
+
+    order = {
+        "product_requirement": goal["id"], "derives_from": goal["id"], "type": "implementation",
+        "assigned_role": "backend-developer", "acceptance_refs": ["AC-1"], "required_inputs": [],
+        "allowed_scope": ["src/"], "forbidden_scope": ["secrets/"], "expected_outputs": ["src/x.py"],
+        "dependencies": [], FAIL_CLASS_FIELD: sorted(FAIL_CLASSES)[0],
+    }
+    with pytest.raises(StateError, match="fail classification"):
+        dispatch.create_task(state, order)
+
+
+def test_a_legacy_key_in_a_typed_body_opens_no_door(state):
+    """BUG-0237 / H155 (DEC-0103), the correction of a measured hole: the goal-size exemption is
+    the PATH the record came through, never a key in the body.
+
+    MEASURED (verifier round 1, F1) against the shipped CLI: `capture PR` with
+    `"class":"feature"` was refused, and the same body with a hand-written
+    `"legacy_fields":{"legacy_id":"V1-1"}` returned `PR-0001 DRAFT`, rc 0 -- so one extra key bought
+    any class at all, at both doors, and `migrate-goal-classes` could be undone by the next typed
+    body. The exemption now rides on `imported=`, which only `migrate` passes, and the provenance
+    field is refused in an ordinary body the way `status` is.
+
+    RED without either half: with the body-read exemption back, the second capture below returns an
+    item; with only the vocabulary bound to the path, the third one writes the provenance of a
+    record that was never imported.
+    """
+    smuggled = dict(PR_FIELDS, **{"class": "feature",
+                                  "legacy_fields": {"legacy_id": "V1-1", "legacy_type": "PRD"}})
+    with pytest.raises(StateError, match="unknown PR class"):
+        state.capture("PR", smuggled)
+    with pytest.raises(StateError, match="written by the import path alone"):
+        state.capture("PR", dict(smuggled, **{"class": "normal"}))
+
+    goal = state.capture("PR", dict(PR_FIELDS))
+    with pytest.raises(StateError, match="written by the import path alone"):
+        state.update_item(goal["id"], {"legacy_fields": {"legacy_id": "V1-1"}, "class": "feature"})
+    assert state.read_item(goal["id"])["class"] == "normal"
+    assert "legacy_fields" not in state.read_item(goal["id"])
+
+    # ...and the import path itself still takes the value it FOUND
+    imported = state.capture("PR", smuggled, imported=True)
+    assert state.read_item(imported["id"])["class"] == "feature"

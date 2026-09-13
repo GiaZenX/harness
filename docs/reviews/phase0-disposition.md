@@ -747,17 +747,36 @@ Träger, den die Codex-Sitzung hat. Zwei Hooks sagen das in ihrem eigenen Kopfko
 **5 der 36 wirksamen Lizenzen ruhen auf einem Mechanismus, den Codex nicht starten kann**
 (4, 15, 41, 54, 56).
 
-**Gefragt wird nach dem SYMBOL, nicht nach der Datei, und das ist der Unterschied zwischen drei und
-fünf.** Das Mechanismus-Feld nennt `<datei>.py:<symbol>`; `gate_dispatch.py` ist auf fünf Ereignisse
-registriert, zwei davon (`Stop`, `SubagentStart`) hat Codex — die DATEI läuft dort also. Ihr
-eigenes `HANDLERS` bindet aber `handle_pre_tool_use` allein an `PreToolUse('Agent|Task')`, und
-`_refuse_untrusted_bundle` wird nur aus diesem Handler gerufen. Genau diese zwei Symbole nennen die
-Zeilen 4 und 54; eine Zählung über die Datei liess beide draussen, während der Absatz daneben
-`guard_agent_spawn`s „on Codex no spawn hook runs at all" zitierte.
-`test_shortening_net.py:_events_reaching` liest die Zuordnung aus dem Hook selbst (Handler-Map plus
-Aufrufgraph) und ist bewusst permissiv, wo er nicht einengen kann: ein Symbol, das keine
-Handler-Map führt oder das kein Handler erreicht (`main`), wird gegen ALLE Registrierungen des
-Hooks beurteilt.
+**Diese Zahl stand am 2026-09-13 kurz auf 3, und das war falsch — die Korrektur ist die Messung
+wert, weil sie zeigt, woran eine solche Zahl hängt.** DEC-0107 hat `gate_dispatch` zusätzlich auf
+`PreToolUse` mit dem Matcher `Bash|PowerShell` registriert (die Fehlerklassen-Regel auf einer
+Shell-Zeile). Ein Leser, der nur nach dem EREIGNIS verengt, schloss daraus, dass
+`handle_pre_tool_use` und das daraus gerufene `_refuse_untrusted_bundle` auf Codex erreichbar
+geworden seien, und liess die Zeilen 4 und 54 aus der Zählung fallen. Gemessen mit einer
+Marker-Datei **aus der Funktion heraus**, gegen echte Hook-Prozesse an einem Piloten (Prüfrunde 1
+zu TSK-0149): `entered: False` bei jeder Bash-Nutzlast, `entered: True` nur bei einer Agent-Nutzlast
+— denn `handle_pre_tool_use` beendet den Haken, sobald das Werkzeug nicht in `SPAWN_TOOLS` steht.
+Die neue Registrierung bringt also genau EIN Symbol nach Codex, nämlich das VOR der Wache
+(`_refuse_a_classification_the_judged_role_wrote`), und keine der beiden Zeilen. Der Leser verengt
+seither auch an der Werkzeugklasse (`test_shortening_net.py:_reach_of`), und die Zahl kommt aus
+ihm, nicht aus diesem Absatz.
+
+**Gefragt wird nach dem SYMBOL, nicht nach der Datei, und das ist der Unterschied, den die
+Zählung überhaupt erst messbar macht.** Das Mechanismus-Feld nennt `<datei>.py:<symbol>`;
+`gate_dispatch.py` ist auf sechs Ereignisse registriert, zwei davon (`Stop`, `SubagentStart`) hat
+Codex — die DATEI läuft dort also. Ihr eigenes `HANDLERS` bindet aber `handle_post_tool_use` allein
+an `PostToolUse('Agent|Task')` und `handle_spawn_failure` an `PostToolUseFailure`, ein Ereignis, das
+Codex gar nicht kennt: beide Symbole sind dort unerreichbar, während die Datei es nicht ist. Bis zur
+DEC-0107-Registrierung genügte dafür die Datei-Frage nicht, seither genügt auch die Ereignis-Frage
+nicht: `handle_pre_tool_use` und `_refuse_untrusted_bundle` (die Zeilen 4 und 54) stehen auf einem
+Ereignis, das Codex hat, hinter einer Werkzeug-Wache, die Codex nicht bedienen kann.
+`test_shortening_net.py:_reach_of` liest deshalb DREI Dinge aus dem Hook selbst — Handler-Karte,
+Aufrufgraph und die `tool_name`-Wachen im Rumpf — und ist bewusst permissiv, wo er nicht einengen
+kann: ein Symbol, das keine Handler-Karte führt oder das kein Handler erreicht (`main`), wird gegen
+ALLE Registrierungen des Hooks beurteilt. In der anderen Richtung ist er bewusst STRENG: ein Symbol,
+in dessen eigenem Rumpf eine Wache steht, gilt als von ihr verengt, auch wenn die ersten Anweisungen
+davor für jedes Werkzeug laufen — denn wofür die Paritätsmatrix es zitiert, steht hinter der Wache,
+und die beruhigende Richtung ist hier so verboten wie die alarmierende.
 Eine Zeile zählt, sobald EINER ihrer genannten Mechanismen draussen ist — das Feld nennt, was die
 Regel übernimmt, und eine Hälfte, die Codex nicht starten kann, ist Prosa, die die Codex-Sitzung
 weiter braucht (Zeile 54 ist genau diese Form: `kit_trust_state.py:transition` läuft dort,
@@ -1780,6 +1799,20 @@ nicht gelesen.
 
 
 - 2026-09-12 · dev-team · `hooks/ENFORCEMENT.md` · §1. What each mechanism refuses — **CHANGED** · verankert clear_handover_marker, format_on_write, gate_approval, gate_design_sighted, gate_dispatch, gate_git, gate_memory_complete, gate_packaging_decision, gate_pipeline, gate_push_token, gate_shell_hygiene, gate_subagent_output, gate_test_coverage, gate_test_scope, gate_write_scope, guard_agent_spawn, guard_guidelines, guard_harness_selfmod, guard_memory_budget, guard_no_adhoc, guard_pm_scope, guard_question_context, guard_scratchpad_ref, guard_yaml_valid, kit_trust_state, notify_agent_events, session_status · Grund: BUG-0294: the gate_design_sighted row says what the gate now does; it reads the render record's conformance.findings and refuses a draft that has them, and still does not read undecided. No rule classified behalten is lost; the row's old sentence claimed a non-judgement the code no longer makes. Written by stream C (TSK-0143) on stream B's behalf, because the journal lands under docs/.
+
+- 2026-09-13 · dev-team · `constitution/AGENTS.md` · §11. Presets & models (full mechanics: PM skill "Models & escalation") — **CHANGED** · verankert gate_dispatch, session_status · Grund: TSK-0147: DEC-0107 (the fail classification is a field only the verifying role writes, gate_dispatch measures the writer) in constitution 11 and the three QA role texts; the gate_dispatch row of every ENFORCEMENT.md names the new shell duty; DEC-0104 and DEC-0109 get their sentence in the office lead skill. No rule classified behalten is lost: 11 keeps the escalation duty and gains who may write the classification.
+- 2026-09-13 · dev-team · `hooks/ENFORCEMENT.md` · §1. What each mechanism refuses — **CHANGED** · verankert clear_handover_marker, format_on_write, gate_approval, gate_design_sighted, gate_dispatch, gate_git, gate_memory_complete, gate_packaging_decision, gate_pipeline, gate_push_token, gate_shell_hygiene, gate_subagent_output, gate_test_coverage, gate_test_scope, gate_write_scope, guard_agent_spawn, guard_guidelines, guard_harness_selfmod, guard_memory_budget, guard_no_adhoc, guard_pm_scope, guard_question_context, guard_scratchpad_ref, guard_yaml_valid, kit_trust_state, notify_agent_events, session_status · Grund: TSK-0147: DEC-0107 (the fail classification is a field only the verifying role writes, gate_dispatch measures the writer) in constitution 11 and the three QA role texts; the gate_dispatch row of every ENFORCEMENT.md names the new shell duty; DEC-0104 and DEC-0109 get their sentence in the office lead skill. No rule classified behalten is lost: 11 keeps the escalation duty and gains who may write the classification.
+- 2026-09-13 · office-team · `hooks/ENFORCEMENT.md` · §1. What each mechanism refuses — **CHANGED** · verankert _gate, clear_handover_marker, gate_approval, gate_dispatch, gate_filing, gate_ledger_valid, gate_proc_approved, gate_push_token, gate_second_booking, gate_second_reading, gate_shell_hygiene, gate_subagent_output, gate_test_scope, gate_write_scope, guard_agent_spawn, guard_fs_tripwire, guard_harness_selfmod, guard_memory_budget, guard_no_adhoc, guard_pm_scope, guard_question_context, guard_scratchpad_ref, guard_yaml_valid, kit_trust_state, notify_agent_events, record_booking_reading, record_filing_reading, session_status · Grund: TSK-0147: DEC-0107 (the fail classification is a field only the verifying role writes, gate_dispatch measures the writer) in constitution 11 and the three QA role texts; the gate_dispatch row of every ENFORCEMENT.md names the new shell duty; DEC-0104 and DEC-0109 get their sentence in the office lead skill. No rule classified behalten is lost: 11 keeps the escalation duty and gains who may write the classification.
+- 2026-09-13 · office-team · `skills/office-manager/SKILL.md` · §What the archive's four-eyes wall does NOT bind (`DEC-0109`) — **NEW** · verankert gate_second_reading · Grund: TSK-0147: DEC-0107 (the fail classification is a field only the verifying role writes, gate_dispatch measures the writer) in constitution 11 and the three QA role texts; the gate_dispatch row of every ENFORCEMENT.md names the new shell duty; DEC-0104 and DEC-0109 get their sentence in the office lead skill. No rule classified behalten is lost: 11 keeps the escalation duty and gains who may write the classification.
+- 2026-09-13 · office-team · `skills/office-manager/SKILL.md` · §Work loop (every cycle) — **CHANGED** · verankert gate_proc_approved, gate_write_scope, session_status · Grund: TSK-0147: DEC-0107 (the fail classification is a field only the verifying role writes, gate_dispatch measures the writer) in constitution 11 and the three QA role texts; the gate_dispatch row of every ENFORCEMENT.md names the new shell duty; DEC-0104 and DEC-0109 get their sentence in the office lead skill. No rule classified behalten is lost: 11 keeps the escalation duty and gains who may write the classification.
+- 2026-09-13 · research-team · `constitution/AGENTS.md` · §11. Presets & models (full mechanics: PM skill "Models & escalation") — **CHANGED** · verankert gate_dispatch, session_status · Grund: TSK-0147: DEC-0107 (the fail classification is a field only the verifying role writes, gate_dispatch measures the writer) in constitution 11 and the three QA role texts; the gate_dispatch row of every ENFORCEMENT.md names the new shell duty; DEC-0104 and DEC-0109 get their sentence in the office lead skill. No rule classified behalten is lost: 11 keeps the escalation duty and gains who may write the classification.
+- 2026-09-13 · research-team · `hooks/ENFORCEMENT.md` · §1. What each mechanism refuses — **CHANGED** · verankert clear_handover_marker, format_on_write, gate_approval, gate_dispatch, gate_git, gate_memory_complete, gate_pipeline, gate_push_token, gate_shell_hygiene, gate_subagent_output, gate_test_scope, gate_write_scope, guard_agent_spawn, guard_guidelines, guard_harness_selfmod, guard_memory_budget, guard_no_adhoc, guard_pm_scope, guard_question_context, guard_scratchpad_ref, guard_yaml_valid, kit_trust_state, notify_agent_events, session_status · Grund: TSK-0147: DEC-0107 (the fail classification is a field only the verifying role writes, gate_dispatch measures the writer) in constitution 11 and the three QA role texts; the gate_dispatch row of every ENFORCEMENT.md names the new shell duty; DEC-0104 and DEC-0109 get their sentence in the office lead skill. No rule classified behalten is lost: 11 keeps the escalation duty and gains who may write the classification.
+
+- 2026-09-13 · office-team · `skills/office-manager/SKILL.md` · §What the archive's four-eyes wall does NOT bind (`DEC-0109`) — **CHANGED** · verankert gate_second_reading · Grund: TSK-0147 rework 1 (verifier F7): the office lead skill's four-eyes section points at BUG-0164 for how many over-refusals there are instead of carrying the number a second time.
+
+- 2026-09-13 · dev-team · `constitution/AGENTS.md` · §0. Authority & who you are (READ FIRST) — **CHANGED** · verankert gate_write_scope, guard_harness_selfmod, guard_memory_budget · Grund: TSK-0149 seam (b): par.0's command surface list gains withdraw-request and migrate-goal-classes, the two shipped kernel commands it did not name; no rule of the section is added, changed or lost.
+- 2026-09-13 · office-team · `constitution/AGENTS.md` · §0. Authority & who you are (READ FIRST) — **CHANGED** · verankert gate_write_scope, guard_memory_budget · Grund: TSK-0149 seam (b): par.0's command surface list gains withdraw-request and migrate-goal-classes, the two shipped kernel commands it did not name; no rule of the section is added, changed or lost.
+- 2026-09-13 · research-team · `constitution/AGENTS.md` · §0. Authority & who you are (READ FIRST) — **CHANGED** · verankert gate_write_scope, guard_harness_selfmod, guard_memory_budget · Grund: TSK-0149 seam (b): par.0's command surface list gains withdraw-request and migrate-goal-classes, the two shipped kernel commands it did not name; no rule of the section is added, changed or lost.
 ## 10. Lead-Paket-Grössenjournal (append-only)
 
 Jede übernommene Änderung der Lead-Paket-Grösse, eine Zeile pro Kit, geschrieben von
@@ -2084,3 +2117,10 @@ gerade entfernten. Wer eine Grenze anhebt, schreibt hier hin, wofür.
 - 2026-09-11 · dev-team · **GREW** 60259 B → 61064 B (+805) · Grund: TSK-0139 for PR-0012 AC-3: +805 bytes per kit for the shared hand duty -- a terminal line handed to the user is not the route around a gate (BUG-0080, BUG-0081 AC-3), one paragraph in each constitution beside the report-gap route it sends people to instead
 - 2026-09-11 · office-team · **GREW** 65630 B → 66435 B (+805) · Grund: TSK-0139 for PR-0012 AC-3: +805 bytes per kit for the shared hand duty -- a terminal line handed to the user is not the route around a gate (BUG-0080, BUG-0081 AC-3), one paragraph in each constitution beside the report-gap route it sends people to instead
 - 2026-09-11 · research-team · **GREW** 62089 B → 62894 B (+805) · Grund: TSK-0139 for PR-0012 AC-3: +805 bytes per kit for the shared hand duty -- a terminal line handed to the user is not the route around a gate (BUG-0080, BUG-0081 AC-3), one paragraph in each constitution beside the report-gap route it sends people to instead
+
+- 2026-09-13 · dev-team · **SHRANK** 61064 B → 61044 B (-20) · Grund: TSK-0147 / DEC-0107: constitution 11 of dev and research says who may write the fail classification instead of claiming the classification does not hold the climb back; the new sentence is SHORTER than the one it replaces, so both ceilings drop (dev -20 B, research -18 B). The command itself stands in the QA role skills, which are not part of this package.
+- 2026-09-13 · research-team · **SHRANK** 62894 B → 62876 B (-18) · Grund: TSK-0147 / DEC-0107: constitution 11 of dev and research says who may write the fail classification instead of claiming the classification does not hold the climb back; the new sentence is SHORTER than the one it replaces, so both ceilings drop (dev -20 B, research -18 B). The command itself stands in the QA role skills, which are not part of this package.
+
+- 2026-09-13 · dev-team · **GREW** 61044 B → 61088 B (+44) · Grund: TSK-0149 seam (b): par.0 of each constitution names two commands it was missing (withdraw-request, migrate-goal-classes); tools/test_hooks.py::test_every_span_that_presents_the_command_surface_names_all_of_it is red without them, so the +44 B is the command surface being complete, not new prose.
+- 2026-09-13 · office-team · **GREW** 66435 B → 66479 B (+44) · Grund: TSK-0149 seam (b): par.0 of each constitution names two commands it was missing (withdraw-request, migrate-goal-classes); tools/test_hooks.py::test_every_span_that_presents_the_command_surface_names_all_of_it is red without them, so the +44 B is the command surface being complete, not new prose.
+- 2026-09-13 · research-team · **GREW** 62876 B → 62920 B (+44) · Grund: TSK-0149 seam (b): par.0 of each constitution names two commands it was missing (withdraw-request, migrate-goal-classes); tools/test_hooks.py::test_every_span_that_presents_the_command_surface_names_all_of_it is red without them, so the +44 B is the command surface being complete, not new prose.

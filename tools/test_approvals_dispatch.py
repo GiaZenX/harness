@@ -276,7 +276,7 @@ def test_a_hypothesis_cannot_be_given_a_scope_approval(state):
     `_SCOPE_FIELDS`, and `HASHED_FIELDS` names no HYP field, so no later edit ever invalidated it.
     The control in the same breath is the question above it, whose scope approval is real.
     """
-    state.capture("RQ", {"title": "q", "class": "exploratory", "question": "why", "motivation": "m",
+    state.capture("RQ", {"title": "q", "class": "normal", "question": "why", "motivation": "m",
                          "acceptance_criteria": [{"id": "AC-1", "text": "x"}],
                          "out_of_scope": [], "priority": "high"})
     state.capture("HYP", {"derives_from": "RQ-0001", "statement": "s",
@@ -4648,17 +4648,24 @@ def test_a_project_whose_kit_delivery_cannot_be_read_says_so(tmp_path, monkeypat
 
 
 def test_a_goal_of_an_unknown_class_is_asked_for_the_architect_step(state):
-    """FR-0085/DEC-0072: the EXEMPTION is the closed set, and an unknown class is asked.
+    """FR-0085/DEC-0072/DEC-0103: the EXEMPTION is the closed set, and an unknown class is asked.
 
-    MEASURED before this was written: `class` has no vocabulary anywhere in this kernel -- the
-    shipped suite alone captures roots with `feature`, `normal`, `research`, `exploratory` and
-    `technical_enabler`, and no schema constrains the value. A rule spelled as "class in (normal,
-    large)" would therefore SKIP the duty for every value nobody thought of, which is the failure
-    an unrecognised value always is: it does not fail a check, it skips one.
+    MEASURED before this was written: `class` had no vocabulary anywhere in this kernel, so a rule
+    spelled as "class in (normal, large)" would SKIP the duty for every value nobody thought of --
+    the failure an unrecognised value always is: it does not fail a check, it skips one.
 
-    So this asks with a class no map knows, and the refusal has to name the architect step.
+    DEC-0103 closed the vocabulary at the two doors that WRITE a goal, which is why this test no
+    longer captures the stray but writes it into the stored item the way a store from before that
+    decision carries it. That is the case the direction is still about: `SR_EXEMPT_CLASSES` is
+    derived from the vocabulary now, and a word the vocabulary does not know is in neither -- so it
+    is ASKED, not skipped. Capturing it instead is measured next door
+    (`test_state.py::test_a_goal_class_outside_the_vocabulary_is_refused_at_both_doors`).
     """
-    pr = state.capture("PR", dict(PR_FIELDS, **{"class": "a class nobody declared"}))
+    pr = state.capture("PR", dict(PR_FIELDS))
+    stored = state.active_path(pr["id"])
+    body = state._read_yaml(stored)
+    body["class"] = "a class nobody declared"
+    state._write_yaml_atomic(stored, body)
     approve_scope(state, pr["id"])
     task = dispatch.create_task(state, dict(TSK_FIELDS, product_requirement=pr["id"],
                                             derives_from=pr["id"]))
@@ -4837,7 +4844,7 @@ def test_the_remedy_for_an_already_triaged_wish_names_what_it_became(state):
 
 
 def test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it(state):
-    """The remainder H155 carries, written as a test so it rots visibly instead of quietly.
+    """The remainder BUG-0303 / H218 carries, written as a test so it rots visibly, not quietly.
 
     THE CHAIN, and it is the one the round-3 verification measured through the shipped hook rather
     than the one the comment first claimed. `_carries_its_own_criteria` asks the TYPE, so a `BUG`
@@ -4851,8 +4858,10 @@ def test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it(sta
     remainder: no reference at all, and a reference that exists nowhere.
 
     THIS TEST IS WRITTEN TO GO RED. The day the exemption asks the VALUE instead of the type -- or
-    the resolution is narrowed to the origin -- the first assertion fails, and H155's second class
-    is the paragraph to correct.
+    the resolution is narrowed to the origin -- the first assertion fails, and BUG-0303 / H218 is
+    the entry to correct. It was H155's second class until DEC-0103 closed the other half and
+    BUG-0237 was closed on it; the class got its own record so that closing the parent orphans no
+    pointer.
     """
     pr = state.capture("PR", dict(PR_FIELDS))
     approve_scope(state, pr["id"])
@@ -4893,7 +4902,7 @@ def test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it(sta
         spawn(order(["AC-9"], "src/ghost/**"))
     # case 3: a reference that exists ON THE ROOT -- granted through both. This is the remainder.
     assert spawn(order(["AC-1"], "src/remainder/**")), (
-        "H155's second class no longer holds -- correct the entry, this is not a defect in the "
+        "BUG-0303 / H218 no longer holds -- correct the entry, this is not a defect in the "
         "test")
 
 
@@ -5559,3 +5568,226 @@ def test_the_batch_flag_belongs_to_the_kinds_whose_resolver_reads_it():
     assert cli.kinds_reading_argument(cli.BATCH_ARGUMENT) == frozenset(
         {approvals.VERIFICATION_KIND, approvals.HOLE_EXCEPTION_KIND})
     assert cli.kinds_reading_argument("no-such-argument") == frozenset()
+
+
+# -- taking a question back (BUG-0302) ------------------------------------------------------------
+
+def test_a_withdrawn_request_stops_being_open_and_mints_nothing(state, capsys):
+    """BUG-0302 AC-1/AC-2: the lead can take back a question, and a late click mints nothing.
+
+    THE MEASURED OCCASION: eleven batch requests the user had rejected in prose stood in
+    `approvals/pending/` with no way out, and `gate_approval` announced them to her at every later
+    question -- the apparatus nagging about questions nobody was going to answer.
+
+    THREE THINGS IN ONE RUN, because the risk of a withdrawal is exactly what it takes with it: the
+    question stops being open, the RECORD stays (in `approvals/withdrawn/`, where every other end
+    of an approval's life is kept), and a click that arrives afterwards mints nothing and is told
+    the truth -- the question was taken back, not missed.
+
+    RED without `withdraw_request`: there is no command at all, which is the bug.
+    """
+    from kernel import cli
+    pr = state.capture("PR", dict(PR_FIELDS))
+    request = approvals.create_pending_request(state, "scope", pr["id"])
+    assert [one["request_id"] for one in approvals.open_requests(state)] == [request["request_id"]]
+
+    assert cli.main(["--root", state.root, "withdraw-request", request["request_id"],
+                     "--reason", "replaced by the batch question"]) == 0
+    output = capsys.readouterr().out
+    assert "replaced by the batch question" in output, output
+
+    assert approvals.open_requests(state) == [], "a withdrawn question is still counted as open"
+    assert not os.path.exists(_pending(state, request["request_id"]))
+    record = state._read_yaml(approvals._request_path(state, request["request_id"], withdrawn=True))
+    assert record["withdrawn_reason"] == "replaced by the batch question"
+    assert record["withdrawn_at"], "the record does not say when"
+
+    with pytest.raises(ApprovalError) as refusal:
+        approvals.pending_request(state, request["request_id"])
+    assert "zurückgenommen" in (refusal.value.user_text or ""), refusal.value.user_text
+    assert not state.read_item(pr["id"])["approval_ref"], "a withdrawn question still minted"
+
+
+def test_withdrawing_needs_a_reason_and_only_works_on_a_pending_question(state):
+    """The two refusals that keep the record worth having.
+
+    A withdrawal without a reason is a file the next reader has to guess about; and a question that
+    already MINTED is not withdrawable at all -- that approval is taken back through `revoke`,
+    which is a different act with a different record. Both are refused rather than absorbed.
+    """
+    pr = state.capture("PR", dict(PR_FIELDS))
+    request = approvals.create_pending_request(state, "scope", pr["id"])
+    with pytest.raises(ApprovalError, match="needs a reason"):
+        approvals.withdraw_request(state, request["request_id"], "   ")
+    mint_via_hook(state, request)
+    with pytest.raises(ApprovalError, match="no pending approval request"):
+        approvals.withdraw_request(state, request["request_id"], "too late")
+
+
+def test_every_refusal_for_a_missing_request_names_every_end_it_has(state):
+    """R4: three doors answer "there is no pending request", and all three name the same ends.
+
+    THE MEASURED OCCASION: `mint`'s sentence still counted three ends the day the fourth
+    (`withdrawn`) was built, because each of the three doors spelled the list out for itself. The
+    ends that are a PLACE are now derived from `_request_path`'s own flags in one helper, so a new
+    directory reaches every sentence at once.
+
+    BOTH ENDS, which is what makes this more than a spelling check: the expected words are read off
+    the signature of the path helper -- add a flag there and this node demands it in all three
+    refusals -- and the refusals themselves are RAISED by calling the shipped doors, not read out
+    of the source.
+
+    RED with any of the three sentences spelling its own list: the flag it does not name is missing
+    from its message.
+    """
+    import inspect
+
+    ends = [name for name in inspect.signature(approvals._request_path).parameters
+            if name not in ("state", "request_id")]
+    assert ends, "the path helper names no end at all -- the derivation reads nothing"
+
+    doors = {
+        "mint": lambda: approvals.mint(state, "deadbeefdeadbeef", "Freigeben"),
+        "pending_request": lambda: approvals.pending_request(state, "deadbeefdeadbeef"),
+        "withdraw_request": lambda: approvals.withdraw_request(state, "deadbeefdeadbeef", "why"),
+    }
+    for name, call in doors.items():
+        with pytest.raises(ApprovalError) as refusal:
+            call()
+        message = str(refusal.value)
+        assert "no pending approval request" in message, (name, message)
+        for end in ends:
+            assert end in message, "%s does not name the %r end: %s" % (name, end, message)
+
+
+def test_a_request_whose_items_are_all_archived_is_reported_dead(state, capsys):
+    """BUG-0302 AC-3: still live by the clock, answerable by nobody -- and the sweep says so.
+
+    The eleven the bug measured named holes that had been triaged and archived in the meantime. The
+    clock knows nothing about that, so the sweep kept them silently; a click would have failed at
+    the walk. Reported and NOT removed: what to do about a dead question is the lead's decision,
+    and `withdraw-request` is the door.
+
+    RED without `is_dead`: the dead line is empty while the request is listed as open.
+    """
+    from kernel import cli
+    pr = state.capture("PR", dict(PR_FIELDS))
+    gone = state.capture("BUG", {"title": "a defect", "related_pr": pr["id"], "observed": "o",
+                                 "expected": "e", "repro": "r", "severity": "low",
+                                 "acceptance_criteria": [{"id": "AC-1", "text": "t"}]})
+    about_the_bug = approvals.create_pending_request(state, "scope", gone["id"])
+    about_the_goal = approvals.create_pending_request(state, "scope", pr["id"])
+    state.transition(gone["id"], "REJECTED")
+    state.archive(gone["id"])
+
+    assert cli.main(["--root", state.root, "sweep-requests"]) == 0
+    output = capsys.readouterr().out
+    dead_line = [line for line in output.splitlines() if line.startswith("dead (")][0]
+    assert about_the_bug["request_id"] in dead_line, dead_line
+    assert about_the_goal["request_id"] not in dead_line, dead_line
+    assert os.path.exists(_pending(state, about_the_bug["request_id"])), (
+        "a dead request was removed by a command that says it reports them")
+
+
+def test_the_stale_sweep_takes_back_what_has_stood_too_long_and_leaves_the_rest(state, capsys):
+    """`--stale <hours>`: the caller's judgement about a live question, recorded as a withdrawal.
+
+    NOT A DELETION, and that is the whole difference to the expiry half: an expired request can
+    never mint, so removing it takes nothing away; a stale one is still answerable, so what happens
+    to it is recorded where a late clicker's answer can find it.
+
+    RED without the `stale` branch: the old question is still open after the run.
+    """
+    from kernel import cli
+    pr = state.capture("PR", dict(PR_FIELDS))
+    old = approvals.create_pending_request(state, "scope", pr["id"])
+    fresh = approvals.create_pending_request(state, "scope", pr["id"])
+    aged = state._read_yaml(_pending(state, old["request_id"]))
+    aged["created"] = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(time.time() - 72 * 3600))
+    state._write_yaml_atomic(_pending(state, old["request_id"]), aged)
+
+    assert cli.main(["--root", state.root, "sweep-requests", "--stale", "24"]) == 0
+    output = capsys.readouterr().out
+    assert old["request_id"] in [line for line in output.splitlines()
+                                 if line.startswith("taken back")][0]
+    assert not os.path.exists(_pending(state, old["request_id"]))
+    assert os.path.exists(_pending(state, fresh["request_id"])), "a fresh question was swept"
+    record = state._read_yaml(approvals._request_path(state, old["request_id"], withdrawn=True))
+    assert "24" in record["withdrawn_reason"], record["withdrawn_reason"]
+    # ...and a request whose own stamp cannot be read is left alone rather than guessed about
+    assert approvals.stale_age_seconds({"created": "whenever"}) is None
+
+
+def test_the_stale_sweep_reports_what_it_really_withdrew_and_survives_one_that_cannot_be(state):
+    """BUG-0302, F8: a cleanup whose report is untrue is worse than one that does less.
+
+    TWO FAULTS IN ONE RUN, both measured by the verifier of round 1: the sweep reported the ids it
+    MEANT to take back rather than the ones it did, and one id that cannot be withdrawn any more --
+    answered or gone between the read and the loop -- ended the whole run with an exception, so
+    part was withdrawn and the caller got no list at all.
+
+    The second request here is withdrawn out from under the sweep, exactly as a parallel session
+    would: the run has to finish, name the one it took back, and name the one it could not.
+
+    RED without the `try`: `withdraw_request` raises out of the sweep; RED without the split
+    between `stale` and `withdrawn`: the gone id is reported as taken back.
+    """
+    pr = state.capture("PR", dict(PR_FIELDS))
+    keeps = approvals.create_pending_request(state, "scope", pr["id"])
+    goes = approvals.create_pending_request(state, "scope", pr["id"])
+    old = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(time.time() - 72 * 3600))
+    for request_id in (keeps["request_id"], goes["request_id"]):
+        aged = state._read_yaml(_pending(state, request_id))
+        aged["created"] = old
+        state._write_yaml_atomic(_pending(state, request_id), aged)
+
+    # the file disappears between the sweep's read and its withdrawal loop -- the way a second
+    # session answering the question would take it
+    original = approvals.withdraw_request
+
+    def vanish_first(target, request_id, reason):
+        if request_id == goes["request_id"]:
+            os.remove(_pending(state, request_id))
+        return original(target, request_id, reason)
+
+    approvals.withdraw_request = vanish_first
+    try:
+        swept = approvals.sweep_expired_requests(state, stale_hours=24)
+    finally:
+        approvals.withdraw_request = original
+
+    assert swept["withdrawn"] == [keeps["request_id"]], swept["withdrawn"]
+    assert swept["not_withdrawable"] and goes["request_id"] in swept["not_withdrawable"][0]
+    # ...and it is NOT reported as still open either: that line means "answering this still mints",
+    # and the measured case for this branch is a question that is gone
+    assert goes["request_id"] not in swept["kept"], swept["kept"]
+    assert not os.path.exists(_pending(state, keeps["request_id"]))
+    assert approvals.open_requests(state) == []
+
+
+def test_a_question_taken_back_on_this_run_is_not_reported_dead_in_the_same_breath(state, capsys):
+    """F8, cosmetic and measured: two lines about one id, one of them out of date.
+
+    The dead list is read BEFORE the withdrawal loop, so a stale request whose items are archived
+    was named under both `taken back` and `dead` -- and a reader cannot tell which line is current.
+
+    RED without the subtraction: the id stands in both lines.
+    """
+    from kernel import cli
+    pr = state.capture("PR", dict(PR_FIELDS))
+    gone = state.capture("BUG", {"title": "a defect", "related_pr": pr["id"], "observed": "o",
+                                 "expected": "e", "repro": "r", "severity": "low",
+                                 "acceptance_criteria": [{"id": "AC-1", "text": "t"}]})
+    request = approvals.create_pending_request(state, "scope", gone["id"])
+    aged = state._read_yaml(_pending(state, request["request_id"]))
+    aged["created"] = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(time.time() - 72 * 3600))
+    state._write_yaml_atomic(_pending(state, request["request_id"]), aged)
+    state.transition(gone["id"], "REJECTED")
+    state.archive(gone["id"])
+
+    assert cli.main(["--root", state.root, "sweep-requests", "--stale", "24"]) == 0
+    lines = capsys.readouterr().out.splitlines()
+    taken = [line for line in lines if line.startswith("taken back")][0]
+    dead = [line for line in lines if line.startswith("dead (")][0]
+    assert request["request_id"] in taken, taken
+    assert request["request_id"] not in dead, dead

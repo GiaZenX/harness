@@ -755,6 +755,12 @@ _WRITERS_THE_BOARD_DOES_NOT_RENDER = {
                                "no card",
     ("documents.py", "apply_revision"): "the same kit DOCUMENT through the same refusal, on the "
                                         "route that may replace and delete (FR-0067)",
+    ("approvals.py", "withdraw_request"): "approvals/withdrawn/ -- the record that a pending "
+                                          "QUESTION was taken back (BUG-0302). Not an item, no "
+                                          "ACTIVE_DIRS home and therefore no card, exactly like "
+                                          "the pending file it replaces; what the board shows of "
+                                          "an approval request it reads through `open_requests` "
+                                          "at render time, not out of the index",
     ("presets.py", "_after_a_failed_install"): "a .claude marker file",
     ("kitupdate.py", "ensure_restart_is_forced"): "a .claude marker file",
 }

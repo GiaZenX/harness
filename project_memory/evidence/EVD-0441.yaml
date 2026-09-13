@@ -1,0 +1,25 @@
+id: EVD-0441
+kind: test
+related:
+- BUG-0260
+result: pass
+summary: 'SUPERSEDES EVD-0433, whose claim was untested and in one part untrue. Verifier
+  round 1 (F3/F4) measured that no test ran the CLI at all; writing that test found
+  the command DEAD -- evidence --kind test --result fail --fail-class mechanical exited
+  1, ''capture EVD carries fail_class'', because the pair was refused for every type
+  instead of for the type whose ladder reads it. Now: the EVD carries its own verdict,
+  the ORDER is refused, the stamp names the role the bound lease says is running (measured
+  through cli.main), an unbound lease names no writer, the write re-asks the status
+  under the lock and bumps the revision.'
+artifact_refs:
+- staging/TSK-0146/protocol.md
+run_command: python -B -m pytest tools/test_kernel.py::test_the_evidence_command_stamps_the_class_with_the_role_the_lease_names
+  tools/test_ladder.py::test_a_mechanical_fail_does_not_climb_and_an_ordinary_one_does
+  tools/test_ladder.py::test_a_classification_by_the_role_under_judgement_buys_nothing
+  tools/test_ladder.py::test_an_unbound_lease_names_no_writing_role tools/test_ladder.py::test_a_stamp_lands_only_while_the_run_it_judges_is_still_failed
+  tools/test_ladder.py::test_the_stamp_is_a_change_the_revision_counts tools/test_ladder.py::test_only_a_judging_role_may_classify_and_never_the_one_under_judgement
+  tools/test_state.py::test_the_fail_classification_is_refused_at_both_doors -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T01:45:10'

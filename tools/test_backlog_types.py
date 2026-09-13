@@ -909,3 +909,144 @@ def test_the_hole_contract_is_the_reading_side_and_capture_still_asks_the_full_o
     assert not [f for f in report.validate_state(state)
                 if f["item"] == stored["id"] and "missing" in f["message"]], (
         "the validator asked a stored hole for the fields the hole contract does not demand")
+
+
+# -- the goal-size vocabulary's two-ended tripwire (DEC-0103) ---------------------------------
+
+def _goal_class_signature(word):
+    """What the RUNNING readers can tell about this word: one answer per property they ask for."""
+    import kernel.backlog_types as bt
+
+    return tuple(sorted((prop, word in bt.goal_classes_where(prop))
+                        for prop in bt.goal_class_properties_asked()))
+
+
+def test_every_goal_size_word_is_told_apart_by_a_property_a_reader_asks():
+    """BUG-0237 / H155, END ONE of DEC-0103's tripwire: a word no reader can tell from another
+    is a dead word.
+
+    The readers are IMPORTED first and then asked what they asked for -- `dispatch` derives its
+    architect-step exemption and its effort word, `report` its user-story duty -- so this measures
+    the code that runs and not a list kept beside it. Two ways to make it red, and both are the
+    defect it is for: add a fifth word that behaves exactly like `normal` (it buys nothing and
+    nobody can see it), or stop READING the property that told one word from another (the word
+    survives in the vocabulary while the rule it was for is gone).
+    """
+    import kernel.backlog_types as bt
+    from kernel import dispatch, report        # noqa: F401 -- importing IS the measurement here
+
+    assert bt.goal_class_properties_asked(), "no reader asked the vocabulary anything"
+    seen = {}
+    for word in sorted(bt.GOAL_CLASSES):
+        signature = _goal_class_signature(word)
+        assert signature not in seen, (
+            "%r and %r are the same word to every reader that asks (%s): one of them buys nothing"
+            % (word, seen[signature], signature))
+        seen[signature] = word
+
+
+def test_every_property_the_vocabulary_declares_is_asked_by_a_reader():
+    """BUG-0237 / H155, END TWO of the same tripwire: a property nobody reads is dead.
+
+    A property that stopped being asked is a rule that stopped firing, and the word it tells apart
+    then survives as decoration -- which the test above can no longer see, because it asks only
+    about the properties the readers ASKED for. Red when a reader is deleted or rewired to spell a
+    class name again.
+    """
+    import kernel.backlog_types as bt
+    from kernel import dispatch, report        # noqa: F401 -- importing IS the measurement here
+
+    assert bt.goal_class_properties_asked() == frozenset(bt.GOAL_CLASS_PROPERTIES), (
+        "declared but unread: %s"
+        % sorted(frozenset(bt.GOAL_CLASS_PROPERTIES) - bt.goal_class_properties_asked()))
+
+
+def test_a_reader_asking_for_a_property_no_word_carries_is_refused():
+    """The other half of end two: a reader must not derive an EMPTY set and decide nothing.
+
+    `SR_EXEMPT_CLASSES` built from a misspelt property would exempt no goal and quietly demand the
+    architect step of every one of them -- a rule that fires everywhere reads exactly like a rule
+    that works. So the ask itself is refused, and the refusal names the properties that exist.
+    """
+    import kernel.backlog_types as bt
+
+    with pytest.raises(KeyError) as refusal:
+        bt.goal_classes_where("skips_the_architect_step")     # the plausible misspelling
+    for prop in bt.GOAL_CLASS_PROPERTIES:
+        assert prop in str(refusal.value), (prop, str(refusal.value))
+
+    with pytest.raises(KeyError):
+        bt.goal_classes_without("a property nobody declared")
+
+
+def test_the_word_that_lifts_the_effort_is_exactly_one():
+    """`dispatch.LARGE_CLASS` answers with a WORD, so the property may not belong to two of them.
+
+    A kit's declaration names one effort for the big goal (`effort: {default, large}`); a second
+    word carrying `lifts_effort` would make that declaration ambiguous rather than wider, and the
+    refusal says which reader has to change instead of letting the ladder pick one.
+    """
+    import kernel.backlog_types as bt
+    from kernel import dispatch
+
+    assert dispatch.LARGE_CLASS == bt.the_one_goal_class_where("lifts_effort")
+    assert bt.GOAL_CLASSES[dispatch.LARGE_CLASS].lifts_effort
+
+    with pytest.raises(KeyError) as refusal:
+        bt.the_one_goal_class_where("carries_product_content")   # three words carry it
+    assert "ONE word" in str(refusal.value), str(refusal.value)
+
+
+def test_the_vocabulary_binds_every_type_whose_contract_declares_the_field():
+    """WHICH types the vocabulary binds is derived from `REQUIRED_FIELDS`, not from the name `PR`.
+
+    The research root carries the same field and the same readers read it; a vocabulary bound to
+    one type would leave the other free-text while its readers went on deciding from it. Red when
+    a type gains or loses the field without the binding following.
+    """
+    import kernel.backlog_types as bt
+    from kernel.state import _CLOSED_VOCABULARY
+
+    declared = {item_type for item_type, fields in bt.REQUIRED_FIELDS.items()
+                if bt.GOAL_CLASS_FIELD in fields}
+    assert bt.GOAL_CLASS_TYPES == declared
+    assert declared == {owner for (owner, field) in _CLOSED_VOCABULARY
+                        if field == bt.GOAL_CLASS_FIELD}, (
+        "a type declares the field and no door closes its vocabulary")
+
+
+def test_only_the_kernels_own_readers_count_as_having_asked():
+    """The tripwire's second end may not be satisfied by the SUITE asking (verifier round 1, F2).
+
+    MEASURED before this: with every caller counted, running
+    `::test_the_word_that_lifts_the_effort_is_exactly_one` first -- it asks
+    `the_one_goal_class_where("carries_product_content")` -- made
+    `::test_every_property_the_vocabulary_declares_is_asked_by_a_reader` green even with
+    `report.PRODUCTLESS_CLASSES` back to a hand-kept literal. The file order decided the verdict.
+
+    So the register records the CALLING MODULE and counts only `kernel.*`. This node measures that
+    directly: a fresh ask from THIS module (a test) must not appear, while the same property asked
+    from inside the kernel does.
+    """
+    import kernel.backlog_types as bt
+    from kernel import dispatch, report        # noqa: F401 -- the kernel readers, imported
+
+    kernel_readers = bt.goal_class_properties_asked()
+    assert kernel_readers, "no kernel reader asked anything, so the register measures nothing"
+
+    # THE REGISTER IS EMPTIED FOR THE MEASUREMENT, because a set that already holds every property
+    # cannot show an ask being ADDED to it -- with the register left as the kernel filled it, this
+    # node was green under the very mutation it is for (measured while writing it).
+    saved = set(bt._GOAL_CLASS_PROPERTIES_ASKED)
+    bt._GOAL_CLASS_PROPERTIES_ASKED.clear()
+    try:
+        for prop in bt.GOAL_CLASS_PROPERTIES:
+            bt.goal_classes_where(prop)                      # asked from a TEST module
+            bt.goal_classes_without(prop)                    # ...and through the two helpers,
+        bt.the_one_goal_class_where("lifts_effort")          # which ask on their caller's behalf
+        leaked = bt.goal_class_properties_asked()
+    finally:
+        bt._GOAL_CLASS_PROPERTIES_ASKED.clear()
+        bt._GOAL_CLASS_PROPERTIES_ASKED.update(saved)
+    assert leaked == frozenset(), (
+        "properties the suite asked for were counted as readers: %s" % sorted(leaked))

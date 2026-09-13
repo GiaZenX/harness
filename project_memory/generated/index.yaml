@@ -1,4 +1,4 @@
-generated_at: '2026-09-12T22:59:29'
+generated_at: '2026-09-13T08:20:10'
 items:
 - id: APR-0001
   type: APR
@@ -606,6 +606,22 @@ items:
   title: 'Eine offene Freigabe-Anfrage ohne Verfallsdatum hat keine Rücknahme-Tür:
     elf abgelehnte Stapel von 09:15 bleiben unter approvals/pending stehen, der Hook
     meldet sie bei jeder späteren Frage und `sweep-requests` löscht sie nicht'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0303
+  type: BUG
+  title: Die Befreiung vom Architektenschritt fragt den TYP des Ursprungs, nicht den
+    WERT -- ein BUG mit leerer Kriterienliste befreit, und eine Referenz, die nur
+    an der WURZEL existiert, loest am Spawn auf (zweite Restklasse von H155/BUG-0237)
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0304
+  type: BUG
+  title: 'H214-Rest: die Ein-Aufruf-Form ''Datei schreiben und ausführen'' bleibt
+    offen, wenn der Läufer hinter einem Präfixwort steht, die Datei per Umleitung
+    in den Interpreter geht oder eine Substitution sie an eval reicht'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -3854,6 +3870,144 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0417
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0418
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0419
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0423
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0424
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0425
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0427
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0428
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0432
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0435
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0436
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0438
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0439
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0440
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0441
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0442
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0443
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0444
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0445
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0446
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0447
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0448
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0449
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -4064,6 +4218,30 @@ items:
 - id: TSK-0145
   type: TSK
   title: null
-  status: DRAFT
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0146
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0147
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0148
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0149
+  type: TSK
+  title: null
+  status: CANCELLED
   revision: 1
   approval_ref: null

@@ -1,0 +1,17 @@
+id: EVD-0417
+kind: test
+related:
+- BUG-0295
+result: pass
+summary: 'TSK-0148 stream C: the prose DEC reader reads a triple quote as ONE delimiter;
+  docstring ids judged 184->186 of 190, the four exhibits stay unreported; red-first
+  in the rig (mutate bug_0295 -> 1 failed; planted dead id at dispatch.py:204 silent
+  before, reported after)'
+artifact_refs:
+- staging/TSK-0148/protocol.md
+run_command: python -B -m pytest tools/test_repo_hygiene.py::test_a_decision_cited_in_a_one_line_docstring_is_judged
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T23:41:41'

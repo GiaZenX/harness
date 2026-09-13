@@ -1,0 +1,24 @@
+id: EVD-0434
+kind: test
+related:
+- BUG-0302
+result: pass
+summary: 'withdraw-request <id> --reason and sweep-requests --stale <hours> through
+  the kernel: a taken-back question moves to approvals/withdrawn/ with the reason
+  and the clock (never deleted), stops being open, mints nothing on a late click and
+  tells the user it was taken back; the sweep reports the requests whose items are
+  all archived as dead. Measured on the real store: 11 open, 7 of them dead. NOT closed:
+  open_requests still counts a dead-but-live request -- excluding it there would silently
+  change the brief and the board (TSK-0146 protocol row 4).'
+artifact_refs:
+- staging/TSK-0146/protocol.md
+run_command: python -B -m pytest tools/test_approvals_dispatch.py::test_a_withdrawn_request_stops_being_open_and_mints_nothing
+  tools/test_approvals_dispatch.py::test_a_request_whose_items_are_all_archived_is_reported_dead
+  tools/test_approvals_dispatch.py::test_the_stale_sweep_takes_back_what_has_stood_too_long_and_leaves_the_rest
+  tools/test_approvals_dispatch.py::test_withdrawing_needs_a_reason_and_only_works_on_a_pending_question
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:24:45'
+closed_at: '2026-09-13T01:55:26'

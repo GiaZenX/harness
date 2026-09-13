@@ -1,0 +1,15 @@
+id: EVD-0427
+kind: test
+related:
+- BUG-0300
+result: pass
+summary: 'TSK-0147 stream B: the closing node of this defect, run as a node id (the
+  round''s measurements and the red-first runs are in staging/TSK-0147/protocol.md).'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_the_refusal_reader_finds_a_stopper_this_repos_own_gates_spell
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:11:00'

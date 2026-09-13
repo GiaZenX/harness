@@ -1118,11 +1118,13 @@ _ORDERING_COMMANDS = {"create-task": (), "capture": ("tsk",), "dispatch": ()}
 # derives it. A command that shelled out to the scaffold on its own would be outside the
 # derivation — the same boundary `_ORDERING_COMMANDS` has against a hand-written task.
 _INSTALLING_COMMANDS = {"set-preset": (), "update-kit": ()}
-# `os.path.basename(kernel.cli.ENTRY_POINT)` and the module spelling of the same CLI. Both are
-# pinned against the kernel by the same test — the gate keeps its own copy so that a Bash call does
-# not pay for importing argparse and every field schema just to answer "is this the harness".
-_HARNESS_SCRIPT = "harness.py"
-_KERNEL_CLI_MODULE = "kernel.cli"
+# `os.path.basename(kernel.cli.ENTRY_POINT)` and the module spelling of the same CLI, taken from
+# `_compat` because `gate_dispatch` asks the same question since DEC-0107 and two copies of one
+# name are how two readers drift apart. Why the hooks keep the name at all rather than reading it
+# off `kernel.cli`: a Bash call must not pay for importing argparse and every field schema to
+# answer "is this the harness". The pin against the kernel is unchanged.
+_HARNESS_SCRIPT = _compat.HARNESS_SCRIPT
+_KERNEL_CLI_MODULE = _compat.KERNEL_CLI_MODULE
 
 
 def _harness_argv(stage):
@@ -1509,6 +1511,183 @@ def _inside(rx, cwd):
     return bool(cwd) and rx.search(cwd) is not None
 
 
+def _stages_of(pipeline):
+    """The `|`-separated stages of one pipeline -- the same split `handle_shell` makes below."""
+    stages, current = [], []
+    for token in pipeline:
+        if _operator(token) == "|":
+            stages.append(current)
+            current = []
+        else:
+            current.append(token)
+    stages.append(current)
+    return stages
+
+
+def _operand_words(stage):
+    """The words a stage hands its program as operands -- no options, no shell punctuation.
+
+    A VALUE BEHIND A FLAG IS COUNTED TOO (`--out x`), and that is the fail-closed direction: this
+    reader cannot know which flags take a value, and counting one word too many can only make the
+    rule below refuse a line that also RUNS that word.
+
+    THE INNER WORDS OF A COMMAND SUBSTITUTION ARE NOT OPERANDS OF THIS STAGE, and leaving them in
+    was a measured false refusal (verifier of TSK-0147, round 2): `bash $(which ci.sh)` came back
+    "this line WRITES ci.sh and RUNS it in the same call", and it writes nothing -- the shell
+    replaces the whole `$(...)` with its OUTPUT, so `ci.sh` is handed to `which`, never to `bash`.
+    The substitution is READ, and read as what it is: `_compat.command_line` lifts it out as a
+    stage of its own (TSK-0019), which is where its own write is judged. Reading it a second time
+    inside the outer stage is what made one word both written and run.
+
+    WHAT THAT COSTS, measured rather than claimed away: `bash $(tee run.sh)` is rc 0 now where the
+    double reading made it rc 2 -- and its quoted twin `bash "$(tee run.sh)"` was rc 0 before this
+    change too (measured, both pilots), because there the substitution is ONE word and no reading
+    of it spells `run.sh`. So the class was open on the spelling that carries quotes, and this makes
+    the two spellings agree instead of leaving a refusal that depends on quoting. It is the H11
+    class the docstring of `_refuse_a_script_this_line_writes_and_runs` already names.
+    `tools/test_hooks.py::test_a_command_substitution_is_not_read_as_a_write_by_the_stage_around_it`
+    """
+    words, skip, inside, dollar = [], False, 0, False
+    for token in stage[1:]:
+        operator = _operator(token)
+        if inside:
+            # depth is counted over CHARACTERS, so a nested substitution closing as `))` in one
+            # token brings it back to the right level
+            inside += str(token).count("(") - str(token).count(")")
+            continue
+        if dollar and operator == "(":
+            dollar, inside = False, 1
+            continue
+        dollar = operator == "$"
+        if dollar:
+            continue                    # the `$` of `$(` is punctuation and names nothing itself
+        if skip:
+            skip = False
+            continue
+        if (_REDIRECT_RX.match(operator) or _INPUT_REDIRECT_RX.match(operator)
+                or operator.startswith("<")):
+            # the next word belongs to the REDIRECT -- its target, or a here-document's delimiter,
+            # which is a label and not a file
+            skip = True
+            continue
+        if operator.lower() in ("(", ")", "{", "}", "&", "&&", "||", ";", "|"):
+            continue
+        if str(token).startswith("-"):
+            continue
+        words.append(token)
+    return words
+
+
+def _refuse_a_script_this_line_writes_and_runs(all_tokens, sinks):
+    """Refuse a line that puts a file on disk and hands that same file to a shell in one call.
+
+    BUG-0298/H214, measured 2026-09-12 against two scaffolded pilots: `cat <<'EOF' > run.sh ;
+    bash run.sh` with a body that writes canonical state passed EVERY registered hook, rc 0, and
+    the real shell wrote the file. Nothing in that is a defect of the heredoc reader -- the body IS
+    data for `cat`, which is why it is prose (`BUG-0289`). The defect is one step later: what the
+    gates inspect is the text of the CALL, and what runs is the script.
+
+    THE MECHANISM, AND THE FIRST CUT OF IT WAS TWO SPELLINGS. Verifier round 1 measured five lines
+    of the same class still rc 0 -- `. run.sh`, `source run.sh`, `. ./run.sh`, `tee run.sh <<'EOF'
+    … ; bash run.sh`, `echo x | tee run.sh && sh run.sh` -- because "written" came only from
+    REDIRECTS and "runs" only from shell NAMES. Both halves are properties now:
+
+      * WRITTEN is every file a write-capable stage names -- its redirect targets AND its own
+        operands. Write-capable is `_stage_is_read_only`'s question, the one this gate already
+        answers fail-closed for every other rule (a verb nobody classified writes), so `tee`,
+        `cp`, `install` and the next tool nobody has heard of are covered without being listed.
+      * RUNS is `_compat.runs_the_file_it_is_handed` -- a shell under any of its names, plus the
+        dot-source builtins, which execute a file without naming a program at all.
+
+    A RUNNER'S OWN OPERAND IS NOT "WRITTEN", and that exclusion is what keeps `bash tools/ci.sh`
+    rc 0: a shell is write-capable by the fail-closed reading above, so without it every plain
+    script run would be a line that "writes and runs" the same file.
+
+    WHAT STAYS ALLOWED, the other half of AC-1: a write with no run on the line
+    (`cat <<'EOF' > notes.md`), and a run with no write (`bash tools/ci.sh`). Only the pair is
+    refused, and the refusal names the file that made it.
+
+    WHAT IS LEFT OPEN AND NAMED RATHER THAN CLAIMED AWAY (AC-2, and the H11 bound): the MULTI-LINE
+    form -- write the script in one tool call, run it in the next -- and an INTERPRETER this reader
+    does not count as a runner (`python x.py`, `node x.js`). Both are the H11 class: a self-written
+    script keeps minting, bounded by the file being on disk where the gates judge every write it
+    then makes, and by the line naming the file twice where it does not.
+
+    AND THE ONE-CALL FORM IS NOT FULLY CLOSED EITHER -- `H219` (`BUG-0304`) carries the five
+    spellings, each measured rc 0 here and EXECUTED by a real shell (TSK-0149 verify round 1, F2,
+    real hook processes in all three kits):
+
+      * a runner behind an assignment prefix -- `printf 'x' > run.sh ; A=1 ./run.sh`;
+      * a runner behind a wrapper word -- `... ; exec ./run.sh` and `... ; command ./run.sh`;
+      * the file fed to an executor through a REDIRECT rather than as an operand -- `bash < run.sh`;
+      * a substitution that reads the file and hands the text to `eval` -- `eval "$(cat run.sh)"`.
+
+    None of them is a regression of the rule below: the same five were rc 0 before it existed, so
+    what this paragraph got wrong was its own completeness, not the mechanism. They are three
+    mechanisms (the effective command word after prefixes and wrappers, an input redirect into an
+    executor, and data flow through a substitution), which is why they are ONE hole entry with
+    three parts rather than a fix this round made: closing one of the three would leave the entry
+    describing a class it no longer has, and every widening of this rule in TSK-0149 produced a
+    measured over-refusal that a later run had to catch.
+    `tools/test_hooks.py::test_a_line_that_writes_a_script_and_runs_it_is_refused_in_every_kit`
+    """
+    pipelines = [_stages_of(pipeline) for pipeline in _pipelines(all_tokens)]
+    written, run = {}, set()
+    for stages in pipelines:
+        for stage in stages:
+            if not stage:
+                continue
+            verb = _stage_verb(stage)
+            if _compat.runs_the_file_it_is_handed(verb):
+                # the operands of a RUNNER are what it executes, never what it writes
+                for token in _operand_words(stage):
+                    run.update(_name_readings(token))
+                continue
+            if _stage_is_read_only(stage):
+                continue
+            for token in _operand_words(stage):
+                for name in _name_readings(token):
+                    written.setdefault(name, str(token))
+        for stage in stages:
+            # THE FILE AS THE COMMAND WORD ITSELF (`./run.sh`) is the same act without a shell name
+            # -- but only where the word is spelled as a PATH. A command word with no directory
+            # separator is what the shell looks up on PATH, so it names no file this line could
+            # have written; counting it made `python` on
+            # `python scripts/harness.py evidence ... --run-command python -m pytest tests/ -q`
+            # both RUN (the verb) and WRITTEN (an operand of the same stage, which no verb
+            # classifies as read-only), and the gate refused the ONE command line that records an
+            # Evidence -- measured in the TSK-0149 full run, three nodes, "this line WRITES python".
+            # The separator is asked of the RAW word, before `_name_readings` folds the `./` away.
+            word = str(stage[0]) if stage else ""
+            if "/" in word or "\\" in word:
+                for name in _name_readings(stage[0]):
+                    run.add(name)
+    for pipeline in _pipelines(all_tokens):
+        for target in _redirect_targets(pipeline, sinks):
+            for name in _name_readings(target):
+                written.setdefault(name, str(target))
+    for name in sorted(run & set(written)):
+        _kernel.block(
+            HOOK,
+            "this line WRITES %s and RUNS it in the same call, so what it will do is not on this "
+            "line: every gate here inspects the text of the call, and the text of a script is data "
+            "until the shell reaches it (BUG-0298/H214)." % written[name],
+            remedy="split it in two calls -- write the file, then run it. The write is judged as a "
+                   "write and the run is judged against the file that is then on disk, which is "
+                   "what makes both inspectable.")
+
+
+def _name_readings(token):
+    """Every spelling of one word that could name the same file, folded for comparison.
+
+    `_readings` is the shell's own answer to "what can this word be" (quoting), `_norm` folds case
+    and slashes, and the leading `./` goes because `. ./run.sh` and `> run.sh` are one file. A
+    leading `../` folds too, which can only make the comparison MATCH more often -- an
+    over-refusal, and the direction this rule errs in on purpose.
+    """
+    return {_norm(reading).lstrip("./") for reading in _readings(token)}
+
+
 def handle_shell(data):
     command = str((data.get("tool_input") or {}).get("command") or "")
     if not command.strip():
@@ -1552,6 +1731,9 @@ def handle_shell(data):
     # pipelines (a `;` between them), so rule 5's target resolver needs the map of the entire line,
     # not of the pipeline it is judging.
     assignments = _line_assignments(all_tokens)
+    # BUG-0298/H214, over the WHOLE line: the write and the run can sit in
+    # different pipelines, so this is asked before the per-pipeline loop.
+    _refuse_a_script_this_line_writes_and_runs(all_tokens, sinks)
     for pipeline in _pipelines(all_tokens):
         stages, current = [], []
         for token in pipeline:

@@ -53,7 +53,7 @@
         "hooks": []
       },
       "0. Authority & who you are (READ FIRST)": {
-        "digest": "12bac459d802f0b2",
+        "digest": "a57bb4d94aba4c02",
         "hooks": [
           "gate_write_scope",
           "guard_harness_selfmod",
@@ -65,8 +65,9 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "ba23ff2044eabbbe",
+        "digest": "d118ea31e9537816",
         "hooks": [
+          "gate_dispatch",
           "session_status"
         ]
       },
@@ -179,7 +180,7 @@
         "hooks": []
       },
       "1. What each mechanism refuses": {
-        "digest": "70f10c9a1b051e53",
+        "digest": "627b9105bd7a09f0",
         "hooks": [
           "clear_handover_marker",
           "format_on_write",
@@ -327,7 +328,7 @@
         "hooks": []
       },
       "0. Authority & who you are (READ FIRST)": {
-        "digest": "ccc73c4b35f787ca",
+        "digest": "e03d59026fa34476",
         "hooks": [
           "gate_write_scope",
           "guard_memory_budget"
@@ -440,7 +441,7 @@
         "hooks": []
       },
       "1. What each mechanism refuses": {
-        "digest": "b9728bdcbe2ca077",
+        "digest": "b120008ac50d3388",
         "hooks": [
           "_gate",
           "clear_handover_marker",
@@ -508,6 +509,12 @@
         "digest": "593082e98f54ee99",
         "hooks": []
       },
+      "What the archive's four-eyes wall does NOT bind (`DEC-0109`)": {
+        "digest": "d5056e12bd76930c",
+        "hooks": [
+          "gate_second_reading"
+        ]
+      },
       "What you OWN (the content — the kernel writes it)": {
         "digest": "2bbfb8a66bf8d6a4",
         "hooks": []
@@ -517,7 +524,7 @@
         "hooks": []
       },
       "Work loop (every cycle)": {
-        "digest": "fd8dee7d7bd5b9e6",
+        "digest": "a52fef70c49e5dea",
         "hooks": [
           "gate_proc_approved",
           "gate_write_scope",
@@ -577,7 +584,7 @@
         "hooks": []
       },
       "0. Authority & who you are (READ FIRST)": {
-        "digest": "7b4de3dbf3072e9e",
+        "digest": "eb39e792e277c6a5",
         "hooks": [
           "gate_write_scope",
           "guard_harness_selfmod",
@@ -589,8 +596,9 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "c4f506272e0ad70b",
+        "digest": "b9c68d38789b8161",
         "hooks": [
+          "gate_dispatch",
           "session_status"
         ]
       },
@@ -702,7 +710,7 @@
         "hooks": []
       },
       "1. What each mechanism refuses": {
-        "digest": "bb5b03c29a49b2e8",
+        "digest": "53d982f81ee77c2e",
         "hooks": [
           "clear_handover_marker",
           "format_on_write",

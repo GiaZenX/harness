@@ -1,0 +1,72 @@
+"""Retrospective addendum for PR-0012 order 4 (2026-09-12 23:02 -- 2026-09-13 08:xx): the second parallel cut under
+DEC-0101/DEC-0102, measured against DEC-0102's five rules. Review EVENT: a phase ended. Numbers read from
+project_memory/staging/generation-6-streams.md (clock at each entry) and the stream protocols. Body on stdin to
+`kernel.cli capture DEC`. Run once, after the goal-round commit."""
+import json
+import os
+import subprocess
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+KERNEL = [sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory", "capture", "DEC"]
+
+BODY = {
+    "title": "Order 4 retrospective: the parallel cut held (3 h 12 min for three streams), DEC-0102 (2) worked where it was "
+             "applied and the two rounds it was not applied cost the most -- two rules sharpened",
+    "work": "PR-0012",
+    "context": (
+        "MEASURED: three streams spawned 23:02 on check-scopes-disjoint scopes; all three done by 00:30 (A 88 min, B 85, "
+        "C 47); verification A2/B2/C2 with one rework each (A +48, B +29, C +10 min); goal round M2 02:14-~06:50 (seams a-g, "
+        "R1-R4, two stamps, full run 1 with 7 reds -> 6 fixed at mechanism, full run 2 76 min 5139/1/14) + rework (~20 min, "
+        "docstrings only, stamp -3) -> ~9.5 h wall clock for order 4 vs ~11 h sequential equivalent; ~4 M tokens. "
+        "Outcome: 12 ids ready for the user's verification clicks (incl. the two decision builds DEC-0103/0107 and BUG-0242), "
+        "BUG-0253 waits on the user's config line, BUG-0296 and H59 are decision questions, BUG-0297 waits on the S4 patch, "
+        "BUG-0303/0304 filed from the verifiers' measurements. "
+        "WHAT DEC-0102 (2) DID: where a builder measured the mechanism's spellings before the EVD (B's rework of H214: 8/8 "
+        "attack forms, 42 everyday lines) the verifier's second round found no new spelling of THAT mechanism; where it was "
+        "not applied (B's first cut of H214: two spellings; A's first DEC-0103 cut: the exception hung on the body, not the "
+        "path) the round cost a full rework + verify pair. Second widenings were re-filed as holes (BUG-0304) instead of a "
+        "third rework -- rule (2) held. "
+        "WHAT REPEATED ANYWAY: (1) a NEW reader written in the round with a claim broader than built (the licence-count "
+        "reader narrowing by event not tool class; `_binds_a_name` 'the three spellings'; the computed-flag excuse span-wide) "
+        "-- 4 of 7 verify rounds; (2) numbers in prose that age within the round (92 timeouts, 24/21/22, THIRTEEN, 184 sites) "
+        "-- every stream once; (3) a contract change (DEC-0107 registration, H61 timeouts) breaking a neighbour's test that "
+        "encoded the OLD contract, found only by the full run (3 of run 1's 6 reds). "
+        "WHAT COST: the goal round is now the longest phase (4.6 h of 9.5) because it carries every seam plus two full runs; "
+        "the seam count was 7 + 4 kernel remainders."
+    ),
+    "decision": (
+        "(6) A reader NEW in a round names in its docstring the ONE property it measures and the verifier's first attack on "
+        "it is 'the property, one level deeper' (event -> tool class; assignment -> every binding; span -> token); a new reader "
+        "ships with at least one mutation row per level it claims. "
+        "(7) No count in prose that a test can hold: a number that a neighbour's edit can move is a pointer to the test that "
+        "holds the property, never a literal -- the verifier lists every literal count in changed files as a finding. "
+        "(8) A contract change (registration, required argument, timeout rule) is announced in the stream's protocol under "
+        "'contracts changed' at the moment it is made, and the lead greps the test tree for the OLD contract before the goal "
+        "round -- the full run is the last reader of it, not the first. "
+        "(9) The goal round's seam list is closed BEFORE the second stream finishes: every seam handed over after that point "
+        "starts a follow-up order instead of growing the merge -- the goal round stays a stamp + full run + at most the seams "
+        "known at its creation."
+    ),
+    "alternatives": (
+        "Serial single builder: ~11 h; rejected by measurement and by the user's word. A fourth builder for the seams "
+        "instead of the goal round: the seams need the stamped, merged tree -- they cannot be measured earlier; rejected."
+    ),
+    "consequences": (
+        "DEC-0102's five rules become nine; the harness-lead file and the kits' lead skills get (6)-(9) as an order (FR), "
+        "not as edits from this session. The next parallel round measures whether (6) lowers the verify-round count for new "
+        "readers and whether (9) keeps the goal round under two hours plus the full run."
+    ),
+    "source": "project_memory/staging/generation-6-streams.md (2026-09-12 23:02 .. 2026-09-13); staging/TSK-0146..0149/protocol.md and verify-round-*.md; DEC-0102",
+}
+
+
+def main():
+    env = dict(os.environ, PYTHONPATH="team-kits")
+    r = subprocess.run(KERNEL, cwd=ROOT, env=env, input=json.dumps(BODY), capture_output=True, text=True, encoding="utf-8")
+    print(r.stdout.strip()[-300:] or r.stderr.strip()[-600:])
+    return r.returncode
+
+
+if __name__ == "__main__":
+    sys.exit(main())

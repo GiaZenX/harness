@@ -1,0 +1,23 @@
+id: EVD-0431
+kind: test
+related:
+- BUG-0237
+result: pass
+summary: 'DEC-0103 goal-size vocabulary: GOAL_CLASSES declared once in kernel/backlog_types.py
+  with properties, the three readers derived (dispatch.SR_EXEMPT_CLASSES, dispatch.LARGE_CLASS,
+  report.PRODUCTLESS_CLASSES), refusal at capture and update naming the four words
+  and what each does, two-ended tripwire, and the migrate-goal-classes door; the 12
+  stored goals mapped (before = after, all already members). Red-first: 7 mutations,
+  7 red, 0 green (TSK-0146 protocol row 1).'
+artifact_refs:
+- staging/TSK-0146/protocol.md
+run_command: python -B -m pytest tools/test_backlog_types.py::test_every_goal_size_word_is_told_apart_by_a_property_a_reader_asks
+  tools/test_backlog_types.py::test_every_property_the_vocabulary_declares_is_asked_by_a_reader
+  tools/test_state.py::test_a_goal_class_outside_the_vocabulary_is_refused_at_both_doors
+  tools/test_migrate.py::test_the_goal_class_plan_reads_every_stored_goal_and_writes_only_the_active_strays
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:24:16'
+closed_at: '2026-09-13T01:55:24'

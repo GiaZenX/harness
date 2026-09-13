@@ -1,0 +1,16 @@
+id: EVD-0418
+kind: test
+related:
+- BUG-0299
+result: pass
+summary: 'TSK-0148 stream C: the bound-name hop now reaches the PROGRAM word of a
+  hook start; 4 live sites seen only through it, 0 forgetful after the widening; red-first
+  in the rig (mutate bug_0299 -> 1 failed, 2 of 3 plantings named)'
+artifact_refs:
+- staging/TSK-0148/protocol.md
+run_command: python -B -m pytest tools/test_repo_hygiene.py::test_the_hook_start_reader_follows_a_program_word_held_by_a_name
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-12T23:41:47'

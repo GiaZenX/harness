@@ -1,0 +1,17 @@
+id: EVD-0449
+kind: review
+related:
+- TSK-0149
+result: pass
+summary: 'verifier PASS for diff:bf94fdb6adb523293cb5333b442aa4fce58d90cae0f0a2505989300c6a3c0247
+  -- PR-0012 order 4: TSK-0146 A (r2, R1-R4 folded), TSK-0147 B PASS r2, TSK-0148
+  C PASS r2, goal round TSK-0149 PASS r3 (harness-verifier Opus high M2); stamp 2026.09.13-3;
+  full run EVD-0446 5139 passed / 1 failed (S4 arbiter, user patch) / 14 skipped;
+  gate suite EVD-0447'
+artifact_refs:
+- staging/TSK-0149/verify-round-3.md
+run_command: git diff HEAD --stat
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T08:20:10'

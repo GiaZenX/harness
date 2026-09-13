@@ -53,11 +53,14 @@ WHAT IT DOES NOT SEE, named rather than implied: a runner word the text does not
 anything else is read; and an option that narrows and is not declared, which leaves the line
 reading as a full run and REFUSED — over-refusal, answerable on the line.
 
-NO `timeout` ON ITS REGISTRATION, and that is the shipped rule rather than an omission: a window is
-a KILL window, a killed gate is a silent allow, and this gate starts no child and waits for nothing
-(measured 2026-08-23, `tools/provider_observations.json` -> `hook_deadlines`). What decides it is
-`tools/test_hooks.py::test_a_registration_names_a_window_exactly_when_its_gate_can_outlive_the
-_default`, which reads this file's own `timeout=` keywords and the registration together.
+A `timeout` ON ITS REGISTRATION LIKE EVERY OTHER ENTRY, and since 2026-09-12 that is the shipped
+rule rather than an exception: a window used to be nothing but the moment the provider KILLS a gate,
+and a killed gate is a silent allow -- so an entry named one only where the gate's own bound was
+longer than the default (measured 2026-08-23, `tools/provider_observations.json` ->
+`hook_deadlines`). `_compat.start_the_deadline` refuses BEFORE the window now (BUG-0153/H61), so the
+window is what this gate answers inside rather than what kills it, and
+`tools/test_hooks.py::test_every_registration_names_a_window_its_gate_can_answer_inside` derives the
+value from this file's own `timeout=` keywords and the budget a hook process gives itself.
 """
 import os
 import sys

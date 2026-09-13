@@ -44,14 +44,21 @@ from .backlog_types import (
     TSK_EFFORT_FIELD,
     TSK_RUNG_FIELD,
     UI_TASK_TYPES,
+    FAIL_CLASSES,
+    FAIL_CLASS_BY_FIELD,
+    FAIL_CLASS_FIELD,
+    FAILING_RESULT,
+    fail_classes_that_do_not_climb,
     field_elements,
+    goal_classes_where,
     is_inbox_type,
     parse_id,
+    the_one_goal_class_where,
 )
 from . import references
 from .lock import ext_path
 from .schemas import validate
-from .state import ProjectState, StateError, _now_iso
+from .state import RETRY_APPROVAL_EDGE, ProjectState, StateError, _now_iso
 
 HEADER_PREFIX = "HARNESS_DISPATCH "
 DEFAULT_LEASE_TTL = 15 * 60.0
@@ -135,6 +142,16 @@ EFFORT_LEVELS = ("low", "medium", "high", "xhigh")
 # concurrent lease of THIS class under one goal without a check-scopes record, so a declaration
 # has to name it (`_valid_ladder`) or the rule would silently never fire for that kit.
 BUILD_CLASS = "build"
+# The ladder class of the roles that JUDGE somebody else's work. DEC-0107 gives exactly those roles
+# the fail classification, and `fail_class_refusal` asks the kit's own declaration which roles
+# those are rather than carrying a list of role names for three kits.
+QA_CLASS = "qa"
+# THE WORK ORDER'S TYPE AND THE STATUS A RUN THAT FAILED LEAVES IT IN, named once because the
+# DEC-0107 readers below ask for both. Taken APART from the retry edge rather than spelled again:
+# that edge is already the one datum this kernel keeps about a failed run and its way back to
+# READY (`state.RETRY_APPROVAL_EDGE`), and the classification is about exactly that run -- so a
+# renamed status moves both readers at once instead of leaving a literal behind here.
+ORDER_TYPE, FAILED_STATUS, _RETRY_TARGET = RETRY_APPROVAL_EDGE
 # What a SECOND builder's lease carries: {the other running builder: the check-scopes record that
 # measured the pair disjoint}. Absent on every ordinary lease, so "one builder" and "a second one
 # admitted on evidence" are two different envelopes (PR-0011 AC-1).
@@ -144,8 +161,11 @@ MEASURED_DISJOINT_KEY = "measured_disjoint"
 CLASS_TOP = "top"
 CLASS_PIN = "pin"
 # The goal class that switches the effort pair to its `large` value (DEC-0077 (1)). The field is
-# the root's `class`; which values exist is the schema's business, this names the one the rule reads.
-LARGE_CLASS = "large"
+# the root's `class`, and since DEC-0103 which values exist is a CLOSED vocabulary declared once
+# (`backlog_types.GOAL_CLASSES`): this rule asks for the word by the property it needs -- the one
+# word that lifts the effort -- instead of spelling it, so a renamed or removed word is a refusal
+# here rather than a rule that silently stops firing.
+LARGE_CLASS = the_one_goal_class_where("lifts_effort")
 # DEC-0034 rule 2, counted on the task: how many runs of this order ended in FAILED -- see
 # `count_failed_run_locked` for what counts and where it is counted.
 FAILED_RUNS = "failed_runs"
@@ -220,8 +240,7 @@ def rung_vocabulary(state: ProjectState) -> tuple:
     """
     found = ladder_declaration(state)
     if found is not None:
-        kit, ladder = found
-        return tuple(ladder["rungs"]), "%s of kit %r" % (LADDER_FILE, kit)
+        return tuple(found.ladder["rungs"]), found.source
     table = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), TIERS_FILE)
     if not os.path.isfile(table):
         raise DispatchError(
@@ -2332,27 +2351,29 @@ def _assert_dependencies_met_locked(state: ProjectState, task: dict) -> None:
         )
 
 
-# WHICH GOALS ARE NOT ASKED FOR THE ARCHITECT STEP (FR-0085, DEC-0072). The wish asked for the duty to hang
-# off the `class` field a root already carries -- "small: no SR; normal/large: at least one ACCEPTED
-# SR". MEASURED before it was built: `class` has NO vocabulary anywhere in this kernel. The shipped
-# suite alone captures roots with `feature`, `normal`, `research`, `exploratory` and
-# `technical_enabler`, and no schema, no validator and no capture check constrains the value. A rule
-# spelled as "class in (normal, large)" would therefore SKIP the duty for every value nobody
-# thought of, which is the failure `EVIDENCE_KINDS` names one file away: an unrecognised value does
-# not fail a check, it skips one.
+# WHICH GOALS ARE NOT ASKED FOR THE ARCHITECT STEP (FR-0085, DEC-0072, DEC-0103). The wish asked for
+# the duty to hang off the `class` field a root already carries -- "small: no SR; normal/large: at
+# least one ACCEPTED SR". When it was built, `class` had NO vocabulary anywhere in this kernel, so
+# a rule spelled as "class in (normal, large)" would have SKIPPED the duty for every value nobody
+# thought of -- the failure `EVIDENCE_KINDS` names one file away: an unrecognised value does not
+# fail a check, it skips one. DEC-0103 closed the vocabulary at the two doors that write a goal,
+# and this set is derived from it; the DIRECTION stays the one the measurement asked for, because
+# a value from before that decision is in neither the vocabulary nor this set and is therefore
+# still ASKED.
 #
-# So the EXEMPTION is the closed set and everything else is asked, unknown values included. Two
-# members, each with its own reason: `small` is FR-0085's own word for the size that pays nothing;
-# `technical_enabler` is the class this kernel already treats as carrying no product content
-# (`REQUIRED_FIELDS` lets it omit the user story, `report._check_ui_delivery_sequence` lets it run
-# alongside), and there is no user-facing design for an architect to derive.
+# So the EXEMPTION is the closed set and everything else is asked, unknown values included, and
+# which words are in it is the vocabulary's own answer (`skips_architect_step`) rather than a
+# second list here: `small` is the size that pays nothing, `technical_enabler` is the class this
+# kernel already treats as carrying no product content, and there is no user-facing design for an
+# architect to derive from either.
 #
-# WHAT IT COSTS AND IN WHICH DIRECTION IT FAILS: a typo in a class name asks for an architect round
-# that was not owed -- friction, and recoverable by one `capture SR`. The opposite spelling would
-# hand out work under a goal nobody designed, which is what the wish is about. The free-text nature
-# of the field is carried as a hole with its measurement, not papered over here.
+# WHAT IT COSTS AND IN WHICH DIRECTION IT FAILS: a class outside the vocabulary -- a goal stored
+# before DEC-0103, or one the V1 import brought in with the value it found -- asks for an architect
+# round that was not owed:
+# friction, recoverable by one `capture SR`. The opposite spelling would hand out work under a goal
+# nobody designed, which is what the wish is about.
 # `tools/test_approvals_dispatch.py::test_a_goal_of_an_unknown_class_is_asked_for_the_architect_step`
-SR_EXEMPT_CLASSES = frozenset(("small", "technical_enabler"))
+SR_EXEMPT_CLASSES = goal_classes_where("skips_architect_step")
 # The status in which a technical requirement has been ACCEPTED rather than merely proposed --
 # derived from the type's own chain so a renamed status moves the duty with it, and it is the LAST
 # chain status because that is what "accepted" is on a two-step automaton (PROPOSED -> ACCEPTED).
@@ -2388,8 +2409,9 @@ def _carries_its_own_criteria(item_type: str) -> bool:
     goal whose architect step is missing. Measured through the shipped kit hook as a process, and
     the LEASE is granted in all three: empty criteria + no refs -> spawn rc 2 ("carries no
     acceptance_refs"); empty criteria + a ref that exists nowhere -> spawn rc 2; empty criteria + a
-    ref that exists on the root -> spawn rc 0. That last line is the remainder, and it is `H155` in
-    `docs/POST_V2_WISHLIST.md`.
+    ref that exists on the root -> spawn rc 0. That last line is the remainder, and it is `H218`
+    (`BUG-0303`) in `docs/POST_V2_WISHLIST.md` -- it stood under `H155` until DEC-0103 closed that
+    entry's other half, and it was given a record of its own so this pointer survives the close.
     `tools/test_approvals_dispatch.py::test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it`
 
     DERIVED FROM THE FIELD CONTRACT, not from a list of type names: `validate_dispatch` looks for a
@@ -2788,16 +2810,78 @@ def _valid_ladder(kit: str, raw: dict) -> dict:
     }
 
 
-def ladder_declaration(state: ProjectState):
-    """(kit, validated declaration) for the kit this project runs, or None for a kit-less project.
+class Declaration(tuple):
+    """(source, ladder) for the declaration this project's orders are placed against.
 
-    A kit that is known and ships no `ladder.yaml` is REFUSED here with the sentence DEC-0078 (4)
-    asks for; the kit-less case is `kit_installation`'s None and is answered by the caller.
+    A TUPLE because every caller unpacks it as a pair, and an OBJECT because a refusal about a
+    declaration has to name the right file and the right remedy: since DEC-0105 the declaration
+    comes from two places -- the kit the scaffold record names, or the tier file a kit-less
+    project's own `project_config.yaml` names -- and "restage the kit" is the wrong advice for the
+    second. `source` is the phrase a message uses ("ladder.yaml of kit 'dev-team'"), `remedy` the
+    sentence that ends it, `tiers_dir` the directory whose `model_tiers.yaml` resolves an alias pin.
+    """
+
+    # No `__slots__`: a tuple subtype cannot carry one, and the three attributes below are what
+    # make this more than the pair it still unpacks as.
+    def __new__(cls, source, ladder, remedy, tiers_dir):
+        found = super().__new__(cls, (source, ladder))
+        found.source = source
+        found.ladder = ladder
+        found.remedy = remedy
+        found.tiers_dir = tiers_dir
+        return found
+
+
+# WHERE A KIT-LESS PROJECT MAY DECLARE ITS OWN LADDER (DEC-0105). The config key is the DEC's own
+# word; what the file has to CONTAIN is the shape every kit declares its tiers in -- the same
+# `_valid_ladder` the kits pass -- because the dispatch header prints a rung/effort PAIR from it,
+# and the store's provider translation table (`model_tiers.yaml`, rungs -> model ids) carries no
+# roles and no efforts to derive a pair from. The path is read relative to the PROJECT root (the
+# parent of the state directory), like every other file this kernel reads about a project.
+CONFIG_FILE = "project_config.yaml"
+CONFIG_TIER_FILE_KEY = "model_tiers"
+
+
+def configured_tier_file(state: ProjectState):
+    """The path this project's config names as its tier file, or None -- never a guess (DEC-0105).
+
+    Unreadable config, no key, an empty value: all three are None, because DEC-0105 says a missing
+    or unreadable declaration keeps `keine Angabe` rather than becoming a refusal. The kit path
+    fails closed for the opposite reason: a project that WAS scaffolded has a ladder somewhere, and
+    not finding it means something is broken; a project that declares none simply has none.
+    """
+    config = os.path.join(state.root, CONFIG_FILE)
+    if not os.path.isfile(config):
+        return None
+    try:
+        data = _read_yaml_mapping(config, CONFIG_FILE)
+    except DispatchError:
+        return None
+    named = data.get(CONFIG_TIER_FILE_KEY)
+    if not isinstance(named, str) or not named.strip():
+        return None
+    repo = os.path.dirname(os.path.abspath(state.root))
+    return os.path.join(repo, *named.strip().split("/"))
+
+
+def ladder_declaration(state: ProjectState):
+    """The declaration this project's orders are placed against, or None when it declares none.
+
+    TWO SOURCES AND ONE VALIDATOR (DEC-0078 (3), DEC-0105). A scaffolded project's is its kit's
+    `ladder.yaml`; a project with no scaffold record may name a tier file in its own
+    `project_config.yaml`, and that file goes through the SAME `_valid_ladder` -- a second shape
+    would be a second contract for one question. A kit that is known and ships no declaration is
+    REFUSED here with the sentence DEC-0078 (4) asks for; a kit-less project whose config names
+    nothing, or names something that cannot be read or does not validate, gets None and the caller
+    answers `keine Angabe` (DEC-0105: never a guess, and DEC-0078 (4) stands -- reading a declared
+    file is not inventing a default).
     `tools/test_ladder.py::test_a_kit_without_a_ladder_declaration_is_refused_at_dispatch`
+    `tools/test_ladder.py::test_a_kit_less_project_reads_the_tier_file_its_own_config_names`
+    `tools/test_ladder.py::test_a_missing_or_broken_tier_file_keeps_keine_angabe`
     """
     found = kit_installation(state)
     if found is None:
-        return None
+        return _configured_declaration(state)
     kit, directory = found
     path = os.path.join(directory, LADDER_FILE)
     if not os.path.isfile(path):
@@ -2807,17 +2891,42 @@ def ladder_declaration(state: ProjectState):
             "kernel carries none of its own, so no order of this kit is dispatched until it does "
             "(DEC-0078 (4)). Remedy: ship %s beside the kit's constitution (dev-team's is the "
             "shape), restage the kit, then dispatch again." % (kit, LADDER_FILE, directory, LADDER_FILE))
-    return kit, _valid_ladder(kit, _read_yaml_mapping(path, "%s of kit %r" % (LADDER_FILE, kit)))
+    return Declaration(
+        "%s of kit %r" % (LADDER_FILE, kit),
+        _valid_ladder(kit, _read_yaml_mapping(path, "%s of kit %r" % (LADDER_FILE, kit))),
+        "correct the declaration in the kit store and restage the kit",
+        os.path.dirname(directory))
 
 
-def _store_aliases(kit_directory: str) -> dict:
-    """alias -> rung name out of the store's `model_tiers.yaml` (the store is the kit's parent).
+def _configured_declaration(state: ProjectState):
+    """The tier file a kit-less project's config names, validated -- or None (DEC-0105)."""
+    named = configured_tier_file(state)
+    if named is None or not os.path.isfile(named):
+        return None
+    try:
+        ladder = _valid_ladder(CONFIG_FILE, _read_yaml_mapping(named, named))
+    except DispatchError:
+        # DEC-0105: a file that cannot be read or does not validate keeps `keine Angabe`. It is not
+        # silent -- `ladder_for_order` names the file and the reason in its `absent` line.
+        return None
+    return Declaration(
+        "the tier file %s names (%s)" % (CONFIG_FILE, os.path.basename(named)),
+        ladder,
+        "correct that file, or drop the `%s:` line from %s" % (CONFIG_TIER_FILE_KEY, CONFIG_FILE),
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def _store_aliases(tiers_dir: str) -> dict:
+    """alias -> rung name out of the `model_tiers.yaml` in this directory.
 
     Read only when a pin is not already a rung name -- an installed project's frontmatter is
-    alias-free after the scaffold's rewrite, a kit's own source tree is not.
+    alias-free after the scaffold's rewrite, a kit's own source tree is not. WHICH directory is the
+    declaration's own answer (`Declaration.tiers_dir`): the kit store for a scaffolded project, the
+    tree the kernel package sits in for a project that declares its own tier file (DEC-0105), which
+    is the same table `_reference_rungs` reads for such a project.
     """
-    data = _read_yaml_mapping(os.path.join(os.path.dirname(kit_directory), TIERS_FILE),
-                              "%s in the kit store" % TIERS_FILE)
+    data = _read_yaml_mapping(os.path.join(tiers_dir, TIERS_FILE),
+                              "%s beside the declaration" % TIERS_FILE)
     aliases = data.get("aliases")
     return ({str(alias): str(rung) for alias, rung in aliases.items()}
             if isinstance(aliases, dict) else {})
@@ -2847,9 +2956,226 @@ def count_failed_run_locked(task: dict) -> int:
     """
     count = int(task.get(FAILED_RUNS) or 0)
     if task.pop("started", None):
-        count += 1
+        # ...UNLESS THE VERIFYING ROLE CALLED THAT RUN NARROW (DEC-0107). The classification is
+        # consumed WITH the run it is about: a word left standing would discount every later run
+        # too, and the next lease is exactly the moment the run it belongs to stops being current.
+        if not _the_run_was_classified_as_not_climbing(task):
+            count += 1
+        task.pop(FAIL_CLASS_FIELD, None)
+        task.pop(FAIL_CLASS_BY_FIELD, None)
     task[FAILED_RUNS] = count
     return count
+
+
+def writing_role(state: ProjectState):
+    """The role the LEASES say is running right now, or None when the state cannot say.
+
+    WHY THE STATE AND NOT AN ARGUMENT (DEC-0107): a `--role` flag on the command would be a claim
+    the caller makes about itself, and the whole point of the classification is that the role being
+    judged cannot make it. A BOUND lease (`agent_id` set) is a record the kernel wrote when a child
+    started, so it is the one statement about who is running that the running agent did not author.
+
+    NONE WHEN IT IS NOT ONE ROLE, in both directions: no bound lease at all (a command typed
+    outside any dispatch) and several bound leases naming different roles (a parallel round) are
+    both "this kernel cannot say", and `fail_class_refusal` turns that into a refusal rather than a
+    guess. The hook is the other half and it knows more -- it sees the agent -- which is why
+    DEC-0107 puts the enforcement there and the record here.
+    `tools/test_ladder.py::test_the_classification_is_refused_where_the_state_cannot_say_who_writes`
+    """
+    with state.lock:
+        return _writing_role_locked(state)
+
+
+def _writing_role_locked(state: ProjectState):
+    roles = set()
+    for lease in _iter_leases(state):
+        if not lease.get("agent_id"):
+            continue
+        try:
+            task = state.read_item(lease["task_id"])
+        except Exception:  # noqa: BLE001 -- an unreadable order is the validator's finding
+            continue
+        role = str(task.get("assigned_role") or "")
+        if role:
+            roles.add(role)
+    return roles.pop() if len(roles) == 1 else None
+
+
+def fail_class_refusal(state: ProjectState, role, related, result, fail_class):
+    """None, or the sentence that refuses this fail classification (DEC-0107).
+
+    THE PREDICATE THE HOOK ASKS, and the one the `evidence` command asks itself. `gate_dispatch`
+    measures WHO is writing -- it sees the agent -- and hands that role in; this reader answers
+    everything the STATE decides: whether the word is one of the declared classifications, whether
+    the verdict it rides on is a failed run at all, whether the orders it names are orders that
+    FAILED, and whether the role writing it is one this project's own declaration classes as
+    judging rather than the one under judgement.
+
+    WHAT IT DOES NOT ANSWER, said rather than implied: with no readable ladder declaration
+    (`ladder_declaration` -> None: a project with neither a scaffold record nor a tier file of its
+    own, DEC-0105) the kit's role classes cannot be read, and then only the self-classification
+    check applies. A caller may pass `role=None`, which means the state could not say who is
+    writing, and that is refused: a classification nobody can attribute buys nothing at the counter
+    (`_the_run_was_classified_as_not_climbing`), and a write that buys nothing must not look like
+    one that does.
+    `tools/test_ladder.py::test_the_classification_is_refused_where_the_state_cannot_say_who_writes`
+    `tools/test_ladder.py::test_only_a_judging_role_may_classify_and_never_the_one_under_judgement`
+    """
+    if fail_class is None:
+        return None
+    word = str(fail_class)
+    if word not in FAIL_CLASSES:
+        return ("%r is not a fail classification. Remedy: use one of %s."
+                % (word, ", ".join("%s (%s)" % (name, FAIL_CLASSES[name].does)
+                                   for name in sorted(FAIL_CLASSES))))
+    if str(result) != FAILING_RESULT:
+        return ("a fail classification says what KIND of failure a run was, and this record's "
+                "result is %r -- there is no failure to classify (DEC-0107). Remedy: drop the "
+                "classification, or record the verdict as %r." % (result, FAILING_RESULT))
+    orders = [str(item) for item in field_elements(related) if _is_order(str(item))]
+    if not orders:
+        return ("a fail classification is about an ORDER and this record names none (%s). Remedy: "
+                "pass `--related <%s-nnnn>` for the order whose run failed; the classification is "
+                "what the next lease reads (DEC-0107)."
+                % (", ".join(str(item) for item in field_elements(related)) or "nothing",
+                   ORDER_TYPE))
+    if role is None:
+        return ("this kernel cannot say which role is writing: no single bound lease names one "
+                "(none at all, or several roles at once). A classification it cannot attribute is "
+                "not counted by `count_failed_run_locked`, so writing one would look like a "
+                "discount and be none (DEC-0107). Remedy: run the command from inside the dispatch "
+                "you were given, so the bound lease names your role.")
+    for order_id in orders:
+        try:
+            order = state.read_item(order_id)
+        except Exception as exc:  # noqa: BLE001 -- an unreadable order is refused, not guessed at
+            return ("%s could not be read, so whether its run failed cannot be decided: %s"
+                    % (order_id, exc))
+        if str(order.get("status")) != FAILED_STATUS:
+            return ("%s is %s, and a fail classification is about a run that ended in %s "
+                    "(DEC-0107). Remedy: classify the order once its run has failed."
+                    % (order_id, order.get("status"), FAILED_STATUS))
+        if str(role) == str(order.get("assigned_role") or ""):
+            return ("%s is the role %s was dispatched to, so it would be classifying the run it is "
+                    "being judged on -- the one thing this field may not be (DEC-0107, BUG-0260 "
+                    "AC-2). Remedy: the verifying role records the classification."
+                    % (role, order_id))
+    wrong_class = fail_class_role_refusal(state, role)
+    if wrong_class:
+        return wrong_class + " Remedy: have the verifying role record it."
+    return None
+
+
+def fail_class_role_refusal(state: ProjectState, role):
+    """None, or the REASON this role may not write a fail classification at all (DEC-0107).
+
+    THE HALF OF `fail_class_refusal` THAT DEPENDS ON THE ROLE ALONE, and a function of its own
+    because the kits' `gate_dispatch` has to ask exactly this and nothing more: a shell line does
+    not say which orders the evidence will name or what verdict it will carry, so a hook asking the
+    whole predicate would have to invent the values it is missing -- and an invented `related` turns
+    into "this record names no order", a refusal about nothing. Before this the hook re-derived the
+    comparison from `ladder_declaration` itself: two readers for one rule, which is the shape a
+    divergence hides in.
+
+    THE REMEDY IS THE CALLER'S, which is why this returns a reason and not a finished sentence: the
+    kernel's caller is already inside the command and is told to have the verifying role record it,
+    while the hook's caller has not run anything yet and is told where to run it from.
+
+    NONE WHERE NO DECLARATION IS READABLE (DEC-0105): a project with neither a scaffold record nor a
+    tier file of its own has no role classes, so this question has no answer -- and then the
+    self-classification check inside `fail_class_refusal` is the whole rule, which is what its own
+    docstring says.
+    `tools/test_ladder.py::test_only_a_judging_role_may_classify_and_never_the_one_under_judgement`
+    `tools/test_hooks_v2.py::test_the_fail_classification_is_refused_from_every_writer_but_the_verifying_one`
+    """
+    declaration = ladder_declaration(state)
+    if declaration is None:
+        return None
+    role_class = declaration.ladder["roles"].get(str(role))
+    if role_class == QA_CLASS:
+        return None
+    return ("role %r is class %r in %s, and the fail classification belongs to the judging "
+            "class %r (DEC-0107: the PM never sets it)."
+            % (role, role_class or "<none>", declaration.source, QA_CLASS))
+
+
+def record_fail_class(state: ProjectState, related, fail_class, role) -> list:
+    """Stamp the classification and its author on every order the evidence names.
+
+    ON THE ORDER because that is where the next lease reads it (DEC-0107: "the order carries a
+    `fail_class`"), and written HERE rather than through `update_item` because the edit path
+    refuses both fields on purpose -- a role that could type them would be classifying its own run.
+    Returns the ids it stamped, so the command can print what it did.
+
+    TWO THINGS THE WRITE OWES, both from the verifier of round 1 (F8): the status is re-asked under
+    the lock, because the judgement that let this run happen was made without one; and `revision`
+    is bumped, because this is the only write to an order that does not go through `update_item`.
+    `tools/test_ladder.py::test_a_stamp_lands_only_while_the_run_it_judges_is_still_failed`
+    `tools/test_ladder.py::test_a_mechanical_fail_does_not_climb_and_an_ordinary_one_does`
+    """
+    stamped = []
+    with state.lock:
+        # EVERY ORDER IS JUDGED BEFORE ANY IS WRITTEN. An evidence may name several, and a refusal
+        # halfway through would leave one order stamped and the next not -- a half-applied verdict
+        # nobody can see. Same reason `capture_preflight` exists beside `capture`.
+        # `tools/test_ladder.py::test_an_evidence_that_names_two_orders_stamps_both_or_neither`
+        orders = []
+        for order_id in [str(item) for item in field_elements(related) if _is_order(str(item))]:
+            order = state.read_item(order_id)
+            # THE STATUS IS ASKED AGAIN, UNDER THE LOCK (verifier round 1, F8). `fail_class_refusal`
+            # reads it before the record is written and takes no lock -- it cannot, because the
+            # caller has to be able to ask it without one -- so between the judgement and this
+            # write the order may have moved. A stamp on an order that is no longer FAILED would be
+            # consumed by the NEXT run instead of the judged one, and the direction of that error
+            # is the unsafe one: a cheaper model on a retry nobody classified.
+            if str(order.get("status")) != FAILED_STATUS:
+                raise DispatchError(
+                    "%s is %s and no longer %s -- the classification was judged against the failed "
+                    "run and the order has moved since, so nothing was stamped (DEC-0107). Remedy: "
+                    "record the classification while the run it is about is %s."
+                    % (order_id, order.get("status"), FAILED_STATUS, FAILED_STATUS))
+            orders.append((order_id, order))
+        for order_id, order in orders:
+            order[FAIL_CLASS_FIELD] = str(fail_class)
+            order[FAIL_CLASS_BY_FIELD] = str(role)
+            # A CHANGE COUNTER THAT DOES NOT COUNT THIS CHANGE IS ONE NOBODY CAN USE: this is the
+            # one write to an order outside the edit path, and what it writes is read at the next
+            # lease. `update_item` bumps only a HASHED field of an APPROVED item, and a `TSK` has
+            # neither -- so without this line the stamp is invisible to every reader that asks
+            # `revision` whether the item moved.
+            order["revision"] = int(order.get("revision", 1)) + 1
+            state._write_yaml_atomic(state.active_path(order_id), order)
+            stamped.append(order_id)
+        state._regenerate_index_locked()
+    return stamped
+
+
+def _is_order(item_id: str) -> bool:
+    """Is this id a work order? Asked of the id convention, not of a prefix spelled here."""
+    try:
+        return parse_id(item_id)[0] == ORDER_TYPE
+    except ValueError:
+        return False
+
+
+def _the_run_was_classified_as_not_climbing(task: dict) -> bool:
+    """Did a role OTHER than the one under judgement classify this run as not climbing (DEC-0107)?
+
+    TWO CONDITIONS AND BOTH ARE THE DECISION. The word has to be one the vocabulary declares as not
+    climbing (`fail_classes_that_do_not_climb`, not the spelling `mechanical`), and the stamp has
+    to name a role that is not the order's own: the one thing BUG-0260 AC-2 asks for is that the
+    role being judged cannot buy the discount for itself. A classification the kernel could not
+    attribute to a role (`FAIL_CLASS_BY_FIELD` empty) buys nothing either -- the run counts, the
+    rung climbs, and the escalation is the one that would have happened without DEC-0107. That is
+    the fail-closed direction: an unattributable discount would be invisible, while a missing one
+    shows up as a more expensive model on the retry.
+    `tools/test_ladder.py::test_a_mechanical_fail_does_not_climb_and_an_ordinary_one_does`
+    `tools/test_ladder.py::test_a_classification_by_the_role_under_judgement_buys_nothing`
+    """
+    if str(task.get(FAIL_CLASS_FIELD) or "") not in fail_classes_that_do_not_climb():
+        return False
+    wrote = str(task.get(FAIL_CLASS_BY_FIELD) or "")
+    return bool(wrote) and wrote != str(task.get("assigned_role") or "")
 
 
 # A TEST IS A THING THAT IS RUN AND YIELDS A VERDICT, and that is the property the three readers
@@ -3151,18 +3477,24 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
     if found is None:
         from .presets import ROLES_MANIFEST
 
-        return {"absent": "no scaffold record (%s) names a kit for this project, so there is no "
-                          "ladder declaration to read; the role runs on its own pin"
-                          % ROLES_MANIFEST.replace(os.sep, "/")}
-    kit, ladder = found
+        named = configured_tier_file(state)
+        return {"absent": "no scaffold record (%s) names a kit for this project, and %s -- so "
+                          "there is no ladder declaration to read; the role runs on its own pin"
+                          % (ROLES_MANIFEST.replace(os.sep, "/"),
+                             ("the tier file its %s names (%s) could not be read or does not "
+                              "validate" % (CONFIG_FILE, named.replace(os.sep, "/")))
+                             if named else
+                             ("its %s names no `%s:` tier file either (DEC-0105)"
+                              % (CONFIG_FILE, CONFIG_TIER_FILE_KEY)))}
+    source, ladder = found
     role = str(task.get("assigned_role") or "")
     role_class = ladder["roles"].get(role)
     if role_class is None:
         raise DispatchError(
-            "role %r has no class in %s of kit %r, so the rung it starts on cannot be derived -- "
-            "dispatch blocked (DEC-0034 rules 1/4/5 hang on the class; DEC-0078 (4)). Remedy: list "
-            "the role under `roles:` in the kit's declaration with one of its classes (%s) and "
-            "restage the kit." % (role, LADDER_FILE, kit, ", ".join(sorted(ladder["classes"]))))
+            "role %r has no class in %s, so the rung it starts on cannot be derived -- dispatch "
+            "blocked (DEC-0034 rules 1/4/5 hang on the class; DEC-0078 (4)). Remedy: list the role "
+            "under `roles:` with one of the declared classes (%s), then %s."
+            % (role, source, ", ".join(sorted(ladder["classes"])), found.remedy))
     definitions = agents_dir(os.path.dirname(os.path.abspath(state.root)))
     pin = role_pin(definitions, role)
     if pin is None:
@@ -3172,14 +3504,13 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
             "the role pin). Remedy: restore the role file the scaffold installs, or re-run the "
             "scaffold." % (role, os.path.join(definitions, role + ".md").replace(os.sep, "/")))
     rungs = ladder["rungs"]
-    base = pin if pin in rungs else _store_aliases(os.path.dirname(os.path.join(
-        kit_installation(state)[1], LADDER_FILE))).get(pin)
+    base = pin if pin in rungs else _store_aliases(found.tiers_dir).get(pin)
     if base not in rungs:
         raise DispatchError(
-            "role %r pins %r, which is neither a rung of kit %r's ladder (%s) nor an alias %s "
+            "role %r pins %r, which is neither a rung of %s (%s) nor an alias %s "
             "resolves to one -- dispatch blocked (DEC-0076: three rungs, named by the reference "
             "vocabulary). Remedy: pin the role to one of the rungs or to an alias of one."
-            % (role, pin, kit, ", ".join(rungs), TIERS_FILE))
+            % (role, pin, source, ", ".join(rungs), TIERS_FILE))
     exception = ladder["exceptions"].get(role, {})
     top = str(exception.get(CLASS_TOP, ladder[CLASS_TOP]))
     if RUNG_KEY in exception:
@@ -3218,9 +3549,9 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
     order_rung, order_effort = order_tiers(task)
     if order_rung is not None and order_rung not in rungs:
         raise DispatchError(
-            "%s asks for `%s: %s`, which is not a rung of kit %r's ladder (%s) -- dispatch blocked "
+            "%s asks for `%s: %s`, which is not a rung of %s (%s) -- dispatch blocked "
             "(DEC-0091 (3)). Remedy: correct the order while it is DRAFT, or drop the field."
-            % (task.get("id"), RUNG_KEY, order_rung, kit, ", ".join(rungs)))
+            % (task.get("id"), RUNG_KEY, order_rung, source, ", ".join(rungs)))
     if order_effort is not None and order_effort not in EFFORT_LEVELS:
         raise DispatchError(
             "%s asks for `%s: %s`, which is not one of %s -- dispatch blocked (DEC-0091 (3)). "
@@ -3323,7 +3654,7 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
     return {
         RUNG_KEY: chosen,
         EFFORT_KEY: effort,
-        "kit": kit,
+        "kit": source,
         "role_class": role_class,
         "pin": pin,
         "base": base,

@@ -108,7 +108,7 @@ def main():
         # and this number has to stay under it: past the window the hook is killed, and a killed
         # gate lets the push it was refusing through, silently. Timing the child out HERE is what
         # turns a hanging pipeline into a refusal instead of that.
-        # `tools/test_hooks.py::test_a_registration_names_a_window_exactly_when_its_gate_can_outlive_the_default`
+        # `tools/test_hooks.py::test_every_registration_names_a_window_its_gate_can_answer_inside`
         # reads this number off the running code and requires the registered window above it.
         # stdin=DEVNULL: the child must not inherit the hook's consumed payload pipe (node
         # tooling probes stdin). cwd comes from find_repo_root, which normalizes the Windows

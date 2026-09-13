@@ -1569,7 +1569,8 @@ def test_gate3_remedy_is_executable_and_opens_the_commit(project, tmp_path, open
     does not yet -- the repair is the user's shell patch, `project_memory/staging/TSK-0141/
     s4-gate-commit-evidence-patch.md`, because `.claude/hooks/gate_commit_evidence.py` is refused to
     every role here. A check that really executes the printed line is the strengthening that closes
-    the difference, and it can only be green AFTER that patch is applied.
+    the difference: `test_gate3_prints_a_remedy_that_runs_as_printed` is it, and it is RED until
+    that patch is applied.
     """
     import re
     work = str(tmp_path / "remedy")
@@ -1588,6 +1589,111 @@ def test_gate3_remedy_is_executable_and_opens_the_commit(project, tmp_path, open
     assert done.returncode == 0, "the remedy command failed: %s" % done.stderr[-800:]
     rc, err = run(work, "gate_commit_evidence.py", payload)
     assert rc == 0, "the recorded verdict did not open the commit: %s" % err[:600]
+
+
+_PLACEHOLDER_RX = re.compile(r"<([^<>]+)>")
+
+
+def _printed_command(refusal, opens_with):
+    """The command line a refusal PRINTS, joined the way the shell joins it -- at the backslash.
+
+    A DEFINITION AND NOT A LINE NUMBER: the remedy is whatever the refusal itself printed, so this
+    takes the first line that OPENS with the given word and keeps taking the next one for as long
+    as the previous one ended in a continuation mark. A remedy that grows a line is followed; a
+    remedy that moves in the text is followed; a remedy that disappears comes back empty, and the
+    caller says so rather than measuring nothing.
+    """
+    lines = refusal.splitlines()
+    for at, line in enumerate(lines):
+        if not line.strip().startswith(opens_with):
+            continue
+        parts = []
+        while at < len(lines):
+            piece = lines[at].strip()
+            if piece.endswith("\\"):
+                parts.append(piece[:-1].strip())
+                at += 1
+                continue
+            parts.append(piece)
+            break
+        return " ".join(parts)
+    return ""
+
+
+def _remedy_with_values(command, item, artifact):
+    """The printed remedy with every `<placeholder>` filled -- by the FLAG it follows, not its text.
+
+    TWO VALUES HAVE TO EXIST OUTSIDE THE LINE for the kernel to take them: the item a verdict
+    relates to and the artifact it points at. Those two are handed in. Everything else a remedy can
+    ask for is either an enumeration the placeholder spells out itself (`<full|selection>` -- the
+    first alternative is as good as any) or free text, where the words ARE the value. A placeholder
+    that is neither stops this test instead of travelling into the argv as a literal `<...>`, which
+    would turn a remedy this test cannot fill into a green run.
+    """
+    def value(hit):
+        before = command[:hit.start()].rsplit("--", 1)
+        flag = "--" + before[1].split()[0] if len(before) > 1 and before[1].split() else ""
+        if flag == "--related":
+            return item
+        if flag == "--artifact-ref":
+            return artifact
+        inside = hit.group(1)
+        if "|" in inside:
+            return inside.split("|")[0]
+        assert all(letter.isalnum() or letter in " -_" for letter in inside), (
+            "the remedy asks for a value this test cannot invent (%r): it is neither an item, nor "
+            "an artifact path, nor an enumeration, nor free text" % inside)
+        return inside.replace(" ", "-")
+    return _PLACEHOLDER_RX.sub(value, command)
+
+
+def test_gate3_prints_a_remedy_that_runs_as_printed(project, tmp_path, open_item):
+    """`BUG-0297` / `H213`: the line gate 3 prints at every blocked hand-over is rc 2 -- it was
+    written before `kernel.cli evidence` made `--run-command`/`--run-scope` required, and nobody
+    measured the PRINTED text because the sibling test above builds its argv instead of parsing it.
+
+    THIS TEST IS RED ON PURPOSE UNTIL THE USER RUNS THE PATCH, and that is the whole point of it:
+    `.claude/hooks/gate_commit_evidence.py` is refused to every role in this repository, so the
+    repair is `project_memory/staging/TSK-0141/s4-gate-commit-evidence-patch.md`, applied from a
+    shell OUTSIDE Claude Code. A red test is the only honest state for a defect whose fix no role
+    here may write; the alternative -- writing the check after the patch -- is how the difference
+    survived two rounds unmeasured.
+
+    WHAT IT MEASURES, so the red says something: every token of the argv comes out of the refusal
+    itself (`_printed_command` joins it at the continuation marks, `_remedy_with_values` fills the
+    placeholders and refuses to invent anything else), the line runs through a REAL SHELL rather
+    than through a hand-built argv, and the commit that was refused before is open afterwards. A
+    remedy missing any required flag fails at the kernel's own parser, which is exactly the state
+    of the text today.
+    """
+    shell = shutil.which("bash")
+    if not shell:
+        pytest.skip("no bash on this host: the printed line is a POSIX one and needs a real shell "
+                    "as its arbiter -- a hand-split argv would measure this test's own parser")
+    work = str(tmp_path / "printed-remedy")
+    shutil.copytree(project, work)
+    payload = bash_payload(work, 'git commit -m "wip"')
+    rc, err = run(work, "gate_commit_evidence.py", payload)
+    assert rc == 2, "gate 3 did not refuse, so there is no printed remedy to run: %s" % err[:400]
+    printed = _printed_command(err, "PYTHONPATH=")
+    assert "kernel.cli" in printed and "evidence" in printed, (
+        "the refusal prints no evidence command at all -- then this check measures nothing:\n%s"
+        % err[:800])
+    line = _remedy_with_values(printed, open_item, "staging/verdict.md")
+    environment = dict(os.environ)
+    environment.pop("PYTHONPATH", None)      # the printed line sets it; nothing else may
+    done = subprocess.run([shell, "-c", line], cwd=work, env=environment,
+                          capture_output=True, text=True, timeout=300)
+    assert done.returncode == 0, (
+        "the line gate 3 PRINTS does not run (BUG-0297 / H213). Run\n  %s\nand it answers\n  %s\n"
+        "The repair is the user's shell patch project_memory/staging/TSK-0141/"
+        "s4-gate-commit-evidence-patch.md -- this file's gates may not be written from inside a "
+        "session, so this test stays red until it is applied."
+        % (line, (done.stderr or done.stdout).strip()[-400:]))
+    rc, err = run(work, "gate_commit_evidence.py", payload)
+    assert rc == 0, (
+        "the verdict the printed line recorded did not open the commit, so the remedy runs and "
+        "still does not remedy: %s" % err[:600])
 
 
 def test_gate3_verdict_stops_covering_a_tree_that_moved(project, tmp_path, open_item):

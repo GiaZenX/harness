@@ -1,0 +1,20 @@
+id: EVD-0437
+kind: test
+related:
+- BUG-0248
+result: pass
+summary: 'SUPERSEDES EVD-0430/EVD-0422 for the evaluation half: verifier round 1 (F5)
+  measured one unpaid mixed document standing TWICE in the open-items table and counted
+  as ''2 open items'', while document_key''s docstring claimed everything that says
+  Beleg counts through it. The open items, the stdout count and the AfA hints now
+  all go through one grouping (group_by_document); the gross of a document is the
+  sum of its rows. Everything that sums money still sums rows.'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_office_package.py::test_a_mixed_vat_document_is_one_beleg_everywhere_the_report_counts_them
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T01:23:27'
+closed_at: '2026-09-13T01:27:27'

@@ -147,9 +147,16 @@ earlier one and a `fail` you record after a pass closes the merge gate again.
    require a **regression test** that FAILS on the pre-fix code and PASSES after — confirm it actually guards
    the reported repro before the bug may go `VERIFIED`.
 7. On the **first** fail of a task, flag the escalation in your `followups` so the PM can propose a
-   model/team upgrade (§11) — OR, when the fail is demonstrably **narrow/mechanical** (not a capability
-   problem), say so explicitly (`narrow-mechanical — <why>`) so the PM records that instead of proposing an
-   upgrade. Never leave an escalation flag for the PM to silently ignore. Per-task retry COUNTS exist
+   model/team upgrade (§11) — OR, when the fail is demonstrably **mechanical** (a typo, not a capability
+   problem), RECORD it yourself: your `evidence` verdict of `fail` takes ONE more flag,
+   `--fail-class mechanical` (the other word is `--fail-class reasoning`, which counts as any fail does),
+   and `count_failed_run_locked` then skips that run (`DEC-0107`). Everything else about the line is
+   unchanged — see item 3 for the whole command. It is yours alone: the kernel takes the role off the
+   lease that binds YOU, and `gate_dispatch` refuses the flag from the session instance and from any
+   bound role that is not the judging class. A word your SHELL assembles is refused where it could
+   still turn into an option nobody typed: UNQUOTED anywhere on the line, or quoted but not standing
+   as the VALUE of an option. So `--run-command "$(cat cmd.txt)"` and `--related "$ID"` go through,
+   and `… --run-command c "$a$b" mechanical` does not — there, type the flag out. Never leave an escalation flag for the PM to silently ignore. Per-task retry COUNTS exist
    nowhere in V2, so name the repetition in your summary rather than assuming a counter remembers it.
 8. A PASS verdict tells the PM to transition the PR to `DELIVERED` and merge. `gate_git` then reads exactly
    the Evidence you recorded — so a merge you did not clear is a merge that does not happen, and a kind you

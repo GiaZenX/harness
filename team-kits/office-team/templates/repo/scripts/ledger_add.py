@@ -341,7 +341,13 @@ def validate_cross(rows, year=""):
         if not invoice or row.get("doc_type") == "reversal":
             continue
         gross, _ = read_amount(row.get("gross"))
-        key = (row.get("counterparty"), invoice, gross)
+        # THE RATE IS PART OF THE KEY (DEC-0108). A mixed-VAT document books as one row per rate
+        # under a SHARED invoice number, so counterparty + invoice + gross alone would read the
+        # second rate group as a second booking of the first whenever the two groups happen to
+        # round to one gross. What a double booking really repeats is the whole group -- same
+        # invoice, same rate, same gross -- and that is still caught.
+        rate, _ = read_amount(row.get("vat_rate"))
+        key = (row.get("counterparty"), invoice, gross, rate)
         invoices.setdefault(key, []).append((where, (row.get("id") or "").strip()))
     for key, hits in invoices.items():
         live = [(where, rid) for where, rid in hits if rid not in cancelled]

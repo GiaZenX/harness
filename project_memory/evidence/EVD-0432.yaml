@@ -1,0 +1,21 @@
+id: EVD-0432
+kind: test
+related:
+- BUG-0253
+result: pass
+summary: 'DEC-0105 kernel half: a project with no scaffold record reads the tier file
+  its own project_config.yaml names (model_tiers:), validated by the same _valid_ladder
+  the kits pass; missing, unreadable or invalid keeps ''keine Angabe'' and the absent
+  line names the file; a scaffolded project never reads it. NOT closed: this repository''s
+  own ladder.yaml and the config line are a user action from a shell outside Claude
+  Code (gate 1 refuses every tool write to project_config.yaml, measured rc 2) --
+  see TSK-0146 protocol row 3.'
+artifact_refs:
+- staging/TSK-0146/protocol.md
+run_command: python -B -m pytest tools/test_ladder.py::test_a_kit_less_project_reads_the_tier_file_its_own_config_names
+  tools/test_ladder.py::test_a_missing_or_broken_tier_file_keeps_keine_angabe tools/test_ladder.py::test_a_scaffolded_project_never_reads_the_config_tier_file
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:24:25'

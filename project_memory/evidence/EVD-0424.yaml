@@ -1,0 +1,20 @@
+id: EVD-0424
+kind: test
+related:
+- BUG-0301
+result: pass
+summary: 'Seam row from stream C, built in tools/test_hooks.py: a computed flag name
+  now excuses exactly ONE missing argument instead of the whole call it stands in
+  (_evidence_call_findings, shared by the S4 arbiter and by a new node on written
+  text). Measured in a complete .git-less copy with C''s planting -- a plausible --%s
+  <kind> line in the UNPATCHED gate_commit_evidence.py remedy: old reader 1 passed
+  (the live S4 defect silenced), new reader 1 failed. The arbiter node stays red in
+  this tree for the real, unpatched S4 defect (H213), which is why the bug''s closing
+  node is the new one on written text.'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py -q -k test_a_computed_flag_name_excuses_one_absence_and_not_the_call_it_stands_in
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:09:23'

@@ -1297,3 +1297,348 @@ def test_the_entry_point_shows_the_answer_and_the_dispatch_line_carries_it(store
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__]))
+
+
+# -- the fail classification (DEC-0107, BUG-0260/H178) -------------------------------------------
+
+def _a_judged_project(store):
+    """A kit project with a builder and a judging role, the builder's run FAILED, the judge BOUND.
+
+    The judge holds a bound lease of its own, because that is what makes the kernel able to say who
+    is writing at all (`dispatch.writing_role`) -- a QA role types its command inside its own
+    dispatch, and nothing else in the state says which agent is running.
+    """
+    store.kit("kit")
+    state, pr = store.project("p", "kit", {"backend-developer": "sonnet",
+                                           "quality-engineer": "opus"})
+    build = store.order(state, pr)
+    judge = store.order(state, pr, role="quality-engineer")
+    dispatch.create_lease(state, judge["id"])
+    dispatch.bind_agent(state, judge["id"], "agent-of-the-judge")
+    drive_task_to(state, build["id"], "FAILED")
+    return state, pr, build
+
+
+def test_a_mechanical_fail_does_not_climb_and_an_ordinary_one_does(store):
+    """BUG-0260 / H178 (DEC-0107): a failed run the judging role calls narrow does not cost a
+    rung; every other does.
+
+    The two halves are in ONE test on purpose: the interesting claim is the DIFFERENCE, and a test
+    that only showed the discount would stay green if the counter stopped counting at all.
+
+    RED without the classification branch in `count_failed_run_locked`: the mechanical retry comes
+    back on `opus` and with `failed_runs == 1`, exactly like the ordinary one.
+    """
+    state, _pr, build = _a_judged_project(store)
+    assert dispatch.writing_role(state) == "quality-engineer"
+    assert dispatch.fail_class_refusal(state, dispatch.writing_role(state), [build["id"]],
+                                       "fail", "mechanical") is None
+    dispatch.record_fail_class(state, [build["id"]], "mechanical", "quality-engineer")
+
+    state.transition(build["id"], "READY", approved_retry=True)
+    lease, item = lease_of(state, build)
+    assert item[dispatch.FAILED_RUNS] == 0, "a mechanical fail climbed"
+    assert lease[dispatch.RUNG_KEY] == "sonnet", lease[dispatch.RUNG_KEY]
+    # ...and it is CONSUMED with the run it was about: a word left standing would discount the next
+    assert dispatch.FAIL_CLASS_FIELD not in item and dispatch.FAIL_CLASS_BY_FIELD not in item
+
+    dispatch.spawn_outcome(state, build["id"], ok=True)
+    state.transition(build["id"], "FAILED")
+    dispatch.record_fail_class(state, [build["id"]], "reasoning", "quality-engineer")
+    state.transition(build["id"], "READY", approved_retry=True)
+    lease, item = lease_of(state, build)
+    assert item[dispatch.FAILED_RUNS] == 1, "an ordinary fail did not climb"
+    assert lease[dispatch.RUNG_KEY] == "opus", lease[dispatch.RUNG_KEY]
+
+
+def test_a_classification_by_the_role_under_judgement_buys_nothing(store):
+    """BUG-0260 AC-2: the role being judged may not discount its own run -- measured at the COUNTER.
+
+    Two readers stand between that role and a free rung, and this is the second one: the refusal
+    (`fail_class_refusal`) is what a role meets at the command, and the counter is what would still
+    have to be true if the field ever arrived some other way. So the stamp is written here by hand
+    with the builder's own role on it, and it buys nothing.
+
+    RED with the author check dropped from `_the_run_was_classified_as_not_climbing`: the run stops
+    counting and the retry comes back on the cheap rung.
+    """
+    state, _pr, build = _a_judged_project(store)
+    dispatch.record_fail_class(state, [build["id"]], "mechanical", "backend-developer")
+    state.transition(build["id"], "READY", approved_retry=True)
+    lease, item = lease_of(state, build)
+    assert item[dispatch.FAILED_RUNS] == 1, "the judged role discounted its own run"
+    assert lease[dispatch.RUNG_KEY] == "opus"
+
+
+def test_only_a_judging_role_may_classify_and_never_the_one_under_judgement(store):
+    """The refusal side of the same rule, and the third case DEC-0107 names: the PM.
+
+    The classes come from the KIT's own declaration (`roles:` -> a class), not from a list of role
+    names in the kernel: a fourth kit calling its verifier something else is covered by declaring
+    it `qa`, and a project-manager is refused because its class is `planning` -- "the PM never sets
+    it; it has no command for it".
+    """
+    state, _pr, build = _a_judged_project(store)
+    for role, expect in (("backend-developer", "being judged on"),
+                         ("project-manager", "judging class")):
+        refusal = dispatch.fail_class_refusal(state, role, [build["id"]], "fail", "mechanical")
+        assert refusal and expect in refusal, (role, refusal)
+    assert dispatch.fail_class_refusal(state, "quality-engineer", [build["id"]],
+                                       "fail", "mechanical") is None
+
+
+def test_the_classification_is_refused_where_the_state_cannot_say_who_writes(store):
+    """`role=None` is refused, and so is a classification on a verdict that is not a failed run.
+
+    A classification the kernel cannot attribute is not counted (`fail_class_by` empty), so writing
+    one would LOOK like a discount and be none -- the invisible half of a rule is worse than its
+    absence. The other three refusals are the ones that make the field mean anything at all: an
+    unknown word, a result that is not a fail, and an order whose run has not failed.
+    """
+    state, pr, build = _a_judged_project(store)
+    assert "cannot say which role is writing" in dispatch.fail_class_refusal(
+        state, None, [build["id"]], "fail", "mechanical")
+    assert "not a fail classification" in dispatch.fail_class_refusal(
+        state, "quality-engineer", [build["id"]], "fail", "narrow-mechanical")
+    assert "no failure to classify" in dispatch.fail_class_refusal(
+        state, "quality-engineer", [build["id"]], "pass", "mechanical")
+    assert "names none" in dispatch.fail_class_refusal(
+        state, "quality-engineer", [pr["id"]], "fail", "mechanical")
+    fresh = store.order(state, pr)
+    assert "is READY, and a fail classification is about a run that ended in FAILED" in (
+        dispatch.fail_class_refusal(state, "quality-engineer", [fresh["id"]], "fail", "mechanical"))
+    # ...and nothing at all to answer when no classification is passed
+    assert dispatch.fail_class_refusal(state, None, [build["id"]], "pass", None) is None
+
+
+# -- a kit-less project's own tier file (DEC-0105, BUG-0253/H171) ---------------------------------
+
+HARNESS_LADDER = {
+    "rungs": ["sonnet", "opus", "fable"],
+    "top": "fable",
+    "effort": {"default": "high", "large": "xhigh"},
+    "escalation": {"failed_runs_per_rung": 3, dispatch.EFFORT_STEPS_KEY: 2},
+    "classes": {"planning": "opus", "build": "opus", "qa": "opus"},
+    "roles": {"harness-lead": "planning", "harness-implementer": "build",
+              "harness-verifier": "qa"},
+    "exceptions": {},
+}
+
+
+def _kit_less_project(store, name, tier_file=HARNESS_LADDER, config=True, named="ladder.yaml"):
+    """A project with NO scaffold record -- the shape this repository runs in -- and its own file."""
+    state, pr = store.project(name, "none", {"harness-implementer": "opus"}, record=False)
+    repo = os.path.dirname(state.root)
+    if tier_file is not None:
+        write(os.path.join(repo, named), yaml.safe_dump(tier_file, sort_keys=False)
+              if isinstance(tier_file, dict) else tier_file)
+    if config:
+        write(os.path.join(state.root, dispatch.CONFIG_FILE),
+              yaml.safe_dump({"project": {"name": "harness"},
+                              dispatch.CONFIG_TIER_FILE_KEY: named}, sort_keys=False))
+    return state, pr
+
+
+def test_a_kit_less_project_reads_the_tier_file_its_own_config_names(store):
+    """BUG-0253 / H171 (DEC-0105): no scaffold record, but the project's own config names a tier
+    file -- so a rung is derived instead of `keine Angabe`.
+
+    The FILE is validated by the same `_valid_ladder` every kit's declaration passes, because a
+    second shape would be a second contract for one question -- and because the header prints a
+    rung/effort PAIR, which the store's provider translation table carries nothing to derive.
+
+    RED without `_configured_declaration`: the lease carries `{"absent": ...}`, no rung and no
+    effort, which is the state BUG-0253 measured in this repository.
+    """
+    state, pr = _kit_less_project(store, "harness")
+    task = store.order(state, pr, role="harness-implementer")
+    lease, item = lease_of(state, task)
+    assert lease[dispatch.RUNG_KEY] == "opus", lease.get(dispatch.LADDER_KEY)
+    assert lease[dispatch.EFFORT_KEY] == "high"
+    assert dispatch.CONFIG_FILE in lease[dispatch.LADDER_KEY]["kit"], lease[dispatch.LADDER_KEY]
+    # ...and the header a lead reads prints the pair rather than the `absent` line
+    header = json.loads(dispatch.dispatch_header(lease)[len(dispatch.HEADER_PREFIX):])
+    assert header[dispatch.RUNG_KEY] == "opus" and header[dispatch.EFFORT_KEY] == "high", header
+
+
+def test_this_repositorys_own_tier_file_is_one_the_kernel_reads_and_names_roles_it_ships(store):
+    """DEC-0105's REPO side: the file at this repository's root is read, not just written.
+
+    The node above measures the kernel against `HARNESS_LADDER`, which is a COPY of the shape --
+    useful for the broken variants, useless for the question "does the file this repo actually
+    ships validate". So this one loads `ladder.yaml` from the repository root and puts THAT through
+    the kernel's own `_valid_ladder` (by asking for a derivation, which is the only caller) and
+    through `ladder_for_order` for every role it classes.
+
+    BOTH ENDS: every role the file classes has a definition under `.claude/agents/` -- a renamed
+    role file leaves a dead line here rather than in a spawn -- and the derivation really produces
+    a pair, so a file that validates but derives nothing is not silently accepted.
+
+    WHAT THIS DOES NOT MEASURE, because it is not this repo's to write: whether
+    `project_memory/project_config.yaml` NAMES the file. That line is refused to every tool call in
+    this repository (`gate_lead_write_scope`: canonical state) and is the user's to apply; until it
+    is applied the kernel reads no tier file here and the order head keeps saying "keine Angabe".
+    The file being readable is the half this suite can hold.
+
+    RED without the file, or with a file the validator rejects: the derivation comes back with the
+    `absent` line and no rung.
+    """
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with io.open(os.path.join(root, "ladder.yaml"), encoding="utf-8") as handle:
+        declared = yaml.safe_load(handle)
+    assert isinstance(declared, dict) and declared.get("roles"), declared
+
+    state, _pr = store.project("this-repo", "none",
+                               {role: "opus" for role in declared["roles"]}, record=False)
+    write(os.path.join(os.path.dirname(state.root), "ladder.yaml"),
+          yaml.safe_dump(declared, sort_keys=False))
+    write(os.path.join(state.root, dispatch.CONFIG_FILE),
+          yaml.safe_dump({"project": {"name": "harness"},
+                          dispatch.CONFIG_TIER_FILE_KEY: "ladder.yaml"}, sort_keys=False))
+
+    for role in declared["roles"]:
+        derived = dispatch.ladder_for_order(state, {"assigned_role": role}, {"class": "normal"}, 0)
+        assert derived.get(dispatch.RUNG_KEY) in declared["rungs"], (role, derived)
+        assert derived.get(dispatch.EFFORT_KEY), (role, derived)
+        assert os.path.exists(os.path.join(root, ".claude", "agents", "%s.md" % role)), (
+            "%s is classed here but ships no definition" % role)
+
+
+def test_a_missing_or_broken_tier_file_keeps_keine_angabe(store):
+    """DEC-0105's other half: missing, unreadable, or not the declared shape -> no rung, no guess.
+
+    All three keep the kit-less answer the kernel has given since DEC-0078 (4) -- the role runs on
+    its own pin -- and the `absent` line NAMES the file it could not use, so a config that points
+    at nothing is visible rather than silently ignored.
+    """
+    state, _pr = _kit_less_project(store, "no-config", tier_file=None, config=False)
+    absent = dispatch.ladder_for_order(state, {"assigned_role": "harness-implementer"},
+                                       {"class": "normal"}, 0)
+    assert dispatch.RUNG_KEY not in absent
+    assert dispatch.CONFIG_TIER_FILE_KEY in absent["absent"]
+
+    state, _pr = _kit_less_project(store, "no-file", tier_file=None)
+    absent = dispatch.ladder_for_order(state, {"assigned_role": "harness-implementer"},
+                                       {"class": "normal"}, 0)
+    assert dispatch.RUNG_KEY not in absent and "ladder.yaml" in absent["absent"]
+
+    broken = dict(HARNESS_LADDER, top="a rung nobody declared")
+    state, _pr = _kit_less_project(store, "broken", tier_file=broken)
+    absent = dispatch.ladder_for_order(state, {"assigned_role": "harness-implementer"},
+                                       {"class": "normal"}, 0)
+    assert dispatch.RUNG_KEY not in absent and "does not validate" in absent["absent"]
+
+    state, _pr = _kit_less_project(store, "not-yaml", tier_file="::not a mapping::")
+    absent = dispatch.ladder_for_order(state, {"assigned_role": "harness-implementer"},
+                                       {"class": "normal"}, 0)
+    assert dispatch.RUNG_KEY not in absent
+
+
+def test_a_scaffolded_project_never_reads_the_config_tier_file(store):
+    """ONLY when no scaffold record exists (DEC-0105). A project that HAS a kit takes its kit's
+    declaration, and a tier file beside it changes nothing -- two declarations for one project
+    would make the answer depend on reading order.
+    """
+    store.kit("kit")
+    state, pr = store.project("scaffolded", "kit", {"backend-developer": "sonnet"})
+    repo = os.path.dirname(state.root)
+    write(os.path.join(repo, "ladder.yaml"),
+          yaml.safe_dump(dict(HARNESS_LADDER, classes=dict(HARNESS_LADDER["classes"], build="fable")),
+                         sort_keys=False))
+    write(os.path.join(state.root, dispatch.CONFIG_FILE),
+          yaml.safe_dump({dispatch.CONFIG_TIER_FILE_KEY: "ladder.yaml"}, sort_keys=False))
+    task = store.order(state, pr)
+    lease, _item = lease_of(state, task)
+    assert lease[dispatch.RUNG_KEY] == "sonnet", (
+        "the kit-less path read a config tier file for a scaffolded project")
+    assert "kit" in lease[dispatch.LADDER_KEY]["kit"]
+
+
+def test_an_unbound_lease_names_no_writing_role(store):
+    """DEC-0107: the role comes from a BOUND lease -- the record no running agent authored.
+
+    A lease exists from the moment it is minted; `agent_id` arrives only when a child really
+    started (SubagentStart). Counted without that check, a role could mint its own lease and be
+    "the writer" -- measured by the verifier of round 1 (F4) as a mutation the whole `test_ladder`
+    file stayed green under.
+
+    Both directions in one node: the same lease unbound answers None (and the classification is
+    refused with the sentence about it), bound it answers the role.
+    """
+    store.kit("kit")
+    state, pr = store.project("p", "kit", {"backend-developer": "sonnet",
+                                           "quality-engineer": "opus"})
+    judge = store.order(state, pr, role="quality-engineer")
+    dispatch.create_lease(state, judge["id"])
+    assert dispatch.writing_role(state) is None, "an UNBOUND lease named a writing role"
+
+    build = store.order(state, pr)
+    drive_task_to(state, build["id"], "FAILED")
+    refusal = dispatch.fail_class_refusal(state, dispatch.writing_role(state), [build["id"]],
+                                          "fail", "mechanical")
+    assert refusal and "cannot say which role is writing" in refusal, refusal
+
+    dispatch.bind_agent(state, judge["id"], "agent-of-the-judge")
+    assert dispatch.writing_role(state) == "quality-engineer"
+
+
+def test_a_stamp_lands_only_while_the_run_it_judges_is_still_failed(store):
+    """DEC-0107: the judgement is made without the lock, so the WRITE asks the status again.
+
+    The window is real and its direction is the unsafe one (verifier round 1, F8): between
+    `fail_class_refusal` reading `status == FAILED` and `record_fail_class` taking the lock, the
+    order can move -- and a stamp that lands afterwards is consumed by the NEXT run instead of the
+    judged one, which buys a cheaper model for a run nobody classified.
+
+    RED without the re-check: the stamp lands on a READY order and the retry does not climb.
+    """
+    state, _pr, build = _a_judged_project(store)
+    state.transition(build["id"], "READY", approved_retry=True)      # the order moved meanwhile
+    with pytest.raises(DispatchError) as refusal:
+        dispatch.record_fail_class(state, [build["id"]], "mechanical", "quality-engineer")
+    assert "no longer FAILED" in str(refusal.value), str(refusal.value)
+    assert dispatch.FAIL_CLASS_FIELD not in state.read_item(build["id"])
+
+
+def test_an_evidence_that_names_two_orders_stamps_both_or_neither(store):
+    """R1: the two-phase write inside `record_fail_class` is an arbiter, and it needed a node.
+
+    One evidence may name several orders. The write judges EVERY one of them under the lock before
+    it writes ANY, because a refusal halfway through would leave the first order stamped and the
+    second not -- a half-applied verdict nobody can see, and the stamped half discounts a run no
+    judgement covers. The SINGLE-order case is measured by
+    `test_a_stamp_lands_only_while_the_run_it_judges_is_still_failed`; the property that needs more
+    than one order is this one, and until this node it was code plus a comment.
+
+    RED with the two phases fused back into one pass (judge and write per order): the call still
+    raises, and the first order comes back carrying the classification and a bumped revision.
+    """
+    state, pr, first = _a_judged_project(store)
+    second = store.order(state, pr)
+    drive_task_to(state, second["id"], "FAILED")
+    state.transition(second["id"], "READY", approved_retry=True)   # only the SECOND has moved
+    revisions = {item: state.read_item(item)["revision"] for item in (first["id"], second["id"])}
+
+    with pytest.raises(DispatchError) as refusal:
+        dispatch.record_fail_class(state, [first["id"], second["id"]], "mechanical",
+                                   "quality-engineer")
+    assert second["id"] in str(refusal.value), str(refusal.value)
+    for order_id in (first["id"], second["id"]):
+        order = state.read_item(order_id)
+        assert dispatch.FAIL_CLASS_FIELD not in order, "%s was stamped anyway" % order_id
+        assert dispatch.FAIL_CLASS_BY_FIELD not in order, "%s was stamped anyway" % order_id
+        assert order["revision"] == revisions[order_id], "%s moved anyway" % order_id
+
+
+def test_the_stamp_is_a_change_the_revision_counts(store):
+    """The one write to an order outside the edit path still moves its `revision` (F8).
+
+    `update_item` bumps only a HASHED field of an APPROVED item and a `TSK` has neither, so without
+    this the stamp is invisible to every reader that asks `revision` whether the item moved.
+
+    RED without the bump: the revision is the same before and after.
+    """
+    state, _pr, build = _a_judged_project(store)
+    before = state.read_item(build["id"])["revision"]
+    dispatch.record_fail_class(state, [build["id"]], "mechanical", "quality-engineer")
+    assert state.read_item(build["id"])["revision"] == before + 1

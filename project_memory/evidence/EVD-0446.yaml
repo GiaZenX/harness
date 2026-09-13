@@ -1,0 +1,20 @@
+id: EVD-0446
+kind: test
+related:
+- PR-0012
+result: fail
+summary: 'THE merge full run of order 4, after the last rework: 5139 passed, 1 failed,
+  14 skipped in 4574 s (1:16:14), stamp 2026.09.13-2. The single red is tools/test_hooks.py::test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requires
+  -- BUG-0297 / H213, the unpatched remedy of .claude/hooks/gate_commit_evidence.py,
+  which is refused to every role in this repo and waits on the user applying the S4
+  patch from a shell outside Claude Code. The verdict is fail and not pass because
+  the run was not green; the delivery is complete apart from that one user action.
+  The first full run of this round (5133 passed, 7 failed) is superseded by this one:
+  six of its seven reds were real and are repaired, and its record is the protocol.'
+artifact_refs:
+- staging/TSK-0149/protocol.md
+run_command: DELIVERY_RUN=TSK-0149 python -B -m pytest tools/ -q
+run_scope: full
+revision: 1
+approval_ref: null
+created: '2026-09-13T06:42:25'

@@ -1,0 +1,22 @@
+id: EVD-0447
+kind: test
+related:
+- PR-0012
+result: fail
+summary: 'The gate suite of this repository as its own run (it does not ride in the
+  tools surface): 553 passed, 2 failed in 2128 s (35:28). Red 1 is the ordered one
+  -- test_gate3_prints_a_remedy_that_runs_as_printed, BUG-0297 / H213, waiting on
+  the user''s S4 patch. Red 2 is NOT this round''s and is proven so: test_every_test_a_hole_names_is_one_that_exists
+  reports that BUG-0221 (archived, H138) names a regression test that no longer exists;
+  at base commit 5ecf62a the test file already lacked that name and the item already
+  carried it, so the node was red before this order began. The kernel offers no door
+  to repair an archived item (update_item: ''no active item BUG-0221''), so it is
+  handed back rather than edited.'
+artifact_refs:
+- staging/TSK-0149/protocol.md
+run_command: DELIVERY_RUN=TSK-0149 python -B -m pytest .claude/hooks/test_gates.py
+  -q
+run_scope: full
+revision: 1
+approval_ref: null
+created: '2026-09-13T06:42:38'

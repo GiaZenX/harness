@@ -1,0 +1,21 @@
+id: EVD-0448
+kind: test
+related:
+- BUG-0242
+result: pass
+summary: 'Re-measured AFTER the stamp (2026.09.13-2), together with the three nodes
+  stream B listed as stamp-dependent: 4 passed in 160 s. The naming node reports the
+  memory tree with path, file count and reason; nothing is removed, which is the limit
+  the item states and NOT a defect this run found. This record is a re-measurement,
+  not a close: transitioning a BUG item is outside this order (TSK-0149 forbids it),
+  so the verdict on close-or-downgrade is the lead''s and this is the measurement
+  it rests on.'
+artifact_refs:
+- staging/TSK-0149/protocol.md
+run_command: python -B -m pytest tools/test_kitupdate.py::test_the_update_report_names_a_memory_tree_no_installed_role_declares
+  tools/test_presets.py::test_a_lead_can_change_the_preset_end_to_end tools/test_reference_skills.py::test_a_reference_skill_reaches_every_preset_and_not_only_team
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T06:46:50'

@@ -1,0 +1,21 @@
+id: EVD-0435
+kind: test
+related:
+- BUG-0298
+result: pass
+summary: 'SUPERSEDES EVD-0426/EVD-0420: that closure was too broad. Verifier round
+  1 (F1) measured five more shapes of the same mechanism rc 0 -- . run.sh, source
+  run.sh, . ./run.sh, tee run.sh <<EOF ; bash run.sh, echo x | tee run.sh && sh run.sh.
+  WRITTEN is now every file a write-capable stage names (its operands AND its redirects,
+  write-capable being gate_write_scope''s own fail-closed reading) and RUNS is a shell
+  by any name plus the dot-source builtins; a runner''s own operand is not written,
+  which is what keeps bash tools/ci.sh rc 0. Eight attack rows refused, five everyday
+  rows allowed, in all three kits.'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_a_line_that_writes_a_script_and_runs_it_is_refused_in_every_kit
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T01:23:11'

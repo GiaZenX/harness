@@ -1,0 +1,53 @@
+# ladder.yaml -- THIS REPOSITORY's model ladder. `DEC-0105` is the decision and carries the reason:
+# this repo runs no kit, so `kernel.dispatch` derived no rung for its roles at all and the order
+# head said "keine Angabe" while the tiers stood by hand in the role files. A project with no
+# scaffold record may name a tier file in its own `project_config.yaml` (`model_tiers:`), and the
+# kernel reads THIS shape -- the same one every kit's `ladder.yaml` declares, validated by the same
+# `kernel.dispatch._valid_ladder`. A file the kernel cannot validate keeps "keine Angabe" rather
+# than becoming a guess (DEC-0078 (4) stands: reading a declared file is not inventing one).
+#
+# WHAT THIS FILE DOES NOT DO HERE, said rather than implied: this repository has no dispatch guard
+# and no leases (`CLAUDE.md`, "Es gibt hier keine Leases und kein Dispatch"), so nothing ENFORCES
+# the pair below on a spawn. What it buys is the one place the tiers of this project are readable
+# and the pair the kernel prints when it is asked. The `model:` pin in each role's frontmatter is
+# what actually decides the tier a spawn runs on, and it stays: `dispatch.role_pin` refuses a lease
+# for a role whose definition pins none, and the spawn carries no effort parameter at all, so
+# `effort:` in the frontmatter is the only control of that axis (`BUG-0251`, measured).
+#
+# `tools/test_ladder.py::test_this_repositorys_own_tier_file_is_one_the_kernel_reads_and_names_roles_it_ships`
+# reads this file through the kernel's own validator and through `ladder_for_order`.
+
+rungs: [sonnet, opus, fable]          # ordered low -> high, the reference vocabulary of
+                                      # `team-kits/model_tiers.yaml` (DEC-0076)
+top: fable                            # the escalation target, not a standing tier
+
+effort:
+  default: high
+  large: xhigh
+
+escalation:
+  # DEC-0096 (2): of the failed runs inside one rung's cycle the first two raise the EFFORT on the
+  # same rung, the third raises the rung. Same two numbers the kits declare; this project runs the
+  # same circle and has no measurement of its own that would argue for different ones.
+  effort_steps_before_rung: 2
+  failed_runs_per_rung: 3
+
+# THE THREE CLASSES THIS PROJECT HAS, all on opus. `DEC-0095` (1)/(2) is the decision and carries
+# the reason (cost): builder, orchestrator and verifier are standing roles, and a standing role on
+# the top rung is what that decision removed. The top rung is reached here only by the escalation
+# above -- this repo declares no architecture class, so it has no bought-per-occasion step either.
+classes:
+  planning: opus
+  build: opus
+  qa: opus
+
+# Every role of this repo's change circle and its class. The two watcher roles
+# (`.claude/agents/claude-watcher.md`, `codex-watcher.md`) are deliberately absent: they report into
+# `radar/` and are not part of the circle this ladder is about, and a class for a role no order is
+# ever dispatched to would be a dead line.
+roles:
+  harness-lead: planning
+  harness-implementer: build
+  harness-verifier: qa
+
+exceptions: {}

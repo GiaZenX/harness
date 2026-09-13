@@ -47,6 +47,12 @@ from .backlog_types import (
     EVIDENCE_RESULT_FIELD,
     EVIDENCE_KINDS,
     EVIDENCE_RESULTS,
+    FAIL_CLASSES,
+    FAIL_CLASS_BY_FIELD,
+    FAIL_CLASS_FIELD,
+    GOAL_CLASSES,
+    GOAL_CLASS_FIELD,
+    GOAL_CLASS_TYPES,
     HASHED_FIELDS,
     HOLE_LIMIT_FIELD,
     HOLE_NUMBER_FIELD,
@@ -85,6 +91,21 @@ from .lock import KernelLock, ext_path
 from . import board, plan_diagram
 
 _KERNEL_SET = ("id", "status", "revision", "approval_ref", "created")
+
+# THE OTHER FIELDS NO CALLER WRITES, and for a different reason than the five above. The fail
+# classification of a run (DEC-0107) is not kernel-set because the kernel derives it -- it is
+# written by the VERIFYING role through `evidence --result fail --fail-class ...`, which is the one
+# door that measures WHO is writing. A body that could carry it at capture or through `update`
+# would let the role under judgement -- or the PM, "a habitual action" in the user's words -- write
+# its own discount off the next rung, which is exactly what BUG-0260 AC-2 asks to be impossible.
+# `tools/test_state.py::test_the_fail_classification_is_refused_at_both_doors`
+_ROLE_JUDGED_FIELDS = (FAIL_CLASS_FIELD, FAIL_CLASS_BY_FIELD)
+_ROLE_JUDGED_REMEDY = (
+    "these are the fail classification of a run (DEC-0107): the VERIFYING role writes them with "
+    "its verdict (`python scripts/harness.py evidence --kind test --result fail --fail-class "
+    "mechanical|reasoning --related <TSK-nnnn> ...`) and nothing else does, so the role being "
+    "judged cannot classify its own run (BUG-0260 AC-2). Remedy: record the classification with "
+    "the evidence.")
 
 # Spec II.4's Vorschlagsbereich. Here rather than in `layout` because it is a path SEGMENT the
 # writers below compose (`staging_root`), and `layout` -- which imports this module -- re-exports
@@ -184,6 +205,9 @@ def names_a_drive(text) -> bool:
 # path refuses the edge without `approved_retry=True`, and `migration_writable_statuses` may not
 # count it as an edge a session walks on its own. `_transition_locked` is the enforcing reader.
 RETRY_APPROVAL_EDGE = ("TSK", "FAILED", "READY")
+# The type whose LADDER reads the fail classification (DEC-0107) -- the work order, taken from the
+# edge above so this module spells it once; `dispatch.ORDER_TYPE` comes from the same datum.
+_ORDER_TYPE = RETRY_APPROVAL_EDGE[0]
 
 
 def _dates_in(item_type: str, fields: dict, operation: str) -> dict:
@@ -818,7 +842,7 @@ class ProjectState:
 
     # -- operations ------------------------------------------------------------
 
-    def _assert_capture_shape(self, item_type: str, fields: dict) -> None:
+    def _assert_capture_shape(self, item_type: str, fields: dict, imported: bool = False) -> None:
         """What is refused about a NEW item body whatever else is true of it.
 
         Split out of `capture_preflight` because the migration's archive path (DEC-0004/SR-0002) is
@@ -833,6 +857,10 @@ class ProjectState:
                 "promotion path; APR through approve). Remedy: use one of %s."
                 % (item_type, "/".join(sorted(REQUIRED_FIELDS)))
             )
+        judged = _role_judged_offences(item_type, fields)
+        if judged:
+            raise StateError("capture %s carries %s -- %s"
+                             % (item_type, ", ".join(judged), _ROLE_JUDGED_REMEDY))
         provided_kernel_fields = [k for k in _KERNEL_SET if k in fields]
         if provided_kernel_fields:
             raise StateError(
@@ -840,9 +868,10 @@ class ProjectState:
                 "Remedy: drop them; the kernel assigns id/status/revision/"
                 "approval_ref/created." % ", ".join(provided_kernel_fields)
             )
-        _assert_closed_vocabularies(item_type, fields)
+        _assert_closed_vocabularies(item_type, fields, imported)
 
-    def capture_preflight(self, item_type: str, fields: dict, also_existing=()) -> None:
+    def capture_preflight(self, item_type: str, fields: dict, also_existing=(),
+                          imported: bool = False) -> None:
         """Everything `capture` refuses BEFORE it writes anything -- raised, never written.
 
         WHY THIS IS ITS OWN METHOD, and it is not tidiness. A caller that wants to know whether a
@@ -861,7 +890,18 @@ class ProjectState:
         `also_existing` is passed straight through to `_assert_origins_resolve` and is empty for
         the write path; what it is for is argued there.
         """
-        self._assert_capture_shape(item_type, fields)
+        self._assert_capture_shape(item_type, fields, imported)
+        # WHERE A RECORD CAME FROM IS WRITTEN BY THE IMPORT AND BY NOTHING ELSE, refused here the
+        # way `status` is refused one method up. It is a claim ABOUT a body rather than a field of
+        # one -- `capture_migrated_archive` stamps what the contract could not fill into it -- and
+        # left open it was a key that bought a body the goal-size exemption (verifier round 1, F1).
+        # `also_existing` and `imported` come from the caller; a typed body cannot set either.
+        if not imported and LEGACY_FIELD in fields:
+            raise StateError(
+                "capture %s carries `%s`: that field records where a MIGRATED record came from and "
+                "is written by the import path alone (`migrate`), never by a body. Remedy: drop it "
+                "-- and if this really is a V1 record, import it with `migrate --dry-run` first, "
+                "which is the path that may write it." % (item_type, LEGACY_FIELD))
         missing = [k for k in REQUIRED_FIELDS[item_type] if k not in fields]
         if missing:
             raise StateError(
@@ -1071,7 +1111,8 @@ class ProjectState:
                 "this item without the hole flag."
                 % (wanted, item_type, wanted, HOLE_LIMIT_FIELD, wanted))
 
-    def capture(self, item_type: str, fields: dict, hole: bool = False) -> dict:
+    def capture(self, item_type: str, fields: dict, hole: bool = False,
+                imported: bool = False) -> dict:
         """Create a new item: kernel assigns id/status/revision/approval_ref/created.
 
         `hole=True` says the item is a MEASURED, OPEN GAP (FR-0087, DEC-0073) and makes the kernel
@@ -1088,7 +1129,9 @@ class ProjectState:
                 "Remedy: drop the field and capture with the hole flag; the migration door "
                 "`capture_migrated_hole` is the one place a HISTORICAL number is carried over."
                 % HOLE_NUMBER_FIELD)
-        self.capture_preflight(item_type, fields)
+        # `imported` IS THE PATH: only `migrate` passes it, and the CLI's `capture` command has no
+        # flag for it, so a typed body cannot reach the exemptions it opens (verifier round 1, F1).
+        self.capture_preflight(item_type, fields, imported=imported)
         with self.lock:
             item_id = self.allocate_id(item_type)
             item = {"id": item_id}
@@ -1217,7 +1260,7 @@ class ProjectState:
         is unmet -- which is exactly the contract this path is exempt from (DEC-0004). A plan that
         measures a check the run does not run is the defect this method exists to prevent.
         """
-        self._assert_capture_shape(item_type, fields)
+        self._assert_capture_shape(item_type, fields, imported=True)
         legacy = fields.get(LEGACY_FIELD)
         if not isinstance(legacy, dict) or not legacy.get("legacy_id"):
             raise StateError(
@@ -1311,7 +1354,7 @@ class ProjectState:
                                               also_existing=()) -> None:
         """Everything `capture_migrated_unresolved` refuses before it writes -- raised, never
         written. Same split, same reason, as the two preflights above."""
-        self._assert_capture_shape(item_type, fields)
+        self._assert_capture_shape(item_type, fields, imported=True)
         legacy = fields.get(LEGACY_FIELD)
         if not isinstance(legacy, dict) or not legacy.get("legacy_id"):
             raise StateError(
@@ -1390,7 +1433,16 @@ class ProjectState:
         not reentrant); e.g. staging.freeze_design keeps read+update in ONE hold
         (Fable-Check 11/BUG-1: no lost-update window)."""
         item_type, _ = parse_id(item_id)
-        forbidden = [k for k in changes if k in ("id", "status", "revision", "approval_ref", "created")]
+        if LEGACY_FIELD in changes:
+            raise StateError(
+                "%s: `%s` records where a MIGRATED record came from and is written by the import "
+                "path alone, never by an edit -- an item that was not imported cannot become one, "
+                "and one that was does not change its provenance. Remedy: drop the field."
+                % (item_id, LEGACY_FIELD))
+        judged = _role_judged_offences(item_type, changes)
+        if judged:
+            raise StateError("%s: %s -- %s" % (item_id, ", ".join(judged), _ROLE_JUDGED_REMEDY))
+        forbidden = [k for k in changes if k in _KERNEL_SET]
         if forbidden:
             raise StateError(
                 "fields %s change only through their kernel operations "
@@ -1879,10 +1931,74 @@ _CLOSED_VOCABULARY = {
                            "the scope decides whether a PASS is merge evidence at all "
                            "(`report._delivery_evidence`), and an unknown value would "
                            "read as neither -- the run would open the merge unexamined"),
+    # THE SIZE OF A ROOT GOAL (DEC-0103, H155/BUG-0237). Bound to every type whose field contract
+    # declares the field rather than to the name `PR`, for the reason argued at `GOAL_CLASS_TYPES`:
+    # the readers take the ROOT whatever its type is. The vocabulary is a MAPPING, so the refusal
+    # can name the four words AND what each does, which is what the role needs mid-command; the
+    # `why` below says what the value decides.
+    **{(item_type, GOAL_CLASS_FIELD): (
+        GOAL_CLASSES,
+        "the size decides whether the architect step is owed before any order is dispatched "
+        "(`dispatch.SR_EXEMPT_CLASSES`), which effort a kit's declaration puts the order on "
+        "(`dispatch.LARGE_CLASS`) and whether the goal owes a user story "
+        "(`report.PRODUCTLESS_CLASSES`)")
+       for item_type in GOAL_CLASS_TYPES},
+    # THE FAIL CLASSIFICATION A RECORD CARRIES (DEC-0107; verifier round 2, R2). Bound to every
+    # type whose field contract declares the field and whose BODY may carry it -- the order type is
+    # subtracted because `_role_judged_offences` refuses the field there outright, so a pair for it
+    # would be a rule no body can reach. Derived rather than spelled for the reason argued at
+    # `GOAL_CLASS_TYPES`: the next type that declares the field is covered without an edit here.
+    # WHAT THIS COPY IS: nothing reads it for a rung -- `dispatch.count_failed_run_locked` reads the
+    # word off the ORDER -- so before this entry any word at all stood in the record unchallenged
+    # while the same word was refused one field away, which is the asymmetry the closed vocabulary
+    # exists to remove.
+    **{(item_type, FAIL_CLASS_FIELD): (
+        FAIL_CLASSES,
+        "this is the same word the order is stamped with (`dispatch.record_fail_class`), and it is "
+        "what a reader is pointed at to see why a retry did or did not climb the rung; no other "
+        "check reads it, so a free-text value would stand in an immutable record for good")
+       for item_type in REQUIRED_FIELDS
+       if item_type != _ORDER_TYPE
+       and FAIL_CLASS_FIELD in set(REQUIRED_FIELDS[item_type]) | set(
+           OPTIONAL_FIELDS.get(item_type, ()))},
 }
 
 
-def _assert_closed_vocabularies(item_type: str, fields: dict) -> None:
+def _vocabulary_listing(allowed) -> str:
+    """The words of a closed vocabulary, each with what it DOES where the vocabulary says so.
+
+    A vocabulary that is a MAPPING carries a meaning per word (`backlog_types.GOAL_CLASSES`), and a
+    refusal printing only the words would leave the role to guess which one its goal is -- DEC-0103
+    asks for the four words AND what each does, in the sentence the role meets mid-command. A
+    vocabulary that is a bare set prints as it always did, so nothing else changes.
+    `tools/test_state.py::test_the_goal_class_refusal_names_every_word_and_what_it_does`
+    """
+    words = sorted(allowed)
+    if not isinstance(allowed, dict):
+        return ", ".join(words)
+    return ", ".join("%s (%s)" % (word, getattr(allowed[word], "does", allowed[word]))
+                     for word in words)
+
+
+def _role_judged_offences(item_type: str, fields: dict) -> list:
+    """The DEC-0107 fields THIS body may not carry -- and the two are not the same question.
+
+    The AUTHOR stamp is refused on every type: it says which role classified a run, and a body that
+    could claim it would be a role writing its own discount. The CLASS is refused on the type whose
+    ladder reads it -- the work order (`dispatch.count_failed_run_locked`). An `EVD` carries the
+    same word as part of the VERDICT it records, written by the same command in the same breath,
+    and nothing reads it for a rung.
+
+    MEASURED (verifier round 1, F3's new node): with the pair refused for every type, the shipped
+    `evidence --kind test --result fail --fail-class mechanical` could not write its own record --
+    rc 1, "capture EVD carries fail_class" -- so the command DEC-0107 asks for did not run at all.
+    `tools/test_kernel.py::test_the_evidence_command_stamps_the_class_with_the_role_the_lease_names`
+    """
+    return [name for name in _ROLE_JUDGED_FIELDS
+            if name in fields and (name == FAIL_CLASS_BY_FIELD or item_type == _ORDER_TYPE)]
+
+
+def _assert_closed_vocabularies(item_type: str, fields: dict, imported: bool = False) -> None:
     """Refuse a value outside its field's closed vocabulary (see _CLOSED_VOCABULARY).
 
     Called from capture AND from the edit path, because a value refused at capture
@@ -1891,8 +2007,9 @@ def _assert_closed_vocabularies(item_type: str, fields: dict) -> None:
     both vocabularies exist to prevent.
 
     On the edit path only `TSK.type` can actually arrive here: an `EVD` is refused
-    wholesale a few lines earlier (IMMUTABLE_TYPES), so the two EVD entries below
-    are capture-only in practice. That is a fact about EVD and not a reason for
+    wholesale a few lines earlier (IMMUTABLE_TYPES), so every EVD entry of the table
+    below is capture-only in practice -- however many there are, which is why this
+    sentence no longer counts them. That is a fact about EVD and not a reason for
     this check to know which type it is judging -- the same argument the
     neighbouring `_assert_origins_resolve` makes, and the reason a later type with
     a closed field needs no second edit-path wiring.
@@ -1900,12 +2017,35 @@ def _assert_closed_vocabularies(item_type: str, fields: dict) -> None:
     for (owner, field), (allowed, why) in _CLOSED_VOCABULARY.items():
         if owner != item_type or field not in fields:
             continue
+        # A RECORD OF WHAT ANOTHER STORE HELD IS NOT THIS PROJECT'S STATEMENT (DEC-0004's reason,
+        # applied to the goal size of DEC-0103). The V1 import carries the value it FOUND -- and a
+        # V1 store has no vocabulary to have obeyed, so demanding one here would block the import
+        # of every goal whose class is a sentence, with a remedy (`--map PR.class=<field>`) that
+        # only exists where some V1 field happens to hold one of the four words. Measured:
+        # `tools/test_migrate.py::test_a_binding_to_a_record_of_this_run_is_never_reported_as_free_text`
+        # went to `blocked` on exactly that. The store is made consistent AFTERWARDS by the door
+        # that exists for it -- `kernel.cli migrate-goal-classes`, which refuses to guess and takes
+        # the mapping from the caller.
+        #
+        # `imported` IS THE PATH AND NEVER THE BODY, and that is the correction of a measured hole:
+        # the first cut read `LEGACY_FIELD` off the body, so `capture PR` with a hand-written
+        # `legacy_fields:` key took any class at all -- rc 0 against the shipped CLI (verifier round
+        # 1, F1). A body is what a role types; only the caller knows which door it came through, so
+        # the importer says so and every other caller cannot. The ordinary doors refuse the field
+        # itself on top of that (`capture_preflight`, `_update_item_locked`), so the two halves of
+        # the fix fail in the same direction.
+        # It is the GOAL SIZE alone: `TSK.type` and the `EVD` fields stay closed on every path,
+        # because those decide a gate rather than describe a size.
+        # `tools/test_migrate.py::test_an_imported_goal_keeps_the_class_its_v1_store_held`
+        # `tools/test_state.py::test_a_legacy_key_in_a_typed_body_opens_no_door`
+        if imported and field == GOAL_CLASS_FIELD:
+            continue
         if fields.get(field) not in allowed:
             raise StateError(
                 "unknown %s %s %r. Remedy: use one of %s -- %s, so a free-text "
                 "value would skip that check instead of failing it."
                 % (item_type, field, fields.get(field),
-                   ", ".join(sorted(allowed)), why)
+                   _vocabulary_listing(allowed), why)
             )
 
 

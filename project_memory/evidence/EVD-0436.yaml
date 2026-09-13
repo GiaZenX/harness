@@ -1,0 +1,24 @@
+id: EVD-0436
+kind: test
+related:
+- BUG-0260
+result: pass
+summary: 'SUPERSEDES EVD-0429/EVD-0421: that closure carried a false alarm and a measured
+  bypass. F2: the prefix reader ran on every shell line, so curl --fail was refused
+  in every kit project -- the classification question is now asked only on a line
+  that names the kernel entry point (_compat.names_the_kernel_entry_point, one home
+  for both gates that ask). F3: a word the shell assembles reached the parser unseen
+  -- on an evidence line that reaches the kernel such a word is now refused as unreadable,
+  the fail-closed direction gate_write_scope takes. Five everyday --f... lines x two
+  callers stay rc 0. Latency after F2: 0.10 s for any ordinary line (the verifier
+  measured 0.24-0.30 s for every line with a long option before), 0.18-0.20 s only
+  for a harness line.'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_hooks_v2.py::test_an_everyday_line_that_only_looks_like_a_classification_is_left_alone
+  tools/test_hooks_v2.py::test_the_fail_classification_is_refused_from_every_writer_but_the_verifying_one
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T01:23:13'

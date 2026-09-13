@@ -1,0 +1,24 @@
+id: EVD-0433
+kind: test
+related:
+- BUG-0260
+result: pass
+summary: 'DEC-0107 kernel half: evidence --fail-class mechanical|reasoning, stamped
+  with the role the BOUND lease names (dispatch.writing_role), refused for a non-fail
+  verdict, an unattributable writer, the role under judgement and any role the kit
+  declaration does not class qa (dispatch.fail_class_refusal); count_failed_run_locked
+  skips a run classified as not climbing and consumes the classification with it;
+  both fields refused at capture and on the edit path. The gate_dispatch half is stream
+  B''s -- seam row handed over with the predicate name.'
+artifact_refs:
+- staging/TSK-0146/protocol.md
+run_command: python -B -m pytest tools/test_ladder.py::test_a_mechanical_fail_does_not_climb_and_an_ordinary_one_does
+  tools/test_ladder.py::test_a_classification_by_the_role_under_judgement_buys_nothing
+  tools/test_ladder.py::test_only_a_judging_role_may_classify_and_never_the_one_under_judgement
+  tools/test_ladder.py::test_the_classification_is_refused_where_the_state_cannot_say_who_writes
+  tools/test_state.py::test_the_fail_classification_is_refused_at_both_doors -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:24:35'
+closed_at: '2026-09-13T01:55:25'

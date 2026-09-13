@@ -62,6 +62,9 @@ from .backlog_types import (
     DEC_WORK_NONE,
     EVIDENCE_KINDS,
     EVIDENCE_RESULTS,
+    FAILING_RESULT,
+    FAIL_CLASSES,
+    FAIL_CLASS_FIELD,
     HOLE_LIMIT_FIELD,
     HOLE_NUMBER_FIELD,
     REQUIRED_FIELDS,
@@ -525,6 +528,34 @@ def remedy_flags(builder, values) -> str:
     return " ".join(parts)
 
 
+def value_taking_options(command: str) -> frozenset:
+    """The long options of subcommand `command` that CONSUME the next word, off the shipped parser.
+
+    ASKED BY THE KITS' `gate_dispatch` (DEC-0107, seam of TSK-0149). A hook cannot read what a word
+    the SHELL builds will become, but it can read WHERE that word stands -- and a word this parser
+    consumes as the VALUE of the option before it can never be read as an option itself, however it
+    expands. Which options do that is a property of this parser and of nothing else, so it is
+    derived here: an option that gains a value, or a whole new subcommand, needs no second edit in
+    three hook copies.
+
+    LONG OPTIONS ONLY, because that is the form argparse resolves by unambiguous PREFIX and the
+    form the caller has to place; a short option is one character and carries no prefix question.
+    An unknown subcommand answers with the empty set, which makes every position fail closed at the
+    caller rather than open.
+    `tools/test_hooks_v2.py::test_a_quoted_expansion_the_parser_takes_as_a_value_is_not_a_classification`
+    """
+    parser = build_parser()
+    for action in parser._actions:
+        choices = getattr(action, "choices", None)
+        if not isinstance(choices, dict) or command not in choices:
+            continue
+        return frozenset(
+            option
+            for inner in choices[command]._actions if inner.nargs != 0
+            for option in inner.option_strings if option.startswith("--"))
+    return frozenset()
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=INVOCATION, description="V2 state-kernel commands (HARNESS_V2_SPEC.md II.4)"
@@ -616,6 +647,19 @@ def build_parser() -> argparse.ArgumentParser:
     # other result (`state.capture_preflight`), so argparse would have to know the value of
     # `--result` to state the duty -- which is exactly the condition a flag surface cannot carry.
     # The refusal names the flag, at the moment the role runs the command.
+    # WHAT KIND OF FAILURE A FAILED RUN WAS (DEC-0107). Not `required` and not optional in effect,
+    # exactly like the blocked reason above: the kernel refuses it under any result but a fail
+    # (`dispatch.fail_class_refusal`), so argparse would have to know the value of `--result` to
+    # state the duty. What it buys is at the next lease -- a run the verifying role calls narrow
+    # does not climb the rung -- and WHO may write it is measured rather than trusted: the state
+    # names the writing role from the bound lease, and the kit's gate_dispatch asks the same
+    # predicate with the agent it sees.
+    evidence.add_argument("--fail-class", dest=FAIL_CLASS_FIELD, choices=sorted(FAIL_CLASSES),
+                          help="what kind of failure this was: %s. Only for --result %s, only "
+                               "from a judging role, and never from the role whose order it is "
+                               "(DEC-0107)"
+                          % ("; ".join("%s = %s" % (word, FAIL_CLASSES[word].does)
+                                       for word in sorted(FAIL_CLASSES)), FAILING_RESULT))
     evidence.add_argument("--%s" % BLOCKED_REASON_FIELD.replace("_", "-"), metavar="SENTENCE",
                           dest=BLOCKED_REASON_FIELD,
                           help="required for --result %s and refused for any other result: what "
@@ -1077,8 +1121,31 @@ def build_parser() -> argparse.ArgumentParser:
     # ...and the same job for the OTHER store that only ever grew. An approval request that ran out
     # of time is already inert everywhere it is read; what it was not, until this command, is
     # removable -- see `approvals.sweep_expired_requests` for the measured occasion.
-    sub.add_parser("sweep-requests",
-                   help="delete approval requests whose clock ran out (they can never mint)")
+    sweep = sub.add_parser(
+        "sweep-requests",
+        help="delete approval requests whose clock ran out (they can never mint); report the ones "
+             "nobody can act on any more, and take back the ones that have stood too long")
+    # THE SECOND CLOCK (BUG-0302). The expiry is the request's OWN bound and the sweep may delete
+    # what it made permanent; staleness is the CALLER's judgement about a question that is still
+    # live, so it takes the question back through `withdraw_request` -- recorded, never deleted.
+    sweep.add_argument("--stale", type=float, metavar="HOURS",
+                       help="also take back every request that has been standing longer than this "
+                            "many hours; each is recorded in approvals/withdrawn/ with the reason")
+    # TAKING BACK A QUESTION NOBODY ANSWERED (BUG-0302). Its own command and not a flag of the
+    # sweep, because it names ONE request the caller decided about -- the sweep judges by a rule.
+    # The command name is written WITHOUT backticks here on purpose: a block of this file that
+    # names three commands in code spans reads as a span PRESENTING the command surface
+    # (`tools/test_hooks.py::test_every_span_that_presents_the_command_surface_names_all_of_it`,
+    # `_SURFACE_SPAN_MIN`), and this comment is an argument about one command, not an inventory.
+    withdrawal = sub.add_parser(
+        "withdraw-request",
+        help="take back a pending approval question the lead replaced or the user rejected in "
+             "prose; the record moves to approvals/withdrawn/ and the hook stops counting it")
+    withdrawal.add_argument("request_id", metavar="APR-REQ-ID")
+    withdrawal.add_argument("--reason", required=True, metavar="SENTENCE",
+                            help="why the question was taken back -- stored with the record, "
+                                 "because a withdrawal nobody explained is one the next reader "
+                                 "has to guess about")
     # THE V1 IMPORT (spec II.10). Two halves of one command rather than two commands, because the
     # second half is only sound as the continuation of the first: `--dry-run` reads and prints a
     # DIGEST over everything it read, and `--plan <digest>` refuses unless it re-derives the same
@@ -1149,6 +1216,22 @@ def build_parser() -> argparse.ArgumentParser:
     hole_migration.add_argument(
         "--holes-dir", default=holes.DEFAULT_HOLES_DIR, metavar="REL",
         help="where the full text of each entry goes, relative to the project root")
+
+    # THE ONE DOOR THAT MOVES A STORED GOAL SIZE (DEC-0103). Same promise shape as the two
+    # migrations above: without `--apply` nothing is written and the before/after list is printed.
+    # The mapping is the caller's, because which size a project's own word meant is a fact about
+    # that project and not a table this kernel could keep -- `migrate.goal_class_plan` argues it.
+    class_migration = sub.add_parser(
+        "migrate-goal-classes",
+        help="report every stored root goal against the goal-size vocabulary and rewrite the "
+             "strays a --map names (DEC-0103); without --apply nothing is written")
+    class_migration.add_argument(
+        "--map", action="append", dest="class_map", metavar="VALUE=WORD",
+        help="which vocabulary word a stored value means (repeatable); a stray without one is "
+             "reported and left, and the run exits non-zero")
+    class_migration.add_argument(
+        "--apply", action="store_true",
+        help="write the mapped values through the edit path; without it the state is untouched")
     return parser
 
 
@@ -1575,6 +1658,28 @@ def main(argv=None) -> int:
             print(report.generate_session_brief(state, args.kit, args.kit_version, args.enforcement))
             return 0
         if args.command == "evidence":
+            # ASKED BEFORE THE RECORD IS WRITTEN, so an ORDINARY refusal -- a word outside the
+            # vocabulary, a passing result, a role classifying its own run -- leaves no Evidence
+            # behind that claims a classification: the record is immutable, so a wrong one can only
+            # be superseded, never repaired. The role is the STATE's answer and not the caller's
+            # claim -- `dispatch.writing_role` reads the bound lease.
+            #
+            # IT IS NOT THE ONLY JUDGEMENT, and that limit is a window rather than a bug (verifier
+            # round 2, R3): `record_fail_class` asks each order's status AGAIN under the lock, and
+            # that second judgement falls AFTER the capture below. An order that moves in between
+            # therefore leaves exactly what the paragraph above rules out for the first judgement --
+            # an immutable record carrying a classification that no order carries -- and the command
+            # ends rc 1 with the sentence, not with a traceback. The ORDER OF THE TWO WRITES is
+            # deliberate and not an oversight: swapping them would trade an unread record for an
+            # unrecorded discount, and only the second changes what the next lease runs on.
+            # `tools/test_kernel.py::test_a_stamp_refused_under_the_lock_leaves_the_record_behind`
+            fail_class = getattr(args, FAIL_CLASS_FIELD)
+            role = dispatch.writing_role(state) if fail_class is not None else None
+            refusal = dispatch.fail_class_refusal(state, role, args.related, args.result,
+                                                  fail_class)
+            if refusal:
+                sys.stderr.write("fail classification refused: %s\n" % refusal)
+                return 2
             item = state.capture("EVD", {
                 "kind": args.kind,
                 "related": list(args.related),
@@ -1585,10 +1690,17 @@ def main(argv=None) -> int:
                 # half-declared in `state.capture_preflight`, and a `None` is an answer there
                 **{name: value for name, value in
                    (("run_command", args.run_command), ("run_scope", args.run_scope),
-                    (BLOCKED_REASON_FIELD, getattr(args, BLOCKED_REASON_FIELD)))
+                    (BLOCKED_REASON_FIELD, getattr(args, BLOCKED_REASON_FIELD)),
+                    (FAIL_CLASS_FIELD, fail_class))
                    if value is not None},
             })
             print("%s %s: %s" % (item["id"], item["kind"], item["result"]))
+            # ...and the ORDER carries it, because the next lease is what reads it (DEC-0107).
+            # Printed by id, so the role sees which orders its verdict moved.
+            if fail_class is not None:
+                stamped = dispatch.record_fail_class(state, args.related, fail_class, role)
+                print("%s %s (by %s) on: %s"
+                      % (FAIL_CLASS_FIELD, fail_class, role, ", ".join(stamped) or "-"))
             return 0
         if args.command in FREEZE_COMMANDS:
             operation = FREEZE_COMMANDS[args.command]
@@ -2028,8 +2140,17 @@ def main(argv=None) -> int:
             print("LEASED without a lease (report only): %s" % (
                 ", ".join(dispatch.leased_without_live_lease(state)) or "-"))
             return 0
+        if args.command == "withdraw-request":
+            record = approvals.withdraw_request(state, args.request_id, args.reason)
+            print("%s withdrawn: %s" % (record.get("request_id") or args.request_id,
+                                        record.get("withdrawn_reason")))
+            # WHAT IT NO LONGER COUNTS, printed, because the noise is what the lead came for
+            print("still open (answering one of these still mints): %s"
+                  % (", ".join(str(one.get("request_id") or "") for one in
+                               approvals.open_requests(state)) or "-"))
+            return 0
         if args.command == "sweep-requests":
-            swept = approvals.sweep_expired_requests(state)
+            swept = approvals.sweep_expired_requests(state, stale_hours=args.stale)
             # WHAT WAS REMOVED, NAMED. A cleanup that prints a count is one nobody can check
             # afterwards; these ids are the last trace the files leave.
             print("deleted (expired, could never mint): %s" % (", ".join(
@@ -2038,6 +2159,21 @@ def main(argv=None) -> int:
                 for entry in swept["removed"]) or "-"))
             print("still open (answering one of these still mints): %s"
                   % (", ".join(swept["kept"]) or "-"))
+            # ...and the two answers the clock cannot give (BUG-0302): a question that was taken
+            # back on this run, and one nobody can act on any more because every item it names is
+            # archived. The second is REPORTED and not removed -- the withdraw-request
+            # command is that door (named without backticks: a code span here would make
+            # this block read as one PRESENTING the command surface, and it presents an
+            # argument about two lines of output).
+            print("taken back (stood longer than --stale): %s"
+                  % (", ".join(swept["withdrawn"]) or "-"))
+            # ...and the ones it could NOT take back, named rather than swallowed: a cleanup that
+            # reports only its successes is one nobody can check (BUG-0302, verifier round 1 F8).
+            if swept["not_withdrawable"]:
+                print("could not be taken back (answered or gone in the meantime): %s"
+                      % ", ".join(swept["not_withdrawable"]))
+            print("dead (every item they name is archived; answering one changes nothing): %s"
+                  % (", ".join(swept["dead"]) or "-"))
             # ...and the third outcome, which is neither: a file this command could not judge is a
             # file it did not touch, and saying so is the difference between a store that is clean
             # and one that merely looks it.
@@ -2063,6 +2199,25 @@ def main(argv=None) -> int:
             for line in holes.render_report(outcome):
                 print(line)
             return 0
+
+        if args.command == "migrate-goal-classes":
+            mapping = {}
+            for entry in args.class_map or ():
+                value, sep, word = str(entry).partition("=")
+                if not sep or not value:
+                    sys.stderr.write(
+                        "--map takes VALUE=WORD (e.g. --map feature=normal); %r names no pair.\n"
+                        % entry)
+                    return 2
+                mapping[value] = word
+            plan = migrate.goal_class_plan(state, mapping)
+            print(migrate.render_goal_class_plan(plan))
+            if args.apply:
+                for item_id, before, after in migrate.execute_goal_classes(state, plan):
+                    print("written: %s %r -> %r" % (item_id, before, after))
+            else:
+                print("nothing written (no --apply)")
+            return 1 if migrate.unmapped_goal_classes(plan) else 0
 
         if args.command == "migrate":
             field_map = migrate.parse_field_map(args.field_map)

@@ -1,0 +1,21 @@
+id: EVD-0421
+kind: test
+related:
+- BUG-0260
+result: pass
+summary: 'DEC-0107 hook half (kit side of BUG-0260): gate_dispatch is registered on
+  PreToolUse(Bash|PowerShell) in the three kits and refuses a fail classification
+  written by anybody but the bound child of the judging class -- the session instance
+  first of all, which the kernel cannot see because the lease it reads names the specialist.
+  The reader is the MECHANISM and not a spelling: argparse accepts every unambiguous
+  prefix, measured, so --f is judged like --fail-class. The QA role texts of the three
+  kits carry the command; constitution 11 of dev and research says who may write the
+  field. The kernel half is stream A''s.'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_hooks_v2.py -q -k test_the_fail_classification_is_refused_from_every_writer_but_the_verifying_one
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:08:55'
+closed_at: '2026-09-13T01:27:22'

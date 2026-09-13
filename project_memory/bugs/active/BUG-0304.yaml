@@ -1,0 +1,39 @@
+id: BUG-0304
+title: 'H214-Rest: die Ein-Aufruf-Form ''Datei schreiben und ausführen'' bleibt offen,
+  wenn der Läufer hinter einem Präfixwort steht, die Datei per Umleitung in den Interpreter
+  geht oder eine Substitution sie an eval reicht'
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-13 (TSK-0149 verify round 1, F2; real hook processes in
+  all three kits, real shell as arbiter): `printf ''x'' > run.sh ; A=1 ./run.sh`,
+  `… ; exec ./run.sh`, `… ; command ./run.sh`, `cat <<''EOF'' > run.sh … ; eval "$(cat
+  run.sh)"`, `printf ''x'' > run.sh ; bash < run.sh` -- all rc 0 at gate_write_scope
+  and all EXECUTED by the shell, while the closed forms (`; bash run.sh`, `; . run.sh`,
+  `tee run.sh …; sh run.sh`, `./run.sh` as command word) are rc 2. Not a regression
+  of BUG-0298''s fix (same five rc 0 before it); the defect was the docstring naming
+  only the multi-line form and the interpreter as the remainder. Second widening of
+  BUG-0298 -> re-filed per DEC-0102 (2).'
+expected: The RUN set of `_refuse_a_script_this_line_writes_and_runs` is derived from
+  the stage's effective command word after assignment prefixes and the exec/command/env
+  wrappers, from a `<` redirect into an executor, and from `eval` over a substitution
+  that reads the written file -- or the remainder stays named exactly so in the docstring
+  and docs/holes.
+repro: 'in a scaffolded pilot: printf ''x'' > run.sh ; exec ./run.sh  -> gate_write_scope
+  rc 0; the shell executes it.'
+severity: medium
+acceptance_criteria:
+- 'AC-1: the five lines above are refused red-first while `A=1 ./build.sh` alone,
+  `exec bash tools/ci.sh` and `bash < tools/ci.sh` stay rc 0'
+- 'AC-2: gate_write_scope''s remainder paragraph and docs/holes/H214.md name what
+  is still open, with the measurement'
+source: staging/TSK-0149/verify-round-1.md (F2)
+limits: 'Eine Befehlszeile, die erst eine Skriptdatei schreibt und sie dann startet,
+  wird abgefangen — aber nur, wenn das Startwort direkt dasteht. Steht davor eine
+  Zuweisung (`A=1 ./run.sh`), ein `exec`/`command`, oder geht die Datei per Umleitung
+  oder `eval` in die Shell, sieht die Regel den Start nicht. Begrenzt: das Schreiben
+  selbst steht sichtbar in der Zeile; dieselbe Grenze wie beim selbstgeschriebenen
+  Skript (H11).'
+hole_number: H219
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-13T07:37:38'

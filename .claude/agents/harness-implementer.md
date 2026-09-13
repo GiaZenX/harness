@@ -10,9 +10,13 @@ model: opus
 effort: high
 ---
 
-**The frontmatter above pins the EFFORT; the MODEL the lead may still choose at spawn.** `DEC-0081`
-is the decision and carries the reason (cost): the streams of a generation run on Opus, and only the
-MERGE round is worth the higher tier. The two axes are not equally reachable, and only one of them
+**The frontmatter above pins the EFFORT; the MODEL the lead may still choose at spawn.** Which rung
+this role's class starts on is declared in ONE place and no longer restated here — `ladder.yaml` at
+the repository root, `classes.build` (`DEC-0105`); `DEC-0081` is the decision behind that value and
+carries the reason (cost). One half of `DEC-0105` is not built yet and is named rather than assumed:
+`project_memory/project_config.yaml` does not name the file, so the kernel does not read it in this
+repo and an order head still says "keine Angabe" — that line is refused to every tool call here and
+waits on the user. The two axes are not equally reachable, and only one of them
 is measured in this repository: the spawn carries **no effort parameter**, so a child runs on the
 `effort:` its definition pins (`BUG-0251`, measured); the **model** the lead reports it can pass at
 spawn, and it did so for this run — that is the lead's measurement and not this file's, because a

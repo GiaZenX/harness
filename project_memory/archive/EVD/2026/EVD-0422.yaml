@@ -1,0 +1,22 @@
+id: EVD-0422
+kind: test
+related:
+- BUG-0248
+result: pass
+summary: 'DEC-0108 built in the office kit: a mixed-VAT document books as one ledger
+  row per rate under a shared invoice number. The extractor reads BT-116 per category
+  beside BT-117, the intake splits on the document''s own breakdown and never on a
+  derived figure, the verdict carries booking.rows and OMITS the single-line key for
+  a mixed document (a contract-following app would otherwise book one rate group silently),
+  ledger_add''s duplicate key carries the rate, and what counts DOCUMENTS in the evaluation
+  counts distinct invoice numbers (euer_report.document_key, read by the dashboard
+  through the same import, so report and page agree). The refusal that remains is
+  a breakdown the intake cannot pair up; BR-CO-14 stays.'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_office_package.py -q -k test_a_mixed_vat_document_books_one_row_per_rate_under_one_invoice_number
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:09:05'
+closed_at: '2026-09-13T01:27:25'

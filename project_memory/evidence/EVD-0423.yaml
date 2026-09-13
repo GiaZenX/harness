@@ -1,0 +1,18 @@
+id: EVD-0423
+kind: test
+related:
+- BUG-0300
+result: pass
+summary: 'Seam row from stream C, built in tools/test_hooks.py: the synthetic bundle
+  gained a function with NO return that stops on one branch and falls through on the
+  other, plus a call carrying an ordinary message -- the only shape that can tell
+  ''cannot return'' from ''exits somewhere'' apart. The 45-vs-3 count in _names_that_stop_the_role
+  became a pointer to that row. Red measured with C''s mutation (_cannot_return back
+  to ''any statement stops''): 1 failed, the ordinary message read as a refusal text.'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py -q -k test_the_refusal_reader_finds_a_stopper_this_repos_own_gates_spell
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:09:14'

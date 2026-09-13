@@ -1,0 +1,15 @@
+id: EVD-0428
+kind: test
+related:
+- BUG-0301
+result: pass
+summary: 'TSK-0147 stream B: the closing node of this defect, run as a node id (the
+  round''s measurements and the red-first runs are in staging/TSK-0147/protocol.md).'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_a_computed_flag_name_excuses_one_absence_and_not_the_call_it_stands_in
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:11:02'

@@ -19,6 +19,7 @@ The differences this shim absorbs:
 Uncertainty -> return the payload unchanged; a guard that cannot parse stays fail-open (exit 0),
 same philosophy as every other hook.
 """
+import contextlib
 import functools
 import itertools
 import json
@@ -26,6 +27,8 @@ import os
 import re
 import subprocess
 import sys
+import threading
+import time
 
 try:
     from _root import find_repo_root
@@ -64,11 +67,11 @@ STDIN_LIMIT = 16 * 1024 * 1024
 # was killed at 900 s, its session dating the kill near 600 s, while one naming `timeout: 5` was
 # killed at 5 s and the refused command ran with nothing said to the user
 # (tools/provider_observations.json -> `hook_deadlines`; the settings files carry the rule that
-# follows, where the entries live). Two consequences for anything written here: 60 s is comfortably
-# INSIDE the provider's window, so a hook that keeps this budget is never killed -- and nothing in
-# this module notices either window arriving, so keeping it is a promise the hooks make and not one
-# anything enforces. The reason to keep it is the one that survives that: a gate that is still
-# deciding is a session standing still, with the user looking at it.
+# follows, where the entries live). 60 s is comfortably INSIDE every window a shipped entry names,
+# so a hook that keeps this budget is never near a kill -- and since BUG-0153/H61 the section below
+# is what NOTICES a window arriving, which this paragraph used to say nothing did. The reason to
+# keep the budget beside that: a gate that is still deciding is a session standing still, with the
+# user looking at it, and the deadline's refusal arrives much later than that.
 #
 # WHAT ACTUALLY READS IT TODAY, stated exactly rather than generously — and the bracket that used to
 # stand above named two bounds as DERIVED from this constant when neither is one:
@@ -79,9 +82,264 @@ STDIN_LIMIT = 16 * 1024 * 1024
 # That is the whole of what reads this constant. `gate_ledger_valid.TOTAL_BUDGET = 40` is a number
 # that derives from nothing at all; pointing it here is a sweep of its own and is NOT done here
 # (verifier round 3, V5, correcting round 2's claim that they already point here); the residue is
-# named in docs/reviews/2026-08-18-tsk0077-measurements.md. What this constant buys today is that
-# the one CEILING built in that round is computed from the budget instead of restating it.
+# named in docs/reviews/2026-08-18-tsk0077-measurements.md. Since 2026-09-12 a SECOND reader asks
+# it, and from outside this file: the rule that every registered window clears the chain's own child
+# bounds PLUS this budget
+# (`tools/test_hooks.py::test_every_registration_names_a_window_its_gate_can_answer_inside`), which
+# is what makes the shipped windows derived rather than chosen.
 HOOK_DEADLINE_SECONDS = 60.0
+
+
+# THE KERNEL'S ENTRY POINT, in the two spellings a command line can reach it by, and in ONE place
+# because two gates now ask "is this the harness": `gate_write_scope` (rule 4, which commands a
+# subagent may not order) and `gate_dispatch` (DEC-0107, who may classify a failed run). They are
+# kept HERE rather than read off `kernel.cli` so that a Bash call does not pay for importing
+# argparse and every field schema to answer it; the pin against the kernel is
+# `tools/test_hooks_v2.py::test_the_gate_knows_the_entry_point_the_kernel_installs`, which compares
+# both with `kernel.cli.ENTRY_POINT` and the module's own name.
+HARNESS_SCRIPT = "harness.py"
+KERNEL_CLI_MODULE = "kernel.cli"
+
+
+def names_the_kernel_entry_point(command):
+    """Could this command line reach the kernel CLI at all?
+
+    A CHEAP NECESSARY CONDITION and nothing more, which is exactly what its callers need: a line
+    that never spells the entry point cannot hand the kernel anything, so a question that needs the
+    kernel imported is not asked of it. Deliberately NOT the structural reading
+    `gate_write_scope._harness_argv` performs (the entry point in an execution position): being
+    wider here costs one lookup on a line that mentions the harness in passing, while being
+    narrower would let a line that really does invoke the CLI past the caller's own rule.
+    """
+    text = str(command or "").lower()
+    return HARNESS_SCRIPT in text or KERNEL_CLI_MODULE in text
+
+
+# -- the WINDOW the registration gives this hook process, and the refusal that beats the kill -----
+#
+# WHY THE CONSTRUCTION LIVES HERE AND NOT IN `_kernel`. A hook still deciding when its window closes
+# is KILLED, and a killed hook is read as "hook error, carry on" -- an ALLOW. `_kernel` has had this
+# since 2026-09-05, and `_kernel` is imported by 10 of 27 shipped dev hooks, 14 of 27 office, 9 of
+# 24 research (measured 2026-09-12, BUG-0153/H61): the other 45 -- `format_on_write`,
+# `notify_agent_events`, `guard_no_adhoc`, `gate_pipeline` among them -- ran with no bound of their
+# own at all. THIS module is the one every shipped hook imports and whose `load()` every shipped
+# hook calls, which is what turns the bound from a list of hooks that remembered to ask for it into
+# a property of being a hook. `_kernel.start_the_deadline` is a delegation to this now, so a gate
+# that arms it explicitly and a hook that arms it by reading its payload get the same budget and
+# the same sentences.
+PROVIDER_DIR = ".claude"
+SETTINGS_FILE = "settings.json"
+TIMEOUT_KEY = "timeout"
+
+# When the registration does not govern this process at all (see `registered_window`), the provider
+# still has a window. MEASURED and BRACKETED, not pinned: a hook slept 310 s and 560 s and woke with
+# its refusal intact, and at 900 s it never woke while the call it was refusing went through; the
+# session length dates the kill at about 600 s (2026-08-23, claude.exe 2.1.239). The LONGEST
+# SURVIVING run is what everything judges against, because that is the earliest the kill may
+# already have come. The workshop keeps the record; a kit cannot read it, so this is where the
+# number lives on this side, and
+# `tools/test_hooks.py::test_the_kit_deadline_reader_carries_the_measured_default_window` compares
+# the two so they cannot drift apart.
+DEFAULT_WINDOW_SECONDS = 560.0
+
+# What is NOT spent, so the refusal wins the race against the kill. A FLOOR and not a share of the
+# window, and the difference is measured rather than taste: `gate_pipeline` is registered at 1800
+# and bounds its own child at 1500, so a one-fifth share would end this process a minute BEFORE the
+# gate's own bound could speak. The floor stands above the worst process start measured on this
+# apparatus (0.81 s) and above the span nothing here can measure -- from this process's exit to the
+# provider noticing it.
+DEADLINE_RESERVE_SECONDS = 1.5
+
+# The third answer of `registered_window`, spelled rather than left as a bare string: "this file
+# does not govern this process", which is not the same as "this file leaves the window open".
+UNBOUND = "unbound"
+
+# When this module was LOADED, which is the earliest clock a hook has of its own: the provider
+# started the process before that, and no process can measure the part of its own start that
+# happened before its first line ran. The budget is counted from HERE, so everything the imports
+# have cost is spent out of the window rather than added to it.
+_STARTED_AT = time.monotonic()
+
+# ONE rule, TWO positions -- and the sentences differ by the clause that names the remedy: a budget
+# gone before the hook could read anything is a WINDOW to raise, one spent while it was reading is a
+# CALL to split. Without that clause the two positions were indistinguishable, and the test that
+# claims to measure the watchdog would have stayed green on the synchronous check.
+_OUT_OF_TIME = (
+    "this call could not be inspected inside the time its registration allows: %s, this hook's "
+    "whole budget is spent and the call is still not decided.\n"
+    "A hook that is still deciding when the provider gives up is killed, and a killed hook is read "
+    "as an allow -- so it refuses instead."
+)
+_BEFORE_READING = "before it had read anything at all"
+_WHILE_READING = "while it was still reading"
+_NO_WINDOW = (
+    "this call could not be judged, because this hook cannot know how long it may take: %s/%s "
+    "registers %s and no entry that names it states a `%s`.\n"
+    "A hook that is still deciding when its window closes is killed, and a killed hook is read as "
+    "an allow -- so a registration that leaves the window open is refused rather than raced."
+)
+_NO_WINDOW_REMEDY = ("give every entry that runs %s in %s/%s an explicit `%s` in seconds -- large "
+                     "enough that this hook's own bound speaks first.")
+_TOO_SHORT = (
+    "this call could not be judged: the registration gives this hook %gs, which is not enough time "
+    "for it to answer at all (%gs of every window is reserve, so that the refusal leaves this "
+    "process before the kill arrives).\n"
+    "A hook that is still deciding when its window closes is killed, and a killed hook is read as "
+    "an allow -- so a window it cannot answer inside is refused rather than raced."
+)
+_TOO_SHORT_REMEDY = "raise the `%s` on this entry in %s/%s."
+
+# ONE PROCESS ARMS ONCE. `_gate.py` runs a CHAIN of gates in one process and `_kernel.run_gate`
+# arms explicitly on top of the arming `load()` does, so a second arming would hand the process a
+# second budget counted from the same start -- harmless only for as long as nobody changes where
+# the clock is read.
+_ARMED = []
+
+
+def hook_file():
+    """The hook file this process is running, or None when this process is not a hook.
+
+    THE PROPERTY, not a list: a hook process is one whose `__main__` is a file in THIS directory.
+    That covers a direct run (`python .claude/hooks/gate_x.py`, which is how the suite and a person
+    diagnosing one reach it) and a run through `_gate.py`, which installs the gate it is about to
+    run as a real `__main__` module (its docstring says why it must). It excludes every other
+    importer of this module -- a test process, the CLI -- and that exclusion is the point: the
+    watchdog below ends the process it runs in, and a test process is not a hook process.
+    """
+    main = sys.modules.get("__main__")
+    path = getattr(main, "__file__", None)
+    if not path:
+        return None
+    here = os.path.dirname(os.path.abspath(__file__))
+    if os.path.dirname(os.path.abspath(path)) != here:
+        return None
+    return os.path.basename(path)
+
+
+def registered_window(repo_root, name):
+    """The seconds this project's registration gives the hook `name`: a number, None, or UNBOUND.
+
+    THE SMALLEST NAMED WINDOW ANSWERS: one hook may be registered in several groups and any of them
+    can be the one that is asked, so the shortest is the window it has to survive. Read off the file
+    the provider reads rather than restated here -- a number copied into this module is the one that
+    goes stale the day a registration is lowered.
+
+    THREE ANSWERS AND NOT TWO, because "no number" covers two situations that must not share an
+    outcome. A registration that NAMES this hook and states no window for it is an INCOMPLETE
+    registration: that is the state 87 of 89 shipped entries were in until 2026-09-12, and it is
+    also the state a hand edit reaches by deleting one key, so it is answered with None and refused
+    by the caller. A registration that does not name this hook at all -- and an unreadable or absent
+    settings file, which is the same thing for this purpose -- did not start this process, so no
+    window of that file governs it: UNBOUND is the answer and the caller falls back on the
+    provider's own default window. Refusing THAT case would refuse every hook run by hand and every
+    hook a second provider's registration started (the Codex artifact is generated from this same
+    file by `team-kits/gen_provider_artifacts.py`, so the windows travel, but the file that provider
+    reads is not this one).
+
+    WHAT THIS DOES NOT PROMISE is that the number read here is the one the provider really kills by:
+    the file is read on every call, while the provider bound its own timeout when the session
+    started, so the two are decoupled for as long as a session lasts. What is gained by reading the
+    file anyway is the other direction -- a number copied into this module would be the one that
+    goes stale silently.
+    """
+    path = os.path.join(repo_root or ".", PROVIDER_DIR, SETTINGS_FILE)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            settings = json.load(handle)
+    except Exception:  # noqa: BLE001
+        return UNBOUND
+    stated = []
+    for groups in (settings.get("hooks") or {}).values():
+        if not isinstance(groups, list):
+            continue
+        for group in groups:
+            for hook in (group or {}).get("hooks") or []:
+                command = str((hook or {}).get("command") or "")
+                if name not in command:
+                    continue
+                stated.append((hook or {}).get(TIMEOUT_KEY))
+    if not stated:
+        return UNBOUND
+    named = [float(value) for value in stated if value is not None]
+    return min(named) if named else None
+
+
+def start_the_deadline(name=None, refuse=None):
+    """Refuse from a thread of its own once this hook's window is about to close.
+
+    EVERY CALL HAS A WINDOW, whether or not the registration names one: a hook nothing in this file
+    governs is killed by the provider's own default, measured and bracketed at
+    `DEFAULT_WINDOW_SECONDS`. So a budget is derived either way, and being killed is never the
+    outcome a hook plans for.
+
+    FOUR ANSWERS, and they differ in WHEN the budget is found to be gone. A registration that names
+    this hook without a window is refused before anything is read -- `registered_window` says which
+    case that is and why it is not the same as an absent registration. A window this hook cannot
+    answer inside at all -- at or under the reserve -- is refused outright rather than raced, with a
+    sentence naming the file to change. A budget already spent by this process's own start is
+    refused where it is noticed, not raced against the thread. A budget that runs out while the hook
+    is reading ends the process with the same refusal code from the watchdog below, with a sentence
+    naming the other remedy.
+
+    THE BOUND SITS OUTSIDE THE DECISION, because the decision is where the cost is: a check written
+    into one surface bounds that surface and nothing else. What it cannot interrupt is a single call
+    into C that keeps the interpreter to itself; that half is not closed here.
+
+    `refuse(message, remedy)` is how a caller with a richer refusal than `stop()` keeps it --
+    `_kernel`, which writes an audit record and names the event first. The SENTENCES stay here
+    either way, so two callers cannot grow two vocabularies for one rule.
+    """
+    if _ARMED:
+        return
+    name = name or hook_file()
+    if not name:
+        return
+    _ARMED.append(name)
+
+    def _refuse(message, remedy):
+        if refuse is not None:
+            refuse(message, remedy)
+        stop("[team-kit %s] refused: %s\nRemedy: %s\n" % (name, message, remedy), "PreToolUse")
+
+    window = registered_window(find_repo_root(os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()),
+                               name)
+    if window is None:
+        _refuse(_NO_WINDOW % (PROVIDER_DIR, SETTINGS_FILE, name, TIMEOUT_KEY),
+                _NO_WINDOW_REMEDY % (name, PROVIDER_DIR, SETTINGS_FILE, TIMEOUT_KEY))
+    if window == UNBOUND:
+        window = DEFAULT_WINDOW_SECONDS
+    if window <= DEADLINE_RESERVE_SECONDS:
+        _refuse(_TOO_SHORT % (window, DEADLINE_RESERVE_SECONDS),
+                _TOO_SHORT_REMEDY % (TIMEOUT_KEY, PROVIDER_DIR, SETTINGS_FILE))
+    deadline = _STARTED_AT + max(window - DEADLINE_RESERVE_SECONDS, 0.0)
+    if deadline - time.monotonic() <= 0:
+        # ALREADY SPENT BEFORE THE DECISION BEGINS -- the imports this hook needs cost more than the
+        # window leaves it. Answered HERE and not by the watchdog below, because the two would
+        # otherwise race for a verdict that is already decided: the thread has to be scheduled, and
+        # a hook that finishes its decision first would return an ALLOW under a window it could
+        # never have honoured. Same sentence, so a reader cannot tell the two positions apart --
+        # they are one rule.
+        _refuse(_OUT_OF_TIME % _BEFORE_READING,
+                "raise the `%s` on this entry in %s/%s -- the window is shorter than this hook's "
+                "own start, so no call of it can ever be judged."
+                % (TIMEOUT_KEY, PROVIDER_DIR, SETTINGS_FILE))
+
+    def watch():
+        while True:
+            left = deadline - time.monotonic()
+            if left <= 0:
+                spent = _OUT_OF_TIME % _WHILE_READING
+                with contextlib.suppress(BaseException):
+                    import _audit
+                    _audit.record(name, spent)
+                with contextlib.suppress(BaseException):
+                    sys.stderr.write("[team-kit %s] %s\nRemedy: split the call.\n" % (name, spent))
+                    sys.stderr.flush()
+                os._exit(2)
+            time.sleep(min(left, 0.25))
+
+    threading.Thread(target=watch, daemon=True).start()
+
 _OVERFLOW_MESSAGE = (
     "[team-kit guard] Hook payload exceeded the %d-byte stdin bound, so this call could not be "
     "inspected — refused rather than waved through (spec II.4 bounded read + fail-closed).\n"
@@ -172,6 +430,12 @@ def load(stream=None, limit=None, tolerate_overflow=False):
 
     The process's OWN stdin is read once and remembered (`_STDIN_BYTES`), so every gate of a
     chained registration decides on the same bytes; an explicit `stream` bypasses that entirely."""
+    # THE ARMING POINT of the deadline above, and the reason it is HERE: every shipped hook of
+    # every kit calls this (measured 2026-09-12 over all three kits' `hooks/*.py`), so a hook
+    # cannot read its payload without a bound on how long it may take to answer. `hook_file`
+    # decides whether this process is a hook at all, so an in-process caller (a test, the CLI)
+    # arms nothing.
+    start_the_deadline()
     limit = STDIN_LIMIT if limit is None else limit
     del _LAST_PAYLOAD[:]
     raw = None
@@ -539,6 +803,34 @@ _WRAPPER_RX = re.compile(
     r'((?:' + _SHELL_NAMES + r'\s+(?:' + _WRAPPER_OPTION + r')*'
     r'[-/]{1,2}(?:[A-Za-z]*c|command)|\b' + _EVAL_NAMES + r'\b)\s+)' + _QUOTED_SPAN,
     re.IGNORECASE | re.DOTALL)
+# THE SHELL'S OWN WAY OF RUNNING A FILE WITHOUT NAMING A SHELL: `source x` and `. x` read the file
+# into the CURRENT shell and execute it. They are not programs, they are builtins, so no list of
+# program names can hold them -- and both were measured ALLOWED for
+# `cat <<'EOF' > run.sh … EOF ; . run.sh` in two pilots while the same line with `bash run.sh` was
+# refused (verifier round 1, F1; the real shell wrote AND executed, `proof_dot.txt`).
+_DOT_SOURCE_NAMES = r"(?:source|\.)"
+_RUNS_A_FILE_RX = re.compile(r"^(?:%s|%s)$" % (_SHELL_NAMES, _DOT_SOURCE_NAMES), re.IGNORECASE)
+
+
+def runs_the_file_it_is_handed(word):
+    """Would this word EXECUTE a file handed to it as an operand?
+
+    ONE VOCABULARY, HERE, because three readers ask it: `_names_a_stdin_parser` (a body fed to a
+    parser is a command, not prose), `_PIPE_TO_SHELL_RX` (a payload piped into one), and
+    `gate_write_scope`'s rule that a line must not write a script and run it in the same call
+    (BUG-0298/H214). The property is "what follows is a PROGRAM, not data": a shell by any of its
+    names, and the dot-source builtins, which are the same act without a program at all.
+
+    WHAT IT DELIBERATELY DOES NOT CLAIM: that these are the only ways a file gets executed. An
+    interpreter (`python`, `node`, `perl`) runs a file too, and a caller of THIS reader treats those
+    as the H11 remainder rather than pretending to a list nobody can finish -- the bound is that
+    such a line names the file twice and stands in the transcript. Adding them here would be the
+    enumeration this repository keeps finding the next defect in; what the callers CAN do is say so,
+    and `gate_write_scope._refuse_a_script_this_line_writes_and_runs` does.
+    """
+    return bool(_RUNS_A_FILE_RX.match(str(word or "").strip()))
+
+
 _PIPE_TO_SHELL_RX = re.compile(r'\s*\|\s*' + _SHELL_NAMES + r'\b', re.IGNORECASE)
 # A HERE-STRING hands the shell its COMMANDS on standard input. Same membership test, third way of
 # handing over — and the one the rest of this file actively deletes rather than merely fails to

@@ -1305,34 +1305,175 @@ def _reached_from(graph, entry):
     return seen
 
 
+def _tool_names(node, constants):
+    """The tool names this comparator lists, or None when it lists nothing readable.
+
+    A tuple/list/set of string constants, or a module-level name bound to one -- both are shipped
+    shapes (`("Edit", "Write")` and `SPAWN_TOOLS`), and a name this module does not bind answers
+    None, which the caller reads as "no constraint" rather than as an empty set.
+    """
+    if isinstance(node, ast.Name):
+        node = constants.get(node.id)
+    if not isinstance(node, (ast.Tuple, ast.List, ast.Set)):
+        return None
+    words = [element.value for element in node.elts
+             if isinstance(element, ast.Constant) and isinstance(element.value, str)]
+    return frozenset(words) or None
+
+
+def _tool_guard(statement, constants):
+    """The tools a statement still ADMITS, when it is a guard that ENDS the hook for the others.
+
+    THE SHIPPED SHAPE, read off the parse tree and not off a spelling in prose:
+    `if data.get("tool_name") not in <tools>: sys.exit(0)` -- ten of them across the three kits'
+    hooks today, with the comparator either a literal tuple or a module constant. A `return` counts
+    as ending too, because a handler that returns is done.
+
+    Anything else answers None = "this statement constrains nothing", which is the permissive
+    direction and is why this reader can only ever add a constraint it really read.
+    """
+    if not isinstance(statement, ast.If) or len(statement.body) != 1:
+        return None
+    end = statement.body[0]
+    ends = isinstance(end, ast.Return) or (
+        isinstance(end, ast.Expr) and isinstance(end.value, ast.Call)
+        and ast.unparse(end.value.func) in ("sys.exit", "exit"))
+    if not ends:
+        return None
+    test = statement.test
+    if not (isinstance(test, ast.Compare) and len(test.ops) == 1
+            and isinstance(test.ops[0], ast.NotIn)):
+        return None
+    if "tool_name" not in ast.unparse(test.left):
+        return None
+    return _tool_names(test.comparators[0], constants)
+
+
+def _narrow(left, right):
+    """Two tool constraints intersected; None is "no constraint" and loses to everything."""
+    if left is None:
+        return right
+    if right is None:
+        return left
+    return left & right
+
+
+def _widen(left, right):
+    """Two constraints a symbol can run under at once; None means "unconstrained on some path"."""
+    if left is None or right is None:
+        return None
+    return left | right
+
+
+def _module_constants(tree):
+    return {target.id: node.value
+            for node in tree.body if isinstance(node, ast.Assign)
+            for target in node.targets if isinstance(target, ast.Name)}
+
+
+def _calls_under(scope, constants):
+    """[(callee, the tools admitted where it is called)] for one function body, IN ORDER.
+
+    The guards are cumulative down the body: a statement after `if tool_name not in SPAWN_TOOLS:
+    sys.exit(0)` runs only for those tools, a statement before it runs for all of them. That
+    ordering is the whole point of this reader -- see `_reach_of`.
+    """
+    admitted, out = None, []
+    for statement in scope.body:
+        guard = _tool_guard(statement, constants)
+        if guard is not None:
+            admitted = _narrow(admitted, guard)
+            continue
+        for inner in ast.walk(statement):
+            if isinstance(inner, ast.Call) and isinstance(inner.func, ast.Name):
+                out.append((inner.func.id, admitted))
+    return out
+
+
+def _own_guard(scope, constants):
+    """The tools every guard in this function's OWN body admits, intersected."""
+    admitted = None
+    for statement in scope.body:
+        guard = _tool_guard(statement, constants)
+        if guard is not None:
+            admitted = _narrow(admitted, guard)
+    return admitted
+
+
 @_cached
-def _events_reaching(path, symbol):
-    """The events under which this SYMBOL can run, or None for "every registration reaches it".
+def _reach_of(path, symbol):
+    """{event: the tools admitted where this SYMBOL does its work}, or None for "not narrowed".
 
     THE MECHANISM FIELD NAMES A SYMBOL, NOT A FILE, and the file-level answer is measurably the
-    wrong subject: `gate_dispatch` is registered on five events, two of which Codex has
-    (`Stop`, `SubagentStart`), so the file "runs on Codex" — while `handle_pre_tool_use` is bound
-    to `PreToolUse` alone (`HANDLERS`) and `_refuse_untrusted_bundle` is called from that handler
-    only. Rows 4 and 54 name exactly those two symbols, and a file-level reader left both out of
-    the Codex count while the paragraph beside it quoted `guard_agent_spawn`'s "on Codex no spawn
-    hook runs at all".
+    wrong subject: `gate_dispatch` is registered on six events, two of which Codex has
+    (`Stop`, `SubagentStart`), so the FILE runs there while several of its symbols cannot.
+
+    AND THE EVENT ALONE IS NOT THE SUBJECT EITHER, which was measured in this repository with a
+    marker written from inside the function against real hook processes (TSK-0149 verify round 1,
+    F1): DEC-0107 registered `gate_dispatch` on `PreToolUse` with the matcher `Bash|PowerShell` as
+    well, an event-only reader therefore read two of its symbols as Codex-reachable, and the marker
+    said entered False on every Bash payload and True only on an Agent one. `handle_pre_tool_use`
+    exits unless the tool is in `SPAWN_TOOLS`. So the reader narrows by the TOOL CLASS the handler
+    demands as well, and it reads that class off the guard rather than off a list kept here.
+
+    WHERE A SYMBOL DOES ITS WORK is the choice this reader makes, and it is the alarming direction
+    on purpose: a function is judged by the guards inside its OWN body as well as by those on the
+    way to it. `handle_pre_tool_use` therefore answers `SPAWN_TOOLS` although its first statement
+    runs for every tool -- because what the parity matrix cites it FOR (no spawn without an
+    approved task) is behind that guard, and a reader answering "reachable" here would say a Codex
+    session is covered where it is not. The opposite choice is the reassuring one, and house rule 3
+    forbids that as firmly as the alarming one.
 
     None means the question does not narrow: the hook declares no handler map (then every
     registration runs its `main` end to end), or the symbol is reachable from a scope no handler
-    owns — `main` itself is the shipped case of that. The direction is deliberate and stated
-    because it is the permissive one: a symbol whose events cannot be narrowed is judged against
-    ALL of the hook's registrations, so this reader can only ever count a row Codex-blind when the
-    hook's own mapping says so.
+    owns -- `main` itself is the shipped case of that.
     """
     with open(path, encoding="utf-8") as handle:
         tree = ast.parse(handle.read(), filename=path)
     handlers = _event_handlers(tree)
     if not handlers:
         return None
-    graph = _call_graph(tree)
-    events = frozenset(event for event, handler in handlers.items()
-                       if symbol in _reached_from(graph, handler))
-    return events or None
+    constants = _module_constants(tree)
+    scopes = {node.name: node for node in ast.walk(tree)
+              if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    reach = {}
+    for event, handler in handlers.items():
+        if handler not in scopes:
+            continue
+        answer, stack, seen = {}, [(handler, None)], set()
+        while stack:
+            name, context = stack.pop()
+            if (name, context) in seen or name not in scopes:
+                continue
+            seen.add((name, context))
+            runs_under = _narrow(context, _own_guard(scopes[name], constants))
+            answer[name] = runs_under if name not in answer else _widen(answer[name], runs_under)
+            for callee, prefix in _calls_under(scopes[name], constants):
+                stack.append((callee, _narrow(context, prefix)))
+        if symbol in answer:
+            reach[event] = answer[symbol]
+    return reach or None
+
+
+def _events_reaching(path, symbol):
+    """The events under which this SYMBOL can run, or None -- the event half of `_reach_of`."""
+    reach = _reach_of(path, symbol)
+    return frozenset(reach) if reach else None
+
+
+def _matcher_admits(matcher, tools):
+    """Does this registration's matcher name a tool the symbol's guard still admits?
+
+    A matcher of `None` or `*` is every tool, so it admits whatever the guard asks for; anything
+    else is the alternation the provider writes (`Agent|Task`, `Bash|PowerShell`), and the question
+    is whether the two sets meet. `tools` of None is "the symbol demands no class" and admits every
+    matcher -- the permissive end, and the one every hook without a tool guard lands on.
+    """
+    if tools is None:
+        return True
+    if matcher in (None, "", "*"):
+        return True
+    return bool({word.strip() for word in str(matcher).split("|") if word.strip()} & tools)
 
 
 def _reaches_codex(kit_dir, name, symbol=None):
@@ -1341,22 +1482,30 @@ def _reaches_codex(kit_dir, name, symbol=None):
     Asked of the generator that writes the Codex artifacts, never of a second table here:
     `CODEX_EVENTS` says which events exist there and `codex_matchers_for` translates the matcher,
     contributing nothing for a tool `CODEX_UNSUPPORTED_TOOLS` declares. An empty translation is
-    therefore "this registration does not exist on Codex" — and the empty TUPLE is the answer to
+    therefore "this registration does not exist on Codex" -- and the empty TUPLE is the answer to
     read, not the truthiness of its members: a matcher of `None` translates to `(None,)`, which is
     one registration and not none (measured while writing this: `any(...)` read that as no
     registration and filed every `SessionStart` hook as Codex-blind).
 
-    The registrations are narrowed to the ones that can reach `symbol` (`_events_reaching`); with
-    no symbol the question is asked of the file, which is a weaker question and is why the callers
-    pass one.
+    TWO NARROWINGS, NOT ONE, and the second was bought with a measured wrong count (TSK-0149 verify
+    round 1, F1): the registrations are narrowed to the ones whose EVENT reaches `symbol`, and the
+    surviving matchers are then narrowed to the ones naming a TOOL the symbol's own guard still
+    admits (`_reach_of`). Without the second, a `PreToolUse('Bash|PowerShell')` entry made every
+    `PreToolUse` symbol of `gate_dispatch` look Codex-covered while the handler exits on any tool
+    outside `SPAWN_TOOLS`. With no symbol the question is asked of the FILE, which is the weaker
+    question and is why the callers pass one.
     """
     from gen_provider_artifacts import CODEX_EVENTS, codex_matchers_for
-    events = _events_reaching(os.path.join(kit_dir, "hooks", name), symbol) if symbol else None
+    reach = _reach_of(os.path.join(kit_dir, "hooks", name), symbol) if symbol else None
     for event, matcher in _registrations(kit_dir).get(name, ()):
-        if events is not None and event not in events:
+        if reach is not None and event not in reach:
             continue
-        if event in CODEX_EVENTS and codex_matchers_for(event, matcher) != ():
-            return True
+        if event not in CODEX_EVENTS:
+            continue
+        tools = reach[event] if reach is not None else None
+        for translated in codex_matchers_for(event, matcher):
+            if _matcher_admits(translated, tools):
+                return True
     return False
 
 
@@ -1433,27 +1582,54 @@ def test_the_codex_reader_separates_a_spawn_hook_from_a_shell_hook():
 
 
 def test_the_codex_reader_asks_about_the_symbol_and_not_only_its_file():
-    """The floor under `_events_reaching`, over the shipped case that made the count wrong.
+    """The floor under `_reach_of`: file, event and TOOL CLASS are three different subjects.
 
-    `gate_dispatch.py` is registered on five events; `Stop` and `SubagentStart` exist on Codex, so
-    the FILE runs there. Its `HANDLERS` bind `handle_pre_tool_use` to `PreToolUse` alone, and
-    `_refuse_untrusted_bundle` is called from that handler only — so both symbols, which parity
-    rows 4 and 54 name as the replacement, cannot be reached on Codex at all. Asserting both
-    answers of the same reader is what makes a mutation back to the file-level question red here as
-    well as in the count above.
+    `gate_dispatch.py` is registered on six events; `Stop` and `SubagentStart` exist on Codex, so
+    the FILE runs there. Its `HANDLERS` bind `handle_post_tool_use` to `PostToolUse` alone, whose
+    matcher is `Agent|Task` -- tools `CODEX_UNSUPPORTED_TOOLS` declares, so that registration
+    translates to nothing and the SYMBOL cannot run there. That is the event half.
 
-    The third assertion is the permissive direction the docstring of `_events_reaching` names: a
-    symbol no handler owns (`main`) does not narrow anything, so the file's registrations answer.
+    AND THE TOOL HALF, which was measured wrong in this repository before it existed (TSK-0149
+    verify round 1, F1, with a marker written from inside the function against real hook
+    processes): DEC-0107 registered the same file on `PreToolUse` with the matcher
+    `Bash|PowerShell`. An event-only reader concluded that `handle_pre_tool_use` and
+    `_refuse_untrusted_bundle` had become Codex-reachable and the shipped review document lost two
+    rows off its Codex-blind count -- while the marker said entered False on every Bash payload,
+    because the handler exits unless the tool is in `SPAWN_TOOLS`. The three assertions in the
+    middle are that difference: the symbol BEFORE the guard really is reachable on Codex now, and
+    the two behind it are not.
+
+    The last three are the permissive directions `_reach_of` names: a handler on a Codex event with
+    no tool guard IS reachable, a symbol no handler owns (`main`) narrows nothing, and the file
+    answers when no symbol is asked.
     """
     kit = _kit_dirs()[0]
     dispatch = os.path.join(kit, "hooks", "gate_dispatch.py")
     assert _reaches_codex(kit, "gate_dispatch.py"), "the FILE has Codex-reachable registrations"
-    assert _events_reaching(dispatch, "handle_pre_tool_use") == frozenset(["PreToolUse"])
-    assert _events_reaching(dispatch, "_refuse_untrusted_bundle") == frozenset(["PreToolUse"])
-    assert not _reaches_codex(kit, "gate_dispatch.py", "handle_pre_tool_use")
+
+    # the EVENT half
+    assert _events_reaching(dispatch, "handle_post_tool_use") == frozenset(["PostToolUse"])
+    assert _events_reaching(dispatch, "handle_spawn_failure") == frozenset(["PostToolUseFailure"])
+    assert not _reaches_codex(kit, "gate_dispatch.py", "handle_post_tool_use")
+    assert not _reaches_codex(kit, "gate_dispatch.py", "handle_spawn_failure")
+
+    # the TOOL half, on the ONE event Codex and this hook really share for a tool it has
+    spawn_only = _reach_of(dispatch, "_refuse_untrusted_bundle")["PreToolUse"]
+    assert spawn_only and "Bash" not in spawn_only, (
+        "the reader does not see the tool guard `handle_pre_tool_use` puts in front of this "
+        "symbol, so a `Bash` registration reads as coverage it is not: %r" % (spawn_only,))
     assert not _reaches_codex(kit, "gate_dispatch.py", "_refuse_untrusted_bundle")
+    assert not _reaches_codex(kit, "gate_dispatch.py", "handle_pre_tool_use")
+    assert _reach_of(dispatch, "_refuse_a_classification_the_judged_role_wrote") == {
+        "PreToolUse": None}, (
+        "the symbol that runs BEFORE the guard must stay unconstrained -- it is the one thing the "
+        "new registration really did add on Codex, and a reader that lost it would over-report")
+    assert _reaches_codex(kit, "gate_dispatch.py",
+                          "_refuse_a_classification_the_judged_role_wrote")
+
+    # the permissive directions
     assert _reaches_codex(kit, "gate_dispatch.py", "handle_stop"), (
-        "`Stop` is a Codex event and its handler is reachable there — a reader that answered "
+        "`Stop` is a Codex event and its handler carries no tool guard -- a reader that answered "
         "'blind' for every symbol of this file would count rows that are not blind")
     assert _events_reaching(dispatch, "main") is None
 

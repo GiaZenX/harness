@@ -937,6 +937,19 @@ _DEC_ID_RX = re.compile(r"\bDEC-\d{4}\b")
 # rung", in the very file this reader cites as the pointer form it generalises (126 pointers judged
 # without it, 125 with).
 _DELIMITED_RX = re.compile(r"`[^`\n]*`|\"[^\"\n]*\"")
+# A LONG-STRING MARK: `"""` and every longer run of quotes. THREE QUOTES ARE ONE DELIMITER, and
+# reading them as three single ones is the defect `BUG-0295` names -- `""` pairs as an empty span
+# and the third quote opens one that runs to the closing mark, so a one-line docstring's whole body
+# became a literal and the id inside it was judged by nobody.
+#
+# BLANKED RATHER THAN PAIRED, which is the same correction `_without_fenced_blocks` makes below for
+# a fence (BUG-0263 / H181), and the reason is the same: the mark bounds a literal of the SOURCE
+# LANGUAGE, it does not quote somebody's prose. What stands between two marks is prose this reader
+# judges -- exactly as it already judged every docstring that spans more than one line, where the
+# line-bounded pairing above could not reach across the break. The run is replaced by spaces of the
+# same length, so every offset a caller computes still points at its own line.
+# Both directions are measured in `test_a_decision_cited_in_a_one_line_docstring_is_judged`.
+_LONG_STRING_MARK_RX = re.compile('"{3,}')
 
 
 def _dec_citations(text):
@@ -961,10 +974,15 @@ def _dec_citations(text):
     direction: in bare prose the reader cannot tell a citation from an illustration, so an
     illustrative id written without delimiters is reported although nothing rots -- the same error
     direction `guard_memory_budget` chose for the same ambiguity, with the same remedy: delimit it.
+
+    A DOCSTRING IS PROSE, NOT A QUOTATION, which is why `_LONG_STRING_MARK_RX` above takes the
+    triple quote out before anything is paired: inside a docstring the ordinary marks still hold, so
+    an id a documentation EXHIBITS stays exempt through the very delimiter it is written with.
     """
-    exempt = [(span.start(), span.end()) for span in _DELIMITED_RX.finditer(text)
+    readable = _LONG_STRING_MARK_RX.sub(lambda mark: " " * len(mark.group(0)), text)
+    exempt = [(span.start(), span.end()) for span in _DELIMITED_RX.finditer(readable)
               if not _DEC_ID_RX.fullmatch(span.group(0)[1:-1].strip())]
-    return [hit for hit in _DEC_ID_RX.finditer(text)
+    return [hit for hit in _DEC_ID_RX.finditer(readable)
             if not any(start <= hit.start() < end for start, end in exempt)]
 
 
@@ -1226,6 +1244,83 @@ def test_the_decision_pointer_reader_can_tell_a_citation_from_a_literal():
     assert found("the literals `id: DEC-0000` and `status: VALID`") == []   # a byte measurement
     assert found('"a DEC-2100 controller" reads as a decision id') == []    # quoted prose
     assert found("`rm -f \"x/DEC-0001.yaml\"` rc 0") == []                  # a measured command
+
+
+def _one_line_docstrings(text):
+    """(start, end) character offsets of every docstring of `text` that opens and closes on ONE line.
+
+    THAT IS THE SHAPE the mispaired triple quote could swallow: `_DELIMITED_RX` is line-bounded, so
+    a docstring running over more lines was always read as prose from the second line on. Read out
+    of the parse tree, and the slice goes through the line's BYTES because `col_offset` counts
+    those -- a docstring with an umlaut in it would otherwise end short of where it ends.
+    """
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []
+    lines, spans, at = {}, [], 0
+    for number, line in enumerate(text.splitlines(keepends=True), start=1):
+        lines[number] = (at, line.encode("utf-8"))
+        at += len(line)
+    for node in ast.walk(tree):
+        body = getattr(node, "body", None) if isinstance(
+            node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) else None
+        if not body or not isinstance(body[0], ast.Expr):
+            continue
+        value = body[0].value
+        if not (isinstance(value, ast.Constant) and isinstance(value.value, str)
+                and value.lineno == value.end_lineno and value.lineno in lines):
+            continue
+        begins, raw = lines[value.lineno]
+        start = begins + len(raw[:value.col_offset].decode("utf-8", "replace"))
+        spans.append((start, start + len(
+            raw[value.col_offset:value.end_col_offset].decode("utf-8", "replace"))))
+    return spans
+
+
+def test_a_decision_cited_in_a_one_line_docstring_is_judged():
+    """`BUG-0295` / `H211`: a triple quote is ONE delimiter, and pairing it as three single ones
+    left the body of every one-line docstring unjudged -- with it two live citations that nobody
+    would notice rotting (`kernel/dispatch.py` on DEC-0091, the office invoice intake on DEC-0075).
+
+    WHY THE DOCSTRING BODY IS JUDGED AT ALL, since the sibling reader over a source's MESSAGES
+    deliberately excludes it: there the subject is text a program hands a user, and a docstring is
+    not that. Here the subject is prose, and a docstring is prose -- it was already read as such
+    wherever it ran over more than one line (`_one_line_docstrings` says why), so the repair makes
+    the one-line case say what the many-line case always said, instead of adding an exception.
+
+    THE OTHER DIRECTION IS NOT THIS TEST'S, and that is deliberate rather than missing: an id a
+    docstring EXHIBITS must stay unreported, and the four places the shipped tree exhibits one
+    (`DEC-2100`, `DEC-0000`) name decisions this store does not hold -- so judging them turns
+    `test_every_decision_pointer_in_a_shipped_kit_file_resolves` red over the running tree. The
+    probes below hold the shapes; that sweep holds the corpus.
+    """
+    def found(text):
+        return [hit.group(0) for hit in _dec_citations(text)]
+
+    one_line = '"""(rung, effort) the PM asked for, each a string or None (DEC-0034 (1))."""'
+    assert found(one_line) == ["DEC-0034"], (
+        "the body of a one-line docstring is exempt, so the citation inside it is judged by "
+        "nobody -- the prose reader skips it and the message reader excludes documentation")
+    assert found('"""a "DEC-2100 controller" is not a decision id"""') == [], (
+        "an id a docstring EXHIBITS inside a quoted span is reported -- the marks inside the "
+        "docstring have to keep working, or every illustration becomes a finding")
+    assert found('"""the literals `id: DEC-0000` and `status: VALID` are one byte shorter"""') == [], (
+        "an id a docstring marks as DATA with a code span is reported")
+    assert found('x = """\nthe reason is DEC-0034\n"""') == ["DEC-0034"], (
+        "a citation in a docstring that runs over more lines stopped being judged -- those are the "
+        "sites the defect did NOT touch, and losing them would be a repair that breaks the part "
+        "that worked")
+    judged = 0
+    for rel, text in _shipped_kit_files():
+        if not rel.endswith(".py"):
+            continue
+        spans = _one_line_docstrings(text)
+        judged += sum(1 for hit in _dec_citations(text)
+                      if any(start <= hit.start() < end for start, end in spans))
+    assert judged >= 1, (
+        "not one decision standing in a one-line docstring of the shipped tree is judged, so "
+        "either the pairing shift is back or the corpus no longer carries the shape at all")
 
 
 # ============ a shipped kit file may not point at a test that does not exist (SR-0008) ==========
@@ -2608,6 +2703,23 @@ _NAMES_A_HOOK_RX = re.compile(r"(?i)\bhooks?\b|HOOKS|gate_[a-z_]+\.py|guard_[a-z
 _BEFORE_THE_PROGRAM = ("sys.executable", "'-B'", '"-B"', "'-u'", '"-u"', "'-m'", '"-m"')
 
 
+def _with_one_hop(node, bound):
+    """The source of `node`, plus the source of every local name it uses -- ONE hop, never further.
+
+    THE HOP THE ARGV ALREADY GOT, asked of an expression instead of a bare name, which is what
+    `BUG-0299` measured as missing: a program word assembled first and named afterwards
+    (`program = os.path.join(tmp, "gate_write_scope.py")` and then
+    `subprocess.run([sys.executable, "-B", str(program)])`) reads as `str(program)` and answers "no
+    hook", while the same value written into the call is seen. One hop, not a solver: a name bound
+    to another name is not followed, and that direction reports nothing rather than wrongly.
+    """
+    words = [ast.unparse(node)]
+    for inner in ast.walk(node):
+        if isinstance(inner, ast.Name) and (bound or {}).get(inner.id) is not None:
+            words.append(ast.unparse(bound[inner.id]))
+    return " ".join(words)
+
+
 def _starts_a_hook(call, bound=None):
     """Does this `subprocess` call start a HOOK? -- asked of the PROGRAM, not of the whole argv.
 
@@ -2622,11 +2734,14 @@ def _starts_a_hook(call, bound=None):
     (`tools/test_hooks_v2.py`, measured while writing this). So the interpreter and its switches are
     stepped over and the first remaining word is the one asked about.
 
-    AN ARGV HELD BY A NAME IS FOLLOWED to its assignment in the same function (`bound`), because
-    that is a shape the suite really uses (`argv = [sys.executable, str(hooks / "_gate.py")] + ...`
-    and then `subprocess.run(argv, ...)`) and a reader that stopped at the name answered "no hook"
-    about it. One hop, not a solver: a name assigned from another name is not followed, and that
-    direction reports nothing rather than reporting wrongly.
+    A VALUE HELD BY A NAME IS FOLLOWED to its assignment in the same function (`bound` through
+    `_with_one_hop`), because that is a shape the suite really uses -- the whole argv
+    (`argv = [sys.executable, str(hooks / "_gate.py")] + ...` and then `subprocess.run(argv, ...)`)
+    and the PROGRAM WORD on its own (`program = os.path.join(tmp, "gate_write_scope.py")`, then
+    `[sys.executable, "-B", str(program)]`). The second was silent until `BUG-0299`, and the
+    difference between the two is not a property of a start -- which is why one hop is applied to
+    the expression rather than to the argv alone
+    (`test_the_hook_start_reader_follows_a_program_word_held_by_a_name`).
     """
     func = ast.unparse(call.func) if isinstance(call, ast.Call) else ""
     if func not in ("subprocess.run", "subprocess.Popen", "subprocess.check_output",
@@ -2638,12 +2753,11 @@ def _starts_a_hook(call, bound=None):
     if isinstance(argv, ast.Name) and (bound or {}).get(argv.id) is not None:
         argv = bound[argv.id]
     if not isinstance(argv, (ast.List, ast.Tuple)):
-        return bool(_NAMES_A_HOOK_RX.search(ast.unparse(argv)))
+        return bool(_NAMES_A_HOOK_RX.search(_with_one_hop(argv, bound)))
     for element in argv.elts:
-        word = ast.unparse(element)
-        if word in _BEFORE_THE_PROGRAM:
+        if ast.unparse(element) in _BEFORE_THE_PROGRAM:
             continue
-        return bool(_NAMES_A_HOOK_RX.search(word))
+        return bool(_NAMES_A_HOOK_RX.search(_with_one_hop(element, bound)))
     return False
 
 
@@ -2697,6 +2811,36 @@ def _past_the_docstring(node):
     return body
 
 
+def _binds_a_name(statement):
+    """(name, value) where this statement BINDS one name to one expression -- else (None, None).
+
+    THE QUESTION IS BINDING BY ASSIGNMENT, not the statement keyword, so the three ASSIGNMENT
+    spellings are one answer here: `x = …`, the annotated `x: str = …` and the walrus `(x := …)`.
+    Reading only the first is how a reader ends up covering the spelling somebody happened to use
+    (`BUG-0299` is the same failure one level up). A target that is not a bare name -- a tuple, an
+    attribute, a subscript -- binds no single expression to a name and is left alone, which reports
+    nothing rather than reporting wrongly.
+
+    WHAT THIS DOES NOT REACH, measured rather than left to be found, and carried with its numbers
+    in `docs/holes/H215.md`: a name that ARRIVES instead of being assigned (`with … as program`,
+    `for program in …`) is bound to a value DERIVED from an expression rather than to the
+    expression, and is silent here -- the dangerous direction, with no site in this tree today;
+    and where one name is bound twice, the last binding is the one handed on, whichever the call
+    between them used. Widening for the first is not free: over the running tree it produces one
+    measured false alarm on the ARGV branch, so the hole entry carries the reach as well as the
+    gap.
+    """
+    if isinstance(statement, ast.Assign) and len(statement.targets) == 1 \
+            and isinstance(statement.targets[0], ast.Name):
+        return statement.targets[0].id, statement.value
+    if isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name) \
+            and statement.value is not None:
+        return statement.target.id, statement.value
+    if isinstance(statement, ast.NamedExpr) and isinstance(statement.target, ast.Name):
+        return statement.target.id, statement.value
+    return None, None
+
+
 def _hook_starts_that_name_no_project(source, where="<module>"):
     """[(where, line, owner, argv)] for every hook start in `source` that no reach above covers."""
     tree = ast.parse(source, where)
@@ -2708,9 +2852,9 @@ def _hook_starts_that_name_no_project(source, where="<module>"):
         local = {}
         for inner in ast.walk(node):
             owner.setdefault(inner, node.name)
-            if isinstance(inner, ast.Assign) and len(inner.targets) == 1 \
-                    and isinstance(inner.targets[0], ast.Name):
-                local[inner.targets[0].id] = inner.value
+            name, value = _binds_a_name(inner)
+            if name is not None:
+                local[name] = value
         taken = {one.arg for one in node.args.args + node.args.kwonlyargs}
         for inner in ast.walk(node):
             bound.setdefault(inner, local)
@@ -2814,6 +2958,93 @@ def test_the_project_reach_reader_tells_a_forgetful_fixture_from_an_inherited_on
         "`tools/test_hooks.py::run_hook_process` is the call site every new test is copied from; "
         "the reader no longer sees that it names the project, so the sweep above is measuring the "
         "wrong thing")
+
+
+def test_the_hook_start_reader_follows_a_program_word_held_by_a_name():
+    """`BUG-0299` / `H215`: the sweep above followed an argv a name held and NOT the program word a
+    name held, so `program = os.path.join(tmp, "gate_write_scope.py")` and then
+    `subprocess.run([sys.executable, "-B", str(program)])` answered "starts no hook" -- 2 of 3
+    planted forms named, and a start nobody sees is a start nobody holds to a project.
+
+    FIVE FORMS AND A COUNTER-FORM, written here so the property is the subject: the argv held by a
+    name (which already worked), the program word held by one (the defect), the program word
+    written into the call (which already worked), the same word bound by the two other ASSIGNMENT
+    spellings -- an annotated assignment and a walrus, which `_binds_a_name` answers for together,
+    and which stop there: a name that ARRIVES (`with … as`, `for`) is outside it and stands in
+    `docs/holes/H215.md` -- and a start whose program is NOT a hook while a hooks directory stands
+    among its ARGUMENTS: the false alarm `_starts_a_hook` names in its own docstring, and the one
+    the hop could have brought back.
+
+    AND THE WIDENING REACHES THE RUNNING TREE, which is what keeps this from being three strings
+    talking to each other: the suites of this repository really carry starts that only the hop can
+    see. They are all clean today (the sweep above is the arbiter for that), so this counts them
+    instead of asserting they are absent.
+    """
+    forgetful = _hook_starts_that_name_no_project(textwrap.dedent('''
+        import os
+        import subprocess
+        import sys
+
+        def program_word_held_by_a_name(tmp):
+            program = os.path.join(tmp, "gate_write_scope.py")
+            return subprocess.run([sys.executable, "-B", str(program)], env=dict(os.environ))
+
+        def argv_held_by_a_name(tmp):
+            argv = [sys.executable, os.path.join(tmp, "hooks", "gate_git.py")]
+            return subprocess.run(argv, env=dict(os.environ))
+
+        def program_word_written_out(tmp):
+            return subprocess.run([sys.executable, os.path.join(tmp, "guard_memory_budget.py")],
+                                  env=dict(os.environ))
+
+        def program_word_bound_with_an_annotation(tmp):
+            program: str = os.path.join(tmp, "gate_git.py")
+            return subprocess.run([sys.executable, str(program)], env=dict(os.environ))
+
+        def program_word_bound_in_a_condition(tmp):
+            if (program := os.path.join(tmp, "gate_needs.py")):
+                return subprocess.run([sys.executable, str(program)], env=dict(os.environ))
+            return None
+
+        def a_hooks_path_as_an_argument(hooks, target):
+            link = "cmd"
+            return subprocess.run([link, "/c", "mklink", "/J", str(hooks / "yaml"), target],
+                                  env=dict(os.environ))
+        '''), "<probe>")
+    assert [one[2] for one in forgetful] == [
+        "program_word_held_by_a_name", "argv_held_by_a_name", "program_word_written_out",
+        "program_word_bound_with_an_annotation", "program_word_bound_in_a_condition"], (
+        "the reader must see all five starts and must NOT see the link command, whose program is "
+        "`cmd` and whose hooks path is an argument: %r" % (forgetful,))
+    only_with_the_hop = 0
+    for directory in _SUITE_DIRS:
+        for path in sorted(glob.glob(os.path.join(ROOT, *directory.split("/")) + "/test_*.py")):
+            with io.open(path, encoding="utf-8") as handle:
+                tree = ast.parse(handle.read(), path)
+            local = {}
+            for node in ast.walk(tree):
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                here = {}
+                for inner in ast.walk(node):
+                    name, value = _binds_a_name(inner)
+                    if name is not None:
+                        here[name] = value
+                for inner in ast.walk(node):
+                    local.setdefault(inner, here)
+            for node in ast.walk(tree):
+                # A LIST WRITTEN INTO THE CALL isolates THIS hop from the argv one that was already
+                # there: the argv is no name, so whatever the reader gains here it gains on the
+                # program word.
+                if isinstance(node, ast.Call) and node.args \
+                        and isinstance(node.args[0], (ast.List, ast.Tuple)) \
+                        and _starts_a_hook(node, local.get(node)) \
+                        and not _starts_a_hook(node, None):
+                    only_with_the_hop += 1
+    assert only_with_the_hop >= 1, (
+        "no start in this repository's suites needs the program-word hop to be seen at all -- "
+        "then the widening is untested by the tree and this test is four strings talking to each "
+        "other")
 
 
 def _test_modules_outside_the_default_surface():

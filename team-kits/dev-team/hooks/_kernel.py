@@ -85,7 +85,6 @@ import contextlib  # noqa: E402 -- after the guard on purpose (see above)
 import importlib  # noqa: E402
 import json  # noqa: E402
 import re  # noqa: E402
-import threading  # noqa: E402
 import time  # noqa: E402
 import traceback  # noqa: E402
 
@@ -946,162 +945,25 @@ except BaseException as exc:  # noqa: BLE001 — a hook that cannot load must no
 
 # -- the window the registration gives a gate, and the budget it may spend inside it -------------
 #
-# WHY THIS EXISTS AT ALL. The measurement that occasioned it is
-# `tools/provider_observations.json` -> `hook_deadlines`, which recorded that the kits had no
-# in-process deadline of any kind. This is the construction that answers it on the kit side, so
-# that record no longer describes the present -- it is a POINTER to the occasion, not a quotation
-# of the current state. A gate still deciding when its window closes is KILLED,
-# and a killed hook is read as "hook error, carry on" -- an ALLOW. Measured, same record: an entry
-# with `timeout: 5` whose hook needed 20 s was killed and the refused command RAN, with nothing on
-# the user's channel to say a gate had been killed.
-#
-# WHAT THIS DOES NOT CHANGE is which entries name a window. That stays the rule
-# `tools/test_hooks.py::test_a_registration_names_a_window_exactly_when_its_gate_can_outlive_the
-# _default` states off the shipped settings and each gate's own code: a window is right exactly
-# where the gate's own bound is smaller than it. What changes is the outcome when a window is about
-# to close on a gate that is still deciding -- a refusal now, instead of an allow nobody sees.
-PROVIDER_DIR = ".claude"
-SETTINGS_FILE = "settings.json"
-TIMEOUT_KEY = "timeout"
-
-# When a registration names NO window, the provider still has one. MEASURED and BRACKETED, not
-# pinned: a hook slept 310 s and 560 s and woke with its refusal intact, and at 900 s it never woke
-# while the call it was refusing went through; the session length dates the kill at about 600 s
-# (2026-08-23, claude.exe 2.1.239). The LONGEST SURVIVING run is what everything judges against,
-# because that is the earliest the kill may already have come. The workshop keeps the record; a kit
-# cannot read it, so this is where the number lives on this side, and
-# `tools/test_hooks.py::test_the_kit_deadline_reader_carries_the_measured_default_window` compares
-# the two so they cannot drift apart.
-DEFAULT_WINDOW_SECONDS = 560.0
-
-# What is NOT spent, so the refusal wins the race against the kill. A FLOOR and not a share of the
-# window, and the difference is measured rather than taste: `gate_pipeline` is registered at 1800
-# and bounds its own child at 1500, so a one-fifth share would end this process a minute BEFORE the
-# gate's own bound could speak. The floor stands above the worst process start measured on this
-# apparatus (0.81 s) and above the span nothing here can measure -- from this process's exit to the
-# provider noticing it.
-DEADLINE_RESERVE_SECONDS = 1.5
-
-_STARTED_AT = time.monotonic()
-
-# ONE rule, TWO positions -- and the sentences differ by the clause that names the remedy: a budget
-# gone before the gate could read anything is a WINDOW to raise, one spent while it was reading is a
-# CALL to split. Without that clause the two positions were indistinguishable, and the test that
-# claims to measure the watchdog would have stayed green on the synchronous check.
-_OUT_OF_TIME = (
-    "this call could not be inspected inside the time its registration allows: %s, this gate's "
-    "whole budget is spent and the call is still not decided.\n"
-    "A gate that is still deciding when the provider gives up is killed, and a killed hook is read "
-    "as an allow -- so it refuses instead."
-)
-_BEFORE_READING = "before it had read anything at all"
-_WHILE_READING = "while it was still reading"
-
-
-def registered_window(repo_root, gate):
-    """The seconds this project's registration gives `gate`, or None when it states none.
-
-    THE SMALLEST NAMED WINDOW ANSWERS: one gate may be registered in several groups and any of them
-    can be the one that is asked, so the shortest is the window it has to survive. Read off the file
-    the provider reads rather than restated here -- a number copied into this module is the one that
-    goes stale the day a registration is lowered.
-
-    AN ENTRY THAT NAMES NO WINDOW IS NOT AN UNKNOWN, and this is the correction of the first cut:
-    it stated the rule above and then discarded EVERY window as soon as one applying entry was
-    silent, which reads a 1 s registration as the 560 s default. Measured on a pilot with two
-    entries for one gate (1.0 s and none): no deadline refusal, budget 558.5 s -- while the same
-    1 s entry alone is refused as one this gate cannot answer inside. A silent entry carries the
-    provider's own default window (`DEFAULT_WINDOW_SECONDS`), which is longer than any window a
-    registration would state, so it can never be the smallest and is simply not counted.
-
-    A registration this reader cannot read AT ALL yields None, which is answered by the default
-    window below: an unreadable settings file and a file that names no window for this gate are the
-    same situation for the purpose of not being killed silently.
-    """
-    path = os.path.join(repo_root or ".", PROVIDER_DIR, SETTINGS_FILE)
-    try:
-        with open(path, encoding="utf-8") as handle:
-            settings = json.load(handle)
-    except Exception:  # noqa: BLE001
-        return None
-    stated = []
-    for groups in (settings.get("hooks") or {}).values():
-        if not isinstance(groups, list):
-            continue
-        for group in groups:
-            for hook in (group or {}).get("hooks") or []:
-                command = str((hook or {}).get("command") or "")
-                if gate not in command:
-                    continue
-                stated.append((hook or {}).get(TIMEOUT_KEY))
-    named = [float(value) for value in stated if value is not None]
-    return min(named) if named else None
+# WHAT IS LEFT OF THE CONSTRUCTION HERE, and where the rest went (BUG-0153/H61): `_compat` holds
+# it now. This module is imported by 10 of 27 shipped dev hooks, 14 of 27 office and 9 of 24
+# research (measured 2026-09-12), while `_compat` is imported by all of them -- so a bound that
+# lives here is a bound the other 45 hooks do not have, which is what H61 was. What stays is the
+# DELIVERY: `block` writes an audit record and speaks the refusal contract of the event this gate
+# was registered on, and `_compat.stop` can do neither, because at the moment the deadline is armed
+# no payload has been read and the event is not known. The sentences and the numbers are
+# `_compat`'s, so one rule does not grow two vocabularies.
 
 
 def start_the_deadline(hook, event="PreToolUse"):
-    """Refuse from a thread of its own once this gate's window is about to close.
+    """Arm the deadline for this gate, with this event's refusal in front of `_compat.stop`.
 
-    EVERY CALL HAS A WINDOW, whether or not the registration names one: an entry that names none is
-    killed by the provider's own default, measured and bracketed at `DEFAULT_WINDOW_SECONDS`. So
-    the budget is derived either way, and being killed is never the outcome this gate plans for.
-
-    TWO ANSWERS, and they differ only in WHEN the budget is found to be gone. A window this gate
-    cannot answer inside at all -- at or under the reserve -- is refused outright rather than raced,
-    with a sentence naming the file to change. A budget that runs out while the gate is reading ends
-    the process with the same refusal code from the watchdog below, with a sentence naming the other
-    remedy. What is NOT built here, said plainly because AC-2 of PR-0004 asks for it in those words:
-    an entry that names NO window is not refused. It is the RIGHT registration for a gate that
-    bounds no child of its own (`tools/test_hooks.py::test_a_registration_names_a_window_exactly
-    _when_its_gate_can_outlive_the_default`), and refusing it would refuse every shipped kit hook.
-
-    THE BOUND SITS OUTSIDE THE DECISION, because the decision is where the cost is: a check written
-    into one surface bounds that surface and nothing else. What it cannot interrupt is a single call
-    into C that keeps the interpreter to itself; that half is not closed here.
+    Idempotent through `_compat`: one process arms once, whether it got here through `run_gate` or
+    through the payload funnel every hook passes.
     """
-    window = registered_window(find_repo_root(os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()),
-                               hook + ".py")
-    if window is not None and window <= DEADLINE_RESERVE_SECONDS:
-        block(hook,
-              "this call could not be judged: the registration gives this gate %gs, which is not "
-              "enough time for it to answer at all (%gs of every window is reserve, so that the "
-              "refusal leaves this process before the kill arrives).\n"
-              "A gate that is still deciding when its window closes is killed, and a killed hook is "
-              "read as an allow -- so a window it cannot answer inside is refused rather than raced."
-              % (window, DEADLINE_RESERVE_SECONDS),
-              event=event,
-              remedy="raise or remove the `timeout` on this entry in %s/%s. A window is right only "
-                     "where the gate's own bound is smaller than it; where the gate has no bound of "
-                     "its own, no window is the right answer."
-                     % (PROVIDER_DIR, SETTINGS_FILE))
-    budget = (window if window is not None else DEFAULT_WINDOW_SECONDS) - DEADLINE_RESERVE_SECONDS
-    deadline = _STARTED_AT + max(budget, 0.0)
-    if deadline - time.monotonic() <= 0:
-        # ALREADY SPENT BEFORE THE DECISION BEGINS -- the imports this gate needs cost more than the
-        # window leaves it. Answered HERE and not by the watchdog below, because the two would
-        # otherwise race for a verdict that is already decided: the thread has to be scheduled, and
-        # a gate that finishes its decision first would return an ALLOW under a window it could
-        # never have honoured. Same sentence, so a reader cannot tell the two positions apart --
-        # they are one rule.
-        block(hook, _OUT_OF_TIME % _BEFORE_READING, event=event,
-              remedy="raise or remove the `timeout` on this entry in %s/%s -- the window is "
-                     "shorter than this gate's own start, so no call of it can ever be judged."
-                     % (PROVIDER_DIR, SETTINGS_FILE))
-
-    def watch():
-        while True:
-            left = deadline - time.monotonic()
-            if left <= 0:
-                spent = _OUT_OF_TIME % _WHILE_READING
-                with contextlib.suppress(BaseException):
-                    _audit.record(hook, spent)
-                with contextlib.suppress(BaseException):
-                    sys.stderr.write("[team-kit %s] %s\nRemedy: split the call.\n"
-                                     % (hook, spent))
-                    sys.stderr.flush()
-                os._exit(2)
-            time.sleep(min(left, 0.25))
-
-    threading.Thread(target=watch, daemon=True).start()
+    _compat.start_the_deadline(
+        hook + ".py",
+        refuse=lambda message, remedy: block(hook, message, event=event, remedy=remedy))
 
 
 def run_gate(hook, main, event="PreToolUse"):

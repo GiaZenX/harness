@@ -174,8 +174,12 @@ from .backlog_types import (
     REQUIRED_FIELDS,
     ROOT_TYPE_BY_KIT,
     UnknownV1Status,
+    GOAL_CLASSES,
+    GOAL_CLASS_FIELD,
+    GOAL_CLASS_TYPES,
     format_id,
     map_v1_status,
+    parse_id,
     suggested_v1_field,
     v1_types,
     widest_status,
@@ -2156,7 +2160,7 @@ def _settle_bindings(state: ProjectState, records: list, pending: list) -> None:
                     entry["v2_type"], body, entry["legacy_type"], entry["legacy_status"],
                     also_existing)
             else:
-                state.capture_preflight(entry["v2_type"], body, also_existing)
+                state.capture_preflight(entry["v2_type"], body, also_existing, imported=True)
         except StateError as exc:
             refused = str(exc)
         if refused:
@@ -2954,7 +2958,7 @@ def execute(state: ProjectState, plan: dict, digest: str) -> dict:
                     entry["v2_type"], body, entry["legacy_type"], entry["legacy_status"],
                     entry["archive_year"])
             else:
-                item = state.capture(entry["v2_type"], body)
+                item = state.capture(entry["v2_type"], body, imported=True)
             resolved[entry["legacy_id"]] = item["id"]
             created.append((entry, item["id"]))
         # INSIDE THE SAME BLOCK AS THE WRITES, because it can refuse too (a document it cannot read
@@ -3102,3 +3106,102 @@ def _key_of(found, ordinal):
         if position == ordinal:
             return key
     return None
+
+
+# -- the goal-size vocabulary migration (DEC-0103) --------------------------------------------
+
+def goal_class_plan(state: ProjectState, mapping: dict) -> list:
+    """One row per STORED root goal: what its class says now and what this run would write.
+
+    WHY A MIGRATION DOOR AT ALL. DEC-0103 closed the vocabulary at the two doors that WRITE a goal
+    (`state._assert_closed_vocabularies`), and a door only ever sees the next write: a project that
+    already holds `class: feature` keeps it, and every reader of that value goes on deciding from a
+    word the vocabulary does not know -- fail-closed, but silently more expensive forever (an
+    architect step asked of a goal that owes none). This is the one command that moves such a value,
+    and it is in the kernel because the store has exactly one writer.
+
+    WHAT IT REFUSES TO GUESS. The mapping is the caller's (`--map feature=normal`), never a table
+    in here: which size a project's own word meant is a fact about that project. A stray this run
+    has no mapping for is REPORTED and left, and the command exits non-zero on it, so "nothing to
+    do" and "I could not decide" are two different answers.
+
+    ARCHIVED GOALS ARE READ AND NOT WRITTEN. A record under `archive/` is a protocol of what
+    happened (DEC-0004), and the active door is the one every reader that DECIDES from a class goes
+    through: an order is leased against `state.read_item(root_id)` and the delivery-sequence check
+    reads the active items. Such a row carries `archived: True`, is counted in the plan and left
+    alone, with the reason in the rendering.
+    `tools/test_migrate.py::test_the_goal_class_plan_reads_every_stored_goal_and_writes_only_the_active_strays`
+    """
+    # WHICH GOALS ARE ACTIVE, asked of the store's own reader rather than by composing a path:
+    # `_read_bytes` is this module's ONE opener of a state file and everything that can NAME one
+    # carries a licence beside it (`tools/test_migrate.py::_NAMES_A_STATE_FILE`). A membership test
+    # over the active stems answers the same question and names nothing.
+    active = set()
+    for item_type in sorted(GOAL_CLASS_TYPES):
+        for stem, _path in state.iter_active_items(item_type):
+            active.add(str(stem))
+    rows = []
+    for item in state._iter_every_stored_item():
+        item_id = str(item.get("id") or "")
+        try:
+            item_type, _ = parse_id(item_id)
+        except ValueError:
+            continue
+        if item_type not in GOAL_CLASS_TYPES:
+            continue
+        current = item.get(GOAL_CLASS_FIELD)
+        archived = item_id not in active
+        if current in GOAL_CLASSES:
+            target, why = None, "already a word of the vocabulary"
+        elif str(current) in mapping:
+            target = mapping[str(current)]
+            why = "archived -- left as the protocol of what happened (DEC-0004)" if archived else (
+                "mapped by this run")
+            if archived:
+                target = None
+        else:
+            target, why = None, "no --map entry names this value"
+        rows.append({"id": item_id, "type": item_type, "current": current, "target": target,
+                     "archived": archived, "why": why})
+    return sorted(rows, key=lambda row: row["id"])
+
+
+def unmapped_goal_classes(plan) -> list:
+    """The rows this run could not decide -- what makes the command exit non-zero."""
+    return [row for row in plan
+            if row["current"] not in GOAL_CLASSES and row["target"] is None
+            and not row["archived"]]
+
+
+def render_goal_class_plan(plan) -> str:
+    """The before/after list, one line per stored goal, plus what the run leaves behind."""
+    lines = ["%d stored goal(s); vocabulary: %s"
+             % (len(plan), ", ".join(sorted(GOAL_CLASSES)))]
+    for row in plan:
+        lines.append("%s %s: %r -> %s%s -- %s"
+                     % (row["type"], row["id"], row["current"],
+                        row["target"] if row["target"] is not None else "(unchanged)",
+                        " [archived]" if row["archived"] else "", row["why"]))
+    unmapped = unmapped_goal_classes(plan)
+    if unmapped:
+        lines.append("UNDECIDED: %s -- pass `--map <value>=<%s>` for each, or leave them and read "
+                     "the refusal at the next `update`."
+                     % (", ".join("%s (%r)" % (row["id"], row["current"]) for row in unmapped),
+                        "|".join(sorted(GOAL_CLASSES))))
+    return "\n".join(lines)
+
+
+def execute_goal_classes(state: ProjectState, plan) -> list:
+    """Write the rows the plan decided, through the SAME door a role would use.
+
+    `state.update_item` and not a file write: it is the edit path, so the new value passes the very
+    vocabulary check this migration exists to satisfy, and a rewrite that would still be refused
+    stops the run instead of landing.
+    """
+    written = []
+    for row in plan:
+        if row["target"] is None:
+            continue
+        state.update_item(row["id"], {GOAL_CLASS_FIELD: row["target"]})
+        written.append((row["id"], row["current"], row["target"]))
+    return written

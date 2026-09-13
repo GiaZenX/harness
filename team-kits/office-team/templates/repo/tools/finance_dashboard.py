@@ -1060,12 +1060,19 @@ def view_euer(data):
             # the report where § 19 forbids the deduction.
             reported = split_totals(paid, True)
             by_category = defaultdict(lambda: [0, 0])
-            reverse_charge = 0
+            # DOCUMENTS, not rows, and through `euer_report`'s own reader (DEC-0108): a mixed-VAT
+            # document books one row per rate under a shared invoice number, so the page and the
+            # report would differ by one per such document if either counted rows. Which is
+            # exactly what
+            # `tools/test_finance_dashboard.py::test_the_dashboard_and_euer_report_agree_on_every_quarter`
+            # measures.
+            reverse_charge = set()
             for r in paid:
                 by_category[(r["category_label"], line_text(r["euer_line"], r["euer_line_label"]))][
                     0 if r["direction"] == "income" else 1] += r["cents"]
                 if r["vat_treatment"] == "reverse_charge":
-                    reverse_charge += 1
+                    reverse_charge.add(data["euer_report"].document_key(r))
+            reverse_charge = len(reverse_charge)
             if period == "year":
                 period_end, label = "%s-12-31" % year, "Jahr %s" % year
             else:

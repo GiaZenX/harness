@@ -1,0 +1,16 @@
+id: EVD-0426
+kind: test
+related:
+- BUG-0298
+result: pass
+summary: 'TSK-0147 stream B: the closing node of this defect, run as a node id (the
+  round''s measurements and the red-first runs are in staging/TSK-0147/protocol.md).'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_a_line_that_writes_a_script_and_runs_it_is_refused_in_every_kit
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:10:59'
+closed_at: '2026-09-13T01:27:18'

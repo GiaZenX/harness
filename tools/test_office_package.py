@@ -614,6 +614,103 @@ def cii(invoice_no="RE-2026-0004", issue="20260901", type_code="380", seller="Mu
                net, net, tax, gross, gross))
 
 
+def cii_two_rates(basis="200.00", tax="14.00", rate="7", **kw):
+    """A REAL mixed-VAT invoice: 100.00 at 19 % beside 200.00 at 7 %, one document.
+
+    Ordinary in trade (food beside hardware) and the shape H166/BUG-0248 was filed for. The header
+    totals are the document's own sums -- net 300.00, tax 33.00, gross 333.00 -- so BR-CO-14 and
+    the reconciliation are both silent and every refusal a test measures on this document is the
+    one it is about. `basis` and `tax` are the SECOND group's figures, so a test can make exactly
+    that half unreadable.
+    """
+    document = cii(net="300.00", tax="33.00", gross="333.00", rate="19", **kw)
+    document = document.replace("<ram:CalculatedAmount>33.00</ram:CalculatedAmount>",
+                                "<ram:CalculatedAmount>19.00</ram:CalculatedAmount>", 1)
+    document = document.replace("<ram:BasisAmount>300.00</ram:BasisAmount>",
+                                "<ram:BasisAmount>100.00</ram:BasisAmount>", 1)
+    return document.replace(
+        "</ram:ApplicableTradeTax>",
+        "</ram:ApplicableTradeTax><ram:ApplicableTradeTax>"
+        "<ram:CalculatedAmount>%s</ram:CalculatedAmount><ram:TypeCode>VAT</ram:TypeCode>"
+        "<ram:BasisAmount>%s</ram:BasisAmount><ram:CategoryCode>S</ram:CategoryCode>"
+        "<ram:RateApplicablePercent>%s</ram:RateApplicablePercent>"
+        "</ram:ApplicableTradeTax>" % (tax, basis, rate), 1)
+
+
+def test_a_mixed_vat_document_is_one_beleg_everywhere_the_report_counts_them(tmp_path):
+    """`BUG-0248`/H166, verifier round 1 (F5): the EUeR report counted the rows of ONE document as
+    two Belege.
+
+    `document_key`'s own docstring claims "everything in this report that says Beleg counts through
+    here", and the open-items table plus the stdout line did not -- measured by the verifier with a
+    single unpaid mixed-rate document: two table lines under one invoice number and "2 open items".
+    A document that books one row per rate (DEC-0108) is still ONE thing the owner has to chase, and
+    its gross is the sum of its rows.
+
+    MEASURED HERE against the shipped scripts as processes: the mixed document is booked OPEN, the
+    report is generated, and the open-items table carries ONE line for it whose Brutto is the sum
+    (119.00 + 214.00 = 333.00), while the stdout line says one open item.
+
+    RED WITHOUT THE FIX, in a .git-less copy: take `group_by_document` out of the open-items table
+    (iterate `open_items` directly) and the table carries two lines and the stdout says two.
+    """
+    repo = pilot_project(tmp_path)
+    declare_ranges(repo)
+    verdict = json.loads(intake(repo, drop(repo, "mixed.xml", cii_two_rates()), "--json").stdout)
+    for row in verdict["booking"]["rows"]:
+        assert script(repo, "ledger_add.py", *row).returncode == 0
+    made = script(repo, "euer_report.py", "--year", "2026", "--quarter", "3")
+    assert made.returncode == 0, made.stdout + made.stderr
+    assert "1 open items" in made.stdout, made.stdout
+    report = read(repo / "reports" / "euer_2026_Q3.md")
+    table = [line for line in report.splitlines() if "RE-2026-0004" in line]
+    assert len(table) == 1, table
+    assert "333.00 EUR" in table[0], table[0]
+
+
+def test_a_mixed_vat_document_books_one_row_per_rate_under_one_invoice_number(tmp_path):
+    """DEC-0108 / BUG-0248 (H166): the shape the user chose for a document with two VAT rates.
+
+    MEASURED BEFORE, 2026-09-05 on the shipped tree: `invoice_intake.vat_of` refused such a
+    document with the rates named, because a ledger row carries ONE rate and `net x (1 + rate) =
+    gross` is the identity every reader of the ledger stands on. The user's answer was neither "one
+    row with two rates" (which breaks that identity) nor "book it by hand": one row PER RATE under
+    a SHARED invoice number.
+
+    WHAT IS MEASURED HERE, all of it against the shipped scripts as processes: the verdict is
+    ACCEPTED; it carries one booking row per rate, in document order, with the base and the tax the
+    document itself states (never derived from a total); every row carries the same invoice number;
+    the single-line key the interface contract names is ABSENT, because a document that books as
+    several rows has no single line and handing the first one over would under-book it silently;
+    and `ledger_add` takes both rows without reading the second as a double booking of the first.
+
+    RED WITHOUT THE FIX, measured in a .git-less copy outside the repo: restore the refusal in
+    `vat_of` and the intake returns rc 2 with "carries 2 VAT rates" instead of a verdict.
+    """
+    repo = pilot_project(tmp_path)
+    declare_ranges(repo)
+    result = intake(repo, drop(repo, "mixed.xml", cii_two_rates()), "--json")
+    assert result.returncode == 0, result.stdout + result.stderr
+    verdict = json.loads(result.stdout)
+    rows = verdict["booking"]["rows"]
+    assert len(rows) == 2, rows
+    assert "ledger_add" not in verdict["booking"], verdict["booking"]
+
+    def value(row, flag):
+        return [word.split("=", 1)[1] for word in row if word.startswith(flag + "=")][0]
+
+    assert [value(row, "--vat-rate") for row in rows] == ["19", "7"], rows
+    assert [value(row, "--net") for row in rows] == ["100.00", "200.00"], rows
+    assert [value(row, "--gross") for row in rows] == ["119.00", "214.00"], rows
+    assert len({value(row, "--invoice-no") for row in rows}) == 1, rows
+
+    for row in rows:
+        booked = script(repo, "ledger_add.py", *row)
+        assert booked.returncode == 0, booked.stdout + booked.stderr
+    checked = script(repo, "ledger_add.py", "--validate", "ledger/2026.csv")
+    assert checked.returncode == 0, checked.stdout + checked.stderr
+
+
 def ubl(invoice_no="RE-2026-0004"):
     return ('<?xml version="1.0" encoding="UTF-8"?><Invoice %s>'
             '<cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:'
@@ -958,8 +1055,8 @@ def no_rule_for_the_class(repo):
      "matches 2 declared ranges"),
     ("a PDF without embedded XML", None, None, "empty.pdf", 1,
      "carries no embedded e-invoice XML"),
-    ("two VAT rates on one document", None, "two-rates", None, 2,
-     "carries 2 VAT rates"),
+    ("a mixed document whose per-rate breakdown cannot be read", None, "two-rates", None, 2,
+     "is not a number this reader understands"),
     ("a number the counting part cannot order", None, "underscore", None, 2,
      "has to be a decimal number"),
 ], ids=lambda value: value if isinstance(value, str) and " " in value else None)
@@ -987,15 +1084,11 @@ def test_a_project_side_gap_is_not_judgeable_and_a_document_fault_is_refused(
             writer.write(handle)
         source = "inbox/empty.pdf"
     elif xml == "two-rates":
-        document = cii().replace("</ram:ApplicableTradeTax>",
-                                 "</ram:ApplicableTradeTax><ram:ApplicableTradeTax>"
-                                 "<ram:CalculatedAmount>0.00</ram:CalculatedAmount>"
-                                 "<ram:TypeCode>VAT</ram:TypeCode>"
-                                 "<ram:BasisAmount>0.00</ram:BasisAmount>"
-                                 "<ram:CategoryCode>S</ram:CategoryCode>"
-                                 "<ram:RateApplicablePercent>7</ram:RateApplicablePercent>"
-                                 "</ram:ApplicableTradeTax>", 1)
-        source = drop(repo, "drop.xml", document)
+        # SINCE DEC-0108 a mixed document is booked, one row per rate -- so the case that is still
+        # refused is the one whose per-rate breakdown this reader cannot pair up with figures. The
+        # tax amounts still add up to the header total, so BR-CO-14 is silent and the refusal can
+        # only be the one under test.
+        source = drop(repo, "drop.xml", cii_two_rates(basis="zweihundert"))
     elif xml == "underscore":
         _plant(repo / "project_memory" / "master_data.yaml", '(?P<number>\\\\d{4})',
                '(?P<number>[0-9_]{3,5})')
@@ -1407,8 +1500,17 @@ def test_a_ledger_date_the_reminder_cannot_read_is_refused(tmp_path):
      ["offer", "--to", "Kunde", "--line", "A;1;100.00"], "carries no `closing`"),
     ("no offer validity", ("valid_days: 14", "valid_days:"),
      ["offer", "--to", "Kunde", "--line", "A;1;100.00"], "carries no `valid_days`"),
+    # `--today` IS PART OF THE CASE, not decoration: WHICH ladder step the script picks is
+    # decided by days overdue, so a case about the CONTENT of one step has to say which day it
+    # is asking about. Without it this row read the wall clock, and at the 2026-09-13 rollover
+    # the invoice reached step 3 -- whose title is intact -- so the draft went out and the row
+    # went red on a date change rather than on a defect (verifier of TSK-0147; reproduced here:
+    # `mahnung-3.md written`, rc 0). The three sibling reminder cases in the block above refuse
+    # while READING the ladder, before any step is picked, and they stayed green on that same
+    # date -- which is why only this one carries the day.
     ("no title on the ladder step", ('  title: "1. Mahnung"\n', "  title:\n"),
-     ["reminder", "--entry", "L2026-0002"], "carries no `title`"),
+     ["reminder", "--entry", "L2026-0002", "--today", "2026-09-05"],
+     "carries no `title`"),
 ], ids=lambda value: value if isinstance(value, str) and " " in value else None)
 def test_a_term_the_business_never_recorded_is_refused_with_its_route(tmp_path, planted, plant,
                                                                       argv, names):

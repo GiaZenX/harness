@@ -1,0 +1,19 @@
+id: EVD-0444
+kind: test
+related:
+- BUG-0298
+result: pass
+summary: 'The write-and-run rule after two narrowings this round: the inner words
+  of a command substitution are no longer operands of the stage around it, and a stage''s
+  COMMAND WORD joins the run set only where it is spelled as a path. All eight refusal
+  shapes of the rule stay rc 2; the four substitution lines and the ordinary evidence
+  command line are rc 0. Both narrowings are measured red-first from both ends.'
+artifact_refs:
+- staging/TSK-0149/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_a_line_that_writes_a_script_and_runs_it_is_refused_in_every_kit
+  tools/test_hooks.py::test_a_command_substitution_is_not_read_as_a_write_by_the_stage_around_it
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T06:42:05'

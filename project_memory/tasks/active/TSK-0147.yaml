@@ -1,0 +1,136 @@
+id: TSK-0147
+product_requirement: PR-0012
+derives_from: PR-0012
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-4
+allowed_scope:
+- team-kits/dev-team/**
+- team-kits/office-team/**
+- team-kits/research-team/**
+- team-kits/scaffold_team.sh
+- team-kits/scaffold_team.ps1
+- team-kits/init_project_memory.sh
+- team-kits/init_project_memory.ps1
+- team-kits/registry.yaml
+- team-kits/repo_kit_owned.txt
+- team-kits/preset_config.py
+- team-kits/write_kit_state.py
+- team-kits/gen_provider_artifacts.py
+- team-kits/model_tiers.yaml
+- install.sh
+- install.ps1
+- tools/test_hooks.py
+- tools/test_hooks_v2.py
+- tools/test_office_duties.py
+- tools/test_office_package.py
+- tools/test_role_contracts.py
+- tools/test_reference_skills.py
+- tools/test_shared_skill_contract.py
+- tools/test_e2e.py
+- tools/test_design_conformance.py
+- tools/test_finance_dashboard.py
+- tools/test_context_budget.py
+- tools/test_user_defaults.py
+- tools/test_kit_neutrality.py
+- tools/test_model_pins.py
+- tools/test_handover_marker.py
+- tools/test_routine_feed.py
+- tools/test_presets.py
+- tools/test_shortening_net.py
+- tools/test_parity_sources.py
+- tools/parity_sources.py
+- tools/constitution_section_pins.json
+- tools/pin_constitution_sections.py
+- tools/provider_observations.json
+- tools/fixtures/**
+forbidden_scope:
+- project_memory/**
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- .claude/agents/**
+- team-kits/*/VERSION
+- team-kits/kernel/known_holes.json
+- tools/conftest.py
+- docs/POST_V2_WISHLIST.md
+- radar/20*.md
+- radar/decided.md
+- team-kits/kernel/**
+- docs/**
+- .claude/**
+- tools/test_kernel.py
+- tools/test_state.py
+- tools/test_report.py
+- tools/test_approvals_dispatch.py
+- tools/test_review_procedure.py
+- tools/test_repo_hygiene.py
+required_inputs:
+- 'THE USER''S DECISIONS of 2026-09-12 as recorded (DEC-0103, DEC-0104, DEC-0105,
+  DEC-0106, DEC-0107, DEC-0108, DEC-0109, DEC-0110) and his word: every hole whose
+  fix lies in this repository is FIXED; exceptions only with a German sentence. DEC-0100
+  (a bug closes only on a test that NAMES it), DEC-0102 (2) (name the MECHANISM, measure
+  every spelling you can enumerate before the EVD; a closure the verifier widens twice
+  is re-filed, not reworked a third time), DEC-0102 (4) (a kernel command whose REQUIRED
+  arguments change: grep every caller in the tree FIRST -- kits, tools, .claude/hooks,
+  README -- list them, seam rows to the owners at once), DEC-0102 (5) (the half report
+  is a protocol section with a clock reading, never a message). Base commit 5ecf62a
+  (stamp 2026.09.12-6)'
+- 'YOUR ROWS -- stream B (kits), 2 decisions'' kit halves + H61 + BUG-0298 + two sentences:
+  BUG-0153/H61 (FIRST a `timeout` on every entry of team-kits/*/settings/settings.json
+  -- measured 2 of 89 carry one; this file is ALLOWED here for exactly that -- THEN
+  the fail-closed Deadline reader in _compat, mirrored; never the reader alone); DEC-0108
+  (a mixed-VAT document = one ledger row per rate under a shared invoice number in
+  the office kit''s invoice_intake.py / ledger_add.py; EUeR sums per rate, document
+  count by distinct invoice numbers; BR-CO-14 stays; red-first with a real mixed document);
+  DEC-0107 hook half (gate_dispatch refuses a `fail_class` written by any role but
+  the verifying one, as a PROCESS test against a pilot; the QA role texts of the three
+  kits say the command; the kernel predicate name arrives from stream A as a seam
+  row -- until then build against the field name `fail_class`); BUG-0298/H214 (the
+  one-line `cat <<''EOF'' > run.sh ; bash run.sh` form refused at gate_write_scope
+  while `cat <<''EOF'' > notes.md` alone stays rc 0; multi-line form named as the
+  H11 remainder); the hook-side note of BUG-0302 (the approval hook stops counting
+  withdrawn requests -- the kernel reader is A''s); DEC-0104 sentence in the office
+  lead skill (a larger office job is split into tasks, not raised in effort); DEC-0109
+  sentence kept (what the four-eyes wall does not bind). Read each DEC and each item;
+  the DEC is the order, the item carries the measurement'
+- 'THE OTHER STREAMS run at the same time in the SAME working tree: A (kernel), C
+  (tools and this repo''s own tests). Your allowed_scope is the whole of what you
+  write. A line outside it goes under ''Seam handoffs'' in your protocol AND in your
+  final message as an exact patch; the lead carries it. A red a neighbour''s in-progress
+  edit causes is ''foreign red'' with the node id, left alone'
+- 'HOST RULES with three builders on one machine (DEC-0094/0095 (6)): ONE pytest at
+  a time per builder, SMALL selections (< 3 min measured; tools/test_hooks*.py only
+  by -k or node ids); no stamp, no full run, no known_holes.json regeneration (the
+  goal round''s); red-first in a .git-less copy under C:/Offline Repos/v2-testbed/_round-scratch/(this
+  task id)/ with the arbiter''s line; clock read for every time you write; protocol
+  as you go in project_memory/staging/(this task id)/protocol.md; mirrored hook files
+  byte-identical; constitution changes re-pinned after writing what drifted; the research
+  constitution''s ceiling is tools/lead_package_sizes.json'
+- 'forbidden_scope project_memory/** EXCEPTS project_memory/staging/(this task id)/
+  (and, for stream A only, project_memory/project_config.yaml for DEC-0105''s one
+  line); state writes through the kernel only: an EVD per closed item with the naming
+  node in the run command (retry on lock refusals); no transition of BUG items; the
+  verification batch lines (<= 10 ids) for the lead; no commit, no push, no mint'
+expected_outputs:
+- 'Per row ONE line: id | change (file:line) | red-first row (arbiter''s line) | naming
+  node | suites (selection, duration) | EVD -- or the measured reason, the German
+  sentence, or the question for the user.'
+- 'COUNTS, honest: closed / downgraded with sentence / questions / seams handed over
+  / not reached; ''Seam handoffs'' and ''foreign reds'' as their own sections, empty
+  ones written as empty.'
+- The batch lines for the lead (<= 10 ids per line), dry-checked against a store copy
+  inside a checkout, 0 refused.
+- 'RUNS: the reading suites of every changed file as small selections with durations;
+  ruff over your files; NO stamp, NO full run, NO commit, NO push, NO mint; the protocol
+  names the last clock reading.'
+dependencies:
+- TSK-0144
+rung: opus
+effort: high
+root_revision: 1
+status: CANCELLED
+revision: 1
+approval_ref: null
+created: '2026-09-12T23:02:42'

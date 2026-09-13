@@ -279,6 +279,56 @@ def by_form_line(entries, vocabulary):
     return rows
 
 
+def document_key(entry):
+    """What makes two ledger rows ONE document -- counterparty + invoice number, else the row.
+
+    WHY THIS EXISTS AT ALL (DEC-0108): a document carrying two VAT rates books as one row PER RATE
+    under a shared invoice number, so a count of ROWS stopped being a count of documents the day
+    that shape was sanctioned. Everything in this report that COUNTS or LISTS Belege goes through
+    here -- the reverse-charge count, the AfA hints, the open items and the stdout line, all of them
+    via `group_by_document` or a set of these keys; everything that sums money keeps summing rows,
+    because the money IS per row. The claim is measured by
+    `tools/test_office_package.py::test_a_mixed_vat_document_is_one_beleg_everywhere_the_report_counts_them`.
+
+    A ROW WITHOUT AN INVOICE NUMBER IS ITS OWN DOCUMENT, and that is the same reading
+    `ledger_add.validate_cross` gives such a row: a receipt or a bank charge often carries none,
+    and treating all of them as one document would collapse a quarter of small vouchers into a
+    single Beleg. The row id is unique per ledger file, so it is what stands in for the number.
+    """
+    invoice = str(entry.get("invoice_no") or "").strip()
+    if not invoice:
+        return ("", "", str(entry.get("id") or ""))
+    return (str(entry.get("counterparty") or ""), invoice, "")
+
+
+def group_by_document(entries):
+    """`entries` as a list of ROW GROUPS, one per document, in first-seen order.
+
+    The one place the report turns rows into Belege -- `document_key` says what makes two rows one
+    document, and everything that COUNTS or LISTS Belege goes through here while everything that
+    sums money keeps summing rows.
+    """
+    groups, order = {}, []
+    for entry in entries:
+        key = document_key(entry)
+        if key not in groups:
+            order.append(key)
+            groups[key] = []
+        groups[key].append(entry)
+    return [groups[key] for key in order]
+
+
+def _sum_gross(rows):
+    """The gross of a whole document, formatted as the ledger writes one row's."""
+    total = 0.0
+    for row in rows:
+        try:
+            total += float(row.get("gross"))
+        except (TypeError, ValueError):
+            return str(rows[0].get("gross"))   # unreadable: say what the first row says, unchanged
+    return "%.2f" % total
+
+
 def asset_hints(entries, limit, silenced=()):
     """The paid bookings this report FLAGS as possible Anlagegüter — a hint, never a calculation.
 
@@ -299,18 +349,27 @@ def asset_hints(entries, limit, silenced=()):
         threshold = float(limit)
     except (TypeError, ValueError):
         return []
-    flagged = []
+    # PER DOCUMENT, not per row (DEC-0108). The threshold is a fact about an acquisition, and a
+    # mixed-VAT purchase is several rows of one acquisition since a document books one row per
+    # rate -- comparing each row on its own would let a 1200 EUR machine invoiced at two rates fall
+    # under a 800 EUR limit twice and be flagged never. The sentence printed beside this table
+    # ("Gemessen wird der BELEG, nicht die einzelne Position") is the claim this keeps true.
+    acquisitions = []
     for entry in entries:
         if entry.get("direction") != "expense" or sign_of(entry) < 0:
             continue
         if (entry.get("category") or "") in silenced:
             continue
         try:
-            net = float(entry["net"])
+            float(entry["net"])
         except (TypeError, ValueError, KeyError):
             continue
+        acquisitions.append(entry)
+    flagged = []
+    for rows in group_by_document(acquisitions):
+        net = sum(float(row["net"]) for row in rows)
         if net > threshold:
-            flagged.append((entry, net))
+            flagged.append((rows[0], net))
     return flagged
 
 
@@ -466,14 +525,21 @@ def main():
     lines += ["## Umsatzsteuer (nur informativ)", "",
               "Vereinnahmte USt (Einnahmen, standard): %.2f EUR · Vorsteuer (Ausgaben, standard): "
               "%.2f EUR · Reverse-Charge-Belege (§ 13b, netto=brutto): %d"
-              % (vat_out, vat_in, len(reverse_charge))]
+              % (vat_out, vat_in, len({document_key(e) for e in reverse_charge}))]
     lines += ["", "## Offene Posten (Belegdatum bis Quartalsende, unbezahlt)", ""]
-    if open_items:
+    # ONE LINE PER BELEG, not per row (DEC-0108). A mixed-VAT document books one row per rate under
+    # a shared invoice number, so an unpaid one stood here TWICE and was counted as two open items
+    # (verifier round 1, F5, measured with one such document). The gross is summed over the rows of
+    # the document, which is what the owner has to pay or chase.
+    documents = group_by_document(open_items)
+    if documents:
         lines += ["| Beleg | Gegenpartei | Belegdatum | Brutto |", "|---|---|---|---|"]
-        for e in sorted(open_items, key=lambda x: x.get("doc_date") or ""):
+        for rows in sorted(documents, key=lambda group: group[0].get("doc_date") or ""):
+            first = rows[0]
             lines.append("| %s %s | %s | %s | %s EUR |"
-                         % (e.get("id"), e.get("invoice_no") or "", e.get("counterparty"),
-                            e.get("doc_date"), e.get("gross")))
+                         % (" ".join(str(r.get("id")) for r in rows),
+                            first.get("invoice_no") or "", first.get("counterparty"),
+                            first.get("doc_date"), _sum_gross(rows)))
     else:
         lines.append("keine")
     lines += ["", "_Anmerkungen der Buchhaltung: siehe reports/euer_%d_Q%d_notes.md_"
@@ -485,7 +551,7 @@ def main():
     with open(out, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("\n".join(lines))
     print("[euer_report] %s written (%d paid entries, %d open items)"
-          % (out, len(paid), len(open_items)))
+          % (out, len(paid), len(documents)))
 
 
 if __name__ == "__main__":

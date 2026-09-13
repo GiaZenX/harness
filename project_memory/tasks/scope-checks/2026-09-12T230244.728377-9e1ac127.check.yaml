@@ -1,12 +1,15 @@
-checked_at: '2026-09-12T10:32:36'
+checked_at: '2026-09-12T23:02:44'
 matcher: C:\Offline Repos\AgentAndSkills\team-kits\dev-team\hooks\gate_write_scope.py
-files_in_tree: 2784
+files_in_tree: 2991
 orders:
-  TSK-0141:
+  TSK-0146:
     root: PR-0012
-    digest: e3c8132983cce2428115593bc820ae6ad3825008e0e6005473cec718e4a59378
+    digest: 71dee36698eefc16ceecccbbf8008d6b876ba8d544c250482d75fed3b0abbd99
     allowed:
     - team-kits/kernel/**
+    - project_memory/project_config.yaml
+    - .claude/agents/harness-implementer.md
+    - .claude/agents/harness-verifier.md
     - tools/test_kernel.py
     - tools/test_state.py
     - tools/test_report.py
@@ -46,7 +49,6 @@ orders:
     - docs/post_v2_wishlist.md
     - radar/20*.md
     - radar/decided.md
-    - team-kits/*/settings/settings.json
     - team-kits/dev-team/**
     - team-kits/office-team/**
     - team-kits/research-team/**
@@ -58,11 +60,11 @@ orders:
     - tools/test_hooks.py
     - tools/test_hooks_v2.py
     - docs/**
-    - .claude/**
+    - .claude/hooks/**
     seam: []
-  TSK-0142:
+  TSK-0147:
     root: PR-0012
-    digest: 2bd654d1391cf89eb170acfe996b8baf7a646d22073b21d7a8febe93eea9a836
+    digest: f7c4d02db9de61d458da665f9b9c0ddd5e145f443c9fc0bc911b85ecac1d459b
     allowed:
     - team-kits/dev-team/**
     - team-kits/office-team/**
@@ -115,7 +117,6 @@ orders:
     - docs/post_v2_wishlist.md
     - radar/20*.md
     - radar/decided.md
-    - team-kits/*/settings/settings.json
     - team-kits/kernel/**
     - docs/**
     - .claude/**
@@ -126,9 +127,9 @@ orders:
     - tools/test_review_procedure.py
     - tools/test_repo_hygiene.py
     seam: []
-  TSK-0143:
+  TSK-0148:
     root: PR-0012
-    digest: 0fd92211174b80add3c277b45481c929a53cba4fbd7c747f7a09d333f62f9926
+    digest: eac057a6067df1f9cafde8c1da69b0ed4e53bf41ae7e69ad0749cd8a2bce8f37
     allowed:
     - .claude/hooks/test_gates.py
     - tools/test_review_procedure.py
@@ -169,7 +170,6 @@ orders:
     - docs/post_v2_wishlist.md
     - radar/20*.md
     - radar/decided.md
-    - team-kits/*/settings/settings.json
     - team-kits/**
     - tools/test_hooks.py
     - tools/test_hooks_v2.py
@@ -182,10 +182,10 @@ orders:
     - tools/fixtures/**
     seam: []
 disjoint:
-- - TSK-0141
-  - TSK-0142
-- - TSK-0141
-  - TSK-0143
-- - TSK-0142
-  - TSK-0143
+- - TSK-0146
+  - TSK-0147
+- - TSK-0146
+  - TSK-0148
+- - TSK-0147
+  - TSK-0148
 overlapping: []

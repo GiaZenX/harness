@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """
-Dispatch gate — gate layer 2 of spec II.4. Registered on SIX events, because the dispatch
-lifecycle is one story and splitting it across files would let the halves drift:
+Dispatch gate — gate layer 2 of spec II.4. Registered on SIX events -- the first of them
+on two tool classes -- because the dispatch lifecycle is one story and splitting it across files
+would let the halves drift:
 
+  PreToolUse(Bash|PowerShell)   refuse a FAIL CLASSIFICATION written by anybody but the bound
+                                child of the judging class (DEC-0107) -- a shell question answered
+                                here because who is running is read off the leases this gate writes
   PreToolUse(Agent|Task)        reconcile claims that never produced a child; refuse while the
                                 installed enforcement bundle is not the one this project recorded
                                 trust for (`_kernel.bundle_trust`); then validate the
@@ -85,6 +89,7 @@ except BaseException as exc:  # noqa: BLE001 — a hook that cannot load must no
     sys.exit(2)
 
 import json  # noqa: E402 — after GATE_PREAMBLE, which must stay the first executable statement
+import re  # noqa: E402 — same reason
 
 import _compat  # noqa: E402
 
@@ -201,7 +206,202 @@ def _refuse_while_a_restart_is_pending(data):
                "is needed; nothing else clears it, and deleting it by hand only removes the sign.")
 
 
+# DEC-0107 (the user's answer b to H178/BUG-0260: "mit Hook gemessen, keine Gewohnheitsaktionen"):
+# a QA fail the verifying role calls MECHANICAL does not climb the rung, and the classification is
+# a field only that role may write. The kernel refuses what the STATE can see -- the role the bound
+# lease names (`dispatch.fail_class_refusal`) -- and that leaves exactly one writer it cannot see:
+# the session instance itself, typing the command while a specialist's lease is bound. A field the
+# judged role can set is a discount it grants itself, so the hook measures the WRITER and the
+# kernel measures the record. Which roles may write it is not decided here either: the class
+# vocabulary is `dispatch.QA_CLASS` against the kit's own `ladder.yaml` declaration, so one rule
+# has one home.
+# `tools/test_hooks_v2.py::test_the_fail_classification_is_refused_from_every_writer_but_the_verifying_one`
+# `tools/test_hooks_v2.py::test_an_everyday_line_that_only_looks_like_a_classification_is_left_alone`
+_OPTION_RX = re.compile(r"(?<![\w-])--[A-Za-z][\w-]*")
+
+
+# The kernel subcommand that writes the classification. The hook keeps the word for the same reason
+# it keeps the entry point's name -- a Bash call must not import argparse to answer "which command
+# is this" -- and it is pinned against the shipped parser by
+# `tools/test_hooks_v2.py::test_the_gate_knows_the_command_that_writes_the_classification`.
+_EVIDENCE_COMMAND = "evidence"
+# A word the SHELL builds before any program sees it: a parameter expansion, a command
+# substitution, a backtick. `gate_write_scope` refuses such a word wherever it could name a path and
+# states the reason at length (`_compat._UNDETERMINED_CHARS`): the text this reader holds is not the
+# text the program is handed. NARROWER HERE on purpose -- no glob and no brace -- because on an
+# `evidence` line those name a path, while these three can produce the option itself.
+_UNPLACEABLE_RX = re.compile(r"[$`]")
+# A MASK for one quoted span: a character that can be neither an expansion nor a word separator,
+# so a masked span cannot look like either. The masking itself is `_compat`'s (`_SPAN_RX`),
+# borrowed rather than rewritten -- a second answer to "which part of this word is quoted" is drift
+# this repository has already paid for, and `_compat` names the borrowing in its own block comment.
+_QUOTED_SPAN = "\x01"
+_LONG_OPTION_RX = re.compile(r"^--[A-Za-z][\w-]*$")
+
+WRITTEN = "names the classification"
+UNREADABLE = "carries a word the shell builds, so whether it classifies cannot be read"
+
+
+def _takes_a_value(word, options):
+    """Does `word` name -- by argparse's own PREFIX rule -- an option of `options` that eats the
+    next word? Ambiguous and unknown both answer no, which is the fail-closed direction here."""
+    if not _LONG_OPTION_RX.match(word):
+        return False
+    hits = [option for option in options if option == word or option.startswith(word)]
+    return len(hits) == 1
+
+
+def _an_expansion_stands_where_it_could_be_an_option(text):
+    """True when an expansion on this `evidence` line could reach the parser as an OPTION.
+
+    THE CORRECTION OF A MEASURED OVER-REFUSAL (verifier of TSK-0147, round 2, F3): every `$` and
+    every backtick anywhere on an `evidence` line was refused, so `--run-command "$(cat cmd.txt)"`
+    and `--related "$ID"` -- lines the QA role writes daily -- came back rc 2 at both pilots. What
+    the rule is about is whether the shell can hand the PARSER an option nobody wrote, and that is
+    a question of POSITION and not of a character being present:
+
+      * an UNQUOTED expansion word-splits, so what it produces can start a fresh word in option
+        position -- unreadable, whatever stands before it;
+      * a DOUBLE-QUOTED expansion is exactly one word, so it can be read as an option only where
+        the parser is not already consuming it as the VALUE of the option before it (or of an
+        `--option=` assignment it stands inside). WHICH options consume a value is the parser's own
+        answer (`kernel.cli.value_taking_options`) and not a list kept in three hook copies;
+      * a SINGLE-QUOTED `$` is no expansion at all and never was.
+
+    STILL UNREADABLE, and this case is what keeps the narrowing honest:
+    `a="--"; b="fail-class"; ... --related TSK-0001 "$a$b" mechanical` is quoted AND stands in no
+    value position, so it is refused exactly as before (measured in round 1, F3).
+
+    THE PARSER IS ASKED ONLY HERE, and only for a line that already reaches the kernel entry point
+    and already carries an expansion -- `kernel.cli` costs 0.03 s on top of the `dispatch` import
+    this gate makes anyway (measured 2026-09-13, three runs).
+    `tools/test_hooks_v2.py::test_a_quoted_expansion_the_parser_takes_as_a_value_is_not_a_classification`
+    """
+    spans = []
+    masked = _compat._SPAN_RX.sub(lambda match: (spans.append(match.group(0)) or _QUOTED_SPAN),
+                                  str(text or ""))
+    quoted = iter(spans)
+    options = None
+    previous = ""
+    for token in masked.split():
+        if _UNPLACEABLE_RX.search(token):
+            return True
+        carried = [next(quoted, "") for _ in range(token.count(_QUOTED_SPAN))]
+        if any(span[:1] == '"' and _UNPLACEABLE_RX.search(span) for span in carried):
+            if options is None:
+                options = _kernel.kernel_module("cli").value_taking_options(_EVIDENCE_COMMAND)
+            head = token.split("=", 1)[0]
+            if not (_takes_a_value(previous, options)
+                    or ("=" in token and _takes_a_value(head, options))):
+                return True
+        previous = token
+    return False
+
+
+def _classification_reading(command):
+    """What this shell line does with a fail classification: WRITTEN, UNREADABLE, or None.
+
+    THREE CONDITIONS, AND THE FIRST IS THE FIX OF A MEASURED FALSE ALARM. The line has to be able to
+    reach the kernel CLI at all (`_compat.names_the_kernel_entry_point`) -- until 2026-09-13 this
+    reader asked only about option prefixes, and `curl --fail https://…` was refused as a
+    classification the session instance may not write (verifier round 1, F2, measured as a real hook
+    process against two pilots). `--fail` IS a prefix of `--fail-class`, and prefixes are the whole
+    point of the second condition, so the entry-point condition is what keeps this reader off every
+    other line of the day.
+
+    THE MECHANISM, NOT A SPELLING (DEC-0102 (2)): argparse accepts any UNAMBIGUOUS PREFIX of an
+    option, so `--fail-class`, `--fail-cl` and `--f` are one word to the parser that reads them --
+    measured 2026-09-12 against the shipped CLI, `evidence … --f mechanical` was accepted and only
+    the MISSING arguments were complained about. A reader matching the full spelling is answered by
+    a shorter one.
+
+    AND THE THIRD READING, which is a refusal rather than a judgement (verifier round 1, F3):
+    `a="--"; b="fail-class"; python scripts/harness.py evidence … "$a$b" mechanical` hands the
+    parser the option while nothing here ever holds that text. On an `evidence` line that reaches
+    the kernel, such a word makes the question unanswerable, and unanswerable is refused -- the same
+    fail-closed direction `gate_write_scope` takes for a word it cannot place. It is bounded to the
+    `evidence` command so that an ordinary harness line with a `$` in it is not touched.
+
+    WHAT STAYS OPEN is the wider H11 class: a line that runs a SCRIPT which then calls the kernel is
+    not this line, and no reader of a command line can see into it.
+
+    THE VALUE IS NOT READ HERE: what the classification says is the kernel's question
+    (`FAIL_CLASSES`); this gate's question is who is writing it at all.
+    """
+    if not _compat.names_the_kernel_entry_point(command):
+        return None
+    text = str(command or "")
+    words = _OPTION_RX.findall(text)
+    evidence_line = re.search(r"(?<![\w-])%s(?![\w-])" % _EVIDENCE_COMMAND, text) is not None
+    if not words and not evidence_line:
+        return None
+    # THE KERNEL IS THE AUTHORITY ON THE NAME, AND IT IS ASKED LAST, because asking costs: the
+    # import of the kernel package measured 0.10 s on this host (0.25 s against 0.15 s for the whole
+    # hook process, three runs each, 2026-09-13). Since the entry-point condition above, only a line
+    # that names the harness pays it -- before it, verifier round 1 measured that EVERY line with a
+    # long option did.
+    option = "--" + _kernel.kernel_module("backlog_types").FAIL_CLASS_FIELD.replace("_", "-")
+    if any(option.startswith(word) for word in words):
+        return WRITTEN
+    if evidence_line and _an_expansion_stands_where_it_could_be_an_option(text):
+        return UNREADABLE
+    return None
+
+
+def _refuse_a_classification_the_judged_role_wrote(data):
+    """Refuse a fail classification from anybody but the bound child of the judging class."""
+    command = str((data.get("tool_input") or {}).get("command") or "")
+    reading = _classification_reading(command)
+    if reading is None:
+        return                                    # the ordinary shell call pays one substring test
+    dispatch = _kernel.kernel_module("dispatch")
+    remedy = ("have the verifying role record it from inside its own dispatch -- it is the one "
+              "writer whose lease the kernel can attribute (DEC-0107).")
+    if not _compat.calling_subagent(data):
+        _kernel.block(
+            HOOK,
+            "the session instance may not classify a failed run: this line %s. The classification "
+            "is what keeps " % reading +
+            "a mechanical fail from raising the next lease's rung, and the role that ORDERED the "
+            "run would be discounting its own dispatch -- DEC-0107 gives it to the verifying role "
+            "and to no habitual action of the session agent.",
+            event="PreToolUse", remedy=remedy)
+    state = _state_for_prevention(data)
+    if state is None:
+        return                                    # explicit installer window (spec II.4)
+    task = dispatch.task_for_agent(state, str(data.get("agent_id") or ""))
+    if task is None:
+        _kernel.block(
+            HOOK,
+            "this line %s and no lease binds the agent making it -- so " % reading +
+            "nothing here can say which role is writing. A classification nobody can attribute "
+            "looks like a discount and is none (DEC-0107).",
+            event="PreToolUse", remedy=remedy)
+    role = str(task.get("assigned_role") or "")
+    # ONE READER FOR ONE RULE. Which classes may classify is the kernel's question and it is asked
+    # THERE, through the same predicate `dispatch.fail_class_refusal` uses for its own last check --
+    # this hook re-derived the comparison from `ladder_declaration` until TSK-0149, so `QA_CLASS`
+    # and the declaration shape had two homes and could drift apart without a test noticing.
+    # WHY THE ROLE HALF AND NOT THE WHOLE PREDICATE: the rest of `fail_class_refusal` judges the
+    # RECORD -- which orders it names, what verdict it carries, whether one of them is the writer's
+    # own -- and a shell line states none of that in a form this reader may trust (that is what
+    # `UNREADABLE` above is about). Asking the whole predicate would mean inventing those values,
+    # and an invented one refuses lines nobody wrote.
+    # None here also covers "no ladder declared", where the kernel's own refusal is the whole rule.
+    wrong_class = dispatch.fail_class_role_refusal(state, role)
+    if wrong_class:
+        _kernel.block(
+            HOOK,
+            "this line %s, and %s A fail the judged role may call mechanical is a rung it grants "
+            "itself (DEC-0107, BUG-0260 AC-2)." % (reading, wrong_class),
+            event="PreToolUse", remedy=remedy)
+
+
 def handle_pre_tool_use(data):
+    # TWO tool classes reach this event, and the shell one is here rather than in a
+    # gate of its own because the question it answers is a dispatch question: which
+    # role is running, read off the leases this gate writes.
+    _refuse_a_classification_the_judged_role_wrote(data)
     if data.get("tool_name") not in SPAWN_TOOLS:
         sys.exit(0)
     # AFTER the bundle reading, and that order was measured rather than chosen: mid-way through an

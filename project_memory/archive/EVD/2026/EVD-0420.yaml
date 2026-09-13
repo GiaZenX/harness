@@ -1,0 +1,20 @@
+id: EVD-0420
+kind: test
+related:
+- BUG-0298
+result: pass
+summary: 'H214 closed at gate_write_scope in all three kits: a command line that WRITES
+  a file and hands that same file to a shell in the same call is refused, whatever
+  put the bytes there (heredoc, printf, tee) and in whichever order the two stages
+  stand; a heredoc into a file nothing runs stays rc 0, and running a script this
+  line does not write stays rc 0. AC-2''s multi-line form is named as the H11 remainder
+  in the rule''s own docstring. Red-first: without the call all three kits answer
+  rc 0.'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py -q -k test_a_line_that_writes_a_script_and_runs_it_is_refused_in_every_kit
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:08:46'
+closed_at: '2026-09-13T01:27:20'

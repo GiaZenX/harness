@@ -1,0 +1,16 @@
+id: EVD-0430
+kind: test
+related:
+- BUG-0248
+result: pass
+summary: 'TSK-0147 stream B: the closing node of this defect, run as a node id (the
+  round''s measurements and the red-first runs are in staging/TSK-0147/protocol.md).'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_office_package.py::test_a_mixed_vat_document_books_one_row_per_rate_under_one_invoice_number
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T00:11:05'
+closed_at: '2026-09-13T01:27:24'

@@ -1,0 +1,19 @@
+id: EVD-0439
+kind: test
+related:
+- BUG-0248
+result: pass
+summary: 'SUPERSEDES EVD-0430/EVD-0422/EVD-0437 for the evaluation half (0437''s node
+  did not name the bug where the kernel looks): verifier round 1 (F5) measured one
+  unpaid mixed document standing TWICE in the open-items table and counted as ''2
+  open items''. Open items, the stdout count and the AfA hints now go through one
+  grouping (group_by_document); a document''s gross is the sum of its rows; everything
+  that sums money still sums rows.'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_office_package.py::test_a_mixed_vat_document_is_one_beleg_everywhere_the_report_counts_them
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T01:24:13'

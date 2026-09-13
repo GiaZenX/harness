@@ -1,0 +1,123 @@
+id: TSK-0148
+product_requirement: PR-0012
+derives_from: PR-0012
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-4
+allowed_scope:
+- .claude/hooks/test_gates.py
+- tools/test_review_procedure.py
+- tools/test_repo_hygiene.py
+- tools/test_radar_trigger.py
+- tools/test_design_system_contract.py
+- tools/test_migrate_holes.py
+- tools/test_surface.json
+- tools/test_ci_lint_pinned.py
+- tools/gate_suite_margins.py
+- tools/gate_suite_rates.py
+- tools/migrate_holes.py
+- tools/validate.py
+- tools/radar_routine.py
+- tools/normalise_line_endings.py
+- tools/probes/**
+- tools/eval/**
+- docs/**
+- CLAUDE.md
+- README.md
+- HARNESS_LOG.md
+- NOTICES.md
+- ruff.toml
+- .github/**
+- .gitattributes
+- .gitignore
+- user/**
+- radar/README.md
+forbidden_scope:
+- project_memory/**
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- .claude/agents/**
+- team-kits/*/VERSION
+- team-kits/kernel/known_holes.json
+- tools/conftest.py
+- docs/POST_V2_WISHLIST.md
+- radar/20*.md
+- radar/decided.md
+- team-kits/**
+- tools/test_hooks.py
+- tools/test_hooks_v2.py
+- tools/test_kernel.py
+- tools/test_state.py
+- tools/test_report.py
+- tools/test_approvals_dispatch.py
+- tools/test_parallel_streams.py
+- tools/test_shortening_net.py
+- tools/fixtures/**
+required_inputs:
+- 'THE USER''S DECISIONS of 2026-09-12 as recorded (DEC-0103, DEC-0104, DEC-0105,
+  DEC-0106, DEC-0107, DEC-0108, DEC-0109, DEC-0110) and his word: every hole whose
+  fix lies in this repository is FIXED; exceptions only with a German sentence. DEC-0100
+  (a bug closes only on a test that NAMES it), DEC-0102 (2) (name the MECHANISM, measure
+  every spelling you can enumerate before the EVD; a closure the verifier widens twice
+  is re-filed, not reworked a third time), DEC-0102 (4) (a kernel command whose REQUIRED
+  arguments change: grep every caller in the tree FIRST -- kits, tools, .claude/hooks,
+  README -- list them, seam rows to the owners at once), DEC-0102 (5) (the half report
+  is a protocol section with a clock reading, never a message). Base commit 5ecf62a
+  (stamp 2026.09.12-6)'
+- 'YOUR ROWS -- stream C (tools and this repo''s own tests), 3 closures + 2 seams
+  + 1 DEC question + docs: BUG-0295/H211 (a triple quote is ONE delimiter in `_dec_citations`''
+  pairing; the DEC-2100/DEC-0000 exhibits stay unreported, the two real sites dispatch.py:204
+  and invoice_intake.py:370 are judged -- READ those files, do not edit them); BUG-0297/H213
+  (build the test that EXECUTES the printed gate-3 remedy parsed from the refusal;
+  it stays red until the user''s S4 patch -- say so in its docstring and in the protocol;
+  no EVD claiming a close); BUG-0299/H215 (the bound-name hop applied to the program
+  word in `_starts_a_hook`; the four live sites stay 0); BUG-0300/H216 is in tools/test_hooks.py
+  -> NOT yours, hand the row to B as a seam with the mutation that must go red; BUG-0301/H217
+  likewise tools/test_hooks.py -> seam to B (excuse at most as many missing names
+  as computed tokens in the span); BUG-0296/H212 (DEC-first per DEC-0102 (3): write
+  the class question -- does the acceptance-line reader keep judging natural-language
+  negation, or ask for the shaped form -- with the measured history (four rounds,
+  four holes) and the price of each answer; do not add a word); docs/holes/*.md rows
+  for every hole this order closes or bounds. Read each DEC and each item; the DEC
+  is the order, the item carries the measurement'
+- 'THE OTHER STREAMS run at the same time in the SAME working tree: A (kernel), B
+  (kits). Your allowed_scope is the whole of what you write. A line outside it goes
+  under ''Seam handoffs'' in your protocol AND in your final message as an exact patch;
+  the lead carries it. A red a neighbour''s in-progress edit causes is ''foreign red''
+  with the node id, left alone'
+- 'HOST RULES with three builders on one machine (DEC-0094/0095 (6)): ONE pytest at
+  a time per builder, SMALL selections (< 3 min measured; tools/test_hooks*.py only
+  by -k or node ids); no stamp, no full run, no known_holes.json regeneration (the
+  goal round''s); red-first in a .git-less copy under C:/Offline Repos/v2-testbed/_round-scratch/(this
+  task id)/ with the arbiter''s line; clock read for every time you write; protocol
+  as you go in project_memory/staging/(this task id)/protocol.md; mirrored hook files
+  byte-identical; constitution changes re-pinned after writing what drifted; the research
+  constitution''s ceiling is tools/lead_package_sizes.json'
+- 'forbidden_scope project_memory/** EXCEPTS project_memory/staging/(this task id)/
+  (and, for stream A only, project_memory/project_config.yaml for DEC-0105''s one
+  line); state writes through the kernel only: an EVD per closed item with the naming
+  node in the run command (retry on lock refusals); no transition of BUG items; the
+  verification batch lines (<= 10 ids) for the lead; no commit, no push, no mint'
+expected_outputs:
+- 'Per row ONE line: id | change (file:line) | red-first row (arbiter''s line) | naming
+  node | suites (selection, duration) | EVD -- or the measured reason, the German
+  sentence, or the question for the user.'
+- 'COUNTS, honest: closed / downgraded with sentence / questions / seams handed over
+  / not reached; ''Seam handoffs'' and ''foreign reds'' as their own sections, empty
+  ones written as empty.'
+- The batch lines for the lead (<= 10 ids per line), dry-checked against a store copy
+  inside a checkout, 0 refused.
+- 'RUNS: the reading suites of every changed file as small selections with durations;
+  ruff over your files; NO stamp, NO full run, NO commit, NO push, NO mint; the protocol
+  names the last clock reading.'
+dependencies:
+- TSK-0144
+rung: opus
+effort: high
+root_revision: 1
+status: CANCELLED
+revision: 1
+approval_ref: null
+created: '2026-09-12T23:02:43'

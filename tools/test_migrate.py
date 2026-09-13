@@ -676,12 +676,15 @@ def test_a_run_that_dies_halfway_still_names_and_records_what_it_wrote(v1_state,
     real_capture = ProjectState.capture
     state_of = {"n": 0}
 
-    def failing_capture(self, item_type, fields):
+    def failing_capture(self, item_type, fields, **through):
+        # `**through` and not a fixed signature: the door grew `imported=` when the goal-size
+        # exemption was bound to the PATH (TSK-0146 rework, F1), and a stub that pins today's
+        # parameters turns the next one into a TypeError in a test about something else.
         if item_type == "PROC":
             state_of["n"] += 1
             if state_of["n"] == 4:
                 raise OSError("the disk went away")
-        return real_capture(self, item_type, fields)
+        return real_capture(self, item_type, fields, **through)
 
     monkeypatch.setattr(ProjectState, "capture", failing_capture)
     plan = _planned(v1_state)
@@ -722,12 +725,15 @@ def test_a_run_that_dies_with_a_long_message_still_leaves_a_receipt_that_fits(v1
     real_capture = ProjectState.capture
     seen = {"n": 0}
 
-    def failing_capture(self, item_type, fields):
+    def failing_capture(self, item_type, fields, **through):
+        # `**through` and not a fixed signature: the door grew `imported=` when the goal-size
+        # exemption was bound to the PATH (TSK-0146 rework, F1), and a stub that pins today's
+        # parameters turns the next one into a TypeError in a test about something else.
         if item_type == "PROC":
             seen["n"] += 1
             if seen["n"] == 4:
                 raise OSError(novel)
-        return real_capture(self, item_type, fields)
+        return real_capture(self, item_type, fields, **through)
 
     monkeypatch.setattr(ProjectState, "capture", failing_capture)
     plan = _planned(v1_state)
@@ -1239,7 +1245,16 @@ def test_the_archive_path_takes_a_record_the_field_contract_would_refuse(v1_stat
             if key not in ("id", "status", "revision", "approval_ref", "created")}
     with pytest.raises(Exception) as refusal:
         v1_state.capture("TSK", body)
-    assert "missing required fields" in str(refusal.value), refusal.value
+    # ...and since the goal-size exemption was bound to the PATH (TSK-0146 rework, F1) the ordinary
+    # door stops one step EARLIER: a body carrying the provenance record is refused for that alone,
+    # because only the import writes it. Both refusals are the same bolt from two sides, so both
+    # are measured here rather than one being swapped for the other.
+    assert "written by the import path alone" in str(refusal.value), refusal.value
+    without_provenance = {key: value for key, value in body.items()
+                          if key != migrate.LEGACY_FIELD}
+    with pytest.raises(Exception) as contract:
+        v1_state.capture("TSK", without_provenance)
+    assert "missing required fields" in str(contract.value), contract.value
     # BOLT 3 -- it is not reactivatable: no kernel operation moves it back, and the two that write
     # an item resolve through `active/` and do not find it.
     assert not os.path.exists(v1_state.active_path(item["id"]))
@@ -7810,3 +7825,126 @@ def test_every_test_the_shipped_code_cites_by_name_is_a_test_that_exists():
     assert len(defined) > seen, (
         "the suite defines %d tests and the product cites %d, which is not a corpus this rule can "
         "have resolved against" % (len(defined), seen))
+
+
+# -- the goal-size vocabulary migration (DEC-0103) ---------------------------------------------
+
+def _goal(state, title, klass):
+    """A root goal, written past the vocabulary door the way a store from before DEC-0103 holds it."""
+    item = state.capture("PR", {"title": title, "class": "normal", "problem": "p", "goal": "g",
+                                "acceptance_criteria": [{"id": "AC-1", "text": "t"}],
+                                "invariants": [], "out_of_scope": [], "priority": "high",
+                                "user_story": "As the lead"})
+    if klass != "normal":
+        stored = state.active_path(item["id"])
+        body = state._read_yaml(stored)
+        body["class"] = klass
+        state._write_yaml_atomic(stored, body)
+    return item["id"]
+
+
+def test_the_goal_class_plan_reads_every_stored_goal_and_writes_only_the_active_strays(tmp_path):
+    """BUG-0237 / H155, DEC-0103's migration door: the before/after list, and what it refuses to
+    touch.
+
+    THREE ANSWERS IN ONE WALK, and each is a different decision: a word the vocabulary knows is
+    left alone, a stray the caller maps is rewritten through the EDIT path (so the new value meets
+    the same vocabulary check), and a stray nobody mapped is reported and left -- "nothing to do"
+    and "I could not decide" must not read alike, which is why the command exits non-zero on the
+    third.
+
+    AND THE ARCHIVE IS READ, NOT WRITTEN: an archived record is a protocol of what happened
+    (DEC-0004), and every reader that DECIDES from a class reads the ACTIVE item -- an order is
+    leased against `state.read_item(root_id)`. RED when the plan marks archived rows writable:
+    the archived goal below comes back rewritten.
+    """
+    state = _plain_state(tmp_path, "classes")
+    known = _goal(state, "a known goal", "large")
+    stray = _goal(state, "a stray goal", "feature")
+    archived_stray = _goal(state, "an archived stray", "feature")
+    state.transition(archived_stray, "SUPERSEDED")
+    state.archive(archived_stray)
+
+    plan = migrate.goal_class_plan(state, {})
+    rows = {row["id"]: row for row in plan}
+    assert set(rows) == {known, stray, archived_stray}, sorted(rows)
+    assert rows[known]["target"] is None and rows[known]["current"] == "large"
+    assert rows[archived_stray]["archived"] and rows[archived_stray]["target"] is None
+    assert [row["id"] for row in migrate.unmapped_goal_classes(plan)] == [stray], (
+        "the archived stray is not something this door could write")
+
+    rendered = migrate.render_goal_class_plan(plan)
+    for item_id in (known, stray, archived_stray):
+        assert item_id in rendered, (item_id, rendered)
+    assert "UNDECIDED" in rendered and stray in rendered.split("UNDECIDED")[1]
+
+    mapped = migrate.goal_class_plan(state, {"feature": "small"})
+    assert not migrate.unmapped_goal_classes(mapped)
+    assert migrate.execute_goal_classes(state, mapped) == [(stray, "feature", "small")]
+    assert state.read_item(stray)["class"] == "small"
+    assert state.read_anywhere(archived_stray)[0]["class"] == "feature", (
+        "the archive was rewritten by a door that says it only reads it")
+
+
+def test_the_goal_class_door_refuses_a_mapping_the_vocabulary_does_not_know(tmp_path):
+    """The migration writes through `update_item`, so its own target passes the closed vocabulary.
+
+    A door that wrote the file itself would take `--map feature=feature-ish` and leave the store in
+    exactly the shape the vocabulary was closed to prevent. RED with a direct file write.
+    """
+    state = _plain_state(tmp_path, "refused")
+    stray = _goal(state, "a stray goal", "feature")
+    plan = migrate.goal_class_plan(state, {"feature": "feature-ish"})
+    with pytest.raises(Exception) as refusal:
+        migrate.execute_goal_classes(state, plan)
+    assert "unknown PR class" in str(refusal.value), str(refusal.value)
+    assert state.read_item(stray)["class"] == "feature", "the refused rewrite landed anyway"
+
+
+def test_an_imported_goal_keeps_the_class_its_v1_store_held(tmp_path):
+    """DEC-0103 closes the goal-size vocabulary at the doors a ROLE writes through -- not at the
+    importer.
+
+    A V1 store had no vocabulary to have obeyed, and the import is a PROTOCOL of what it held
+    (DEC-0004's argument, applied to the size). Measured when the vocabulary first bound every
+    door: `test_a_binding_to_a_record_of_this_run_is_never_reported_as_free_text` turned the
+    imported goal `blocked`, with a remedy (`--map PR.class=<field>`) that only exists where some
+    V1 field happens to carry one of the four words -- so the import of every real V1 goal would
+    have stopped.
+
+    WHAT MAKES A BODY AN IMPORT is the record of where it came from (`LEGACY_FIELD`), not a flag a
+    caller may set: the same property `capture_migrated_archive_preflight` demands before it writes
+    outside the field contract. And the exemption is the SIZE alone -- `TSK.type` stays closed on
+    every path, because it decides a gate.
+
+    RED without the `imported` branch: the import blocks; RED if the branch widened to every closed
+    field: the imported task type below would be taken.
+    """
+    state = _plain_state(tmp_path, "imported")
+    body = {"title": "an imported goal", "class": "feature", "problem": "p", "goal": "g",
+            "acceptance_criteria": [{"id": "AC-1", "text": "t"}], "invariants": [],
+            "out_of_scope": [], "priority": "high", "user_story": "As the lead",
+            migrate.LEGACY_FIELD: {"legacy_id": "PRD-0014b", "legacy_type": "PRD"}}
+    goal = state.capture("PR", body, imported=True)
+    assert state.read_item(goal["id"])["class"] == "feature"
+    # ...and the SAME body through the ordinary door is refused twice over: the class, because the
+    # exemption is the path and not the body, and the provenance field itself
+    with pytest.raises(Exception, match="unknown PR class"):
+        state.capture("PR", body)
+    with pytest.raises(Exception, match="written by the import path alone"):
+        state.capture("PR", dict(body, **{"class": "normal"}))
+
+    # ...and the door that makes it a member afterwards is the one that exists for it
+    plan = migrate.goal_class_plan(state, {"feature": "normal"})
+    assert migrate.execute_goal_classes(state, plan) == [(goal["id"], "feature", "normal")]
+
+    # ...while a gate input stays closed even for an import
+    with pytest.raises(Exception, match="unknown TSK type"):
+        state.capture("TSK", {
+            "product_requirement": goal["id"], "derives_from": goal["id"],
+            "type": "whatever-v1-called-it", "assigned_role": "backend-developer",
+            "acceptance_refs": ["AC-1"], "required_inputs": [], "allowed_scope": ["src/"],
+            "forbidden_scope": [], "root_revision": 1, "expected_outputs": ["src/x.py"],
+            "dependencies": [],
+            migrate.LEGACY_FIELD: {"legacy_id": "TSK-0017b", "legacy_type": "TSK"},
+        }, imported=True)

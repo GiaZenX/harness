@@ -56,9 +56,11 @@ full rule set, the kit does not re-run it):
 | BR-16 | BG-25 | at least one invoice line |
 | BR-CO-15 | BT-112 = BT-109 + BT-110 | **the money triple reconciles**: net + tax = gross, within one cent. A document that fails this is refused with all three figures named; the kit never takes one figure and derives the others |
 
-The tax breakdown (BG-23) is read for the VAT rate and category: the kit books **one rate per
-document** (its ledger row carries one), so an invoice with two VAT rates is accepted by the norm
-check and then refused for booking with the sentence "book by hand". Category `S` books as
+The tax breakdown (BG-23) is read for the VAT rate and category. A document carrying **several
+VAT rates is accepted and booked** (DEC-0108): it books as **one ledger row per rate**, under the
+same invoice number and in the order the rates stand in the document, and every reader that counts
+documents counts those rows as ONE. What such a document does NOT have is a single booking command
+line -- see the two `booking` keys in §3. Category `S` books as
 standard VAT, `AE` as reverse charge, `E`/`Z`/`K`/`G`/`O`/`L`/`M` as exempt; a seller the profile
 marks as *Kleinunternehmer* (§ 19 UStG) with a zero tax total books as such.
 
@@ -138,8 +140,19 @@ document is wasted work.
 | Exit | Meaning | What is on stdout / stderr |
 |---|---|---|
 | `0` | **accepted** | the range and business, the continuity sentence, the archive destination the filing plan's rule gives the document, and the exact booking line; with `--json` the same as one object (`verdict`, `range`, `business`, `continuity`, `filing`, `booking`, `norm_rules_checked`) |
-| `2` | **refused -- your document** | `[intake] REFUSED <file>: <the rule id, or the figures>` on stderr; nothing was staged or booked. With `--json` an object `{"verdict": "refused", "reasons": [...]}`. A missing mandatory field, a triple that does not reconcile, a type code the kit does not book, a number that continues no declared range, two VAT rates, a VAT category or rate the kit cannot read |
+| `2` | **refused -- your document** | `[intake] REFUSED <file>: <the rule id, or the figures>` on stderr; nothing was staged or booked. With `--json` an object `{"verdict": "refused", "reasons": [...]}`. A missing mandatory field, a triple that does not reconcile, a type code the kit does not book, a number that continues no declared range, a VAT category or rate the kit cannot read, a per-rate group whose base or tax is not a number the reader understands |
 | `1` | **not judgeable -- the business's records** | no structured data in the file, or something on the project side: no ranges declared, two ranges matching one number, no filing rule (or two) for the class, a placeholder in the rule the intake cannot fill, a ledger category the vocabulary does not know, a `first` written as a word, a destination that is already taken |
+
+**The two `booking` keys, and why the second one is sometimes absent.** `booking.rows` is the
+list of booking command lines the verdict produces, in document order -- one entry for a document
+that books as a single row, one per VAT rate for a mixed document. `booking.ledger_add` carries
+that single command line and is present **only** where there is exactly one. An application that
+reads only `ledger_add` must therefore treat its ABSENCE as "this document books as several rows"
+and read `rows`; the key is left out rather than filled with the first row, because the first row
+of a mixed document is one rate group of it and says nothing about the rest -- a silent
+under-booking, where a missing key is a loud one. Held by
+`tools/test_office_package.py::test_a_mixed_vat_document_books_one_row_per_rate_under_one_invoice_number`,
+which runs the shipped intake on a two-rate document and asserts both keys.
 
 **Accepted is not yet filed and not yet booked.** The kit's filing is a reviewed pipeline: the
 verdict stages a proposal, two independent readings by two assistant runs have to agree on the
@@ -224,6 +237,9 @@ the name is a claim that rots visibly rather than a reassurance:
   could have let one document overwrite or impersonate another;
 * `::test_a_marketplace_range_reports_a_gap_and_a_credit_note_cancels_a_booked_invoice` -- cases 2
   and 3 of §4;
+* `::test_a_mixed_vat_document_books_one_row_per_rate_under_one_invoice_number` -- the several-rate
+  paragraphs of §1 and §3, including that `booking.ledger_add` is absent where `booking.rows` has
+  more than one entry;
 * `::test_the_docking_point_files_through_the_registered_chain_and_books` -- the pipeline after the
   verdict, through the office kit's registered hook chain.
 
@@ -236,8 +252,10 @@ every incoming supplier invoice goes through.
 
 - **Your side of the norm.** The kit checks the rules in §1 and nothing else -- no XML schema, no
   Schematron, no code lists beyond the type codes it books. Validate before you drop.
-- **Several VAT rates on one invoice.** Accepted by the norm check, refused for booking; the
-  business books such a document by hand.
+- **A per-rate group the reader cannot turn into figures.** Several VAT rates are booked (§1,
+  one row per rate), but a group whose base or tax is not a number this reader understands is
+  refused rather than guessed at -- every figure of every row stands in the document or the
+  document is not booked.
 - **Payment.** An accepted invoice is booked as open. Payment dates come from the business's bank
   statements, not from you.
 - **Delivery matching.** Three figures that reconcile off the wrong order pass the kit as they

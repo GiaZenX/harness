@@ -1,0 +1,19 @@
+id: EVD-0438
+kind: test
+related:
+- BUG-0153
+result: pass
+summary: 'In addition to EVD-0425 (not superseded): verifier round 1 (F6) asked for
+  the tripwire under the sentence ''a property of being a hook''. Every shipped hook
+  of every kit is now registered WITHOUT a window and run as a real process; a hook
+  that never reaches _compat.load() decides in silence and is reported by name. Measured
+  on the way: the two office recorders DO arm and swallow the refusal by design (their
+  own __main__ says why), so the property measured is the arming, not the exit code.'
+artifact_refs:
+- staging/TSK-0147/protocol.md
+run_command: python -B -m pytest tools/test_hooks.py::test_every_shipped_hook_of_this_kit_reaches_the_deadline_that_arms_it
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T01:23:29'

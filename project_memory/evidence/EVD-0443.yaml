@@ -1,0 +1,20 @@
+id: EVD-0443
+kind: test
+related:
+- BUG-0260
+result: pass
+summary: 'DEC-0107 seam closed: the kits'' gate_dispatch and the kernel now ask ONE
+  predicate, dispatch.fail_class_role_refusal. Red-first in both directions: turning
+  the KERNEL check off makes the hook''s process node rc 1, and the same kernel mutation
+  with the hook re-deriving the rule leaves it rc 0 -- which is what ''one reader''
+  means. The narrowed composed-word rule is measured in the same run.'
+artifact_refs:
+- staging/TSK-0149/protocol.md
+run_command: python -B -m pytest tools/test_hooks_v2.py::test_the_fail_classification_is_refused_from_every_writer_but_the_verifying_one
+  tools/test_hooks_v2.py::test_a_quoted_expansion_the_parser_takes_as_a_value_is_not_a_classification
+  tools/test_ladder.py::test_only_a_judging_role_may_classify_and_never_the_one_under_judgement
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T06:41:55'

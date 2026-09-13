@@ -75,6 +75,8 @@ from .backlog_types import (
     TRIAGE_RESULT_LINK,
     confirming_edge,
     field_elements,
+    GOAL_CLASS_FIELD,
+    goal_classes_without,
     is_inbox_type,
     required_fields_of,
     parse_id,
@@ -93,6 +95,15 @@ from .hashing import HASH_SCHEMA_VERSION, hook_bundle_hash
 from .lock import LOCK_SCHEMA_VERSION, PORTABLE_PATH_MAX_CHARS, ext_path
 from .schemas import validate
 from .state import CONFIRMING_EVIDENCE, STAGING_DIRNAME, ProjectState, _now_iso
+
+# THE GOAL CLASSES THAT CARRY NO PRODUCT CONTENT (DEC-0103). Two checks below skip a duty for such
+# a goal -- the user story it owes, and its place in the delivery sequence a user has to see -- and
+# both used to spell `technical_enabler` themselves. Asked of the vocabulary as a COMPLEMENT, so a
+# class the vocabulary does not know (a goal stored before DEC-0103, a value from another tool) is
+# in neither set and keeps being asked: a skipped duty is the one direction these checks may not
+# fail in.
+# `tools/test_report.py::test_a_goal_whose_class_the_vocabulary_does_not_know_still_owes_its_user_story`
+PRODUCTLESS_CLASSES = goal_classes_without("carries_product_content")
 
 ITEM_MAX_BYTES = 12 * 1024   # spec II.5: active item <= 200 lines / 12 KB
 ITEM_MAX_LINES = 200
@@ -572,10 +583,11 @@ def validate_state(state: ProjectState, _locked: bool = False) -> list:
                         % "/".join(HASHED_FIELDS.get(item_type, ())),
                         "restore the approved content, or re-run the approval flow for the new one",
                     ))
-        if item_type == "PR" and item.get("class") != "technical_enabler" and not item.get("user_story"):
+        if (item_type == "PR" and item.get(GOAL_CLASS_FIELD) not in PRODUCTLESS_CLASSES
+                and not item.get("user_story")):
             findings.append(_finding(
-                "warning", item_id, "user_story missing (class %r)" % item.get("class"),
-                "add a user_story or set class technical_enabler",
+                "warning", item_id, "user_story missing (class %r)" % item.get(GOAL_CLASS_FIELD),
+                "add a user_story or set class %s" % ", ".join(sorted(PRODUCTLESS_CLASSES)),
             ))
         if item_type == "INV" and not (("text" in item) ^ ("value" in item)):
             findings.append(_finding(
@@ -3581,13 +3593,13 @@ def _check_ui_delivery_sequence(active_items: dict) -> list:
     incident happened.
     """
     awaiting = [i for i, (t, it) in sorted(active_items.items())
-                if t in ("PR", "RQ") and it.get("class") != "technical_enabler"
+                if t in ("PR", "RQ") and it.get(GOAL_CLASS_FIELD) not in PRODUCTLESS_CLASSES
                 and it.get("status") == "DELIVERED"]
     if not awaiting:
         return []
     findings = []
     for item_id, (item_type, item) in sorted(active_items.items()):
-        if (item_type in ("PR", "RQ") and item.get("class") != "technical_enabler"
+        if (item_type in ("PR", "RQ") and item.get(GOAL_CLASS_FIELD) not in PRODUCTLESS_CLASSES
                 and item.get("status") == "IN_DELIVERY"):
             findings.append(_finding(
                 "error", item_id,

@@ -175,7 +175,7 @@ VERIFICATION_KIND = "verification"
 #     a copy of the largest store this project has, at roughly half that TTL
 #     (`project_memory/staging/TSK-0138/protocol.md`). NOT from the hook's budget, which is the
 #     mistake the first cut of this comment made: a kit hook runs against
-#     `_kernel.DEFAULT_WINDOW_SECONDS` minus its reserve, and the same batch spends about a
+#     `_compat.DEFAULT_WINDOW_SECONDS` minus its reserve, and the same batch spends about a
 #     twentieth of that. The cost per defect GROWS with the Evidence store, because the coverage
 #     walk recomputes an Evidence's ancestors once per target (`report.evidence_covers` ->
 #     `state.read_anywhere`); the same protocol carries that as a measured, unclosed finding with
@@ -374,13 +374,38 @@ def _revoked_dir(state: ProjectState) -> str:
     return os.path.join(state.root, "approvals", "revoked")
 
 
+def _withdrawn_dir(state: ProjectState) -> str:
+    return os.path.join(state.root, "approvals", "withdrawn")
+
+
 def _request_path(state: ProjectState, request_id: str, consumed: bool = False,
-                  revoked: bool = False) -> str:
-    if revoked:
+                  revoked: bool = False, withdrawn: bool = False) -> str:
+    if withdrawn:
+        base = _withdrawn_dir(state)
+    elif revoked:
         base = _revoked_dir(state)
     else:
         base = _consumed_dir(state) if consumed else _pending_dir(state)
     return os.path.join(base, request_id + ".yaml")
+
+
+def _ends_a_request_can_have() -> str:
+    """Every end at which a request's PENDING file is no longer there -- one phrase, one place.
+
+    THREE REFUSALS SPELLED THIS OUT INDEPENDENTLY and `mint`'s went stale the day the fourth end
+    was built (verifier round 2, R4): it named three while the code had four, and nothing could
+    notice. The ends that ARE a place are derived from `_request_path`'s own flags, so the next one
+    that gets a directory is named by every refusal at once; the two that are not a place -- the
+    file was cleaned after its TTL, or it never existed -- are named beside them.
+
+    `revoked` is reached through `consumed` rather than straight from `pending`, and it is named
+    anyway: what these sentences answer is "why is the pending file gone", and it is gone at that
+    end too.
+    `tools/test_approvals_dispatch.py::test_every_refusal_for_a_missing_request_names_every_end_it_has`
+    """
+    placed = sorted(name for name in inspect.signature(_request_path).parameters
+                    if name not in ("state", "request_id"))
+    return ", ".join(placed + ["expired-and-cleaned"]) + ", or never created"
 
 
 def push_subject_manifest(remote: str, branch: str, head: str) -> dict:
@@ -3087,6 +3112,13 @@ def _gone_request_user_text(state: ProjectState, request_id: str) -> str:
     if os.path.exists(_request_path(state, request_id, revoked=True)):
         return ("Es wurde keine Freigabe erteilt: die Freigabe zu dieser Frage wurde "
                 "zurückgezogen. " + NEXT_START_OVER)
+    # ...AND THE FOURTH OUTCOME (BUG-0302): the QUESTION was taken back before anybody answered it.
+    # Its own sentence rather than the blanket one below, for the reason the minted case has one:
+    # "expired or never created" would tell the user her click came too late, when what happened is
+    # that the question was replaced or dropped -- and nothing she did is in question.
+    if os.path.exists(_request_path(state, request_id, withdrawn=True)):
+        return ("Es wurde keine Freigabe erteilt: diese Frage wurde zurückgenommen, bevor sie "
+                "beantwortet wurde — an dir liegt es nicht. " + NEXT_START_OVER)
     return ("Es wurde keine Freigabe erteilt: zu dieser Frage ist keine Freigabe-Anfrage mehr "
             "offen — sie ist abgelaufen oder wurde nie angelegt. " + NEXT_START_OVER)
 
@@ -3107,12 +3139,13 @@ def mint(state: ProjectState, request_id: str, answer: str) -> dict:
             request = state._read_yaml(path)
         except FileNotFoundError:
             raise ApprovalError(
-                "no pending approval request %s (consumed, expired-and-cleaned, "
-                "or never created). Remedy: run the kernel approval flow again "
+                "no pending approval request %s (%s). Remedy: run the kernel "
+                "approval flow again "
                 "-- an invented request ID never mints. (A hand-WRITTEN pending "
                 "file with a self-chosen mint_code would mint; keeping the "
                 "pending-request area kernel-only is the write-scope gate's job, "
-                "and the state validator flags hand edits.)" % request_id,
+                "and the state validator flags hand edits.)"
+                % (request_id, _ends_a_request_can_have()),
                 user_text=_gone_request_user_text(state, request_id)
             ) from None
         if has_expired(request):
@@ -3448,8 +3481,31 @@ def has_expired(request: dict, now=None) -> bool:
         return True
 
 
-def sweep_expired_requests(state: ProjectState) -> dict:
+def stale_age_seconds(request: dict, now=None):
+    """How long this request has been standing, or None when its own stamp cannot be read.
+
+    None is not zero and not infinity: a request whose `created` this cannot parse is one the
+    staleness sweep leaves alone, the same way the expiry sweep leaves an unreadable file alone.
+    Removing what you could not judge is how a cleanup becomes a data loss.
+    """
+    stamp = str((request or {}).get("created") or "")
+    try:
+        born = time.mktime(time.strptime(stamp, "%Y-%m-%dT%H:%M:%S"))
+    except (TypeError, ValueError):
+        return None
+    return (time.time() if now is None else now) - born
+
+
+def sweep_expired_requests(state: ProjectState, stale_hours=None) -> dict:
     """Remove the pending requests that can never mint again. `{"removed", "kept", "unreadable"}`.
+
+    SINCE BUG-0302 IT ALSO ANSWERS TWO QUESTIONS THE EXPIRY CANNOT. `stale_hours` takes back the
+    questions that have been standing longer than the caller says a question of this project ever
+    should -- through `withdraw_request`, so a live question is never DELETED, only recorded as
+    taken back. And `dead` names the requests whose items are all archived: still live by the
+    clock, answerable by nobody (`is_dead`), which is the eleven-request case the bug measured.
+    A dead request is REPORTED and not removed: what to do about it is the lead's decision, and
+    `withdraw-request` is the door.
 
     THE MEASURED GAP (pilot 4, `P4-12`): an office project ended with three requests in
     `approvals/pending/` that nobody had answered. They were already inert -- `pending_request`
@@ -3467,7 +3523,8 @@ def sweep_expired_requests(state: ProjectState) -> dict:
     taken back.
     """
     directory = _pending_dir(state)
-    removed, kept, unreadable = [], [], []
+    removed, kept, unreadable, dead, stale = [], [], [], [], []
+    bound = None if stale_hours is None else float(stale_hours) * 3600.0
     with state.lock:
         names = sorted(os.listdir(directory)) if os.path.isdir(directory) else []
         for name in names:
@@ -3483,13 +3540,124 @@ def sweep_expired_requests(state: ProjectState) -> dict:
                 unreadable.append(name)
                 continue
             if not has_expired(request):
+                if is_dead(state, request):
+                    dead.append(str(request.get("request_id") or request_id))
+                age = stale_age_seconds(request)
+                if bound is not None and age is not None and age > bound:
+                    stale.append(str(request.get("request_id") or request_id))
+                    continue
                 kept.append(str(request.get("request_id") or request_id))
                 continue
             os.remove(_request_path(state, request_id))
             removed.append({"request_id": str(request.get("request_id") or request_id),
                             "kind": str(request.get("kind") or ""),
                             "item": str(request.get("item") or "")})
-    return {"removed": removed, "kept": kept, "unreadable": unreadable}
+    # OUTSIDE THE LOCK HOLD, because `withdraw_request` takes it itself -- and it is the one door
+    # that writes the record, so the staleness sweep cannot grow a second way of taking a question
+    # back (this lock is not reentrant).
+    #
+    # WHAT IT REPORTS IS WHAT IT DID, and one id that cannot be withdrawn does not end the run
+    # (verifier round 1, F8): between the read above and this loop a question may have been
+    # answered or withdrawn by somebody else, and `withdraw_request` raises for it. Reporting the
+    # ids it MEANT to take back, or dying on the first of them, would both be a cleanup whose
+    # report is untrue -- part withdrawn, no list. The failures come back under their own key.
+    withdrawn, refused = [], []
+    for request_id in stale:
+        try:
+            withdraw_request(state, request_id,
+                             "swept: standing longer than %s hours" % stale_hours)
+        except ApprovalError as exc:
+            # NOT back into `kept`: that line says "answering one of these still mints", and the
+            # measured case for this branch is a request that is GONE -- answered or withdrawn by
+            # somebody else between the read and this loop. It stands under its own key with the
+            # reason, which is the honest answer to "what happened to it".
+            refused.append("%s (%s)" % (request_id, str(exc).split(".")[0]))
+            continue
+        withdrawn.append(request_id)
+    # ...and a question this run took back is not reported as DEAD in the same breath: it is gone,
+    # and a reader who sees both lines cannot tell which one is current (F8, cosmetic but measured).
+    dead = [request_id for request_id in dead if request_id not in set(withdrawn)]
+    return {"removed": removed, "kept": kept, "unreadable": unreadable,
+            "dead": dead, "withdrawn": withdrawn, "not_withdrawable": refused}
+
+
+def request_items(request: dict) -> tuple:
+    """Every item id this request binds -- the one it names, or the list its manifest signs.
+
+    ONE reader for both shapes, because "what is this request about" is one question: a single-item
+    request carries `item`, a batch signs a list (`listed_items`), and a request that binds neither
+    (a push, a preset) answers with nothing at all rather than with a guess.
+    """
+    named = str(request.get("item") or "")
+    listed = tuple(str(one) for one in listed_items(request))
+    return ((named,) + listed) if named else listed
+
+
+def is_dead(state: ProjectState, request: dict) -> bool:
+    """Is every item this request binds already ARCHIVED -- so answering it could change nothing?
+
+    THE MEASURED CASE (BUG-0302): eleven batch requests stood in `approvals/pending/` naming holes
+    that had been triaged and archived in the meantime. They were still LIVE by the clock, so the
+    sweep kept them and the approval hook counted them at every later question -- while a click on
+    one of them would have failed at the walk, because the items it names are no longer active.
+    A request that binds NO item is never dead by this rule: there is nothing archived about it,
+    and a push or a preset question is answerable whatever the store looks like.
+    `tools/test_approvals_dispatch.py::test_a_request_whose_items_are_all_archived_is_reported_dead`
+    """
+    items = request_items(request)
+    if not items:
+        return False
+    for item_id in items:
+        if os.path.isfile(state.active_path(item_id)):
+            return False
+    return True
+
+
+def withdraw_request(state: ProjectState, request_id: str, reason: str) -> dict:
+    """Take back a pending question nobody answered -- the door BUG-0302 measured as missing.
+
+    WHY THE FILE MOVES INSTEAD OF BEING DELETED: this is the record that the question was taken
+    back, and it is kept exactly where every other end of an approval's life is kept
+    (`approvals/consumed/` for the minted one, `approvals/revoked/` for the withdrawn permission).
+    A deletion would leave the store saying nothing happened, and `_gone_request_user_text` would
+    have to tell a late clicker her answer came too late -- which is not what happened.
+
+    IT TAKES BACK THE QUESTION, NEVER AN ANSWER. Only a PENDING request is withdrawable: a request
+    that already minted lives in `consumed/` and its approval is revoked through `revoke`, which is
+    a different act with a different record. A request that is expired may still be withdrawn --
+    it cannot mint any more, but the file is what the hook counts, and counting is the noise this
+    door is against.
+
+    The REASON is required and stored: a record of a withdrawal that does not say why is a file the
+    next reader has to guess about.
+    `tools/test_approvals_dispatch.py::test_a_withdrawn_request_stops_being_open_and_mints_nothing`
+    """
+    sentence = " ".join(str(reason or "").split())
+    if not sentence:
+        raise ApprovalError(
+            "withdrawing request %s needs a reason -- the record has to say why the question was "
+            "taken back, or the next reader guesses. Remedy: pass `--reason '<sentence>'`."
+            % request_id)
+    with state.lock:
+        source = _request_path(state, request_id)
+        try:
+            request = state._read_yaml(source)
+        except FileNotFoundError:
+            raise ApprovalError(
+                "no pending approval request %s to withdraw (%s). Remedy: `sweep-requests` "
+                "lists what is still open." % (request_id, _ends_a_request_can_have()),
+                user_text=_gone_request_user_text(state, request_id)) from None
+        if not isinstance(request, dict):
+            raise ApprovalError(
+                "pending request %s is not a mapping -- fail-closed, nothing moved." % request_id)
+        record = dict(request)
+        record["withdrawn_at"] = _now_iso()
+        record["withdrawn_reason"] = sentence
+        target = _request_path(state, request_id, withdrawn=True)
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        state._write_yaml_atomic(target, record)
+        os.remove(source)
+    return record
 
 
 def pending_request(state: ProjectState, request_id: str, now=None) -> dict:
@@ -3507,9 +3675,8 @@ def pending_request(state: ProjectState, request_id: str, now=None) -> dict:
         request = state._read_yaml(_request_path(state, request_id))
     except FileNotFoundError:
         raise ApprovalError(
-            "no pending approval request %s (consumed, expired-and-cleaned, or "
-            "never created). Remedy: run the kernel approval flow again -- an "
-            "invented request id never mints." % request_id,
+            "no pending approval request %s (%s). Remedy: run the kernel approval flow again "
+            "-- an invented request id never mints." % (request_id, _ends_a_request_can_have()),
             user_text=_gone_request_user_text(state, request_id)
         ) from None
     except Exception as exc:

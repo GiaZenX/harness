@@ -403,15 +403,29 @@ def document_type_check(out, declared, match):
     return doc_type
 
 
-def vat_of(out, profile):
-    """(vat_rate, vat_treatment) the ledger row carries, or a Refusal the row cannot represent."""
+def vat_groups(out, profile):
+    """The rate groups this document books as -- one per VAT rate, in document order.
+
+    Each group is (vat_rate, vat_treatment, net, gross), and a document with ONE rate produces one
+    group whose net and gross are the document's own totals.
+
+    WHY A LIST (DEC-0108, the user's answer to H166/BUG-0248): a document carrying 7 % and 19 %
+    side by side is ordinary in trade, and until 2026-09-12 this docking point refused it with the
+    rates named, because `net x (1 + rate) = gross` is the identity every reader of the ledger
+    stands on and one row cannot hold two rates. The shape the user chose is one ROW PER RATE under
+    a SHARED invoice number: the identity then holds per row, the EUeR sums per rate as before, and
+    what counts documents counts distinct invoice numbers (`euer_report.document_key`).
+
+    THE SPLIT IS READ, NEVER DERIVED, and that is what decides which mixed document is still
+    refused: the per-rate base (BT-116) and tax (BT-117) come out of the document's own breakdown
+    (BG-23). A document whose breakdown this reader cannot read as figures keeps the refusal it had
+    -- deriving a base from the total would put a number in the books that the document never
+    states, which is the failure mode the whole docking point is built against (BR-CO-14 stays, and
+    it is checked before this runs).
+    """
     categories = out.get("tax_categories") or []
     rates = sorted({str(rate).strip() for _code, rate in categories if str(rate).strip()})
     codes = sorted({str(code).strip() for code, _rate in categories if str(code).strip()})
-    if len(rates) > 1:
-        raise Refusal("the document carries %d VAT rates (%s); one ledger row carries one rate, "
-                      "so this document is booked by hand, line group by line group."
-                      % (len(rates), ", ".join(rates)))
     rate = rates[0] if rates else "0"
     # A CODE THIS TABLE DOES NOT CARRY IS NOT A CODE THIS SCRIPT MAY BOOK. `VAT_TREATMENT.get`
     # answers None for one, and until 2026-09-05 the None was filtered out and the fallback below
@@ -449,7 +463,48 @@ def vat_of(out, profile):
     kleinunternehmer = ((profile.get("tax") or {}).get("kleinunternehmer") is True)
     if kleinunternehmer and tax == 0:
         treatment, rate = "kleinunternehmer", "0"
-    return rate, treatment
+    if len(rates) <= 1:
+        return [(rate, treatment, str(out.get("net")), str(out.get("gross")))]
+    return _rate_groups(out, treatment)
+
+
+def _rate_groups(out, treatment):
+    """One (rate, treatment, net, gross) per breakdown entry of a MIXED-rate document.
+
+    THE THREE LISTS ARE ONE TABLE, read positionally as the extractor produced them
+    (`tax_categories`, `tax_basis`, `tax_breakdown` -- BT-95/BT-116/BT-117 of one BG-23 entry), so
+    a document whose lists are of different lengths is one this reader cannot pair up and is
+    refused rather than guessed at. Entries sharing a rate are summed into ONE row: two BG-23
+    entries with the same percentage (different category codes, say) are one rate group for the
+    ledger, and two rows differing in nothing but their id would be a double booking to
+    `ledger_add.validate_cross`.
+    """
+    categories = out.get("tax_categories") or []
+    basis = out.get("tax_basis") or []
+    taxes = out.get("tax_breakdown") or []
+    if not (len(categories) == len(basis) == len(taxes)):
+        raise Refusal("the document carries %d VAT rates, and its own breakdown (BG-23) states "
+                      "%d taxable bases and %d tax amounts for them -- this docking point books "
+                      "one row per rate and reads every figure off the document, so a breakdown "
+                      "it cannot pair up is booked by hand."
+                      % (len({str(r).strip() for _c, r in categories if str(r).strip()}),
+                         len(basis), len(taxes)))
+    groups, order = {}, []
+    for (_code, percent), base, tax in zip(categories, basis, taxes):
+        rate = str(percent).strip() or "0"
+        net = reader._amount(base)
+        amount = reader._amount(tax)
+        if net is None or amount is None:
+            raise Refusal("the document states its %s %% VAT group as base %r and tax %r, and one "
+                          "of the two is not a number this reader understands -- refused: a mixed "
+                          "document books one row per rate and every figure of those rows stands "
+                          "in the document or it is not booked." % (rate, base, tax))
+        if rate not in groups:
+            order.append(rate)
+            groups[rate] = [Decimal("0"), Decimal("0")]
+        groups[rate][0] += net
+        groups[rate][1] += net + amount
+    return [(rate, treatment, str(groups[rate][0]), str(groups[rate][1])) for rate in order]
 
 
 def _plan_rules():
@@ -584,31 +639,47 @@ def judge(source, args):
         raise Refusal(refusal)
     verdict["continuity"] = sentence
     category = category_check(declared, vocabulary)
-    rate, treatment = vat_of(out, profile)
+    groups = vat_groups(out, profile)
     destination, rule_id = destination_of(out, declared, source)
     verdict["filing"] = {"destination": destination, "rule_id": rule_id,
                          "move": "mv %s %s" % (source.replace("\\", "/"), destination)}
-    booked = {"doc_date": out["issue_date"], "payment_date": args.payment_date or "",
-              "direction": "income", "doc_type": doc_type,
-              "counterparty": str(out.get("buyer") or ""),
-              "invoice_no": str(out.get("invoice_no") or ""), "net": str(out.get("net")),
-              "vat_rate": rate, "gross": str(out.get("gross")), "vat_treatment": treatment,
-              "category": category, "source": destination}
-    findings = ledger_add.validate_row(booked, "the row this verdict would book")
-    if findings:
-        raise Refusal(
-            "the booking line this document produces is one the ledger itself refuses -- %s. "
-            "Refused HERE, so a verdict never promises a booking that cannot happen." %
-            "; ".join(findings))
-    # ONE TOKEN PER FLAG (`--flag=value`), and that is the second half of the promise above.
-    # `validate_row` judges the DICT; the argv rendered from it is parsed by argparse, which reads
-    # a value beginning with `-` as an option -- measured 2026-09-06 with a buyer literally named
-    # `--doc-type`: the verdict was rc 0 and `ledger_add` came back rc 2 with an argparse usage
-    # message. In the `=` form the value's first character decides nothing.
-    row = ["--year=%s" % out["issue_date"][:4]]
-    row += ["%s=%s" % (flag, booked[key]) for flag, key in ROW_FLAGS]
-    row += ["--payment-date=%s" % args.payment_date] if args.payment_date else ["--open"]
-    verdict["booking"] = {"ledger_add": row}
+    # ONE ROW PER RATE GROUP (DEC-0108), and for a single-rate document that is exactly the one row
+    # this produced before. Every row carries the SAME invoice number on purpose: it is what makes
+    # the several rows one document to every reader that counts documents, and what keeps
+    # `ledger_add.validate_cross` from reading the second row as a second booking of the first --
+    # its duplicate key carries the rate for that reason.
+    rows = []
+    for rate, treatment, net, gross in groups:
+        booked = {"doc_date": out["issue_date"], "payment_date": args.payment_date or "",
+                  "direction": "income", "doc_type": doc_type,
+                  "counterparty": str(out.get("buyer") or ""),
+                  "invoice_no": str(out.get("invoice_no") or ""), "net": net,
+                  "vat_rate": rate, "gross": gross, "vat_treatment": treatment,
+                  "category": category, "source": destination}
+        findings = ledger_add.validate_row(booked, "the row this verdict would book")
+        if findings:
+            raise Refusal(
+                "the booking line this document produces is one the ledger itself refuses -- %s. "
+                "Refused HERE, so a verdict never promises a booking that cannot happen." %
+                "; ".join(findings))
+        # ONE TOKEN PER FLAG (`--flag=value`), and that is the second half of the promise above.
+        # `validate_row` judges the DICT; the argv rendered from it is parsed by argparse, which
+        # reads a value beginning with `-` as an option -- measured 2026-09-06 with a buyer
+        # literally named `--doc-type`: the verdict was rc 0 and `ledger_add` came back rc 2 with
+        # an argparse usage message. In the `=` form the value's first character decides nothing.
+        row = ["--year=%s" % out["issue_date"][:4]]
+        row += ["%s=%s" % (flag, booked[key]) for flag, key in ROW_FLAGS]
+        row += ["--payment-date=%s" % args.payment_date] if args.payment_date else ["--open"]
+        rows.append(row)
+    # TWO KEYS, AND THE SECOND IS ABSENT ON PURPOSE FOR A MIXED DOCUMENT. `rows` is what this
+    # verdict books; `ledger_add` is the single command line the interface contract names, and a
+    # document that produces several rows HAS no single line. Carrying the first row under that key
+    # would hand an application following the contract one rate group of a document and say nothing
+    # about the rest -- a silent under-booking, where a missing key is a loud one. The contract page
+    # (docs/office/invoice-app-docking-point.md) states the pair.
+    verdict["booking"] = {"rows": rows}
+    if len(rows) == 1:
+        verdict["booking"]["ledger_add"] = rows[0]
     return verdict
 
 
@@ -638,12 +709,21 @@ def book(verdict):
     if not os.path.isfile(destination):
         raise Refusal("nothing stands at %s yet -- book AFTER the move (the row's source column "
                       "names the archive path)." % verdict["filing"]["destination"])
-    result = subprocess.run([sys.executable, "-B", os.path.join(HERE, "ledger_add.py")]
-                            + verdict["booking"]["ledger_add"], capture_output=True, text=True,
-                            encoding="utf-8", errors="replace", timeout=120)
-    if result.returncode != 0:
-        raise Refusal("ledger_add.py refused the row: %s" % (result.stderr.strip() or result.stdout))
-    return result.stdout.strip()
+    # EVERY ROW OF THE DOCUMENT, in order, and the first refusal ends it: a mixed-rate document is
+    # several rows under one invoice number (DEC-0108), and a partially booked document is the one
+    # outcome worse than an unbooked one -- so the refusal names how many rows did go in.
+    booked = []
+    for index, row in enumerate(verdict["booking"]["rows"]):
+        result = subprocess.run([sys.executable, "-B", os.path.join(HERE, "ledger_add.py")] + row,
+                                capture_output=True, text=True,
+                                encoding="utf-8", errors="replace", timeout=120)
+        if result.returncode != 0:
+            raise Refusal("ledger_add.py refused row %d of %d%s: %s"
+                          % (index + 1, len(verdict["booking"]["rows"]),
+                             " (rows 1-%d of this document are booked)" % index if index else "",
+                             result.stderr.strip() or result.stdout))
+        booked.append(result.stdout.strip())
+    return " | ".join(booked)
 
 
 def main(argv=None):
@@ -685,9 +765,11 @@ def main(argv=None):
                  verdict["continuity"]))
         print("[intake] filing:  %s   (rule %s)" % (verdict["filing"]["move"],
                                                     verdict["filing"]["rule_id"]))
-        line = printable(verdict["booking"]["ledger_add"])
-        if line:
-            print("[intake] booking: python scripts/ledger_add.py %s" % line)
+        lines = [printable(row) for row in verdict["booking"]["rows"]]
+        if all(lines):
+            for index, line in enumerate(lines):
+                print("[intake] booking%s: python scripts/ledger_add.py %s"
+                      % (" %d/%d" % (index + 1, len(lines)) if len(lines) > 1 else "", line))
         else:
             print("[intake] booking: this document carries a value no command line can be retyped "
                   "with (a quotation mark in a name, say), so none is printed. Run `python "

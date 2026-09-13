@@ -1,0 +1,27 @@
+id: EVD-0440
+kind: test
+related:
+- BUG-0237
+result: pass
+summary: 'SUPERSEDES EVD-0431, whose sentence was too broad. EVD-0431 said ''refusal
+  at capture and update''; verifier round 1 (F1) measured that ONE extra key in the
+  body -- legacy_fields -- bought any class at all at both doors (capture PR rc 0).
+  The exemption is now the PATH: state.capture/capture_preflight take imported=, only
+  kernel/migrate.py passes it, and the provenance field itself is refused in an ordinary
+  capture or update body. Measured against the shipped CLI after the fix: capture
+  with the smuggled body rc 1, update rc 1, stored class unchanged; the import path
+  still keeps the value it found. dispatch.py''s comment no longer claims what the
+  code does not build.'
+artifact_refs:
+- staging/TSK-0146/protocol.md
+run_command: python -B -m pytest tools/test_state.py::test_a_legacy_key_in_a_typed_body_opens_no_door
+  tools/test_state.py::test_a_goal_class_outside_the_vocabulary_is_refused_at_both_doors
+  tools/test_backlog_types.py::test_every_goal_size_word_is_told_apart_by_a_property_a_reader_asks
+  tools/test_backlog_types.py::test_every_property_the_vocabulary_declares_is_asked_by_a_reader
+  tools/test_backlog_types.py::test_only_the_kernels_own_readers_count_as_having_asked
+  tools/test_migrate.py::test_the_goal_class_plan_reads_every_stored_goal_and_writes_only_the_active_strays
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-13T01:44:33'

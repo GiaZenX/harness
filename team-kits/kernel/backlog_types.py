@@ -19,6 +19,7 @@ flag (`blocked_by`), never a status.
 from __future__ import annotations
 
 import re
+import sys
 from collections.abc import Iterable
 from datetime import date
 
@@ -467,6 +468,167 @@ REQUIRED_FIELDS = {
     "MST": ("title", "due", "derives_from"),
 }
 
+
+# -- the goal-size vocabulary (DEC-0103) ---------------------------------------
+
+# The field a root goal states its size in. Named once, because three modules read it and a fourth
+# one (the migration door) rewrites it.
+GOAL_CLASS_FIELD = "class"
+
+
+class GoalClass:
+    """One word of the goal-size vocabulary, and the PROPERTIES its readers ask of it.
+
+    WHY PROPERTIES AND NOT A FLAT SET OF WORDS (DEC-0103, H155/BUG-0237): three places decide
+    something from a root goal's `class`, and until this each carried its own literal --
+    `dispatch.SR_EXEMPT_CLASSES`, the effort key a kit's ladder declaration names for the big goal,
+    and the user-story duty in `report`. A word and its readers could drift apart in BOTH
+    directions, which is exactly what DEC-0103's two-ended tripwire measures, so a word is read
+    only through `goal_classes_where` and no reader spells one:
+    `tools/test_backlog_types.py::test_every_goal_size_word_is_told_apart_by_a_property_a_reader_asks`
+    `tools/test_backlog_types.py::test_a_reader_asking_for_a_property_no_word_carries_is_refused`
+
+    `does` is not decoration: it is the half of the refusal that tells a role WHICH word its goal
+    is, and DEC-0103 asks for the four words and what each does in the sentence a role meets at
+    `capture` and `update` (`state._assert_closed_vocabularies`).
+    """
+
+    __slots__ = ("word", "does", "skips_architect_step", "lifts_effort", "carries_product_content")
+
+    def __init__(self, word, does, *, skips_architect_step, lifts_effort,
+                 carries_product_content):
+        self.word = word
+        self.does = does
+        self.skips_architect_step = skips_architect_step
+        self.lifts_effort = lifts_effort
+        self.carries_product_content = carries_product_content
+
+    def __repr__(self):
+        return "GoalClass(%r)" % self.word
+
+
+# The properties DERIVED from the shape of the class above, so a new one arrives with the tripwire
+# instead of beside it: everything a word carries except its own name and its sentence.
+GOAL_CLASS_PROPERTIES = tuple(name for name in GoalClass.__slots__
+                              if name not in ("word", "does"))
+
+GOAL_CLASSES = {klass.word: klass for klass in (
+    GoalClass("small",
+              "a clear-cut change; it skips the architecture step",
+              skips_architect_step=True, lifts_effort=False, carries_product_content=True),
+    GoalClass("normal",
+              "ordinary product work",
+              skips_architect_step=False, lifts_effort=False, carries_product_content=True),
+    GoalClass("large",
+              "several building blocks; the architecture step comes first, and an order under it "
+              "runs at the effort the kit declares for the big goal",
+              skips_architect_step=False, lifts_effort=True, carries_product_content=True),
+    GoalClass("technical_enabler",
+              "under-the-hood rework; it skips the architecture step because there is nothing to "
+              "design, and it owes no user story",
+              skips_architect_step=True, lifts_effort=False, carries_product_content=False),
+)}
+
+# WHICH TYPES THE VOCABULARY BINDS is derived from the field contract -- every type whose
+# `REQUIRED_FIELDS` name `class` -- and not from the type name `PR`. DEC-0103 was written about the
+# dev/office root; the research root (`RQ`) carries the same field and the SAME readers read it
+# (`dispatch.architect_step_owed` and `ladder_for_order` take the root whatever its type is, and
+# `report._check_ui_delivery_sequence` asks `PR` and `RQ` in one breath), so a vocabulary bound to
+# one type would leave the other free-text while its readers went on deciding from it. What it
+# costs is said rather than hidden: a research project that spelled its question class freely now
+# meets the refusal at `capture RQ`, and the migration door below is its remedy.
+GOAL_CLASS_TYPES = frozenset(item_type for item_type, fields in REQUIRED_FIELDS.items()
+                             if GOAL_CLASS_FIELD in fields)
+
+# WHICH PROPERTIES A READER OF THIS KERNEL ASKED FOR -- and the qualifier is the whole point.
+# Measured (verifier round 1, F2): with every caller counted, a TEST that asks a property registers
+# it, so the tripwire's second end went green as soon as some earlier test in the same process had
+# asked -- the file order decided the verdict, and `-p xdist --dist load` or one new test above
+# would have switched it off silently. The calling module is read from the frame rather than passed
+# in, because a parameter would be one more thing a caller could get wrong (and a test could set).
+_GOAL_CLASS_PROPERTIES_ASKED = set()
+_READER_PACKAGE = __name__.split(".")[0]
+
+
+def _remember_who_asked(carries: str) -> None:
+    """Record the ask when the first caller OUTSIDE this module belongs to the kernel.
+
+    The frames of this module are skipped rather than counted from a fixed depth: `goal_classes_
+    without` and `the_one_goal_class_where` ask on their caller's behalf, so a fixed depth made
+    every one of THEIR callers -- a test included -- look like a kernel reader, which is exactly
+    the hole this register was corrected for (verifier round 1, F2; measured again as the mutation
+    `report_reader_back_to_a_literal` staying green afterwards).
+    """
+    frame = sys._getframe(1)
+    while frame is not None and frame.f_globals.get("__name__") == __name__:
+        frame = frame.f_back
+    caller = str((frame.f_globals.get("__name__") if frame is not None else "") or "")
+    if caller == _READER_PACKAGE or caller.startswith(_READER_PACKAGE + "."):
+        _GOAL_CLASS_PROPERTIES_ASKED.add(carries)
+
+
+def goal_classes_where(carries: str) -> frozenset:
+    """The goal-size words carrying this property -- the ONE way a reader names a class (DEC-0103).
+
+    A property no word declares is a KeyError here rather than an empty set, because an empty set
+    is a reader that quietly decides nothing: `SR_EXEMPT_CLASSES` derived from a misspelt property
+    would exempt no goal and the architect step would be demanded of every one of them.
+    """
+    if carries not in GOAL_CLASS_PROPERTIES:
+        raise KeyError(
+            "no goal class declares a property %r; the vocabulary carries %s (DEC-0103). Remedy: "
+            "ask for one of those, or declare the new property on `GoalClass` and say for every "
+            "word whether it carries it."
+            % (carries, ", ".join(GOAL_CLASS_PROPERTIES)))
+    _remember_who_asked(carries)
+    return frozenset(word for word, klass in GOAL_CLASSES.items() if getattr(klass, carries))
+
+
+def goal_classes_without(carries: str) -> frozenset:
+    """The words that do NOT carry this property -- the complement over the vocabulary, for a
+    reader whose DUTY is skipped by the property rather than demanded by it.
+
+    A value the vocabulary does not know is in NEITHER set, and that is the whole point of taking
+    the complement here instead of writing `not in goal_classes_where(...)` at the reader: a legacy
+    or misspelt class keeps being ASKED, because an unrecognised value must not skip a check
+    (the failure `EVIDENCE_KINDS` names one file away, and `SR_EXEMPT_CLASSES` the same one).
+    """
+    return frozenset(GOAL_CLASSES) - goal_classes_where(carries)
+
+
+def the_one_goal_class_where(carries: str) -> str:
+    """The SINGLE word carrying this property, or a refusal naming how many carry it.
+
+    For the reader whose answer is a word and not a set -- the effort key a ladder declaration
+    names for the big goal is one value, and a second word carrying `lifts_effort` would make that
+    declaration ambiguous rather than wider.
+    """
+    words = sorted(goal_classes_where(carries))
+    if len(words) != 1:
+        raise KeyError(
+            "%d goal classes carry %r (%s) and this reader answers with ONE word (DEC-0103). "
+            "Remedy: either the property belongs to exactly one word, or the reader takes the set "
+            "through `goal_classes_where`."
+            % (len(words), carries, ", ".join(words) or "-"))
+    return words[0]
+
+
+def goal_class_properties_asked() -> frozenset:
+    """Which properties the KERNEL's own readers have asked for -- the tripwire's second end.
+
+    Filled by `goal_classes_where` through `_remember_who_asked`, so it answers about the code that
+    ran and not about a list: a property nobody asks is dead weight, and a word only such a
+    property tells apart is a word no reader can see. The tripwire imports the reader modules first
+    and then asks (`tools/test_backlog_types.py`).
+
+    ONLY `%s.*` CALLERS COUNT. A test that asks a property is not a reader of the rule, and while
+    every caller counted, the second end of the tripwire was green whenever some earlier test in
+    the same process happened to ask -- measured by the verifier of round 1 (F2) on the isolated
+    node order, where the mutation `report.PRODUCTLESS_CLASSES` back to a literal stayed green.
+    `tools/test_backlog_types.py::test_only_the_kernels_own_readers_count_as_having_asked`
+    """ % _READER_PACKAGE
+    return frozenset(_GOAL_CLASS_PROPERTIES_ASKED)
+
 # The OTHER half of the same contract: fields spec II.2 declares for a type and
 # lets it omit. Machine-readable for the reason `schemas.item_field_contracts`
 # reports every DECLARED field rather than only the required ones -- whether a
@@ -524,6 +686,12 @@ BLOCKED_REASON_FIELD = "blocked_reason"
 # The field the pair is about, named once so the rule and everything that has to SATISFY the rule
 # (the capture path, the CLI, the suite's contract fixture) read one spelling.
 EVIDENCE_RESULT_FIELD = "result"
+
+# The field the classification stands in on the ORDER, and the field that says WHOSE it is. Both
+# are kernel-written (`dispatch.record_fail_class`) and refused on the edit path, which is what
+# DEC-0107 means by "the PM never sets it -- it has no command for it".
+FAIL_CLASS_FIELD = "fail_class"
+FAIL_CLASS_BY_FIELD = "fail_class_by"
 
 
 # -- a HOLE: a measured gap the project does not close (FR-0087, DEC-0073) -----
@@ -728,7 +896,14 @@ OPTIONAL_FIELDS = {
     # of that pair declare it -- see `scopes.pair_seam` for why a one-sided declaration is not one.
     # `TSK_RUNG_FIELD` / `TSK_EFFORT_FIELD` are the PM's ask per order (DEC-0091 (1)); optional
     # because most orders take the ladder's own answer, and an ask is the exception the PM names.
-    "TSK": ("design_ref", "seam_scope", TSK_RUNG_FIELD, TSK_EFFORT_FIELD),
+    # `FAIL_CLASS_FIELD` / `FAIL_CLASS_BY_FIELD` are DEC-0107's pair on the ORDER: what the
+    # verifying role called the failed run, and which role called it that. Optional because
+    # most runs carry none, KERNEL-written because a role that could type its own would be
+    # classifying the work it is being judged on, and CONSUMED by the next lease
+    # (`dispatch.count_failed_run_locked`), so a stored order carries them only between a
+    # failed run and its retry.
+    "TSK": ("design_ref", "seam_scope", TSK_RUNG_FIELD, TSK_EFFORT_FIELD,
+            FAIL_CLASS_FIELD, FAIL_CLASS_BY_FIELD),
     # OPTIONAL and not required, and the reason is the type: an `EVD` is immutable, so a field
     # made required here would turn every Evidence a project already holds into a validator error
     # with no command that could repair it. What that costs is counted where it is judged -- H108
@@ -738,7 +913,7 @@ OPTIONAL_FIELDS = {
     # See RUN_SCOPES. `BLOCKED_REASON_FIELD` rides here for the same reason and one more: it is
     # required only for the ONE result value that owes it (`state.capture_preflight`), so making it
     # a required field of the type would demand it of every passing record too.
-    "EVD": RUN_RECORD_FIELDS + (BLOCKED_REASON_FIELD,),
+    "EVD": RUN_RECORD_FIELDS + (BLOCKED_REASON_FIELD, FAIL_CLASS_FIELD),
     # WHICH ITEMS A DECISION COMMITS SOMEBODY TO BUILD (FR-0012, decided as DEC-0083 option A).
     # `none` where it commits nobody -- a naming rule, a verdict -- or the ids of the items that
     # carry the work, resolved like every other binding. OPTIONAL for the reason every field added
@@ -1297,7 +1472,60 @@ PASSING_RESULT = "pass"
 # the word (`BLOCKED_REASON_FIELD`, enforced in `state.capture_preflight`) and why every surface
 # that reports such a verdict says that nothing was checked -- otherwise the next reader takes a
 # `blocked` for a checked fact, which is the one failure mode the wishlist section names.
-EVIDENCE_RESULTS = frozenset((PASSING_RESULT, "fail", BLOCKED_RESULT))
+# The verdict a QA run ends in when the work is not accepted. Named because three readers ask for
+# it now -- the merge gate through `PASSING_RESULT`'s complement, the fail classification of
+# DEC-0107, and the vocabulary below -- and a fourth spelling of the same word is how a rule and
+# the record it judges come apart.
+FAILING_RESULT = "fail"
+EVIDENCE_RESULTS = frozenset((PASSING_RESULT, FAILING_RESULT, BLOCKED_RESULT))
+
+
+# -- the fail classification (DEC-0107) ----------------------------------------
+
+class FailClass:
+    """One word of the fail classification, and the single property the ladder asks of it.
+
+    WHY A PROPERTY AND NOT THE WORD `mechanical` IN `count_failed_run_locked` (DEC-0107, the same
+    argument as `GoalClass` one screen up): the counter asks "does this run climb the rung", which
+    is a fact about the classification and not about its spelling. A renamed word is then a
+    refusal at the vocabulary rather than a rule that quietly stops firing.
+    `tools/test_ladder.py::test_a_mechanical_fail_does_not_climb_and_an_ordinary_one_does`
+    """
+
+    __slots__ = ("word", "does", "climbs_the_rung")
+
+    def __init__(self, word, does, *, climbs_the_rung):
+        self.word = word
+        self.does = does
+        self.climbs_the_rung = climbs_the_rung
+
+    def __repr__(self):
+        return "FailClass(%r)" % self.word
+
+
+FAIL_CLASSES = {klass.word: klass for klass in (
+    FailClass("mechanical",
+              "a typo, a wrong path, a rename the fix missed -- the run failed on something narrow "
+              "and not on how the work was thought; it does not climb the rung",
+              climbs_the_rung=False),
+    FailClass("reasoning",
+              "the work was thought wrong rather than typed wrong -- the ordinary failed run, and "
+              "it climbs the rung",
+              climbs_the_rung=True),
+)}
+
+def fail_classes_that_do_not_climb() -> frozenset:
+    """The classifications a failed run is NOT counted for (DEC-0107).
+
+    Empty would mean the classification buys nothing at all, which is a rule that reads exactly
+    like a working one -- so it is refused here rather than discovered at the next escalation.
+    """
+    words = frozenset(word for word, klass in FAIL_CLASSES.items() if not klass.climbs_the_rung)
+    if not words:
+        raise KeyError(
+            "no fail classification is declared as not climbing the rung, so DEC-0107's whole "
+            "distinction would buy nothing. Remedy: declare one, or retire the field.")
+    return words
 
 
 # Types that are a RECORD of something that already happened rather than a piece of

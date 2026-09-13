@@ -2480,6 +2480,16 @@ def dispatched_repo(tmp_path, **task_overrides):
     return state, task, dispatch.dispatch_header(lease)
 
 
+def run_dispatch_env(tmp_path, payload, extra_env, kit="dev-team"):
+    """`run_dispatch` with an environment on top -- the kit store is the running HOME's."""
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path), HARNESS_KERNEL_PATH=TEAM_KITS)
+    env.update(extra_env or {})
+    return subprocess.run([sys.executable, os.path.join(TEAM_KITS, kit, "hooks",
+                                                        "gate_dispatch.py")],
+                          input=json.dumps(payload), capture_output=True, text=True,
+                          env=env, timeout=120)
+
+
 def run_dispatch(tmp_path, payload, kit="dev-team"):
     env = dict(os.environ, CLAUDE_PROJECT_DIR=str(tmp_path), HARNESS_KERNEL_PATH=TEAM_KITS)
     return subprocess.run([sys.executable, os.path.join(TEAM_KITS, kit, "hooks",
@@ -4692,6 +4702,172 @@ def shell_payload(tmp_path, command):
             "tool_input": {"command": command}}
 
 
+def _declare_the_kit_of(tmp_path, home, kit="dev-team"):
+    """Make a fixture project one that a KIT installed, so the ladder declaration can be read.
+
+    `dispatch.kit_installation` asks two things (DEC-0079 (4)): the scaffold's ownership manifest
+    in the project, and the kit store of the RUNNING home directory. Every other user of
+    `dispatched_repo` builds a project with no scaffold record and therefore no declaration; the
+    class rule below is exactly the one that needs one, so this fixture supplies both.
+    """
+    write(str(tmp_path / ".claude" / "team_kit_roles.txt"),
+          "# agents-and-skills:team-kit-roles v1 team=%s count=1\nproject-manager\n" % kit)
+    staged = home / ".claude" / "team-kits" / kit
+    os.makedirs(str(staged), exist_ok=True)
+    shutil.copyfile(os.path.join(TEAM_KITS, kit, "ladder.yaml"), str(staged / "ladder.yaml"))
+    return {"HOME": str(home), "USERPROFILE": str(home)}
+
+
+def test_a_quoted_expansion_the_parser_takes_as_a_value_is_not_a_classification(tmp_path):
+    """The measured OVER-refusal of the composed-word rule, closed at its mechanism (TSK-0149).
+
+    Verifier B, round 2 (F3): every `$` and every backtick anywhere on an `evidence` line was read
+    as "cannot be placed", so `--run-command "$(cat cmd.txt)"` and `--related "$ID"` -- the two
+    lines the QA role types every day -- came back rc 2 at both pilots. The rule is about whether
+    the SHELL can hand the parser an option nobody wrote, and that is a question of POSITION.
+
+    WHY THIS IS NOT "narrow it to unquoted expansions", which is what the remainder row proposed:
+    the case that made the rule exist is `a="--"; b="fail-class"; ... "$a$b" mechanical`, and that
+    one IS quoted. It is refused because it stands in no value position, and the last two
+    measurements below hold exactly that line and its unquoted cousin.
+
+    A PROCESS AT THE SESSION INSTANCE, which is the writer every reading refuses, so rc 0 versus
+    rc 2 isolates the READER and nothing else.
+
+    RED without the narrowing: the four excused lines come back rc 2.
+    RED without the value-position condition: the last two come back rc 0.
+    """
+    home = tmp_path / "home"
+    state, task = bound_repo(tmp_path, agent_id="child-1")
+    env = _declare_the_kit_of(tmp_path, home)
+    head = ('python scripts/harness.py evidence --kind test --result pass --related %s '
+            % task["id"])
+    tail = ' --run-scope selection'
+
+    excused = [
+        head + '--summary x --artifact-ref staging/x/r.log --run-command "$(cat cmd.txt)"' + tail,
+        head.replace(task["id"], '"$ID"') + '--summary x --artifact-ref a --run-command c' + tail,
+        head + '--summary "$MSG" --artifact-ref staging/x/r.log --run-command c' + tail,
+        head + "--summary 'it costs $5' --artifact-ref a --run-command c" + tail,
+    ]
+    for line in excused:
+        answer = run_dispatch_env(tmp_path, shell_payload(tmp_path, line), env)
+        assert answer.returncode == 0, (line, answer.stderr[:400])
+
+    refused = [
+        # quoted, but in NO value position: this is the line the rule was built for
+        head + '--summary x --artifact-ref a --run-command c "$a$b" mechanical' + tail,
+        # unquoted, even in value position: it word-splits, so the words after the first land in
+        # option position
+        head + '--summary $MSG --artifact-ref a --run-command c' + tail,
+    ]
+    for line in refused:
+        answer = run_dispatch_env(tmp_path, shell_payload(tmp_path, line), env)
+        assert answer.returncode == 2, (line, answer.stdout[:200])
+        assert "word the shell builds" in answer.stderr, (line, answer.stderr[:400])
+
+
+def test_an_everyday_line_that_only_looks_like_a_classification_is_left_alone(tmp_path):
+    """Verifier round 1, F2: `curl --fail https://…` was refused in every kit project.
+
+    `--fail` IS a prefix of `--fail-class`, and reading prefixes is right -- argparse reads them
+    too. What was missing is the first condition: a line that cannot reach the kernel CLI at all
+    cannot hand it a classification. Measured by the verifier as a real hook process against two
+    pilots, from the session instance AND from a bound child: rc 2 with "the session instance may
+    not classify a failed run". The false-alarm row of the first cut asked only about
+    `git status --short` -- a line with no `--f…` prefix in it, so it could not see the class.
+
+    THE COST THIS ALSO BUYS, measured: before the condition every line with ANY long option paid
+    the kernel import (0.24-0.30 s against 0.12-0.20 s without one). Now only a line that names the
+    harness does.
+    """
+    home = tmp_path / "home"
+    state, task = bound_repo(tmp_path, agent_id="child-1")
+    env = _declare_the_kit_of(tmp_path, home)
+    for line in ("curl --fail https://example.com/x.json",
+                 "python -m pytest tools/test_hooks.py -q --failed-first",
+                 "git log --format=%h --first-parent -n 5",
+                 "docker build --file Dockerfile .",
+                 "rsync --files-from=list.txt src/ dst/"):
+        for extra in ({}, {"agent_id": "child-1", "agent_type": "backend-developer"}):
+            payload = dict(shell_payload(tmp_path, line), **extra)
+            result = run_dispatch_env(tmp_path, payload, env)
+            assert result.returncode == 0, (line, extra, result.stdout, result.stderr)
+
+
+def test_the_fail_classification_is_refused_from_every_writer_but_the_verifying_one(tmp_path):
+    """DEC-0107 / BUG-0260, the hook half, as a PROCESS: who may call a failed run mechanical.
+
+    The user's answer to H178 was (b) with a condition -- "mit Hook gemessen, keine
+    Gewohnheitsaktionen". The kernel refuses what the STATE can see, the role a bound lease names
+    (`dispatch.fail_class_refusal`). The one writer it cannot see is the SESSION INSTANCE typing
+    the command itself while a specialist's lease is bound: to the kernel that write is the
+    specialist's. So the hook measures the writer -- and this runs it as a real hook process,
+    because "the PM has no command for it" is a claim about a registration, not about a function.
+
+    SIX MEASUREMENTS, one per writer the rule distinguishes: the session instance, a bound child of
+    the judged class, a bound child of the judging class, an agent no lease binds, the same call
+    written as the ABBREVIATION argparse really accepts, and an ordinary shell line that carries no
+    classification at all (which must stay rc 0 -- a gate that refuses everything buys nothing).
+
+    RED WITHOUT THE FIX, measured in a .git-less copy outside the repo: drop the call to
+    `_refuse_a_classification_the_judged_role_wrote` from `handle_pre_tool_use` and the first,
+    second, fourth and fifth measurements return rc 0.
+    """
+    home = tmp_path / "home"
+    state, task = bound_repo(tmp_path, agent_id="child-1")
+    env = _declare_the_kit_of(tmp_path, home)
+    line = ('python scripts/harness.py evidence --kind test --result fail '
+            '--fail-class mechanical --related %s --summary x' % task["id"])
+
+    lead = run_dispatch_env(tmp_path, shell_payload(tmp_path, line), env)
+    assert lead.returncode == 2, (lead.stdout, lead.stderr)
+    assert "session instance may not classify" in lead.stderr, lead.stderr[:400]
+
+    judged = run_dispatch_env(tmp_path, dict(shell_payload(tmp_path, line), agent_id="child-1",
+                                             agent_type="backend-developer"), env)
+    assert judged.returncode == 2, (judged.stdout, judged.stderr)
+    assert "class 'build'" in judged.stderr, judged.stderr[:400]
+
+    stranger = run_dispatch_env(tmp_path, dict(shell_payload(tmp_path, line), agent_id="nobody",
+                                               agent_type="backend-developer"), env)
+    assert stranger.returncode == 2, (stranger.stdout, stranger.stderr)
+    assert "no lease binds the agent" in stranger.stderr, stranger.stderr[:400]
+
+    short = run_dispatch_env(tmp_path, dict(shell_payload(
+        tmp_path, line.replace("--fail-class", "--f")), agent_id="child-1",
+        agent_type="backend-developer"), env)
+    assert short.returncode == 2, (
+        "argparse accepts every unambiguous prefix of an option -- measured 2026-09-12 against the "
+        "shipped CLI, `evidence ... --f mechanical` was accepted -- so a reader that matches only "
+        "the full spelling is answered by a shorter one: %s" % short.stderr[:300])
+
+    ordinary = run_dispatch_env(tmp_path, shell_payload(tmp_path, "git status --short"), env)
+    assert ordinary.returncode == 0, (ordinary.stdout, ordinary.stderr)
+
+    # ...AND THE WORD THE SHELL BUILDS (verifier round 1, F3, measured rc 0 at every hook): the
+    # option never stands on the line, the parser gets it anyway, and the kernel then attributes
+    # the classification to the BOUND LEASE -- exactly the writer this rule exists for. It cannot
+    # be read, so on an `evidence` line that reaches the kernel it is refused rather than passed.
+    assembled = run_dispatch_env(tmp_path, shell_payload(
+        tmp_path, 'a="--"; b="fail-class"; python scripts/harness.py evidence --kind test '
+                  '--result fail --related %s "$a$b" mechanical' % task["id"]), env)
+    assert assembled.returncode == 2, (assembled.stdout, assembled.stderr)
+    assert "carries a word the shell builds" in assembled.stderr, assembled.stderr[:400]
+
+    other = tmp_path / "qa"
+    os.makedirs(str(other), exist_ok=True)
+    state2, audit, header2 = dispatched_repo(other, **AUDIT_TSK_FIELDS)
+    run_dispatch(other, spawn_payload(other, header2, role="project-auditor"))
+    dispatch.bind_agent_by_role(state2, "child-2", audit["assigned_role"])
+    env2 = _declare_the_kit_of(other, home)
+    qa_line = ('python scripts/harness.py evidence --kind test --result fail '
+               '--fail-class mechanical --related %s --summary x' % audit["id"])
+    verifying = run_dispatch_env(other, dict(shell_payload(other, qa_line), agent_id="child-2",
+                                             agent_type="project-auditor"), env2)
+    assert verifying.returncode == 0, (verifying.stdout, verifying.stderr)
+
+
 def bound_repo(tmp_path, agent_id="child-1", **task_overrides):
     """A repo whose task is dispatched AND bound to `agent_id` — the live specialist case."""
     state, task, header = dispatched_repo(tmp_path, **task_overrides)
@@ -4954,14 +5130,14 @@ def test_a_subagents_own_harness_commands_still_run(tmp_path, command):
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def _gate_constant(kit, name):
+def _gate_constant(kit, name, module="gate_write_scope.py"):
     """A module-level constant of the SHIPPED gate, read from its AST.
 
     Parsed, not imported: the hook opens with GATE_PREAMBLE and wants an installed bundle around
     it, and parsed, not grepped: a regex over the file would pass on the same name inside a
     docstring.
     """
-    path = os.path.join(TEAM_KITS, kit, "hooks", "gate_write_scope.py")
+    path = os.path.join(TEAM_KITS, kit, "hooks", module)
     with io.open(path, encoding="utf-8") as handle:
         tree = ast.parse(handle.read(), path)
     for node in tree.body:
@@ -5242,12 +5418,33 @@ def test_the_two_derived_classes_of_rule_4_stay_disjoint():
 
 
 @pytest.mark.parametrize("kit", KITS)
+def test_the_gate_knows_the_command_that_writes_the_classification(kit):
+    """The second hand-typed word of the dispatch gate, pinned against the shipped parser.
+
+    `gate_dispatch` asks the classification question only on a line that names the kernel entry
+    point AND the command that writes the field (DEC-0107). Both words are kept in the hook so a
+    Bash call does not import argparse to answer them, and a stale one would switch the rule off
+    silently -- which is the same failure this file pins `_HARNESS_SCRIPT` against.
+    """
+    from kernel import cli
+    word = _gate_constant(kit, "_EVIDENCE_COMMAND", module="gate_dispatch.py")
+    subcommands = cli.build_parser()._subparsers._group_actions[0].choices
+    assert word in subcommands, (word, sorted(subcommands))
+    flags = {action.option_strings[0] for action in subcommands[word]._actions
+             if action.option_strings}
+    assert "--fail-class" in flags, sorted(flags)
+
+
+@pytest.mark.parametrize("kit", KITS)
 def test_the_gate_knows_the_entry_point_the_kernel_installs(kit):
     """The other half a hand-typed constant could get wrong: rule 4 only ever fires on a line that
     names the harness, so a stale file name would switch the whole rule off silently."""
     from kernel import cli
-    assert _gate_constant(kit, "_HARNESS_SCRIPT") == os.path.basename(cli.ENTRY_POINT)
-    assert _gate_constant(kit, "_KERNEL_CLI_MODULE") == "%s.%s" % (
+    # READ OFF `_compat` SINCE 2026-09-13: `gate_dispatch` asks the same question (DEC-0107), so
+    # the two spellings have one home and the gates alias them.
+    assert _gate_constant(kit, "HARNESS_SCRIPT", module="_compat.py") == os.path.basename(
+        cli.ENTRY_POINT)
+    assert _gate_constant(kit, "KERNEL_CLI_MODULE", module="_compat.py") == "%s.%s" % (
         cli.__name__.split(".")[0], cli.__name__.split(".")[-1])
 
 

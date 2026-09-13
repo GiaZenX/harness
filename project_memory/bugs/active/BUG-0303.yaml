@@ -1,0 +1,72 @@
+id: BUG-0303
+title: Die Befreiung vom Architektenschritt fragt den TYP des Ursprungs, nicht den
+  WERT -- ein BUG mit leerer Kriterienliste befreit, und eine Referenz, die nur an
+  der WURZEL existiert, loest am Spawn auf (zweite Restklasse von H155/BUG-0237)
+related_pr: PR-0012
+observed: '**Mechanismus.** `dispatch._carries_its_own_criteria` beantwortet die Frage
+  ''bringt dieser Ursprung eigene Kriterien mit'' am TYP des Ursprungs (`BUG`/`CR`/`EXP`),
+  nicht am WERT seiner Kriterienliste. Ein `BUG` mit `acceptance_criteria: []` befreit
+  den Auftrag deshalb vom Architektenschritt (FR-0085), und was den Auftrag dann misst,
+  ist `validate_dispatch` -- dessen Aufloesungsuniversum (`_known_acceptance_ids_locked`)
+  WURZEL, Ursprung und genehmigte Amendments zusammenfasst. Eine Referenz, die nur
+  an der Wurzel existiert, loest also auf, und der Auftrag wird gegen die Kriterien
+  genau des Ziels gemessen, dessen Architektenschritt fehlt.
+
+
+  **Gemessen** am ausgelieferten Kit-Haken als Prozess (TSK-0122, Pruefrunde 2/3):
+  die LEASE wird in allen drei Faellen erteilt, verweigert wird am SPAWN -- ohne Referenz
+  rc 2, mit einer nirgends existierenden Referenz rc 2, mit einer Referenz DER WURZEL
+  **rc 0**.
+
+
+  **Warum das jetzt ein eigener Eintrag ist:** diese Restklasse stand bisher im `limits`-Feld
+  von BUG-0237 (H155). DEC-0103 hat die ANDERE Haelfte von H155 geschlossen (die Zielklasse
+  ist eine geschlossene Vokabel, TSK-0146), und BUG-0237 wird darauf geschlossen.
+  Ohne diesen Eintrag verliert `tools/test_approvals_dispatch.py::test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it`
+  seinen Zeiger: der Test ist ausdruecklich geschrieben, um rot zu werden, wenn sich
+  die Regel aendert, und er nennt heute H155.'
+expected: 'Entweder die Befreiung fragt den WERT (ein Ursprung befreit nur, wenn seine
+  Kriterienliste wirklich etwas nennt) -- dann ist zu entscheiden, was mit einem Auftrag
+  geschieht, dessen Ursprung leer ist: Verweigerung mit Abhilfe oder Rueckfall auf
+  die Wurzel; ODER die Aufloesung wird auf den Ursprung eingeengt, sodass eine Referenz,
+  die nur an der Wurzel existiert, am Spawn nicht mehr aufloest. Beides ist eine Vertragsaenderung
+  mit einer Runde Kosten und braucht eine DEC, weil beide Richtungen laufende Projekte
+  treffen; die dritte Moeglichkeit ist, die Klasse mit ihrer Begrenzung stehen zu
+  lassen und sie als angenommene Ausnahme zu fuehren.'
+repro: 'In einem Projekt mit Kit: ein Ziel `PR` mit `acceptance_criteria: [AC-1]`
+  erfassen und freigeben; darunter einen `BUG` mit `acceptance_criteria: []` erfassen;
+  einen `TSK` mit `derives_from: <BUG>` und `acceptance_refs: [AC-1]` erzeugen; `create_lease`
+  -> erteilt (der Architektenschritt wird nicht verlangt); Spawn ueber den Kit-Haken
+  `gate_dispatch` -> rc 0, obwohl AC-1 nur an der WURZEL existiert und deren Architektenschritt
+  fehlt. Gegenprobe: derselbe Auftrag ohne `acceptance_refs` -> rc 2; mit `acceptance_refs:
+  [AC-99]` (nirgends vorhanden) -> rc 2.'
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: eine DEC entscheidet zwischen WERT-Pruefung, eingeengter Aufloesung und angenommener
+    Ausnahme; die gewaehlte Richtung nennt, was sie fuer laufende Projekte kostet
+- id: AC-2
+  text: faellt die Entscheidung auf eine der beiden Aenderungen, wird `tools/test_approvals_dispatch.py::test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it`
+    rot und in dieselbe Richtung umgeschrieben -- der Test ist genau dafuer geschrieben
+- id: AC-3
+  text: bleibt es bei der Ausnahme, traegt dieses Item die Begrenzung im `limits`-Feld
+    und der Test zeigt auf DIESES Item statt auf H155
+limits: 'Was heute begrenzt, ist gemessen und nicht behauptet: von den drei Schreibweisen
+  kommt genau EINE durch -- ein Auftrag, der eine Referenz DER WURZEL nennt (rc 0).
+  Ohne jede Referenz und mit einer Referenz, die nirgends existiert, verweigert der
+  Spawn (je rc 2). Der Auftrag wird also nicht gegen erfundene Kriterien gemessen,
+  sondern gegen die echten Kriterien des richtigen Ziels -- was fehlt, ist der Architektenschritt
+  dieses Ziels, nicht das Mass. Der Schaden ist damit: ein Auftrag laeuft unter einem
+  Ziel, das niemand entworfen hat, obwohl die Regel FR-0085 ihn haette anhalten sollen;
+  er laeuft nicht ins Leere. Nicht geschlossen, weil eine Wertpruefung an dieser Stelle
+  ein zweiter Leser derselben Frage waere (`validate_dispatch` fragt sie eine Lebensphase
+  spaeter schon) und weil beide Richtungen laufende Projekte treffen -- das ist eine
+  Entscheidung des Nutzers, keine Umsetzung.'
+source: project_memory/staging/TSK-0146/protocol.md (Rework 1, F7); BUG-0237 `limits`,
+  zweiter Absatz; tools/test_approvals_dispatch.py::test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it;
+  gemessen TSK-0122 Pruefrunde 2/3 am ausgelieferten Haken
+hole_number: H218
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-13T01:55:23'

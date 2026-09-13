@@ -1081,7 +1081,7 @@ def test_doctor_never_writes_state(state):
 # -- step 7: the graph duties the validator owns (spec II.4 gate 4) -----------
 
 RQ_FIELDS = {
-    "title": "Retry semantics", "class": "research", "question": "How long should retries wait?",
+    "title": "Retry semantics", "class": "normal", "question": "How long should retries wait?",
     "motivation": "Throughput drops under load", "acceptance_criteria": ["measured"],
     "out_of_scope": ["ui"], "priority": "high",
 }
@@ -3793,3 +3793,37 @@ def test_capture_asks_a_new_decision_who_carries_it(state, capsys):
     assert not [f for f in report.validate_state(state)
                 if f["item"] == "DEC-0009" and f["severity"] == "error"], (
         "a stored decision without the field became an error")
+
+
+def test_a_goal_whose_class_the_vocabulary_does_not_know_still_owes_its_user_story(state):
+    """DEC-0103: the two checks that SKIP a duty for a class read the complement, not the set.
+
+    The direction is the whole point. `report.PRODUCTLESS_CLASSES` is
+    `goal_classes_without("carries_product_content")`, so a class the vocabulary does not know --
+    a goal stored before DEC-0103, a value from another tool -- is in NEITHER set and keeps being
+    asked. Spelled the obvious way round (`in goal_classes_where("carries_product_content")`) the
+    same goal would skip the user-story duty and walk past the delivery-sequence rule, which is
+    an unrecognised value skipping a check instead of failing one.
+
+    RED with that spelling: the warning below disappears and the second goal enters delivery while
+    the first is waiting for the user.
+    """
+    stray = state.capture("PR", dict(PR_FIELDS, title="a legacy goal"))
+    stored = state.active_path(stray["id"])
+    body = state._read_yaml(stored)
+    body["class"] = "feature"
+    body.pop("user_story")
+    state._write_yaml_atomic(stored, body)
+
+    findings = [f for f in report.validate_state(state)
+                if f["item"] == stray["id"] and "user_story" in f["message"]]
+    assert findings, "a goal of an unknown class was excused its user story"
+
+    enabler = state.capture("PR", dict(PR_FIELDS, title="an enabler", **{"class": "technical_enabler"}))
+    stored = state.active_path(enabler["id"])
+    body = state._read_yaml(stored)
+    body.pop("user_story")
+    state._write_yaml_atomic(stored, body)
+    assert not [f for f in report.validate_state(state)
+                if f["item"] == enabler["id"] and "user_story" in f["message"]], (
+        "the class that carries no product content was asked for one anyway")

@@ -287,6 +287,16 @@ def parse_xml(data):
             _pick(tax, "CalculatedAmount", currency=out["currency"])
             for tax in (settlement if settlement is not None else ())
             if _local(tax) == "ApplicableTradeTax"]
+        # BT-116, the TAXABLE BASE per category, read POSITIONALLY beside the two lists above --
+        # the three are one table of the document's own breakdown (BG-23), and a reader that took
+        # them from different anchors could pair a rate with another category's base. It is read at
+        # all because a mixed-rate document books as one ledger row PER RATE (DEC-0108) and a row's
+        # `net` is that base: derived from a total it would be a figure the document never states,
+        # which is the one thing this reader never produces.
+        out["tax_basis"] = [
+            _pick(tax, "BasisAmount", currency=out["currency"])
+            for tax in (settlement if settlement is not None else ())
+            if _local(tax) == "ApplicableTradeTax"]
     elif tag in UBL_ROOTS:                        # UBL (XRechnung-UBL)
         out["invoice_no"] = _pick(root, "ID")     # the invoice's own ID, not a party's
         out["issue_date"] = _pick(root, "IssueDate")
@@ -326,6 +336,11 @@ def parse_xml(data):
         # BT-117 per category, UBL spelling -- see the CII branch.
         out["tax_breakdown"] = [
             _pick(subtotal, "TaxAmount", currency=out["currency"])
+            for total in root if _local(total) == "TaxTotal"
+            for subtotal in total if _local(subtotal) == "TaxSubtotal"]
+        # BT-116 per category, UBL spelling -- see the CII branch for why it is read at all.
+        out["tax_basis"] = [
+            _pick(subtotal, "TaxableAmount", currency=out["currency"])
             for total in root if _local(total) == "TaxTotal"
             for subtotal in total if _local(subtotal) == "TaxSubtotal"]
     else:

@@ -2667,8 +2667,12 @@ KIT_SPECIFIC_HOOKS = {
     # the kits F1 removed it from.
     "document_trays.txt": "each kit's own trays, derived from its templates/repo",
     # Kit-specific BY CONSTRUCTION as well: it describes THIS kit's registered mechanisms, and the
-    # three kits register 24 / 21 / 22 different ones. A mirrored copy would promise the office kit
-    # a `gate_test_coverage` it does not ship.
+    # three kits do not register the same set -- a mirrored copy would promise the office kit a
+    # `gate_test_coverage` it does not ship. The COUNT that stood here is gone rather than
+    # corrected: three readers produced three answers for it (21/23/18 over distinct scripts in
+    # `settings.json` without `_gate.py`, 25/27/22 by the verifier's reading, 24/21/22 as written),
+    # which is what a number in prose is for -- being read differently by everybody and checked by
+    # nobody. What matters is the property, and the property is the difference, not its size.
     "ENFORCEMENT.md": "each kit's own registered mechanisms, described",
 }
 # The SAME rule for the project scripts a kit ships. Empty on purpose: the office kit's scripts
@@ -3200,79 +3204,75 @@ def _chained_gates(command):
     return re.findall(r"\S+\.py", tail.replace('"', " "))
 
 
-def test_a_registration_names_a_window_exactly_when_its_gate_can_outlive_the_default():
-    """BUG-0062: five of twenty-eight registered office-kit entries carried a `timeout`, and the
-    finding was filed as a possible kill-passthrough class without a judgement attached.
+def _registered_hook_files(command):
+    """The hook files one registered command runs, in order.
 
-    A `timeout` is a KILL WINDOW, and a killed gate is a silent allow — so it is neither always
-    wrong nor always right, and this measures the property that decides it. THE COUNT IS NOT THE
-    ANSWER, which is what BUG-0062 could not know: re-measured 2026-09-11, dev 1/31, office 0/30,
-    research 1/28 entries name one, and every absence is right under the rule below. What decides
-    is whether a gate of the chain can still be running when the default window closes.
+    A `_gate.py` command names its gates as arguments and runs them IN ONE PROCESS (its docstring
+    says why the chain exists); every other registration names one script and runs that. Both are
+    read here, because a window is a property of the PROCESS and both shapes start one.
+    """
+    if "_gate.py" in command:
+        _launcher, _sep, tail = command.partition("_gate.py")
+        return re.findall(r"\S+\.py", tail.replace('"', " "))
+    return [os.path.basename(word.replace("\\", "/"))
+            for word in re.findall(r"[^\s\"']+", command) if word.endswith(".py")]
 
-    THE MEASUREMENT, read out of `tools/provider_observations.json` -> `hook_deadlines` rather than
-    restated (2026-08-23, claude.exe 2.1.239, real headless sessions against a scratch project):
+
+def test_every_registration_names_a_window_its_gate_can_answer_inside():
+    """BUG-0153/H61: a window is the SECOND half of a construction now, so every entry names one.
+
+    Until 2026-09-12 the rule here was the opposite -- "a window exactly where the gate's own bound
+    is smaller than it" -- and it was right for as long as a window was ONLY a kill moment: 2 of 89
+    shipped entries carried one and the other 87 rested on every hook staying far inside a window
+    nothing noticed arriving. `_compat.start_the_deadline` refuses BEFORE the window now and refuses
+    a registration that names a hook without one, so the two halves ship together: the reader
+    without the windows shuts every kit hook, the windows without the reader are one kill moment
+    per entry.
+
+    THE VALUE IS DERIVED, and this is the derivation: a window has to clear everything the hook can
+    still legitimately be waiting for when it closes -- the bounds it puts on its OWN children
+    (`_own_child_limit`, read off the code that runs; SUMMED over a chained registration, because
+    `_gate.py` runs the chain in one process under one window) plus the budget one hook process
+    gives itself for its own work (`_compat.HOOK_DEADLINE_SECONDS`). Under that sum the kill
+    arrives before the hook's own bound can speak; at or above it the refusal is always first.
+
+    THE MEASUREMENT the rule rests on is read out of `tools/provider_observations.json` ->
+    `hook_deadlines` rather than restated (2026-08-23, claude.exe 2.1.239, real headless sessions):
     an entry naming `timeout: 5` whose hook needed 20 s was killed and the refused command RAN,
-    with nothing on the user's channel to say so. An entry naming NO timeout survived 310 s and
-    560 s and WAS killed at 900 s, marker file present — so a default window exists too. Both
-    halves matter, and the first cut of this round had only the first: it read "no kill was
-    reached" out of a 310 s run and forbade every window, which would have taken `gate_pipeline`'s
-    away — the one gate whose own child limit (1500 s) is longer than the default.
+    with nothing on the user's channel to say a gate had been killed.
 
-    THE RULE, therefore, over every entry that runs `_gate.py` (which is what that launcher is for,
-    by its own contract):
-      * a registered window is allowed exactly when the gate refuses BEFORE it — i.e. it has an own
-        child limit and that limit is smaller than the window;
-      * an entry with no window is allowed exactly when no gate of its chain can still be running
-        when the default window closes, and the EARLIEST the default was seen to close is what
-        that is judged against (the longest run that survived), not the run that was killed.
-    A comfort hook — a briefing, a notifier — is not judged here: a kill there loses a message and
-    not a refusal.
-
-    RED IN THREE DIRECTIONS, measured in a clone outside the repo, one per branch of the rule:
-    give a window to a gate that bounds NOTHING of its own (`gate_write_scope`, `timeout: 60`) and
-    this fails; take `gate_pipeline`'s 1800 away and it fails; raise its child limit past that
-    window and it fails. A window over a gate that DOES bound its own child stays green by design
-    and is not a red direction — `gate_push_token` waits at most 15 s, so a 60 s window is a window
-    it beats. An earlier wording of this paragraph named that one as the red case; it was measured
-    green, which is what the middle branch below actually says.
+    RED IN TWO DIRECTIONS, measured in a clone outside the repo: delete the `timeout` from one entry
+    and this fails on that entry; lower `gate_pipeline`'s 1800 to the standard 120 and it fails on
+    the sum of its own child bound (1500 s) and the self-budget.
     """
     with open(os.path.join(ROOT, "tools", "provider_observations.json"), encoding="utf-8") as fh:
         measured = json.load(fh)["hook_deadlines"]
     stated = measured["timeout_key"]
-    assert stated["registered_timeout_seconds"] < stated["hook_needed_seconds"],         "the measurement no longer describes a hook that outran its stated window"
-    default = measured["no_timeout_key"]
-    earliest_kill = float(default["longest_run_that_was_not_killed_seconds"])
-    assert earliest_kill < float(default["shortest_run_that_was_killed_seconds"]), default
+    assert stated["registered_timeout_seconds"] < stated["hook_needed_seconds"], \
+        "the measurement no longer describes a hook that outran its stated window"
 
     offenders = []
     for kit in KITS:
+        hooks_dir = os.path.join(ROOT, "team-kits", kit, "hooks")
+        self_budget = _hook_helper_constant(hooks_dir, "HOOK_DEADLINE_SECONDS")
         for event, matcher, hook in _registered_entries(kit):
             command = str(hook.get("command") or "")
-            if "_gate.py" not in command:
-                continue
-            limits = [_own_child_limit(kit, gate) for gate in _chained_gates(command)]
-            limits = [one for one in limits if one is not None]
-            own = max(limits) if limits else None
+            scripts = _registered_hook_files(command)
+            where = "%s %s(%s): %s" % (kit, event, matcher, " ".join(scripts) or command)
             window = hook.get("timeout")
-            where = "%s %s(%s): %s" % (kit, event, matcher, " ".join(_chained_gates(command)))
             if window is None:
-                if own is not None and own >= earliest_kill:
-                    offenders.append(
-                        "%s waits up to %gs for its own child but names NO window, and the "
-                        "default was seen to close as early as %gs — it would be killed while "
-                        "deciding, and the call it was refusing would go through"
-                        % (where, own, earliest_kill))
-            elif own is None:
                 offenders.append(
-                    "%s names a window of %ss although it bounds nothing of its own, so the "
-                    "window can only ever kill it mid-decision" % (where, window))
-            elif own >= float(window):
+                    "%s names NO window, so `_compat.start_the_deadline` refuses every call of it "
+                    "-- the registration is the half that is missing" % where)
+                continue
+            own = sum(limit for limit in (_own_child_limit(kit, script) for script in scripts)
+                      if limit is not None)
+            if float(window) < own + self_budget:
                 offenders.append(
-                    "%s names a window of %ss while waiting up to %gs for its own child — the "
-                    "kill arrives first and the refusal never does" % (where, window, own))
-    assert not offenders, (
-        "%s\n  %s" % (stated["verdict"], "\n  ".join(offenders)))
+                    "%s names a window of %ss while it can be waiting %gs for its own children and "
+                    "spending %gs of its own budget -- the kill arrives before its own refusal"
+                    % (where, window, own, self_budget))
+    assert not offenders, "%s\n  %s" % (stated["verdict"], "\n  ".join(offenders))
 
 
 # ---------------- kit_checks: file budget (the anti-monolith gate) ----------------
@@ -6973,6 +6973,70 @@ _EVIDENCE_FLAG_RX = re.compile(r"--[a-z][a-z-]*")
 _COMPUTED_FLAG_RX = re.compile(r"--[^\sa-z]")
 
 
+def _evidence_call_findings(where, text, required):
+    """(calls judged, findings) for every spelled-out `evidence` call in one text.
+
+    A COMPUTED FLAG NAME EXCUSES ITSELF AND NOTHING ELSE (BUG-0301/H217). What this reader holds is
+    the folded TEMPLATE of a string (`_folded_string` yields it, because the arguments are runtime
+    values), so `--%s full --%s "…"` reaches it with two names still unresolved while the text the
+    role really gets carries them. Judging the template there would be the house rule's own failure
+    ("a check must read the part that RUNS") one level down -- measured 2026-09-12,
+    `.claude/hooks/gate_test_scope.py:709-719` renders `--run-scope full --run-command "…"` and
+    this reader reported it as omitting both, at a file every role here is refused.
+
+    WHAT THE FIRST CUT DID WITH THAT, and why it is counted now: it skipped the WHOLE call as soon
+    as one computed token stood in it, so a single `--%s` silenced every missing name beside it --
+    the live S4 defect with a plausible `--%s <kind>` line added to it went from reported to silent
+    (measured by stream C, 2026-09-12). A computed token can only ever stand for ONE flag name, so
+    the number of them is the number of absences it can explain.
+    """
+    seen, findings = 0, []
+    for match in _evidence_call_rx().finditer(text):
+        flags = set(_EVIDENCE_FLAG_RX.findall(match.group(1)))
+        if not flags:
+            continue        # the command named, not spelled out as a call
+        seen += 1
+        missing = sorted(required - flags)
+        computed = len(_COMPUTED_FLAG_RX.findall(match.group(1)))
+        if len(missing) > computed:
+            findings.append(
+                "%s spells an `evidence` call `%s` that omits %s while only %d of its flag names "
+                "are built at runtime. `kernel.cli` requires those arguments, so the role is being "
+                "told a command line argparse rejects."
+                % (where, match.group(1).rstrip(), ", ".join(missing), computed))
+    return seen, findings
+
+
+def test_a_computed_flag_name_excuses_one_absence_and_not_the_call_it_stands_in():
+    """`BUG-0301`/H217: the excuse the reader above grants is BOUNDED by how many tokens ask for it.
+
+    Measured by stream C on 2026-09-12 against the live S4 defect: with a plausible `--%s <kind>`
+    line added to the unpatched remedy of `.claude/hooks/gate_commit_evidence.py`, the node that is
+    the arbiter of that seam went SILENT -- one computed token excused a call that omitted two
+    required names. The bound is arithmetic and needs no tree to be measured: a computed token can
+    stand for one name.
+
+    ON WRITTEN TEXT, so this node is green in this tree and can carry the bug's close: the arbiter
+    node itself is red until the user applies the S4 patch (H213), and a claim that cannot be green
+    cannot be a closure.
+    """
+    required = {"--kind", "--result", "--related", "--run-scope", "--run-command"}
+    judged, said = _evidence_call_findings(
+        "a text", "run `python scripts/harness.py evidence --kind test --result pass "
+                  "--related TSK-0001 --%s full` now", required)
+    assert judged == 1, said
+    assert said and "--run-command" in said[0], (
+        "one computed token cannot excuse two missing names -- that is the whole of H217: %s" % said)
+
+    _judged, excused = _evidence_call_findings(
+        "a text", "run `python scripts/harness.py evidence --kind test --result pass "
+                  "--related TSK-0001 --%s full --%s \"the line\"` now", required)
+    assert not excused, (
+        "two computed tokens stand for the two names this call does not spell, so the call is one "
+        "this reader cannot judge -- refusing it would be the over-refusal that made the arbiter "
+        "red forever: %s" % excused)
+
+
 def test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requires():
     """A command line in an instruction is a promise that typing it works.
 
@@ -7000,8 +7064,9 @@ def test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requi
     `.claude/hooks/gate_test_scope.py`, whose text is CORRECT and whose template merely spells the
     two names as `--%s`, at a second file no role here may touch — so the arbiter would have been
     red forever and the user's patch would have changed nothing they could see. `_COMPUTED_FLAG_RX`
-    is what makes it an arbiter: a call whose flag names the string builds at runtime is not a call
-    this reader can judge, and it says so by not counting it.
+    is what makes it an arbiter: a flag name the string builds at runtime is one this reader cannot
+    judge -- and it excuses exactly as many absences as there are such tokens, never the call they
+    stand in (`_evidence_call_findings`, BUG-0301/H217).
     """
     sys.path.insert(0, os.path.join(ROOT, "team-kits"))
     from kernel import cli
@@ -7009,28 +7074,12 @@ def test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requi
                 .choices["evidence"]._actions if action.option_strings and action.required]
     required = {action.option_strings[0] for action in evidence}
     assert len(required) >= 4, required   # the parser itself must still be the strict thing
-    seen = 0
+    seen, findings = 0, []
     for where, text in _texts_that_name_the_evidence_vocabulary():
-        for match in _evidence_call_rx().finditer(text):
-            flags = set(_EVIDENCE_FLAG_RX.findall(match.group(1)))
-            if not flags:
-                continue    # the command named, not spelled out as a call
-            if _COMPUTED_FLAG_RX.search(match.group(1)):
-                # ...AND NEITHER IS A CALL WHOSE FLAG NAMES ARE COMPUTED. What this reader holds is
-                # the folded TEMPLATE of a string (`_folded_string` yields the template, because the
-                # arguments are runtime values), so `--%s full --%s "…"` reaches it with the two
-                # names still unresolved -- while the text the role really gets carries them. Judging
-                # the template there is the house rule's own failure ("a check must read the part
-                # that RUNS") one level down, and it is not hypothetical: measured 2026-09-12,
-                # `.claude/hooks/gate_test_scope.py:709-719` renders `--run-scope full --run-command
-                # "…"` and this node reported it as omitting both -- at a file every role here is
-                # refused, so the report could never have been acted on.
-                continue
-            seen += 1
-            assert required <= flags, (
-                "%s spells an `evidence` call `%s` that omits %s. `kernel.cli` requires that "
-                "argument, so the role is being told a command line argparse rejects."
-                % (where, match.group(1).rstrip(), ", ".join(sorted(required - flags))))
+        counted, said = _evidence_call_findings(where, text, required)
+        seen += counted
+        findings += said
+    assert not findings, "\n  ".join(findings)
     # 13 call sites were measured when this was written (both gate_git copies, the three auditor
     # SKILLs, the QA and reviewer SKILLs). A floor rather than the number, because texts get
     # rewritten — but zero would mean the span shape stopped matching, not that the calls went.
@@ -9154,12 +9203,17 @@ def _names_that_stop_the_role(path):
     `kernel.cli`-style raises of a project error type keep their own arm in `_refusal_texts`,
     because they do not exit: the CLI turns them into the same stderr.
 
-    "CANNOT RETURN" AND NOT "EXITS SOMEWHERE", and that distinction is measured rather than
-    tasteful: the first cut of this reader marked every function that exits on ANY path, and over
-    this repository's own gate bundle that was 45 names — `decide`, `payload`, `probe`, every
-    gate's entry point, because each of them refuses in one branch and returns in another. Reading
-    their string arguments as "what a role is handed when stopped" would have handed the vocabulary
-    checks ordinary file text under a name that says otherwise.
+    "CANNOT RETURN" AND NOT "EXITS SOMEWHERE", and that distinction is held by a row of the test
+    below rather than by this paragraph: the first cut of this reader marked every function that
+    exits on ANY path — a gate's entry point refuses in one branch and returns in another, so
+    reading its string arguments as "what a role is handed when stopped" hands the vocabulary
+    checks ordinary file text under a name that says otherwise. The count that stood here belongs
+    in the round's report; what belongs here is the pointer, so the claim rots visibly: the
+    `sometimes()` function of the synthetic bundle in
+    `tools/test_hooks.py::test_the_refusal_reader_finds_a_stopper_this_repos_own_gates_spell`
+    stops on one branch and falls through on the other, and its argument must NOT be read as a
+    refusal text (BUG-0300/H216 — until 2026-09-12 no row had that shape and the distinction was
+    unmeasured).
 
     WHAT IT CANNOT SEE, said here rather than left to be discovered: a stopper reached through a
     value (a callback in a dict, a method on an instance), one defined outside the directory, and
@@ -9298,7 +9352,8 @@ def _shipped_python_modules():
 
 
 def test_the_refusal_reader_finds_a_stopper_this_repos_own_gates_spell(tmp_path):
-    """`BUG-0192`/H108, seam S4: the reader that collects refusal texts must not be a WORD LIST.
+    """`BUG-0192`/H108 and `BUG-0300`/H216: the reader that collects refusal texts must not be a
+    WORD LIST, and must not read a function that only SOMETIMES stops as one.
 
     THE DEFECT IT REPLACES is measurable in one sentence: `.claude/hooks/gate_commit_evidence.py`
     prints an `evidence` command line at every blocked hand-over, and the reader recognised a
@@ -9330,10 +9385,20 @@ def test_the_refusal_reader_finds_a_stopper_this_repos_own_gates_spell(tmp_path)
           "import helper\n"
           "def wrapped(message):\n"
           "    helper.stop(message)\n"
+          # THE SHAPE THE READER'S OWN DISTINCTION IS ABOUT (BUG-0300): a function with NO `return`
+          # statement that stops on one branch and hands control back on the other. A function
+          # carrying an explicit `return` never enters the closure at all, so it cannot measure
+          # "cannot return" against "exits somewhere" -- this one can, and it is the only row here
+          # that does.
+          "def sometimes(message):\n"
+          "    if message:\n"
+          "        helper.stop('A REFUSAL ON ONE BRANCH')\n"
+          "    helper.note(message)\n"
           "def decide():\n"
           "    helper.stop('THE DIRECT REFUSAL')\n"
           "    helper.note('AN ORDINARY MESSAGE')\n"
-          "    wrapped('THE WRAPPED REFUSAL')\n")
+          "    wrapped('THE WRAPPED REFUSAL')\n"
+          "    sometimes('A MESSAGE TO A FUNCTION THAT SOMETIMES RETURNS')\n")
     _STOPPER_NAMES.pop(os.path.abspath(str(bundle)), None)
     texts = list(_refusal_texts(str(bundle / "gate_probe.py")))
     assert "THE DIRECT REFUSAL" in texts, texts
@@ -9341,6 +9406,12 @@ def test_the_refusal_reader_finds_a_stopper_this_repos_own_gates_spell(tmp_path)
         "a wrapper around a stopper stops too, and its text is one a role reads: %r" % (texts,))
     assert "AN ORDINARY MESSAGE" not in texts, (
         "a call that returns is not a refusal; reading it turns this corpus back into file text")
+    assert "A REFUSAL ON ONE BRANCH" in texts, texts
+    assert "A MESSAGE TO A FUNCTION THAT SOMETIMES RETURNS" not in texts, (
+        "a function that refuses on ONE branch and hands control back on the other is read as a "
+        "stopper, so every argument handed to IT counts as a refusal text -- 'cannot return' and "
+        "'exits somewhere' are then the same reader, and this bundle is the only place the "
+        "difference is measured")
 
     own = [(where, text) for where, text in _texts_that_name_the_evidence_vocabulary()
            if where.replace(os.sep, "/").startswith(".claude/hooks/") and text.strip()]
@@ -17646,7 +17717,11 @@ def _root_item_for(repo, kit):
     state = ProjectState(os.path.join(str(repo), "project_memory"))
     if os.path.basename(kit).startswith("research"):
         return state.capture("RQ", {
-            "title": "Retry semantics", "class": "research",
+            # `class` is a CLOSED vocabulary since DEC-0103 (`backlog_types.GOAL_CLASSES`), and
+            # this fixture carried the free-text word `research` from before it was closed -- the
+            # capture now refuses it, which is the vocabulary working. A research question is an
+            # ordinary goal here; nothing in this test reads the size.
+            "title": "Retry semantics", "class": "normal",
             "question": "How long should retries wait?", "motivation": "Throughput drops",
             "acceptance_criteria": ["measured"], "out_of_scope": ["ui"], "priority": "high"})["id"]
     return state.capture("PR", dict(PR_FIELDS))["id"]
@@ -18790,21 +18865,33 @@ def test_gate_test_scope_costs_the_ordinary_shell_line_next_to_nothing(prd_repo)
 # what the harness's own construction closes and what no kit hook does."
 
 
-def _kernel_constant(hooks_dir, name):
-    """A module-level number of a kit's `_kernel.py`, read off the AST.
+def _hook_helper_constant(hooks_dir, name):
+    """A module-level number of a kit's hook helpers, read off the AST -- and its ONE home.
 
     PARSED, never imported: importing `_kernel` installs its standard-library guard into whatever
     process does it, and a test process is not a hook process. The house rule this satisfies is the
     other one -- a check reads the part that RUNS, and a module-level assignment is that.
+
+    BOTH HELPERS ARE ASKED, and finding the number twice is a failure rather than a tie-break. The
+    deadline constants moved from `_kernel` to `_compat` when the bound became a property of being
+    a hook rather than of importing `_kernel` (BUG-0153/H61); a copy left behind in the old home is
+    exactly the second number this repo keeps finding a defect in.
     """
-    tree = ast.parse(open(os.path.join(hooks_dir, "_kernel.py"), encoding="utf-8").read())
-    for node in tree.body:
-        if not (isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant)):
+    found = {}
+    for module in ("_compat.py", "_kernel.py"):
+        path = os.path.join(hooks_dir, module)
+        if not os.path.isfile(path):
             continue
-        for target in node.targets:
-            if isinstance(target, ast.Name) and target.id == name:
-                return float(node.value.value)
-    raise AssertionError("%s states no %s" % (hooks_dir, name))
+        tree = ast.parse(open(path, encoding="utf-8").read())
+        for node in tree.body:
+            if not (isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant)):
+                continue
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == name:
+                    found[module] = float(node.value.value)
+    assert found, "%s states no %s in either hook helper" % (hooks_dir, name)
+    assert len(found) == 1, "%s states %s twice: %s" % (hooks_dir, name, found)
+    return list(found.values())[0]
 
 
 def _kit_hook_constants(hooks_dir, name):
@@ -18849,11 +18936,11 @@ def test_the_kit_deadline_reader_carries_the_measured_default_window():
     survived = float(measured["longest_run_that_was_not_killed_seconds"])
     for kit in KITS:
         hooks_dir = os.path.join(ROOT, "team-kits", kit, "hooks")
-        stated = _kernel_constant(hooks_dir, "DEFAULT_WINDOW_SECONDS")
+        stated = _hook_helper_constant(hooks_dir, "DEFAULT_WINDOW_SECONDS")
         assert stated == survived, (
             "%s judges an unwindowed registration against %gs while the measurement's longest "
             "surviving run is %gs" % (kit, stated, survived))
-        assert _kernel_constant(hooks_dir, "DEADLINE_RESERVE_SECONDS") < survived, kit
+        assert _hook_helper_constant(hooks_dir, "DEADLINE_RESERVE_SECONDS") < survived, kit
 
 
 @pytest.mark.parametrize("kit_hooks", [HOOKS, OFFICE_HOOKS, RESEARCH_HOOKS])
@@ -18866,7 +18953,7 @@ def test_a_window_the_gate_cannot_answer_inside_is_refused_with_a_sentence(prd_r
     the refusal names the file to change.
     """
     _scoped_repo(prd_repo)
-    reserve = _kernel_constant(kit_hooks, "DEADLINE_RESERVE_SECONDS")
+    reserve = _hook_helper_constant(kit_hooks, "DEADLINE_RESERVE_SECONDS")
     _register_with_window(prd_repo, "gate_test_scope.py", reserve)
     # a line this gate would otherwise say NOTHING about, so the refusal can only be the deadline's
     result = _scope_hook(prd_repo, "git status --short", hooks_dir=kit_hooks)
@@ -18885,7 +18972,7 @@ def test_a_window_already_spent_by_the_gates_own_start_refuses_before_it_decides
     2026-09-04, `git status --short`, rc 0). So the spent budget is answered where it is noticed.
     """
     _scoped_repo(prd_repo)
-    reserve = _kernel_constant(HOOKS, "DEADLINE_RESERVE_SECONDS")
+    reserve = _hook_helper_constant(HOOKS, "DEADLINE_RESERVE_SECONDS")
     _register_with_window(prd_repo, "gate_test_scope.py", reserve + 0.001)
     result = _scope_hook(prd_repo, "git status --short")
     assert result.returncode == 2, (result.stdout, result.stderr)
@@ -18916,7 +19003,7 @@ def test_a_gate_that_runs_past_its_window_mid_decision_refuses_instead_of_being_
         write(os.path.join(evidence, "EVD-%04d.yaml" % (index + 1)),
               "id: EVD-%04d\nkind: test\nrelated: [PR-0001]\nresult: pass\n"
               "summary: %s\n" % (index + 1, "x" * (per_item - 200)))
-    reserve = _kernel_constant(HOOKS, "DEADLINE_RESERVE_SECONDS")
+    reserve = _hook_helper_constant(HOOKS, "DEADLINE_RESERVE_SECONDS")
     _register_with_window(prd_repo, "gate_test_scope.py", reserve + 0.6)
     started = time.time()
     result = _scope_hook(prd_repo, "DELIVERY_RUN=PR-0001 python -m pytest tests/ -q")
@@ -18952,11 +19039,130 @@ def test_the_declaration_is_found_even_when_its_scope_key_sits_past_the_head(prd
         % result.stderr[:300])
 
 
-def test_an_ordinary_window_and_no_window_at_all_leave_the_gate_deciding(prd_repo):
-    """Both directions of the same reader: a deadline that refuses everything is worth as little as
-    none. A generous window and an entry that names none both leave the gate answering normally."""
+def test_a_registration_that_names_a_gate_without_a_window_refuses_every_call_of_it(prd_repo):
+    """BUG-0153/H61, the fail-closed half: an entry that names this gate and states no window.
+
+    THE STATE 87 OF 89 SHIPPED ENTRIES WERE IN until 2026-09-12, and the one a hand edit reaches by
+    deleting a single key: the gate cannot know when it will be killed, and a gate that cannot know
+    that cannot promise to answer first. So it refuses, and the refusal names the file to change.
+    The direction is what makes this worth a refusal rather than a fallback -- the fallback was the
+    reading before this round, and under it every kit hook was one deleted key away from a silent
+    kill that reads as an allow.
+
+    NOT THE SAME as a settings file that does not name this gate at all: that registration did not
+    start this process (a hand run, a second provider's artifact), and `registered_window` answers
+    it with UNBOUND and the provider's own default window --
+    `test_a_gate_no_registration_names_falls_back_on_the_measured_default_window` is that half.
+    """
     _scoped_repo(prd_repo)
-    for window in (120, None):
+    _register_with_window(prd_repo, "gate_test_scope.py", None)
+    result = _scope_hook(prd_repo, "git status --short")
+    assert result.returncode == 2, (result.stdout, result.stderr)
+    assert "no entry that names it states a `timeout`" in result.stderr, result.stderr[:400]
+    assert "settings.json" in result.stderr, result.stderr[:400]
+
+
+@pytest.mark.parametrize("kit_hooks", [HOOKS, OFFICE_HOOKS, RESEARCH_HOOKS])
+def test_every_shipped_hook_of_this_kit_reaches_the_deadline_that_arms_it(tmp_path, kit_hooks):
+    """`BUG-0153`/H61: the bound is a PROPERTY of being a hook -- and this is what makes that
+    sentence falsifiable instead of true-for-now (verifier round 1, F6).
+
+    `_compat` arms the deadline inside `load()`, and the construction comment says every shipped
+    hook reaches it. That was measured once, by hand, over the three `hooks/` directories -- and a
+    hook added tomorrow that reads `sys.stdin` itself would run unbounded with nothing going red.
+    An enumeration with no tripwire is the house rule's first case, so here is the tripwire.
+
+    AS PROCESSES, NOT AS AN IMPORT GRAPH: every shipped hook of the kit is registered WITHOUT a
+    window and run with an ordinary payload. A hook that reaches the arming says the fail-closed
+    sentence; one that does not, decides the call in silence and is reported by name. The
+    registration is the file the hook really reads, so no argument is taken on trust here.
+
+    THE SENTENCE AND NOT THE EXIT CODE, which this test learned the moment it first ran: the office
+    recorders (`record_booking_reading`, `record_filing_reading`) swallow every exception including
+    the refusal and exit 0 ON PURPOSE -- their own `__main__` says why (an exit 2 on their event
+    stops nothing and logs a prevention that never happened). What the deadline buys THERE is the
+    watchdog's `os._exit(2)`, which no `except BaseException` can swallow, and the recording simply
+    not happening. So the property this measures is that the hook is ARMED; what its exit code means
+    is its own event's contract.
+    """
+    hooks = sorted(name for name in os.listdir(kit_hooks)
+                   if name.endswith(".py") and not name.startswith("_"))
+    assert len(hooks) >= 20, hooks          # a directory that stopped shipping hooks proves nothing
+    payload = {"hook_event_name": "PreToolUse", "tool_name": "Bash", "cwd": str(tmp_path),
+               "tool_input": {"command": "git status --short"}, "source": "startup"}
+    unbounded = []
+    for name in hooks:
+        _register_with_window(tmp_path, name, None)
+        result = run_hook_process(name, payload, tmp_path, hooks_dir=kit_hooks)
+        if "states a `timeout`" not in result.stderr:
+            unbounded.append("%s: rc %d %s" % (name, result.returncode,
+                                               result.stderr.strip()[:120]))
+    assert not unbounded, (
+        "these hooks never reach `_compat.load()`, so nothing arms their deadline and the provider "
+        "kills them into an allow -- the construction comment in `_compat` calls the bound a "
+        "property of being a hook, and it is only that while this list is empty:\n  %s"
+        % "\n  ".join(unbounded))
+
+
+@pytest.mark.parametrize("kit_hooks", [HOOKS, OFFICE_HOOKS, RESEARCH_HOOKS])
+def test_a_hook_that_never_imports_the_kernel_is_bounded_by_its_window_too(tmp_path, kit_hooks):
+    """BUG-0153/H61: the bound is a property of being a hook, not of importing `_kernel`.
+
+    `_kernel.start_the_deadline` has bounded the gates that call `run_gate` since 2026-09-05, and
+    that is 10 of 27 shipped dev hooks, 14 of 27 office, 9 of 24 research (measured 2026-09-12).
+    The other 45 -- `guard_no_adhoc` here, and `format_on_write`, `notify_agent_events`,
+    `gate_pipeline` with it -- never import `_kernel` at all and ran with no bound whatsoever: a
+    slow filesystem, a large payload, and the provider kills them into an allow. The construction
+    moved into `_compat`, which every shipped hook imports and whose `load()` every shipped hook
+    calls, so this measures a hook on the far side of that line.
+
+    THREE MEASUREMENTS, all as REAL hook processes: a window the hook cannot answer inside refuses,
+    a registration that names it without a window refuses, and an ordinary window leaves the hook's
+    own verdict (rc 0 on a patch it allows) untouched -- a deadline that refuses everything would
+    be worth as little as none.
+
+    RED WITHOUT THE FIX, measured in a .git-less copy outside the repo: take the `start_the_deadline()`
+    call out of `_compat.load()` and the first two measurements return rc 0, because nothing else in
+    this hook's process ever reads the window.
+    """
+    patch = "*** Begin Patch\n*** Update File: final_report.md\n@@\n-x\n+y\n*** End Patch"
+    payload = {"tool_name": "apply_patch", "tool_input": {"command": patch}, "cwd": str(tmp_path)}
+    reserve = _hook_helper_constant(kit_hooks, "DEADLINE_RESERVE_SECONDS")
+
+    _register_with_window(tmp_path, "guard_no_adhoc.py", reserve)
+    result = run_hook_process("guard_no_adhoc.py", payload, tmp_path, hooks_dir=kit_hooks)
+    assert result.returncode == 2, (kit_hooks, result.stdout, result.stderr)
+    assert "not enough time" in result.stderr, result.stderr[:400]
+
+    _register_with_window(tmp_path, "guard_no_adhoc.py", None)
+    result = run_hook_process("guard_no_adhoc.py", payload, tmp_path, hooks_dir=kit_hooks)
+    assert result.returncode == 2, (kit_hooks, result.stdout, result.stderr)
+    assert "no entry that names it states a `timeout`" in result.stderr, result.stderr[:400]
+
+    _register_with_window(tmp_path, "guard_no_adhoc.py", 120)
+    result = run_hook_process("guard_no_adhoc.py", payload, tmp_path, hooks_dir=kit_hooks)
+    assert result.returncode == 0, (kit_hooks, result.stdout, result.stderr)
+
+
+def test_a_gate_no_registration_names_falls_back_on_the_measured_default_window(prd_repo):
+    """The other half of the same reader: a registration that does not govern this process.
+
+    An empty registration (and an unreadable or absent one, which is the same situation for this
+    purpose) did not start this hook, so no window of that file bounds it and the provider's own
+    measured default applies. Refusing here would refuse every hook run by hand and every hook a
+    second provider's artifact started -- an over-refusal that would reach a user, not an attacker.
+    """
+    _scoped_repo(prd_repo)
+    write(os.path.join(str(prd_repo), ".claude", "settings.json"), json.dumps({"hooks": {}}))
+    result = _scope_hook(prd_repo, "git status --short")
+    assert result.returncode == 0, (result.stdout, result.stderr)
+
+
+def test_an_ordinary_window_leaves_the_gate_deciding(prd_repo):
+    """The reader's other direction: a deadline that refuses everything is worth as little as none.
+    A generous window leaves the gate answering normally."""
+    _scoped_repo(prd_repo)
+    for window in (120,):
         _register_with_window(prd_repo, "gate_test_scope.py", window)
         assert _scope_hook(prd_repo, "git status --short").returncode == 0, window
         assert _scope_hook(prd_repo, "python -m pytest tests/ -q").returncode == 2, window
@@ -19331,22 +19537,43 @@ def test_the_smallest_NAMED_window_answers_when_one_entry_states_none(prd_repo):
 
 
 def test_two_silent_entries_still_leave_the_gate_deciding(prd_repo):
-    """The other direction of the same reader: silence is the DEFAULT window, not a refusal.
+    """Two entries behave like one -- and since BUG-0153/H61 SILENCE is a refusal, not a default.
 
-    Every shipped kit registration is silent, and rightly so -- a window over a gate that bounds no
-    child of its own can only kill it mid-decision. So two silent entries must behave exactly like
-    one, and the gate must still answer.
+    THE CONTRACT THIS NODE HELD UNTIL 2026-09-12 WAS THE OTHER ONE, and it is written down here
+    because the change is the point: a window used to be nothing but the moment the provider KILLS
+    a gate, so a registration stating none simply got the provider default and the gate answered.
+    `_compat.start_the_deadline` now refuses BEFORE the window instead, and every shipped kit entry
+    states a `timeout` -- that is a property and it is held by
+    `test_every_registration_names_a_window_its_gate_can_answer_inside`, not by a count in this
+    sentence -- so a registration that states none is a registration this gate will not decide
+    under. The node kept its name and its subject (two entries must
+    behave exactly like one); what changed is which answer "exactly like one" is.
+
+    BOTH ENDS, so this cannot pass by refusing everything: with a window on both entries the gate
+    still answers -- rc 0 for an ordinary line and rc 2 for a whole declared surface -- and with a
+    window on neither it refuses BOTH lines, naming the missing `timeout` rather than deciding
+    under a bound nobody stated.
     """
     _scoped_repo(prd_repo)
     entry = {"type": "command",
              "command": 'python -B "${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py" '
                         "gate_test_scope.py"}
-    write(os.path.join(str(prd_repo), ".claude", "settings.json"), json.dumps(
-        {"hooks": {"PreToolUse": [
-            {"matcher": "Bash|PowerShell", "hooks": [dict(entry)]},
-            {"matcher": "Bash", "hooks": [dict(entry)]}]}}))
+
+    def register(**extra):
+        write(os.path.join(str(prd_repo), ".claude", "settings.json"), json.dumps(
+            {"hooks": {"PreToolUse": [
+                {"matcher": "Bash|PowerShell", "hooks": [dict(entry, **extra)]},
+                {"matcher": "Bash", "hooks": [dict(entry, **extra)]}]}}))
+
+    register(timeout=120)
     assert _scope_hook(prd_repo, "git status --short").returncode == 0
     assert _scope_hook(prd_repo, "python -m pytest tests/ -q").returncode == 2
+
+    register()
+    for command in ("git status --short", "python -m pytest tests/ -q"):
+        silent = _scope_hook(prd_repo, command)
+        assert silent.returncode == 2, (command, silent.stdout, silent.stderr[:300])
+        assert "no entry that names it states a `timeout`" in silent.stderr, silent.stderr[:300]
 
 
 @pytest.mark.parametrize("empty", ['-k ""', "-k=", '-m ""', "-m="])
@@ -19728,6 +19955,112 @@ _DIRECTORY_VERBS_SPELLED_AGAIN = {
 
 def _write_scope(repo, command):
     return run_hook_process("gate_write_scope.py", _bash(repo, command), repo)
+
+
+@pytest.mark.parametrize("kit_hooks", [HOOKS, OFFICE_HOOKS, RESEARCH_HOOKS])
+def test_a_line_that_writes_a_script_and_runs_it_is_refused_in_every_kit(prd_repo, kit_hooks):
+    """BUG-0298/H214: the chain that ran inside ONE tool call and passed every registered hook.
+
+    MEASURED 2026-09-12 against two scaffolded pilots: `cat <<'EOF' > run.sh ; bash run.sh` with a
+    body that writes `project_memory/b1h.yaml` was rc 0 at every registered Bash hook, and the real
+    shell wrote the file. The heredoc reader is not what failed -- the body is data for `cat`, and
+    reading it as prose is the correction `BUG-0289` bought. What failed is that the gates inspect
+    the TEXT of a call while the script is what runs.
+
+    TWO LISTS, AND THE SPLIT IS WHAT KEEPS THE RULE FROM BEING EITHER A SPELLING OR A BLANKET --
+    the lists are counted by the loops below and not by a number in this sentence, which is the one
+    that went stale the moment a line was appended (verifier round 1 of TSK-0149, F4). The refusals
+    are ONE mechanism in several shapes: how the bytes reach the file (redirect, `tee` as an
+    operand, a pipe into `tee`) and how the file is executed (a shell by name, `sh`, the dot-source
+    builtins, the file as the command word). The everyday lines are the ones the same reading could
+    break -- a write with nothing running it, a run with nothing writing it, a copy whose target is
+    only read, a `tee` whose file is grepped, and the command line that records an Evidence.
+
+    RED WITHOUT THE FIX, measured in a .git-less copy outside the repo: drop the call to
+    `_refuse_a_script_this_line_writes_and_runs` from `handle_shell` and all eight return rc 0; with
+    the FIRST cut of the rule (verifier round 1, F1) five of the eight did.
+    """
+    body = "printf x > project_memory/b1h.yaml"
+    heredoc = "cat <<'EOF' > run.sh" + NL + body + NL + "EOF" + NL
+    # EVERY ROW BELOW WAS MEASURED rc 0 BY THE VERIFIER (round 1, F1) except the first, which was
+    # the only one the first cut refused: "written" came out of REDIRECTS alone and "runs" out of
+    # shell NAMES alone, so a tool that writes its operand (`tee`) and the builtins that execute one
+    # (`source`, `.`) walked through. The real shell was the arbiter there -- both forms wrote AND
+    # executed.
+    for line in (heredoc + " ; bash run.sh",
+                 heredoc + " ; . run.sh",
+                 heredoc + " ; source run.sh",
+                 heredoc + " ; . ./run.sh",
+                 "tee run.sh <<'EOF'" + NL + body + NL + "EOF" + NL + " ; bash run.sh",
+                 "tee run.sh <<'EOF'" + NL + body + NL + "EOF" + NL + " ; sh run.sh",
+                 "echo x | tee run.sh && sh run.sh",
+                 "printf 'x' > run.sh ; bash run.sh"):
+        refused = _write_scope_in(prd_repo, line, kit_hooks)
+        assert refused.returncode == 2, (kit_hooks, line, refused.stdout, refused.stderr)
+        assert "RUNS it in the same call" in refused.stderr, (line, refused.stderr[:400])
+
+    # ...AND THE EVERYDAY LINES THE SAME MECHANISM MUST NOT TOUCH. Three of them are the ones a
+    # "written = every operand of a write-capable stage" reading really breaks, and each is marked
+    # where it stands rather than counted from the end of the list (an ordinal ages the day
+    # somebody appends -- verifier round 1 of TSK-0149, F4).
+    for line in ("cat <<'EOF' > notes.md" + NL + "hello" + NL + "EOF",
+                 "bash tools/ci.sh",
+                 "git status --short",
+                 "cp a.txt b.txt ; cat b.txt",           # a copy whose target is only READ
+                 "echo y | tee log.txt ; grep x log.txt",  # a `tee` whose file is grepped
+                 # THE LINE EVERY ROLE TYPES TO RECORD A VERDICT, and the one this rule refused
+                 # until TSK-0149: nothing on it is quoted, so the word `python` stands twice --
+                 # once as the verb and once inside `--run-command` -- and a stage no verb
+                 # classifies as read-only counts every operand as written. Measured in the
+                 # TSK-0149 full run as "this line WRITES python and RUNS it in the same call";
+                 # `test_the_evidence_the_merge_gate_demands_has_an_installed_producer` is the node
+                 # that caught it, against the scaffold, and it goes red without the repair too.
+                 "python scripts/harness.py evidence --kind test --result pass "
+                 "--related PR-0001 --summary qa run green "
+                 "--artifact-ref staging/TSK-0001/run.log "
+                 "--run-command python -m pytest tests/ -q --run-scope full"):
+        allowed = _write_scope_in(prd_repo, line, kit_hooks)
+        assert allowed.returncode == 0, (kit_hooks, line, allowed.stdout, allowed.stderr)
+
+
+@pytest.mark.parametrize("kit_hooks", [HOOKS, OFFICE_HOOKS, RESEARCH_HOOKS])
+def test_a_command_substitution_is_not_read_as_a_write_by_the_stage_around_it(prd_repo, kit_hooks):
+    """The over-refusal the BUG-0298 rule brought with it, closed at its mechanism (TSK-0149).
+
+    MEASURED by the verifier of TSK-0147 (round 2), both pilots, every role: `bash $(which ci.sh)`
+    came back rc 2 with "this line WRITES ci.sh and RUNS it in the same call". It writes nothing --
+    the shell replaces the whole `$(...)` with its OUTPUT, so `ci.sh` is an operand of `which` and
+    never of `bash`. The refusal text therefore said something that was not on the line, which is
+    a finding of its own here even though the direction is a refusal and not a pass.
+
+    THE DOUBLE READING WAS THE CAUSE: `_compat.command_line` already lifts a substitution out as a
+    stage of its own (TSK-0019), which is where its own write is judged -- and the raw words stayed
+    in the outer stage on top of that, so one word was both "written" (by the lifted stage) and
+    "run" (as an operand of the runner).
+
+    BOTH ENDS IN ONE NODE, because a narrowing is only worth what it leaves standing: the four
+    substitution lines pass, and two of the eight real write-and-run shapes are re-measured here so
+    the rule cannot have been switched off instead of narrowed.
+
+    RED without the narrowing: `bash $(which ci.sh)` comes back rc 2.
+    RED with `_operand_words` returning nothing at all: the two refusals below come back rc 0.
+    """
+    for line in ("bash $(which ci.sh)",
+                 'bash "$(which ci.sh)"',
+                 "bash $(cat name.txt)",
+                 "bash $(echo $(which a.sh))"):
+        allowed = _write_scope_in(prd_repo, line, kit_hooks)
+        assert allowed.returncode == 0, (kit_hooks, line, allowed.stdout, allowed.stderr)
+
+    for line in ("printf 'x' > run.sh ; bash run.sh",
+                 "echo x | tee run.sh && sh run.sh"):
+        refused = _write_scope_in(prd_repo, line, kit_hooks)
+        assert refused.returncode == 2, (kit_hooks, line, refused.stdout, refused.stderr)
+        assert "RUNS it in the same call" in refused.stderr, (line, refused.stderr[:400])
+
+
+def _write_scope_in(repo, command, hooks_dir):
+    return run_hook_process("gate_write_scope.py", _bash(repo, command), repo, hooks_dir=hooks_dir)
 
 
 def test_every_directory_verb_moves_this_gates_base_and_no_other_word_does(tmp_path):

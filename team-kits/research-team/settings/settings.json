@@ -25,15 +25,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/kit_trust_state.py\""
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/kit_trust_state.py\"",
+            "timeout": 120
           },
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session_status.py\""
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session_status.py\"",
+            "timeout": 120
           },
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/clear_handover_marker.py\""
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/clear_handover_marker.py\"",
+            "timeout": 120
           }
         ]
       }
@@ -44,7 +47,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_no_adhoc.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_no_adhoc.py",
+            "timeout": 120
           }
         ]
       },
@@ -53,21 +57,24 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_pm_scope.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_pm_scope.py",
+            "timeout": 120
           }
         ]
       },
       {
         "matcher": "Bash|PowerShell",
-        "_comment": "A `timeout` ON A REGISTRATION IS A KILL WINDOW, and a killed gate is a silent allow -- so an entry may name one only where the hook refuses BEFORE it, and must name one where the hook cannot finish inside the default. Measured 2026-08-23 on claude.exe 2.1.239 (tools/provider_observations.json -> hook_deadlines): an entry with `timeout: 5` whose hook needed 20 s was KILLED and the refused command RAN, with nothing on the user's channel to say a gate had been killed; an entry naming NO timeout survived 310 s and 560 s and was killed at 900 s, so a default window exists too and sits near 600 s. Three entries here carried 60/120 on the assumption that a window HELPS a gate that has no bound of its own -- it does the opposite, and they lost it. `gate_pipeline` is the one that KEEPS a window: it bounds its own child at 1500 s and that is longer than the default kill, so without a larger registered window a long suite would be killed at ~600 s and the refused push would go through -- 1800 > 1500 is what makes its own refusal arrive first. `tools/test_hooks.py::test_a_registration_names_a_window_exactly_when_its_gate_can_outlive_the_default` measures the rule off the shipped file and off each gate's own code. What no window buys back is a hook that hangs inside its own process: nothing in `_compat` notices a deadline, so `_compat.HOOK_DEADLINE_SECONDS` is a budget the hooks give themselves and not one anything enforces.",
+        "_comment": "EVERY ENTRY NAMES A WINDOW, and that is one half of a construction rather than a rule of its own. A `timeout` is the moment the provider KILLS this hook, and a killed hook is read as \"hook error, carry on\" -- an ALLOW. Measured 2026-08-23 on claude.exe 2.1.239 (tools/provider_observations.json -> hook_deadlines): an entry with `timeout: 5` whose hook needed 20 s was KILLED and the refused command RAN, with nothing on the user's channel to say a gate had been killed; an entry naming NO timeout survived 310 s and 560 s and was killed at 900 s, so the provider's own default window exists too and sits near 600 s. Until 2026-09-12 that measurement was answered by leaving the window OFF nearly everywhere -- 2 of 89 entries across the three kits carried one -- and by every hook promising to stay far inside a window nothing noticed arriving (BUG-0153/H61). `_compat.start_the_deadline` now refuses BEFORE the window closes instead of racing it, and it refuses a registration that names no window at all: a gate that cannot know when it is killed cannot promise to answer first. The two halves ship together because either alone is worse than neither -- the reader without the windows shuts every hook of this kit, the windows without the reader are a kill moment per entry. The VALUE is derived and not chosen: `tools/test_hooks.py::test_every_registration_names_a_window_its_gate_can_answer_inside` requires every window to clear the chain's own child bounds plus the budget one hook process gives itself (`_compat.HOOK_DEADLINE_SECONDS`), which is what makes the gate's own refusal arrive before the kill. `gate_pipeline` keeps the one large window: it bounds its own child at 1500 s, longer than the provider's default, so without it a long suite would be killed at ~600 s and the refused push would go through -- 1800 > 1500 is what makes its own refusal arrive first.",
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_git.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_git.py",
+            "timeout": 120
           },
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_memory_complete.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_memory_complete.py",
+            "timeout": 120
           },
           {
             "type": "command",
@@ -76,19 +83,28 @@
           },
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_write_scope.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_write_scope.py",
+            "timeout": 120
           },
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_push_token.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_push_token.py",
+            "timeout": 120
           },
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_shell_hygiene.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_shell_hygiene.py",
+            "timeout": 120
           },
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_test_scope.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_test_scope.py",
+            "timeout": 120
+          },
+          {
+            "type": "command",
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_dispatch.py",
+            "timeout": 120
           }
         ]
       },
@@ -98,7 +114,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_agent_spawn.py gate_dispatch.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_agent_spawn.py gate_dispatch.py",
+            "timeout": 120
           }
         ]
       },
@@ -107,11 +124,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_question_context.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_question_context.py",
+            "timeout": 120
           },
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_approval.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_approval.py",
+            "timeout": 120
           }
         ]
       },
@@ -120,7 +139,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_write_scope.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_write_scope.py",
+            "timeout": 120
           }
         ]
       },
@@ -129,7 +149,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_memory_budget.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_memory_budget.py",
+            "timeout": 120
           }
         ]
       },
@@ -138,7 +159,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_harness_selfmod.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_harness_selfmod.py",
+            "timeout": 120
           }
         ]
       }
@@ -149,11 +171,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_yaml_valid.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_yaml_valid.py",
+            "timeout": 120
           },
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_scratchpad_ref.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" guard_scratchpad_ref.py",
+            "timeout": 120
           }
         ]
       },
@@ -162,7 +186,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_dispatch.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_dispatch.py",
+            "timeout": 120
           }
         ]
       },
@@ -171,7 +196,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_approval.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_approval.py",
+            "timeout": 120
           }
         ]
       }
@@ -182,7 +208,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/notify_agent_events.py\""
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/notify_agent_events.py\"",
+            "timeout": 120
           }
         ]
       }
@@ -193,11 +220,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/notify_agent_events.py\""
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/notify_agent_events.py\"",
+            "timeout": 120
           },
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_subagent_output.py gate_dispatch.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_subagent_output.py gate_dispatch.py",
+            "timeout": 120
           }
         ]
       }
@@ -208,7 +237,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_dispatch.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_dispatch.py",
+            "timeout": 120
           }
         ]
       }
@@ -219,7 +249,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_dispatch.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_dispatch.py",
+            "timeout": 120
           }
         ]
       }
@@ -230,7 +261,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_dispatch.py"
+            "command": "python -B \"${CLAUDE_PROJECT_DIR}/.claude/hooks/_gate.py\" gate_dispatch.py",
+            "timeout": 120
           }
         ]
       }

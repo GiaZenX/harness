@@ -68,7 +68,17 @@ earlier one and a `fail` you record after a pass closes the merge gate again.
    `evidence_refs` — without which the state validator refuses `ANALYZED` — and is part of the experiment
    being complete; never record the report as a `pending-for-merge` acceptance item (§17).
 4. On the **first** failed validation of a task, flag the escalation in your `followups` so the PM can propose
-   an upgrade (§11). Per-task retry COUNTS exist nowhere in V2 — name the repetition, do not assume a counter.
+   an upgrade (§11) — OR, when the failure is demonstrably **mechanical** (a typo, not a reasoning error),
+   RECORD that yourself: your `evidence` verdict of `fail` takes ONE more flag, `--fail-class mechanical`
+   (the other word is `--fail-class reasoning`, which counts as any failure does), and
+   `count_failed_run_locked` then skips that run (`DEC-0107`). Everything else about the line is
+   unchanged — the full command is under "What you produce". It is yours alone: the kernel takes the role
+   off the lease that binds YOU, and `gate_dispatch` refuses the flag from the session instance and from
+   any bound role that is not the judging class. A word your SHELL assembles is refused where it could
+   still turn into an option nobody typed: UNQUOTED anywhere on the line, or quoted but not standing
+   as the VALUE of an option. So `--run-command "$(cat cmd.txt)"` and `--related "$ID"` go through,
+   and `… --run-command c "$a$b" mechanical` does not — there, type the flag out.
+   Per-task retry COUNTS exist nowhere in V2 — name the repetition, do not assume a counter.
 
 ## What you produce
 Evidence items (`kind: review`, `kind: test`, `kind: acceptance`), `INV` items for the validity criteria that must keep

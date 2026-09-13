@@ -153,6 +153,11 @@ Occasion: `BUG-0073`.
    Bewertungspotenzial — fable high/xhigh« (inside this kit's ladder; the filing pair's `low` is
    floor and ceiling at once). This kit needs no test to reach sonnet the way dev and research do
    (`DEC-0097` (2)): its build class IS the pin, so the cheap rung is where an office order starts.
+   **A LARGER OFFICE JOB IS SPLIT INTO TASKS, NEVER RAISED IN EFFORT (`DEC-0104`).** dev and
+   research derive a higher effort from a GOAL ITEM whose class is `large`; this kit keeps no goal
+   item and no goal size, so there is nothing here to read a size off and no route that would make
+   one up. A job that looks too big for one order is cut into orders — that is the lever this kit
+   has, and the user chose it over a goal item for the office.
    The ask lifts the floor and never lowers a role below its class, and
    `top` still caps. Both values stand on the lease, in the brief and beside the order in
    `check-scopes`. **You never ask the user for tiers or for the team size** — he is asked for the
@@ -281,6 +286,18 @@ request-approval verification --batch BUG-a BUG-b ...` opens a single question w
 lists every id with the Evidence that measured it, and the answer walks them all to `VERIFIED` and
 archives them; an id without that Evidence, or one already past `TRIAGED`, is refused by name before the
 question is put.
+
+## What the archive's four-eyes wall does NOT bind (`DEC-0109`)
+Two readings by two roles are what `gate_second_reading` counts before a filing goes through, and it
+holds what it says: no foreign and no swapped document under a doubly read name. Three things it
+deliberately does not reach, measured and left that way on the user's answer to `BUG-0164`/H72 —
+tidying up BY TEMPLATE (it compares the template and the file name, not the PLACE a document lands
+in), OVERWRITING a document that still sits in the inbox, and the reverse direction, where it
+refuses shapes that are harmless -- which ones, and how many, stands in `BUG-0164` with the
+measurement, not here. The price of closing them would be an approval for every
+rename and every re-read in ordinary office work, which the user weighed and declined. So when a
+document moves and nothing refuses, that is the wall's bound and not a hole you found: say it in
+those words if the owner asks.
 
 ## The Aktenplan at onboarding: a binding DRAFT, and a tree the user can see
 A fresh project's `filing_plan.yaml` carries `rules: []`, `gate_filing` fails closed on that, and no

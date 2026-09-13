@@ -343,7 +343,7 @@ def test_staging_dir_without_an_active_item_is_still_reported(tmp_path):
 
 def _pr_fields():
     return {
-        "title": "checkout", "class": "feature", "problem": "p", "goal": "g",
+        "title": "checkout", "class": "normal", "problem": "p", "goal": "g",
         "acceptance_criteria": [{"id": "AC-1", "text": "it works"}],
         "invariants": [], "out_of_scope": [], "priority": "high",
         "user_story": "As a buyer I can pay",
@@ -931,7 +931,7 @@ def test_a_task_under_its_own_root_is_still_creatable(tmp_path):
 
 def _research_chain(state, question_title="q", parents="HYP-0001"):
     """RQ -> HYP -> EXP, captured directly -- the chain the research constitution documents."""
-    state.capture("RQ", {"title": question_title, "class": "exploratory", "question": "why",
+    state.capture("RQ", {"title": question_title, "class": "normal", "question": "why",
                          "motivation": "m", "acceptance_criteria": [{"id": "AC-1", "text": "x"}],
                          "out_of_scope": [], "priority": "high"})
     state.capture("HYP", {"derives_from": state.read_item("RQ-0001")["id"],
@@ -989,7 +989,7 @@ def test_an_origin_with_a_parent_outside_the_root_is_refused_at_creation(tmp_pat
 
     state = ProjectState(_template_state(tmp_path))
     _research_chain(state)
-    state.capture("RQ", {"title": "other", "class": "exploratory", "question": "why else",
+    state.capture("RQ", {"title": "other", "class": "normal", "question": "why else",
                          "motivation": "m", "acceptance_criteria": [{"id": "AC-1", "text": "x"}],
                          "out_of_scope": [], "priority": "high"})
     state.capture("HYP", {"derives_from": "RQ-0002", "statement": "s2",
@@ -1072,7 +1072,7 @@ def test_the_transition_refusal_names_a_command_that_walks_the_edge(tmp_path):
 
     root = _template_state(tmp_path)
     state = ProjectState(root)
-    state.capture("RQ", {"title": "q", "class": "exploratory", "question": "why",
+    state.capture("RQ", {"title": "q", "class": "normal", "question": "why",
                          "motivation": "m", "acceptance_criteria": [{"id": "AC-1", "text": "x"}],
                          "out_of_scope": [], "priority": "high"})
     state.capture("EXP", {"derives_from": "RQ-0001", "design": "d", "variables": ["v"],
@@ -3018,3 +3018,106 @@ def test_the_question_a_plan_asks_shows_every_goal_the_hash_covers(tmp_path):
     # ...and NEVER a count instead of the list: the number of goals on its own must not stand in
     # for them, which is the shape a summary would take.
     assert "2 Ziele" not in question, question
+
+
+def test_the_evidence_command_stamps_the_class_with_the_role_the_lease_names(tmp_path, capsys):
+    """BUG-0260 / H178 (DEC-0107) on the surface a role really types: `evidence --fail-class`
+    stamps the order with the role the BOUND LEASE names, and with nothing the caller said.
+
+    THE CLAIM THIS MEASURES is the one EVD-0433 makes and no test reached before (verifier round 1,
+    F3): the CLI is the only place that turns "who is running" into the `fail_class_by` on the
+    order, and a mutation that stamped a constant role left the whole ladder suite green. So this
+    node runs the command through `cli.main` -- the parser, the refusal, the capture and the stamp
+    in one -- against a project where a DIFFERENT role holds the bound lease.
+
+    RED with a constant in `kernel/cli.py`: the stamp then names whatever the constant says instead
+    of the role the state derived, and the discount would be bought by a role nobody dispatched.
+    """
+    import sys as _sys
+
+    _sys.path.insert(0, TEAM_KITS_DIR)
+    from conftest import drive_task_to
+    from kernel import cli, dispatch
+    from kernel.backlog_types import FAIL_CLASS_BY_FIELD, FAIL_CLASS_FIELD
+    from kernel.state import ProjectState
+
+    root = _template_state(tmp_path)
+    state = ProjectState(root)
+    build = _leasable_task(state)
+    judge = dispatch.create_task(state, {
+        "product_requirement": "PR-0001", "derives_from": "PR-0001", "type": "review",
+        "assigned_role": "quality-engineer", "acceptance_refs": ["AC-1"],
+        "allowed_scope": ["tests/"], "forbidden_scope": [], "required_inputs": [],
+        "expected_outputs": ["a verdict"], "dependencies": [],
+    })
+    state.transition(judge["id"], "READY")
+    dispatch.create_lease(state, judge["id"])
+    dispatch.bind_agent(state, judge["id"], "agent-of-the-judge")
+    drive_task_to(state, build, "FAILED")
+
+    assert cli.main(["--root", root, "evidence", "--kind", "test", "--result", "fail",
+                     "--fail-class", "mechanical", "--related", build,
+                     "--summary", "a renamed path the fix missed",
+                     "--artifact-ref", "staging/x/run.txt",
+                     "--run-command", "python -m pytest tools/test_x.py -q",
+                     "--run-scope", "selection"]) == 0
+    out = capsys.readouterr().out
+    assert build in out and "mechanical" in out, out
+
+    order = state.read_item(build)
+    assert order[FAIL_CLASS_FIELD] == "mechanical"
+    assert order[FAIL_CLASS_BY_FIELD] == "quality-engineer", (
+        "the stamp does not carry the role the lease names: %r" % order.get(FAIL_CLASS_BY_FIELD))
+
+    # ...and the refusal side of the same surface: the same command with a passing result writes
+    # neither the record nor the stamp
+    assert cli.main(["--root", root, "evidence", "--kind", "test", "--result", "pass",
+                     "--fail-class", "mechanical", "--related", build,
+                     "--summary", "s", "--artifact-ref", "staging/x/run.txt",
+                     "--run-command", "python -m pytest tools/test_x.py -q",
+                     "--run-scope", "selection"]) == 2
+
+
+def test_a_stamp_refused_under_the_lock_leaves_the_record_behind(tmp_path, monkeypatch):
+    """R3: the `evidence` command judges TWICE, and the second judgement falls after the write.
+
+    `fail_class_refusal` runs before anything is written and holds no lock -- it cannot, because
+    the kits' `gate_dispatch` has to be able to ask the same predicate. `record_fail_class` asks
+    each order's status AGAIN while it holds the lock. Between the two the order can move, and then
+    the command ends rc 1 with the sentence while the immutable Evidence is already in the store,
+    carrying a classification that no order carries. The head comment of the command claimed the
+    opposite until this node existed (verifier round 2, R3); what it says now is measured here.
+
+    HOW THE WINDOW IS ARRANGED, said out loud: the UN-LOCKED pre-check is made to answer None,
+    which is what it really answered a moment earlier while the order was still FAILED. Everything
+    after it is the shipped path -- the real capture, the real locked re-check, the real exit code.
+
+    RED if the two writes are swapped so the record lands behind the stamp: no Evidence survives
+    the refusal and the record this node looks for is not there.
+    """
+    import sys as _sys
+
+    _sys.path.insert(0, TEAM_KITS_DIR)
+    from conftest import drive_task_to
+    from kernel import cli, dispatch
+    from kernel.backlog_types import FAIL_CLASS_FIELD
+    from kernel.state import ProjectState
+
+    root = _template_state(tmp_path)
+    state = ProjectState(root)
+    build = _leasable_task(state)
+    drive_task_to(state, build, "FAILED")
+    state.transition(build, "READY", approved_retry=True)   # the order moved after the judgement
+    monkeypatch.setattr(dispatch, "fail_class_refusal", lambda *args, **kwargs: None)
+
+    assert cli.main(["--root", root, "evidence", "--kind", "test", "--result", "fail",
+                     "--fail-class", "mechanical", "--related", build,
+                     "--summary", "a renamed path the fix missed",
+                     "--artifact-ref", "staging/x/run.txt",
+                     "--run-command", "python -m pytest tools/test_x.py -q",
+                     "--run-scope", "selection"]) == 1
+
+    records = [state.read_item(stem) for stem, _path in state.iter_active_items("EVD")]
+    assert [record for record in records if record.get(FAIL_CLASS_FIELD) == "mechanical"], (
+        "the refused stamp took the Evidence with it: %r" % records)
+    assert FAIL_CLASS_FIELD not in state.read_item(build), "the order was stamped anyway"
