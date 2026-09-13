@@ -26,7 +26,9 @@ acceptance_criteria:
 - 'AC-3: a request bound to items that are all archived is reported as dead by sweep-requests'
 source: this session's transcript 2026-09-12 21:4x-21:5x; kernel/cli.py sweep-requests;
   gate_approval PostToolUse note
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0070
 created: '2026-09-12T22:49:59'
+approved_hash: fc1fe9e046b28f60fec549d80a719fa06d2f007cec8fd2b0936bddab08f0a1f0
+closed_at: '2026-09-13T08:54:21'

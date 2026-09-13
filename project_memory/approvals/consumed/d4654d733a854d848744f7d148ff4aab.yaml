@@ -1,0 +1,15 @@
+request_id: d4654d733a854d848744f7d148ff4aab
+kind: verification
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  bugs:
+  - item: BUG-0242
+    revision: 1
+    scope_hash: 2c6dff77f95c9d7fc406abd13278993b3c0b879205102651f3058794e40d759d
+    evidence: EVD-0448
+subject_manifest_hash: 7d325aa80c5b0150f643066828829c6b59b78ce0dc35c8da340a938f5293542a
+created: '2026-09-13T08:21:04'
+expires_at_epoch: 1789366864.326719
+mint_code: 3155e6

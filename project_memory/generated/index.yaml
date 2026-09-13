@@ -1,4 +1,4 @@
-generated_at: '2026-09-13T08:20:10'
+generated_at: '2026-09-13T09:05:30'
 items:
 - id: APR-0001
   type: APR
@@ -414,6 +414,36 @@ items:
   status: null
   revision: null
   approval_ref: null
+- id: APR-0070
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0071
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0072
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0073
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
+- id: APR-0074
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
 - id: BUG-0069
   type: BUG
   title: GitHub CI is red on every push -- the delivery suite passes locally but fails
@@ -461,13 +491,6 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: BUG-0153
-  type: BUG
-  title: Kein Kit-Hook merkt, dass sein Fenster abläuft — offen, Schließrichtung gebaut
-    (neu, TSK-0082)
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: BUG-0161
   type: BUG
   title: Die Gates dieses Repos erben die halbe CR-Härtung der Kits — offen, Werkbank,
@@ -488,44 +511,11 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: BUG-0237
-  type: BUG
-  title: Die Zielklasse ist Freitext, also haengt die SR-Pflicht an einer Ausnahmeliste
-    (neu, TSK-0122)
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0242
-  type: BUG
-  title: Ein Kit-Update MELDET den Gedächtnisbaum, den keine Rolle mehr deklariert,
-    und entfernt ihn nicht (neu, TSK-0125, BUG-0088)
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0248
-  type: BUG
-  title: 'The docking point (scripts/invoice_intake.py) refuses a mixed-VAT-rate outgoing
-    invoice for booking -- a ledger row carries ONE vat_rate, so a document with 7
-    % and 19 % positions (ordinary in trade: food beside hardware) is accepted by
-    the norm check and then handed back ''by hand'''
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0253
   type: BUG
   title: 'A project without a scaffold record -- this repository''s own harness --
     dispatches with `ladder: absent`: no rung is derived and no spawn is held, because
     there is no kit declaration to read (new, TSK-0130, PR-0010 AC-6, DEC-0078 (4))'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0260
-  type: BUG
-  title: 'A QA fail classified narrow/mechanical still climbs the rung: the constitutions
-    offer that classification as the alternative to escalating, and the built mechanic
-    counts FAILED RUNS, which no classification is part of -- so the one lever the
-    rule gave QA no longer reaches the model (new, TSK-0130, PR-0010 AC-6, DEC-0034
-    rule 2 vs parity matrix row 43/45)'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -547,14 +537,6 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0295
-  type: BUG
-  title: Ein DEC-Verweis in einem Python-Docstring einer ausgelieferten Kit-Datei
-    wird von keinem Leser beurteilt, wenn die Anfuehrungszeichen-Paarung ihn verschluckt
-    (2 von 190, gemessen)
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0296
   type: BUG
   title: Der mehrdeutige deutsche Genitivartikel (`der`, `einer`) beendet ein Präpositionskomplement
@@ -567,45 +549,6 @@ items:
   title: Die gedruckte Abhilfe des Commit-Gates dieses Repos ist rc 2, bis der Nutzer
     den S4-Patch fährt -- seit TSK-0144 hält ein Test in tools/ das rot, bis er gefahren
     ist
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0298
-  type: BUG
-  title: 'Kit-Seite der H11-Klasse: ein Heredoc, das in einer Zeile erst in eine Datei
-    geschrieben und dann von der Shell ausgeführt wird (`cat <<EOF > run.sh ; bash
-    run.sh`), passiert jeden Kit-Hook'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0299
-  type: BUG
-  title: Der H196-Startleser folgt einem argv, das ein Name hält, aber nicht dem PROGRAMMWORT,
-    das erst ein lokaler Name auflöst -- heute ohne Opfer
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0300
-  type: BUG
-  title: Der Stopper-Leser des Beweis-Vokabular-Tests begründet seine Unterscheidung
-    (kann nicht zurückkehren vs. endet irgendwo) mit einer Zählung, die kein roter
-    Test hält
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0301
-  type: BUG
-  title: Der Beweis-Vokabular-Leser entschuldigt eine ganze Spanne, sobald irgendwo
-    vor dem nächsten Backtick eine berechnete Flagge (`--%s`) steht -- eine echte
-    Auslassung daneben bleibt stumm
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0302
-  type: BUG
-  title: 'Eine offene Freigabe-Anfrage ohne Verfallsdatum hat keine Rücknahme-Tür:
-    elf abgelehnte Stapel von 09:15 bleiben unter approvals/pending stehen, der Hook
-    meldet sie bei jeder späteren Frage und `sweep-requests` löscht sie nicht'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -1431,6 +1374,32 @@ items:
   title: 'The migration''s deposit copy under staging/ stays a proposal file: no write
     gate scans the migration records on every write (BUG-0056, the user''s answer
     ''offen lassen'')'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0111
+  type: DEC
+  title: 'Order 4 retrospective: the parallel cut held (3 h 12 min for three streams),
+    DEC-0102 (2) worked where it was applied and the two rounds it was not applied
+    cost the most -- two rules sharpened'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0112
+  type: DEC
+  title: 'The cheap-rung reader stops judging natural language: the cheap rung is
+    granted only when the acceptance names a test file or test node in the shaped
+    form; the prose negation reader is retired (BUG-0296 / H212, the user''s answer
+    B)'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0113
+  type: DEC
+  title: 'A goal accepted without any verification run is asked about, not refused:
+    the PM puts one plain-German question per goal (''hier hat niemand geprueft --
+    ist das so gewollt?'') and the answer is recorded (H59 / BUG-0151, the user''s
+    answer C)'
   status: VALID
   revision: 1
   approval_ref: null
@@ -4008,6 +3977,12 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0450
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -4243,5 +4218,11 @@ items:
   type: TSK
   title: null
   status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0150
+  type: TSK
+  title: null
+  status: DRAFT
   revision: 1
   approval_ref: null

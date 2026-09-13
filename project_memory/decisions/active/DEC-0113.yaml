@@ -1,0 +1,24 @@
+id: DEC-0113
+title: 'A goal accepted without any verification run is asked about, not refused:
+  the PM puts one plain-German question per goal (''hier hat niemand geprueft -- ist
+  das so gewollt?'') and the answer is recorded (H59 / BUG-0151, the user''s answer
+  C)'
+work: PR-0012
+context: 'H59/BUG-0151: a small project working on main alone never merges, so the
+  verification duty never fires; the kernel derives the debt (`report.accepted_without_a_verdict`),
+  the validator warns, the session start says it -- nothing stops. Put to the user
+  2026-09-13 ~08:4x (leave / refuse / ask); answer: C.'
+decision: Before a goal's acceptance approval is REQUESTED, the PM asks the user once,
+  in plain German, whether accepting without a verification run is intended; the answer
+  is recorded on the goal (kernel field written by the request path, not by hand);
+  the acceptance question itself names the missing run. No refusal in the kernel.
+alternatives: 'A (leave): rejected. B (refuse acceptance without a passing verification
+  evidence): every mini-goal would need a real verification step -- rejected.'
+consequences: Half an order (kernel request-approval acceptance path + the three PM
+  lead skills + a test that the question is asked exactly once per goal and the answer
+  travels into the acceptance card).
+source: staging/TSK-0146/protocol.md (H59 question); the user's click 2026-09-13
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-13T09:03:24'

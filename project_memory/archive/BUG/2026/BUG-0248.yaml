@@ -46,7 +46,9 @@ limits: 'Until closed, the intake REFUSES rather than books: exit 2 with the rat
 source: TSK-0132 stream protocol (project_memory/staging/TSK-0132/stream-protocol.md);
   DEC-0075; PR-0009 AC-2
 hole_number: H166
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0072
 created: '2026-09-05T21:58:52'
+approved_hash: a1e3dd87bf1dc0aa8ead87efb5d7113ae32503d82ef172da8f1edde42942b932
+closed_at: '2026-09-13T08:55:33'

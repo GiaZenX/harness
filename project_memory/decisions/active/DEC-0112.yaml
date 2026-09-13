@@ -1,0 +1,29 @@
+id: DEC-0112
+title: 'The cheap-rung reader stops judging natural language: the cheap rung is granted
+  only when the acceptance names a test file or test node in the shaped form; the
+  prose negation reader is retired (BUG-0296 / H212, the user''s answer B)'
+work: PR-0012
+context: 'H212/BUG-0296: `acceptance_is_test_shaped` reads German/English prose for
+  negation; four verify rounds found four holes, all in the dangerous direction and
+  all by hand (never/niemals; neither…nor; genitive/of; the ambiguous article `der`),
+  the last not closable by any word. DEC-0102 (3) made this a class question. Put
+  to the user 2026-09-13 ~08:3x with three answers and prices, no recommendation (the
+  first one was measured false); answer: B.'
+decision: The cheap rung is granted ONLY by the shaped path that already exists (an
+  acceptance line naming a test file `test_*.py` or a node id); the prose reader (`_DENIES_RX`,
+  `_CORRELATIVE_DENIERS`, `_complement_of` and their tripwires) is removed from the
+  decision and kept, if at all, only as a WARNING that names the shaped form. An acceptance
+  that only describes gets the role's default rung. BUG-0296 closes as a decision
+  (the class is gone), the lead texts of the kits say the shaped form in one sentence.
+alternatives: 'A (keep patching words): every round finds the next hole, the current
+  case stays open forever -- rejected. C (undecidable -> expensive rung): does not
+  reach the missing-word class (rounds 1-2), false-alarm cost unmeasured -- rejected.'
+consequences: One order (kernel/dispatch.py, tools/test_ladder.py rows retired or
+  turned into warnings, the three lead skills' sentence); existing projects with descriptive-only
+  acceptances lose the cheap rung -- measured in the field, not here.
+source: staging/TSK-0148/dec-question-BUG-0296.md; DEC-0102 (3); the user's click
+  2026-09-13
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-13T09:02:28'

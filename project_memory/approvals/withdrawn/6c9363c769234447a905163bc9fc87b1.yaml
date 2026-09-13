@@ -19,3 +19,7 @@ subject_manifest_hash: 1c86523a14e891c9407c20f8c949d50eb5d732ac76b19428c4e73a459
 created: '2026-09-12T09:15:48'
 expires_at_epoch: 1789283748.7063887
 mint_code: 82ff20
+withdrawn_at: '2026-09-13T08:21:42'
+withdrawn_reason: 'replaced: the rejected exception batches of 2026-09-12 09:15 were
+  re-asked with German sentences (18 clicks); the last id is a duplicate of BUG-0260
+  inside the B line'

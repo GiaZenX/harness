@@ -26,7 +26,9 @@ limits: 'kein Kit-Hook merkt selbst, dass sein Fenster abläuft — jede Grenze 
   registrierte Frist und verweigert DAVOR) und fehlt in den Kits. Begrenzt: alle beobachteten
   Gate-Laufzeiten ≤0,405 s und die größte eigene Kindgrenze außer gate_pipeline 20
   s, beides weit unter dem ≈600-s-Fenster — als Messung, nicht als Schranke'
-status: TRIAGED
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0072
 created: '2026-09-05T20:24:17'
+approved_hash: 4cf010e153211784f6b81af37e1bbb343acbbd5f0b852c9deab7a4cc512060fd
+closed_at: '2026-09-13T08:55:30'

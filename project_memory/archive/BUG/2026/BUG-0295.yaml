@@ -52,7 +52,9 @@ related_pr: PR-0012
 source: project_memory/staging/TSK-0143/verify-round-1.md and verify-round-2.md (R4);
   measured in staging/TSK-0143/protocol.md, section 'Rework 2'
 hole_number: H211
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0071
 created: '2026-09-12T12:56:47'
+approved_hash: 333933120ff0580bfed308da988d275f1b021b68928032f43e3993fd11884aad
+closed_at: '2026-09-13T08:54:55'

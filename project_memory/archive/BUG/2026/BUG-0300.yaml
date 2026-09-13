@@ -23,7 +23,9 @@ limits: 'Ein Prüfleser unterscheidet Funktionen, die eine Rolle sicher stoppen,
   aber kein Test würde rot, wenn die Unterscheidung wegfiele. Begrenzt: der Leser
   selbst funktioniert (nachgemessen), nur seine Begründung ist unbewacht.'
 hole_number: H216
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0073
 created: '2026-09-12T21:05:08'
+approved_hash: 5e116f65a643184741feb31629717cb9c987357695b493933b5d48a8eba18989
+closed_at: '2026-09-13T08:56:53'

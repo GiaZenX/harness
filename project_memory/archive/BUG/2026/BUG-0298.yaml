@@ -28,7 +28,9 @@ limits: 'Eine Befehlszeile kann einen Text erst in eine Skriptdatei schreiben un
   das ist sichtbar im Protokoll; dieselbe Grenze gilt seit H11 für jedes selbst geschriebene
   Skript.'
 hole_number: H214
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0073
 created: '2026-09-12T14:05:19'
+approved_hash: 4410554eb4216d714773a80deb3342a27dc6136f647ee299247094a215940f24
+closed_at: '2026-09-13T08:56:50'

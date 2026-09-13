@@ -25,7 +25,9 @@ limits: 'Ein Test, der eine Schutzregel startet, muss sagen, für welches Projek
   in einer Variablen abgelegt wird. Begrenzt: heute schreibt keine Stelle im Repo
   diese Form fehlerhaft (nachgezählt, vier Stellen, alle sauber).'
 hole_number: H215
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0071
 created: '2026-09-12T21:05:04'
+approved_hash: c9724b06a13d1b521dac1fcaf2b59a54223caaf0caa609c873e625b3dca17001
+closed_at: '2026-09-13T08:54:58'

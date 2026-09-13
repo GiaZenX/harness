@@ -29,7 +29,9 @@ limits: 'Ein Prüfleser, der kontrolliert, ob jede Beispiel-Befehlszeile für Be
   Zeile, und die ist vollständig; die Lücke wirkt erst, wenn jemand künftig eine unvollständige
   Zeile mit Platzhalter schreibt.'
 hole_number: H217
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0073
 created: '2026-09-12T21:14:26'
+approved_hash: 3111bcb6019001b577559758a6eae37c600df62335f8879d7eb5ddb7e2a8c8e3
+closed_at: '2026-09-13T08:56:56'

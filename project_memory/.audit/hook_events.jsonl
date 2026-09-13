@@ -789,3 +789,13 @@
 {"ts": "2026-09-13T01:04:07", "hook": "gate_write_scope", "event": "block", "reason": "this line WRITES run.sh and RUNS it in the same call, so what it will do is not on this line: every gate here inspects the text of the call, and the text of a script is data until the shell reaches it (BUG-0298/H214)."}
 {"ts": "2026-09-13T01:04:07", "hook": "gate_write_scope", "event": "block", "reason": "this line WRITES run.sh and RUNS it in the same call, so what it will do is not on this line: every gate here inspects the text of the call, and the text of a script is data until the shell reaches it (BUG-0298/H214)."}
 {"ts": "2026-09-13T01:04:07", "hook": "gate_write_scope", "event": "block", "reason": "this line WRITES run.sh and RUNS it in the same call, so what it will do is not on this line: every gate here inspects the text of the call, and the text of a script is data until the shell reaches it (BUG-0298/H214)."}
+{"ts": "2026-09-13T08:21:49", "hook": "gate_approval", "event": "note", "reason": "approval question for 3da9bbcbfa344ed99f9290a3e5445526 matched the kernel's"}
+{"ts": "2026-09-13T08:54:23", "hook": "gate_approval", "event": "note", "reason": "minted APR-0070 for request 3da9bbcbfa344ed99f9290a3e5445526 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-13T08:54:36", "hook": "gate_approval", "event": "note", "reason": "approval question for 63a6cb2dcb21416499f7b0b1537600b9 matched the kernel's"}
+{"ts": "2026-09-13T08:55:00", "hook": "gate_approval", "event": "note", "reason": "minted APR-0071 for request 63a6cb2dcb21416499f7b0b1537600b9 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-13T08:55:09", "hook": "gate_approval", "event": "note", "reason": "approval question for d917d3f9d31c4d9698b8bf139444c4e7 matched the kernel's"}
+{"ts": "2026-09-13T08:55:38", "hook": "gate_approval", "event": "note", "reason": "minted APR-0072 for request d917d3f9d31c4d9698b8bf139444c4e7 (user_answer_via_approval_hook)"}
+{"ts": "2026-09-13T08:55:47", "hook": "gate_approval", "event": "note", "reason": "approval question for c4bdb24d701946ca9c7dcd052324a40b matched the kernel's"}
+{"ts": "2026-09-13T08:56:57", "hook": "gate_approval", "event": "note", "reason": "minted APR-0073 for request c4bdb24d701946ca9c7dcd052324a40b (user_answer_via_approval_hook)"}
+{"ts": "2026-09-13T08:57:10", "hook": "gate_approval", "event": "note", "reason": "approval question for d4654d733a854d848744f7d148ff4aab matched the kernel's"}
+{"ts": "2026-09-13T08:57:28", "hook": "gate_approval", "event": "note", "reason": "minted APR-0074 for request d4654d733a854d848744f7d148ff4aab (user_answer_via_approval_hook)"}

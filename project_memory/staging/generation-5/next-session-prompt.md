@@ -85,3 +85,11 @@ STAND 2026-09-11 11:35 (clock read) -- GENERATION 6 GESCHLOSSEN, AUSGEROLLT, GES
 - Acht Entscheidungen als DEC-0103..0110 aufgenommen. **Order 4 = TSK-0145 (DRAFT)**, Skript `generation-6/create_bug_null_order_4.py`; READY + Spawn nach dem Wort des Nutzers (Zeitpunkt).
 - Elf alte Anfragen von 09:15 stehen weiter unter approvals/pending (BUG-0302: keine Rücknahme-Tür); der Hook meldet sie bei jeder Frage -- harmlos, aber laut.
 - Commits: 18f9c24 (3b + Zielrunde), 05f7d79 (Zustand), dann der Abschluss-Commit dieser Sitzung; alle gepusht.
+
+### Nachtrag 2026-09-13 09:03 (Uhr gelesen) -- Order 4 abgeschlossen
+
+- **Commit 92d746a gepusht**, Stempel **2026.09.13-3**, Rollout 08:20. Volllauf EVD-0446: 5139 grün / 1 rot (S4-Schiedsrichter) / 14 skipped. Order 4 = TSK-0146/0147/0148 (Ströme) + TSK-0149 (Zielrunde), alle CANCELLED nach dem Commit; Prüfrunden 10, Nacharbeiten 6; 23:02-08:33.
+- Klicks: 11 weitere VERIFIED (BUG-0237 0302 0295 0299 0153 0248 0260 0298 0300 0301 0242). Entscheidungen: DEC-0112 (BUG-0296: feste Form statt Prosa-Leser), DEC-0113 (H59: nachfragen statt anhalten). Retrospektive DEC-0111 (Regeln 6-9).
+- **Aktive BUGs: 16** = 9 Schutzdateien (Nutzer-Patch: H13 H18 H19 H23 H47 H69 H151 H182 H188) + BUG-0253 (Nutzer-Konfigzeile `model_tiers: ladder.yaml` in project_memory/project_config.yaml, dann Klick) + BUG-0297 (Nutzer-Patch S4) + BUG-0069 (CI) + BUG-0296/0151/0197/0303/0304 (Order 5).
+- **Order 5 = TSK-0150 (DRAFT)**: DEC-0112, DEC-0113, H113, BUG-0303, BUG-0304. READY + Spawn nach dem Wort des Nutzers.
+- 12 alte Anfragen mit `withdraw-request` zurückgenommen (approvals/withdrawn/); pending ist leer bis auf nichts. Nutzer-Patch-Dateien: staging/TSK-0143/h182-harness-patch-EXTENDED.md (7 Stellen) + staging/TSK-0141/s4-gate-commit-evidence-patch.md (Stelle 8) + H47-Zeile (TSK-0142 protocol Seam 1).

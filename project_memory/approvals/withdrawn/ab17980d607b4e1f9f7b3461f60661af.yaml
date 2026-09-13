@@ -1,0 +1,19 @@
+request_id: ab17980d607b4e1f9f7b3461f60661af
+kind: verification
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  bugs:
+  - item: BUG-0260
+    revision: 1
+    scope_hash: d59fc3a04111ff597b080f00dec7893ed81e4b1406e90945c584e7bf57dc0891
+    evidence: EVD-0443
+subject_manifest_hash: 6fcb023cfb7b4874c37c8fb94fd72f224eaaa8de9b9a447c130611dedb6422d6
+created: '2026-09-13T08:20:56'
+expires_at_epoch: 1789366856.2847786
+mint_code: 383a62
+withdrawn_at: '2026-09-13T08:21:46'
+withdrawn_reason: 'replaced: the rejected exception batches of 2026-09-12 09:15 were
+  re-asked with German sentences (18 clicks); the last id is a duplicate of BUG-0260
+  inside the B line'

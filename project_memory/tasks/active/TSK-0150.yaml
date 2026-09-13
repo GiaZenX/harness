@@ -1,0 +1,74 @@
+id: TSK-0150
+product_requirement: PR-0012
+derives_from: PR-0012
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-4
+allowed_scope:
+- team-kits/**
+- tools/**
+- docs/**
+- user/**
+- README.md
+- CLAUDE.md
+- .claude/hooks/test_gates.py
+- .github/**
+- radar/README.md
+- ladder.yaml
+forbidden_scope:
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- .claude/agents/**
+- project_memory/**
+- radar/20*.md
+- radar/decided.md
+required_inputs:
+- 'THE USER''S DECISIONS of 2026-09-13: DEC-0112 (the cheap-rung reader stops judging
+  prose: shaped form only -- test file or node id; the negation reader retired or
+  demoted to a warning; BUG-0296 closes when the class is gone), DEC-0113 (H59: one
+  plain-German question per goal before acceptance is requested, answer recorded by
+  the request path, no refusal; BUG-0151). Read both DECs and the items; the DEC is
+  the order.'
+- 'THE IN-REPO REMAINDER: BUG-0197/H113 (the deadline register''s ''done'' record
+  -- shape in staging/TSK-0146/protocol.md, reader half in office-team; build it),
+  BUG-0303/H218 (the SR exemption asks the TYPE of the origin, not the VALUE; a reference
+  only at the root passes -- build red-first), BUG-0304/H219 (the five write-and-run
+  forms behind prefix words, `<` into an executor, eval over a substitution -- three
+  mechanisms: build what is one row each, name the rest with measurement; everyday
+  lines `A=1 ./build.sh`, `exec bash tools/ci.sh`, `bash < tools/ci.sh` stay rc 0);
+  BUG-0069 do not touch (CI closes after the user''s patch).'
+- 'RULES: DEC-0100, DEC-0102 (2)/(4)/(5), DEC-0111 (6)-(9): a new reader names the
+  one property it measures with a mutation row per level; no count in prose a test
+  can hold; contract changes announced under ''contracts changed'' with the callers
+  grepped first; the goal round''s seam list closes before the second stream finishes.'
+- 'HOST RULES (DEC-0094/0095 (6)): one pytest at a time, selections < 3 min measured;
+  ONE stamp after the last kit change; the ONE full run with `DELIVERY_RUN=<this task
+  id>` (expected reds: the S4 arbiter and BUG-0297''s remedy test until the user''s
+  patch); test_gates.py as its own run; red-first in a .git-less copy under C:/Offline
+  Repos/v2-testbed/_round-scratch/(this task id)/; clock read; protocol as you go.'
+- forbidden_scope project_memory/** EXCEPTS project_memory/staging/(this task id)/;
+  state writes through the kernel only (EVD per closed item with the naming node in
+  the run command); no BUG transitions; batch lines for the lead; no commit, no push,
+  no mint.
+expected_outputs:
+- 'Per row ONE line: id | change (file:line) | red-first row | naming node | suites
+  | EVD -- or the measured reason and the German sentence.'
+- 'DEC-0112 built: the prose reader out of the decision, the shaped path the only
+  door to the cheap rung, the lead skills'' sentence; DEC-0113 built: the question
+  asked once per goal, the answer on the goal, the acceptance card names the missing
+  run.'
+- ONE stamp; the full run once (command, duration, counts, EVD); ruff; validate; index
+  = store; mirrors; ceiling.
+- COUNTS honest; batch lines dry-checked (0 refused); the lead's list of what waits
+  on the user.
+dependencies:
+- TSK-0149
+rung: opus
+effort: high
+root_revision: 1
+status: DRAFT
+revision: 1
+approval_ref: null
+created: '2026-09-13T09:03:25'

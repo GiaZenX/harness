@@ -29,7 +29,9 @@ regression_tests:
 - tools/test_kitupdate.py::test_the_update_report_names_a_memory_tree_no_installed_role_declares
 - tools/test_kitupdate.py::test_a_memory_tree_is_residue_exactly_where_no_installed_role_declares_the_key
 - tools/test_kitupdate.py::test_a_memory_tree_that_cannot_be_listed_is_never_reported_as_nothing
-status: TRIAGED
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0074
 created: '2026-09-05T20:28:20'
+approved_hash: 670f28588a7006a1f262bcaa287f9dffeacff0bccf9be2018b2e5c3bb2782ad4
+closed_at: '2026-09-13T08:57:26'

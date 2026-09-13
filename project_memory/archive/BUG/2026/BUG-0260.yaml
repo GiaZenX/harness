@@ -51,7 +51,9 @@ source: TSK-0130 stream protocol, section 2 (the shortening net finding); docs/r
   parity matrix rows 43 and 45; dev/research constitution 11 at b7f282e; DEC-0034
   rule 2; DEC-0077
 hole_number: H178
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0072
 created: '2026-09-05T23:03:17'
+approved_hash: 70cc123ac67d2d6be4f736f0d49f6e3618f63c0a5d8c7ae375f047608f4a9329
+closed_at: '2026-09-13T08:55:36'
