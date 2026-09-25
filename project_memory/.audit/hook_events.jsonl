@@ -801,3 +801,5 @@
 {"ts": "2026-09-13T08:57:28", "hook": "gate_approval", "event": "note", "reason": "minted APR-0074 for request d4654d733a854d848744f7d148ff4aab (user_answer_via_approval_hook)"}
 {"ts": "2026-09-13T15:26:15", "hook": "gate_approval", "event": "note", "reason": "approval question for 888da6d184e44f32b6cfb1a3dda2710e matched the kernel's"}
 {"ts": "2026-09-13T15:28:03", "hook": "gate_approval", "event": "note", "reason": "minted APR-0075 for request 888da6d184e44f32b6cfb1a3dda2710e (user_answer_via_approval_hook)"}
+{"ts": "2026-09-25T14:44:19", "hook": "gate_approval", "event": "note", "reason": "approval question for f801a7b896904bcdb370f7545a0c533b matched the kernel's"}
+{"ts": "2026-09-25T14:47:32", "hook": "gate_approval", "event": "note", "reason": "minted APR-0076 for request f801a7b896904bcdb370f7545a0c533b (user_answer_via_approval_hook)"}

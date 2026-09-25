@@ -1,4 +1,4 @@
-generated_at: '2026-09-25T14:33:47'
+generated_at: '2026-09-25T14:48:14'
 items:
 - id: APR-0001
   type: APR
@@ -450,6 +450,12 @@ items:
   status: null
   revision: null
   approval_ref: null
+- id: APR-0076
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
 - id: BUG-0069
   type: BUG
   title: GitHub CI is red on every push -- the delivery suite passes locally but fails
@@ -504,14 +510,6 @@ items:
   status: TRIAGED
   revision: 1
   approval_ref: null
-- id: BUG-0253
-  type: BUG
-  title: 'A project without a scaffold record -- this repository''s own harness --
-    dispatches with `ladder: absent`: no rung is derived and no spawn is held, because
-    there is no kit declaration to read (new, TSK-0130, PR-0010 AC-6, DEC-0078 (4))'
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0264
   type: BUG
   title: 'Four schedule claims survive in the enforcement layer that AC-1 cleaned
@@ -527,14 +525,6 @@ items:
     pattern carries escaped backticks AND a space: `grep -c "\`a\`, \`b\`" README.md`
     is rc 2 with ''no tool call in this repo may write C:\'' (over-refusal, measured
     2026-09-06 in the generation-5 merge, TSK-0133)'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0297
-  type: BUG
-  title: Die gedruckte Abhilfe des Commit-Gates dieses Repos ist rc 2, bis der Nutzer
-    den S4-Patch fährt -- seit TSK-0144 hält ein Test in tools/ das rot, bis er gefahren
-    ist
   status: OPEN
   revision: 1
   approval_ref: null
@@ -4010,6 +4000,24 @@ items:
   revision: 1
   approval_ref: null
 - id: EVD-0462
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0463
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0464
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0465
   type: EVD
   title: null
   status: null

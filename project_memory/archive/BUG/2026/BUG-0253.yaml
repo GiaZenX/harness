@@ -30,7 +30,9 @@ limits: the harness roles' pins are the user's decision for generation 5 (DEC-00
 regression_tests:
 - tools/test_ladder.py::test_a_project_without_a_scaffold_record_gets_no_rung_and_no_refusal
 hole_number: H171
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0076
 created: '2026-09-05T22:20:27'
+approved_hash: 4daa5b281eef8b1c5de76418bfbb5f8c1440f3d8375e9d92accf3185f2a0848b
+closed_at: '2026-09-25T14:47:28'

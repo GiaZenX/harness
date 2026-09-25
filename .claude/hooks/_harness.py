@@ -5,7 +5,7 @@ Shared body of this repo's four PreToolUse gates (SR-0009, DEC-0003).
 WHY THIS REPO HAS ITS OWN GATES AT ALL. It builds the team kits, so it cannot install one:
 `gate_write_scope` refuses every write-capable command line that names `team-kits`, and here every
 change is one. DEC-0003 records that decision and its cost -- the enforcement the kits ship is
-replaced by four gates written for this repo, plus a bound session agent so the payload shape the
+replaced by gates written for this repo, plus a bound session agent so the payload shape the
 kits' `calling_subagent` depends on is exercised here too.
 
 WHAT IS BORROWED AND WHAT IS NOT. The reading of a hook payload and of a shell command line is the
@@ -1593,7 +1593,7 @@ def readings(compat_module, word):
     into the home directory while bash said `~: No such file or directory`, stayed in the tree and
     let the write rewrite the protected file. `'~'`, `\\~` and `"~/"` are the same word, and the
     chain needs no preparation: end to end the same shape emptied `.claude/settings.json`, which is
-    the registration of all four gates.
+    the registration of every gate this repo runs.
 
     SO THE QUESTION IS PUT TO THE SPELLING THE SHELL EXPANDED (`TYPED_READING`, `_expands_a_tilde`)
     and not to the text a program receives. Two things come out of that, and the first was the
@@ -2846,7 +2846,7 @@ def spawn_needs_an_item(root, agent_name):
     """Does a spawn of `agent_name` have to name an item? (frontmatter `harness_item:`)
 
     ASKED OF THE AGENT'S OWN DEFINITION, so no gate carries a list of role names. Two agents in
-    this repo genuinely have no item -- the weekly watchers run on a schedule and write only into
+    this repo genuinely have no item -- the watchers write only into
     `radar/` -- and an enumeration of those two would be wrong the day a third watcher ships or
     one of them is renamed. Their definitions say `harness_item: none` instead; everything else,
     including a definition that says nothing, needs one.

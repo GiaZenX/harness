@@ -30,7 +30,7 @@ This repo runs no installed kit and carries **no** team-kit marker in `CLAUDE.md
 command line that names `team-kits`, and here every change is one. The marker string itself is
 deliberately absent from `CLAUDE.md` and from this file — the global entry file routes on the bare
 substring, so writing it down anywhere those two are read would trigger the very handover the
-decision refuses. So the enforcement is four gates of this repo's own, in `.claude/hooks/`,
+decision refuses. So the enforcement is this repo's own gates, in `.claude/hooks/`,
 registered in `.claude/settings.json`. Read `./CLAUDE.md` — it is the working agreement, and this
 file only says who you are inside it.
 

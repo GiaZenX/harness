@@ -1,0 +1,15 @@
+id: EVD-0464
+kind: test
+related:
+- BUG-0297
+result: pass
+summary: 'after the user''s patch (2026-09-25): the test that names BUG-0297/H213
+  executes the remedy gate 3 prints, verbatim, and it writes an EVD (AC-1, AC-2)'
+artifact_refs:
+- staging/user-patch/measure-2026-09-25.txt
+run_command: python -B -m pytest .claude/hooks/test_gates.py::test_gate3_prints_a_remedy_that_runs_as_printed
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-25T14:43:55'

@@ -29,7 +29,9 @@ limits: 'Die Hilfezeile, die der Commit-Schutz dieses Repos ausgibt, ist gerade 
   der Zielrunde TSK-0144 wird ein Test in tools/ rot, solange die Zeile veraltet ist;
   der Patch für deine Shell liegt bereit und ist zwei Zeilen lang.'
 hole_number: H213
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0076
 created: '2026-09-12T14:03:28'
+approved_hash: 954ff9b72bacb9371dd67c4a4d6e8a41149533d018b8974714bba2ed96b9a122
+closed_at: '2026-09-25T14:47:30'

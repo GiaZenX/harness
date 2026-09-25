@@ -63,3 +63,4 @@ effort_map:
   quality-engineer: high
   devops-engineer: high
   project-auditor: high
+model_tiers: ladder.yaml

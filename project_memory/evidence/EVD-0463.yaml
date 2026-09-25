@@ -1,0 +1,16 @@
+id: EVD-0463
+kind: test
+related:
+- BUG-0297
+result: pass
+summary: 'after the user''s patch (2026-09-25): gate-3 remedy prints --run-command/--run-scope;
+  test_gates -k commit 51 passed; the vocabulary test that parses every printed evidence
+  line against the CLI''s required arguments passes'
+artifact_refs:
+- staging/user-patch/measure-2026-09-25.txt
+run_command: python -B -m pytest tools/test_hooks.py::test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requires
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-25T14:43:17'

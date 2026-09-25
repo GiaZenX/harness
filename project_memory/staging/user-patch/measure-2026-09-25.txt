@@ -1,0 +1,14 @@
+Fri Sep 25 14:40:33     2026
+$ python -B -m pytest .claude/hooks/test_gates.py -q -k commit
+...................................................                      [100%]
+51 passed, 504 deselected in 126.64s (0:02:06)
+$ python -B -m pytest tools/test_hooks.py::test_every_evidence_command_a_text_spells_names_every_argument_the_cli_requires -q
+.                                                                        [100%]
+1 passed in 26.71s
+$ PYTHONPATH=team-kits python -B -m kernel.cli --root project_memory ladder TSK-0150
+  "kit": "the tier file project_config.yaml names (ladder.yaml)",
+
+Fri Sep 25 14:43:29     2026
+$ python -B -m pytest .claude/hooks/test_gates.py::test_gate3_prints_a_remedy_that_runs_as_printed -q
+.                                                                        [100%]
+1 passed in 19.45s

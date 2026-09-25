@@ -1,0 +1,17 @@
+id: EVD-0465
+kind: review
+related:
+- BUG-0297
+- BUG-0253
+result: pass
+summary: lead measurement of the user's own patch (applied outside Claude Code) for
+  diff:a17ad0615cb2acb21acd455108f152bd187a6bb5687535ac3d66cea2d5243809 -- no kit
+  file changed; gate suite -k commit green, vocabulary test green, ladder read from
+  ladder.yaml; radar report of the claude-watcher (read-only doc) rides along
+artifact_refs:
+- staging/user-patch/measure-2026-09-25.txt
+run_command: python -B -m pytest .claude/hooks/test_gates.py -q -k commit
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-25T14:48:13'

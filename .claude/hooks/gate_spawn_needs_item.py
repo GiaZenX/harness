@@ -8,10 +8,10 @@ order entirely. An item named in the spawn makes the order an INPUT -- a stale o
 order and the mistake is visible.
 
 WHICH SPAWNS. NOT ALL OF THEM, and this is the definition the gate turns on rather than a list of
-role names. Two agents in this repo run on a weekly schedule and hold no item (`radar-watcher`,
+role names. Two agents in this repo hold no item (`radar-watcher`,
 `codex-watcher` write only into `radar/`), and hard-coding those two would be wrong the day a third
 watcher ships or one is renamed. So the SPAWNED AGENT'S OWN DEFINITION answers, through the
-frontmatter key `harness_item:` -- `none` for a schedule-driven role, and required for everything
+frontmatter key `harness_item:` -- `none` for a role that holds none, and required for everything
 else including a definition that says nothing. `_harness.spawn_needs_an_item` carries the default
 direction, the failure directions and what the self-declaration costs.
 
@@ -71,7 +71,7 @@ def decide():
         "-- the implementer and the verifier must receive the SAME id.\n"
         "Remedy: name an open item, e.g. `Dein Auftrag ist TSK-nnnn in "
         "%s/tasks/active/TSK-nnnn.yaml`. If this role legitimately runs without an item (a "
-        "scheduled watcher), its definition in .claude/agents/%s.md declares `%s: %s` in its "
+        "watcher), its definition in .claude/agents/%s.md declares `%s: %s` in its "
         "frontmatter -- and .claude/ is refused to the session agent by gate 1, so writing that "
         "declaration is a change the change circle makes, not one this session makes for itself."
         % (agent or "<unnamed>", reason, _harness.STATE_ROOT, agent or "<name>",
