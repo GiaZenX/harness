@@ -5,18 +5,18 @@
       "watcher": "claude-watcher",
       "runner": "claude",
       "kind": "desktop_task",
-      "path": "~/.claude/scheduled-tasks/radar-watcher/SKILL.md",
+      "path": "~/.claude/scheduled-tasks/watcher-duo/SKILL.md",
       "schedule_as_told": {
         "day": "friday",
         "time_local": "~20:00",
-        "as_told_by": "the user, 2026-09-06 (DEC-0089, DEC-0090 (4)); the task was created by this repository's session agent on 2026-06-30"
+        "as_told_by": "the user, 2026-09-11 (DEC-0098: both watchers on one Friday evening, ONE Desktop task running claude-watcher first and codex-watcher second); cron 0 20 * * 5, the app adds a few minutes"
       },
-      "source": "DEC-0089; radar/ file mtimes 2026-07-17 20:10, 07-24 20:12, 07-31 20:16, 08-07 20:47, 08-21 20:16, 08-28 20:12 (Fridays) and 08-16 20:25 (a Sunday catch-up run). The task's FOLDER keeps the name it was created under on 2026-06-30 -- the Desktop app owns it and nobody renames it; what the lead edits at the next local session is the pointer INSIDE that SKILL.md, which after DEC-0090 (1) has to name the claude-watcher definition.",
+      "source": "DEC-0089; radar/ file mtimes 2026-07-17 20:10, 07-24 20:12, 07-31 20:16, 08-07 20:47, 08-21 20:16, 08-28 20:12 (Fridays) and 08-16 20:25 (a Sunday catch-up run), all by the task `radar-watcher` (created 2026-06-30). DEC-0098: on 2026-09-25 14:5x the lead, in a Claude Desktop session, created the task `watcher-duo` (Fridays 20:00, both watchers in sequence, each as its own subagent) and DELETED `radar-watcher` (its SKILL.md stays on disk for recovery). The 2026-09-25 report was started by hand (`tools/radar_routine.py --run claude-watcher`, 14:25), not by a routine.",
       "first_report": "2026-07-17",
-      "last_report": "2026-09-04",
-      "recorded": "2026-09-06"
+      "last_report": "2026-09-25",
+      "recorded": "2026-09-25"
     }
   ],
-  "recorded_by": "the generation-5 merge (TSK-0133) from DEC-0089's measurement, re-shaped by TSK-0134 for DEC-0090 (3): a routine is now a WATCHER and a RUNNER. The three routines DEC-0090 (4) adds -- codex-watcher by claude (Saturday), claude-watcher by codex (Sunday), codex-watcher by codex (Monday) -- are not created yet and therefore have no entry here; `python tools/radar_routine.py --describe` lists all four with the Instructions text that creates each one.",
+  "recorded_by": "the generation-5 merge (TSK-0133) from DEC-0089's measurement, re-shaped by TSK-0134 for DEC-0090 (3) (a routine is a WATCHER and a RUNNER), re-pointed by the lead on 2026-09-25 for DEC-0098. codex-watcher by claude now EXISTS as the second half of the `watcher-duo` task but has not run from it yet, so it has no entry here; it gets one once its Friday reports reach the cadence minimum. claude-watcher by codex and codex-watcher by codex are Codex app Automations the user creates himself (DEC-0098 (2)); `python tools/radar_routine.py --describe` prints their Instructions text. NOT BUILT YET: DEC-0098 (3) -- the schedule table inside tools/radar_routine.py (SCHEDULE_AS_TOLD) still carries DEC-0090 (4)'s staggered Sat/Sun/Mon days.",
   "note": "one entry per routine that EXISTS and has run. An entry for a routine nobody created would make `starts_itself` lie, which is the direction this record fails in."
 }

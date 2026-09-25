@@ -1,0 +1,16 @@
+id: EVD-0466
+kind: review
+related:
+- DEC-0098
+result: pass
+summary: 'lead check of data-only changes for diff:e81a2a3bf015c942659e4795d9bd9f25d53265851b30943b691a5649febef140
+  -- radar/routine.json re-pointed to the new Desktop task watcher-duo (DEC-0098 (1)),
+  accepted by the routine reader (--describe: recorded, task file present, friday);
+  codex-watcher report 2026-09-25 (read-only doc); no code or kit file changed'
+artifact_refs:
+- staging/generation-6-streams.md
+run_command: python tools/radar_routine.py --describe
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-25T14:52:05'
