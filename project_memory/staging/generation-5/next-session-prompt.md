@@ -102,3 +102,10 @@ STAND 2026-09-11 11:35 (clock read) -- GENERATION 6 GESCHLOSSEN, AUSGEROLLT, GES
 - **Handback im Archiv**: archive/BUG/2026/BUG-0237.yaml:41 `regression_tests` nennt den ersetzten Test; der Kernel hat keine Tür zu archivierten Items -> gate suite `test_every_test_a_hole_names_is_one_that_exists` rot zusammen mit H138 (BUG-0221). Beides braucht eine Kernel-Tür (`update --archived`?) = DEC-first.
 - Neue benannte Reste: BUG-0305/H220 (Über-Verweigerung Lese-Stufe mit unbekanntem Kommandowort). Nächster Auftrag (Order 6, noch nicht angelegt): BUG-0305, H47-Patch-Vorlage, Archiv-Tür (DEC), CI nach dem Patch.
 - Retrospektiven: DEC-0102 (3b), DEC-0111 (Order 4). Order 5 lief als ein Strom (Zeilen spannen Kern + Kits) -- 4,5 h Bau, Prüfer 2,3 h; kein Parallel-Gewinn möglich.
+
+### Nachtrag 2026-09-25 14:33 (Uhr gelesen) -- Rückkehr des Nutzers nach 12 Tagen, Übergabe an eine Desktop-App-Sitzung
+
+- Repo unverändert seit 1f883d2 (13.09.). Watcher von Hand nachgeholt: `tools/radar_routine.py --run claude-watcher` dann `--run codex-watcher` (headless, gestartet 14:25) -> Berichte `radar/2026-09-25-*-by-claude.md`, falls fertig.
+- **Nutzer-Patch als Skript:** `project_memory/staging/user-patch/apply_user_patch.py` (9 Textstellen in .claude/ + Konfig-Zeile `model_tiers: ladder.yaml`; alles-oder-nichts; `--check`: alle 9 Anker exakt 1x, Zeile fehlt noch).
+- **FR-0093** (Token je Auftrag senken: frische Agenten für Nacharbeit, Hintergrund-Läufe statt Nachschauen, Lese-Disziplin; gemessen: Polling nur 3,5 %, Kontext je Schritt Median 285k).
+- Nächste Sitzung (Desktop-App): Patch nachmessen + 2 Klicks, Routinen anlegen (DEC-0098), Watcher-Berichte lesen, nächsten Auftrag mit dem Nutzer wählen.

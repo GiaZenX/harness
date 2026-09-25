@@ -1,4 +1,4 @@
-generated_at: '2026-09-13T15:28:59'
+generated_at: '2026-09-25T14:33:47'
 items:
 - id: APR-0001
   type: APR
@@ -4009,6 +4009,12 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0462
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -4114,6 +4120,13 @@ items:
     A' / 'Frontend Developer Sonnet medium B') -- in der Hintergrundaufgaben-Ansicht
     sieht man sonst nicht, wer arbeitet und womit
   status: TRIAGED
+  revision: 1
+  approval_ref: null
+- id: FR-0093
+  type: FR
+  title: 'Token-Verbrauch je Auftrag senken: frische Agenten statt Wiederaufnahme,
+    Hintergrund-Läufe statt Nachschauen, Lese-Disziplin -- gemessen vorher/nachher'
+  status: OPEN
   revision: 1
   approval_ref: null
 - id: PR-0012

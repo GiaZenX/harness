@@ -1,0 +1,20 @@
+id: FR-0093
+title: 'Token-Verbrauch je Auftrag senken: frische Agenten statt Wiederaufnahme, Hintergrund-Läufe
+  statt Nachschauen, Lese-Disziplin -- gemessen vorher/nachher'
+request_text: 'User 2026-09-25: ''Reduzieren der Tokens im Leerlauf -- ich habe das
+  Gefühl, dass zu oft gepollt wird und dadurch der Token-Verbrauch hoch geht.'' MEASURED
+  (staging/generation-6-streams.md, 2026-09-25 14:27; 79 subagent transcripts, 21,046
+  tool turns): strict sleep/poll turns 467 = 3.5% of context read; context per turn
+  median 285k, p90 591k; resumed rework agents reached 500k-750k. The driver is context
+  SIZE x turns, not polling; true idle costs nothing. Three levers, each an order
+  line for this repo AND the kits'' lead skills: (1) a rework is a FRESH agent given
+  only the verify report, the item and the protocol path -- never a resume of the
+  builder; (2) a run longer than a few minutes starts in the background and the agent
+  waits for its completion notice instead of sleep/tail loops; (3) reading discipline
+  in every order: files > 2,000 lines and protocols are read by section, never whole.
+  Acceptance: one round measured before and after (context per turn, tokens per closed
+  item) with the measuring script kept under tools/.'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-25T14:33:09'
