@@ -905,6 +905,10 @@ def build_parser() -> argparse.ArgumentParser:
         "ladder", help="the rung and effort an order runs on, derived from the kit's ladder.yaml "
                        "and the state (DEC-0077); read-only, mints nothing")
     ladder.add_argument("task_id")
+    ladder.add_argument("--provider", default=None,
+                        help="the answer for this row of model_tiers.yaml `tiers:` (claude, codex); "
+                             "default: the platform whose spawn holds the rung. The top differs per "
+                             "provider (DEC-0114 (4))")
     # THE CHECKPOINT PAIR (DEC-0044). Written and read through the kernel for the same reason the
     # result envelope is: the two digests that decide adoption later are MEASUREMENTS, and a record
     # whose integrity data the checked party supplied would verify itself (`kernel/checkpoints.py`).
@@ -2013,7 +2017,7 @@ def main(argv=None) -> int:
             task = state.read_item(args.task_id)
             root = state.read_item(task["product_requirement"])
             answer = dispatch.ladder_for_order(
-                state, task, root, int(task.get(dispatch.FAILED_RUNS) or 0))
+                state, task, root, int(task.get(dispatch.FAILED_RUNS) or 0), args.provider)
             # The count on the task is the one the LAST lease wrote; the next lease counts a run
             # that started since (`dispatch.count_failed_run_locked`), so a task READY again after
             # a started run shows here what the next dispatch would climb with.
@@ -2021,7 +2025,17 @@ def main(argv=None) -> int:
             if dispatch.count_failed_run_locked(pending) != int(task.get(dispatch.FAILED_RUNS) or 0):
                 answer["next_lease_counts"] = pending[dispatch.FAILED_RUNS]
                 answer["next_lease"] = dispatch.ladder_for_order(
-                    state, task, root, pending[dispatch.FAILED_RUNS])
+                    state, task, root, pending[dispatch.FAILED_RUNS], args.provider)
+            # WITHOUT `--provider` the answer for every installed provider rides along -- so the
+            # command the constitutions name shows the Codex top without an option nobody is told
+            # to type. `next_lease` carries its own map, the one the NEXT dispatch header carries
+            # (TSK-0151 verifier round 2, R2-2: the map at the old count showed the rung before the
+            # climb). `tools/test_ladder.py::test_the_lease_and_the_header_carry_the_answer_for_every_installed_provider_bug_0306`
+            if args.provider is None:
+                for shown in (answer, answer.get("next_lease")):
+                    if isinstance(shown, dict) and dispatch.RUNG_KEY in shown:
+                        shown[dispatch.PROVIDERS_KEY] = dispatch.ladders_by_provider(
+                            state, task, root, shown)
             print(json.dumps(answer, indent=2, sort_keys=True))
             return 0
         if args.command == "checkpoint":

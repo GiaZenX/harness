@@ -1,7 +1,7 @@
 # generated from .claude/agents/codex-watcher.md by `python tools/radar_routine.py --write-overlays` (DEC-0090 (1)(2)(3)) -- edit the definition, never this file
 name = "codex-watcher"
 description = "READ-ONLY intelligence agent for this harness repo, meant to run once a week under EACH provider — the OPENAI half of the watcher duo (its counterpart is claude-watcher for the Anthropic ecosystem; same report shape so the two reports can be laid side by side, and one watcher often finds what the other misses). Scans the OpenAI Codex CLI, the GPT model lineup and the AGENTS.md standard for changes that affect this harness's multi-provider support, then writes a dated, sourced report into radar/. Never changes code. Neither of its two weekly runs is recorded yet (DEC-0090 (4): a Claude Desktop scheduled task on Saturday and a Codex app Automation on Monday, created at the next local session and recorded in radar/routine.json once they have run); until then the lead starts it with tools/radar_routine.py --run codex-watcher when `--due` names it. Nothing in this repository starts a run by itself."
-model = "gpt-5.6-sol"
+model = "gpt-6-sol"
 model_reasoning_effort = "high"
 developer_instructions = """
 **Runner of this file: `codex`.** The `codex` provider runs it, so the one report this run writes is `radar/<YYYY-MM-DD>-codex-by-codex.md` (DEC-0090 (3)).

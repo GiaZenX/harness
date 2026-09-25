@@ -244,13 +244,12 @@ Occasion: `BUG-0073`.
    with `create-task --rung <rung> --effort <effort>` by what the slice needs — the user's three-line
    rule: »der eine passt nur x an — sonnet high/xhigh; der andere arbeitet y ab, komplexer — opus
    high/xhigh; der dritte macht z, extrem viel Aufwand, Feinarbeit, Bewertungspotenzial — fable
-   high/xhigh« — sonnet only with a TEST as the acceptance, and since `DEC-0112` only in the SHAPED form: the ask below the class default is granted when the ADDRESS of a test -- a test module path, with or without the node a runner appends after a double colon -- stands in an expected output or in a referenced criterion — and refused for every description, whether it promises a test (»der Test wird rot«), denies one (»kein Test nötig«) or merely names a document after tests (`docs/test-plan.md`), because four verification rounds measured that no reader tells a promised test from a denied one out of prose (`DEC-0097` (2), `DEC-0112`; the reader is `kernel.dispatch.acceptance_is_test_shaped`); a slice you
+   high/xhigh« — on Claude the third line ends on opus since `DEC-0114` (4): the tier table caps the top there and an ask above the top is capped; sonnet only with a TEST as the acceptance, and since `DEC-0112` only in the SHAPED form: the ask below the class default is granted when the ADDRESS of a test -- a test module path, with or without the node a runner appends after a double colon -- stands in an expected output or in a referenced criterion — and refused for every description, whether it promises a test (»der Test wird rot«), denies one (»kein Test nötig«) or merely names a document after tests (`docs/test-plan.md`), because four verification rounds measured that no reader tells a promised test from a denied one out of prose (`DEC-0097` (2), `DEC-0112`; the reader is `kernel.dispatch.acceptance_is_test_shaped`); a slice you
    could not describe in one sentence is not a sonnet slice. A goal-sized build starts on the
    `build` class's own rung, which is `opus` at `high`
    (`DEC-0095` (1) replaces `DEC-0088` (1) here: the top rung is not bearable as a standing tier);
-   the top rung is bought for the named architecture step of a large goal and by the escalation
-   after a failed run, and asked for on an order only with the reason written on the order
-   (`DEC-0095` (4)). `xhigh` only for a named step, never as a standing setting; the ask lifts
+   on Claude the top rung IS opus since `DEC-0114` (4), so the named architecture step of a large goal and the
+   escalation after a failed run end there, the escalation on the effort axis; on Codex both still reach the top in the answer (the header's `by_provider`), which you apply there by choosing the model -- nothing holds it (`H173`). `xhigh` only for a named step, never as a standing setting; the ask lifts
    the floor and never lowers a role below its class, and `top` still caps. Both values stand on the
    lease, in the brief and beside the order in `check-scopes`. **You never ask the user for tiers or
    for the team size** — he is asked for the plan, the scope, the delivery and the acceptance, and for
@@ -376,6 +375,18 @@ A line that, read literally, contradicts another line of the SAME order is wrong
 interpretation; read every line against every other one before you send it. And when a specialist
 comes back and refutes a line with a measurement, the line was wrong — that is the outcome this
 section buys earlier and cheaper, never an argument to win.
+
+**(3) Three cost lines every order carries, word for word (`FR-0093`).** Measured over the
+transcripts of one generation's builders and reviewers: what an order costs is the context each
+turn re-reads times the number of turns, and a waiting loop was a small share of it. A role applies
+only the rules its order names, so these three stand in every order you write:
+- **A rework is a FRESH agent**, given only the review's report, the item and the path of the
+  protocol — never a resumed builder, whose context carries the whole first attempt into every turn
+  of the second.
+- **A run longer than a few minutes starts in the background**, and the agent waits for its
+  completion notice — no loop of sleeping and looking at a log.
+- **A file over 2,000 lines, and every protocol, is read by section, never whole** — the
+  constitution's reading duty (`DEC-0095` (6)) applied to the order.
 
 ## Models & escalation (constitution §11 — full mechanics)
 - **The team is derived, never asked (`DEC-0087` (2)):** the install wrote the smallest preset, and

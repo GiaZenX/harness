@@ -19,7 +19,7 @@
 # reads this file and the constitution's ladder paragraph together.
 
 rungs: [sonnet, opus, fable]          # ordered low -> high
-top: fable                            # DEC-0047: research climbs to fable
+top: fable                            # DEC-0047; on Claude capped at opus (model_tiers.yaml provider_top, DEC-0114 (4))
 
 effort:
   default: high                       # DEC-0077 (1)
@@ -36,7 +36,9 @@ escalation:
   # per fail put an Opus builder on the top rung at the start of nearly every goal -- the standing
   # top-rung cost DEC-0095 had just removed.
   # THIS KIT'S PAIR HAS ONE STEP OF HEADROOM (high -> xhigh), so the second effort step lands on
-  # the ceiling and changes nothing; the rung is what moves at the third fail.
+  # the ceiling and changes nothing; the rung is what moves at the third fail -- for an order that
+  # started BELOW the top. On Claude the top is opus (DEC-0114 (4)), which every class starts on
+  # except a build order asked down to its pin, so there the third fail moves nothing more.
   # THE RESET IS PAID FOR BY THE RUNG STEP, and that matters at the END of the ladder: at the top
   # rung no further step is granted, so the effort STAYS at the ceiling instead of falling back to
   # the default -- an order that has run out of ladder never comes back on a weaker pair than the
@@ -59,9 +61,15 @@ escalation:
 # DEC-0095 (1)/(2) MOVED TWO OF THESE off `top` and off the pin, on cost measured by the user: the
 # top rung is not bearable as a STANDING tier, so the build starts on opus rather than on the
 # researcher's `worker` pin, and planning starts on opus rather than on the top rung. The
-# architecture class keeps `top` -- DEC-0095 (4a) names it as one of the two occasions the top rung
-# is bought: one call, a document as output, the freeze the build falls from (DEC-0034 rule 1). The
-# other occasion is the escalation above, and nothing else reaches the top rung.
+# architecture class keeps `top` (DEC-0034 rule 1: one call, a document as output, the freeze the
+# build falls from). WHAT `top` IS DEPENDS ON THE PROVIDER (DEC-0114 (4), which replaces DEC-0095
+# (4)'s two occasions on Claude): on Codex it is this file's `fable`, reached by the method design
+# and by the escalation in the kernel's answer -- the dispatch header carries it per installed
+# provider, and nothing on Codex holds it at the spawn (H173); on Claude the tier table's `provider_top:` caps it at opus, so both end
+# there and the escalation climbs the EFFORT alone.
+# `tools/test_ladder.py::test_no_shipped_ladder_answer_reaches_the_top_rung_bug_0306` drives every
+# role of this file through the kernel for both providers;
+# `tools/test_ladder.py::test_the_lease_and_the_header_carry_the_answer_for_every_installed_provider_bug_0306`
 #
 # A CLASS START MAY BE A BAND (DEC-0097 (1)): `default` is where an order of that class starts when
 # it asks for nothing, `floor` how far down an order's own `rung` ask may take it -- and a bare
@@ -80,7 +88,7 @@ escalation:
 # comment, is the authority (FR-0091 precision 2); the lease's `why` names the shaped form.
 classes:
   planning: opus                        # DEC-0095 (2): the orchestrator is a standing cost
-  architecture: top                     # DEC-0095 (4a): the one bought call per large goal
+  architecture: top                     # DEC-0034 rule 1; DEC-0095 (4a) on Codex, opus on Claude
   qa: opus
   build:                                # DEC-0095 (1) default, DEC-0097 (1) floor
     default: opus                       # the builder default, not the worker pin

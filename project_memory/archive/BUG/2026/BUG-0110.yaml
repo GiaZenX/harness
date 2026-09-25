@@ -29,7 +29,9 @@ limits: 'an OVER-refusal, not a hole: nothing gets through, a read-only line is 
   tree. The way round it is measured and cheap: spell the copy as a Python script
   under the round''s scratch root (`C:/Offline Repos/v2-testbed/_round-scratch/<TSK-ID>/`),
   which CLAUDE.md prescribes anyway, or run it from a shell outside the session.'
-status: TRIAGED
+status: ACCEPTED_EXCEPTION
 revision: 1
-approval_ref: null
+approval_ref: APR-0077
 created: '2026-09-05T20:22:30'
+approved_hash: 66b52231399671de1ac8c8ff200fe35234a36d36d8855a787c825689e5c47fe5
+closed_at: '2026-09-25T15:02:51'

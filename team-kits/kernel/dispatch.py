@@ -252,8 +252,9 @@ def rung_vocabulary(state: ProjectState) -> tuple:
     return _reference_rungs(table), table.replace(os.sep, "/")
 
 
-def _reference_rungs(table: str) -> tuple:
-    """The reference platform's rung names out of the tiers table, LOW TO HIGH.
+def _reference_rungs(table: str, data=None) -> tuple:
+    """The reference platform's rung names out of the tiers table, LOW TO HIGH (`data`: the table
+    when the caller has already read it).
 
     THE REFERENCE ROW IS FOUND BY ITS PROPERTY, not by a provider name: it is the one row whose
     rung names pass through as the model ids (`fable: fable`, the table's own words: "rung names
@@ -268,7 +269,22 @@ def _reference_rungs(table: str) -> tuple:
     indexes this tuple the way `ladder_for_order` indexes a kit's rungs would climb downwards. Both
     ends are held against each other: the line has to name exactly the pass-through row's rungs.
     """
-    data = _read_yaml_mapping(table, TIERS_FILE)
+    data = _read_yaml_mapping(table, TIERS_FILE) if data is None else data
+    _provider, reference = _reference_row(data, table)
+    ordered = data.get("rungs")
+    if (not isinstance(ordered, list) or len(set(map(str, ordered))) != len(ordered)
+            or set(map(str, ordered)) != set(reference)):
+        raise DispatchError(
+            "%s carries no `rungs:` line naming exactly the reference row's rungs low -> high "
+            "(row: %s, line: %r) -- the vocabulary has names but no order, and an order's rung is "
+            "compared by position. Remedy: repair the table."
+            % (table, ", ".join(reference), ordered))
+    return tuple(str(name) for name in ordered)
+
+
+def _reference_row(data: dict, table: str) -> tuple:
+    """(provider, rung names) of the ONE pass-through row of a tiers table -- see `_reference_rungs`
+    for why the row is found by its property and not by a provider name."""
     tiers = data.get("tiers") or {}
     rows = {}
     for provider, row in (tiers.items() if isinstance(tiers, dict) else ()):
@@ -282,16 +298,92 @@ def _reference_rungs(table: str) -> tuple:
             "%s names %d pass-through rows under `tiers:` (%s) and the reference vocabulary is the "
             "ONE row whose rung names are the model ids -- no rung vocabulary can be read from it. "
             "Remedy: repair the table." % (table, len(rows), ", ".join(sorted(rows)) or "none"))
-    ordered = data.get("rungs")
-    reference = next(iter(rows.values()))
-    if (not isinstance(ordered, list) or len(set(map(str, ordered))) != len(ordered)
-            or set(map(str, ordered)) != set(reference)):
+    return next(iter(rows.items()))
+
+
+# THE HIGHEST RUNG A PROVIDER DISPATCHES, whatever a ladder's `top` says (DEC-0114 (4)): a mapping
+# provider -> rung in the tier table, beside `tiers:`. The kit ladders stay provider-neutral, so on
+# Codex the architecture class and the escalation still reach the top row as before DEC-0114, while
+# on Claude no answer names Fable. A provider the mapping does not name is not capped.
+# REJECTED, measured in project_memory/staging/TSK-0151/protocol.md: `top: opus` in every ladder
+# (it took the Codex top along with the Claude one) and a Claude translation `fable: opus` in the
+# row (the Claude spawn compares the Agent call's model with the rung NAME, `spawn_model_refusal`).
+# `tools/test_ladder.py::test_no_shipped_ladder_answer_reaches_the_top_rung_bug_0306` asks both
+# providers.
+PROVIDER_TOP_KEY = "provider_top"
+
+
+def provider_tiers(tiers_dir: str, provider=None) -> tuple:
+    """(provider, the rungs above its cap, rung -> that provider's model id) out of the tier table
+    in `tiers_dir`. `provider=None` is the REFERENCE platform -- the one whose spawn holds the rung
+    (`spawn_model_refusal`), found by the row's property. "Above the cap" is the reference
+    vocabulary's own order, so a declaration's rung that is no reference name is never cut. A
+    provider the table does not know and a cap that is no reference rung are refusals, never a
+    guess: an uncapped answer on the wrong provider is exactly the defect the cap is for."""
+    table = os.path.join(tiers_dir, TIERS_FILE)
+    data = _read_yaml_mapping(table, "%s beside the declaration" % TIERS_FILE)
+    tiers = data.get("tiers") if isinstance(data.get("tiers"), dict) else {}
+    if provider is None:
+        provider = _reference_row(data, table)[0]
+    row = tiers.get(provider)
+    if not isinstance(row, dict):
         raise DispatchError(
-            "%s carries no `rungs:` line naming exactly the reference row's rungs low -> high "
-            "(row: %s, line: %r) -- the vocabulary has names but no order, and an order's rung is "
-            "compared by position. Remedy: repair the table."
-            % (table, ", ".join(reference), ordered))
-    return tuple(str(name) for name in ordered)
+            "provider %r has no row under `tiers:` in %s (rows: %s) -- no ladder answer can be "
+            "given for it. Remedy: name one of the rows." % (provider, table.replace(os.sep, "/"),
+                                                            ", ".join(sorted(map(str, tiers)))))
+    caps = data.get(PROVIDER_TOP_KEY)
+    caps = {} if caps is None else caps
+    reference = _reference_rungs(table, data)
+    if (not isinstance(caps, dict) or set(map(str, caps)) - set(map(str, tiers))
+            or set(map(str, caps.values())) - set(reference)):
+        raise DispatchError(
+            "%s gives `%s:` %r, which is not a mapping of its `tiers:` rows to a reference rung "
+            "(%s) -- dispatch blocked rather than dispatched uncapped (DEC-0114 (4)). Remedy: "
+            "repair the table." % (table.replace(os.sep, "/"), PROVIDER_TOP_KEY, caps,
+                                   ", ".join(reference)))
+    cap = caps.get(provider)
+    above = () if cap is None else reference[reference.index(str(cap)) + 1:]
+    return (str(provider), frozenset(above),
+            {str(rung): str(model) for rung, model in row.items()})
+
+
+# THE PROVIDERS A LEASE ANSWERS FOR (DEC-0114 (4), verifier round 1 of TSK-0151, V1): one dispatch
+# is read by whichever client runs the order, and the top differs per provider -- so the lease and
+# its header carry the answer for every provider the project is installed for, keyed by provider.
+# REJECTED: deriving "the" provider from the dispatching process -- no client marker in the
+# environment is measured in this repo, and the lead that reads the header need not be the process
+# that minted it.
+PROVIDERS_KEY = "by_provider"
+CONFIG_PROVIDERS_KEY = "providers"
+
+
+def installed_providers(state: ProjectState, tiers_dir: str) -> tuple:
+    """The `tiers:` rows of the table in `tiers_dir` this project is installed for, reference first.
+
+    "Installed for" is the project config's `providers:` list -- the list the scaffold generates
+    each provider's layer from (`gen_provider_artifacts.providers_from_project_config`), its names
+    trimmed and case-folded. The REFERENCE row is always in: the scaffold installs its layer
+    whatever the list says, and it is the answer the spawn gate holds. A config that cannot be read
+    or carries no list answers EVERY row -- the generator's own default is every provider it knows,
+    and a header naming one provider too many misleads nobody, while one naming too few is the
+    defect this key is for.
+    `tools/test_ladder.py::test_the_installed_providers_are_the_config_list_plus_the_reference_bug_0306`
+    """
+    table = os.path.join(tiers_dir, TIERS_FILE)
+    data = _read_yaml_mapping(table, "%s beside the declaration" % TIERS_FILE)
+    rows = [str(name) for name in (data.get("tiers") or {})]
+    reference = _reference_row(data, table)[0]
+    named = None
+    config = os.path.join(state.root, CONFIG_FILE)
+    if os.path.isfile(config):
+        try:
+            named = _read_yaml_mapping(config, CONFIG_FILE).get(CONFIG_PROVIDERS_KEY)
+        except DispatchError:
+            named = None
+    if isinstance(named, list) and named:
+        wanted = {str(name).strip().lower() for name in named}
+        rows = [row for row in rows if row == reference or row in wanted]
+    return tuple([reference] + [row for row in rows if row != reference])
 
 
 def _assert_the_order_tiers_are_placeable(state: ProjectState, fields: dict) -> None:
@@ -709,6 +801,7 @@ def create_lease(state: ProjectState, task_id: str, ttl: float = DEFAULT_LEASE_T
             lease[RUNG_KEY] = task[LEASE_RUNG_FIELD] = ladder[RUNG_KEY]
             lease[EFFORT_KEY] = task[LEASE_EFFORT_FIELD] = ladder[EFFORT_KEY]
             task[LEASE_CLASS_FIELD] = ladder["role_class"]
+            lease[PROVIDERS_KEY] = ladders_by_provider(state, task, root, ladder)
         else:
             for field in (LEASE_RUNG_FIELD, LEASE_EFFORT_FIELD, LEASE_CLASS_FIELD):
                 task.pop(field, None)
@@ -891,6 +984,11 @@ def dispatch_header(lease: dict) -> str:
     for key in (RUNG_KEY, EFFORT_KEY):
         if lease.get(key):
             body[key] = lease[key]
+    # ...AND THE SAME ANSWER PER INSTALLED PROVIDER (DEC-0114 (4)): the two keys above are the
+    # reference platform's, the one its spawn gate holds; a Codex lead reads its own row here, whose
+    # top can lie above them. Same standing: shown, not parsed.
+    if lease.get(PROVIDERS_KEY):
+        body[PROVIDERS_KEY] = lease[PROVIDERS_KEY]
     return HEADER_PREFIX + json.dumps(body, sort_keys=True)
 
 
@@ -3320,7 +3418,8 @@ def acceptance_is_test_shaped(task: dict, root: dict) -> bool:
     return False
 
 
-def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: int) -> dict:
+def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: int,
+                     provider=None) -> dict:
     """The rung and effort THIS order runs on, from the kit's declaration and the state (DEC-0077).
 
     TWO AXES, derived and never chosen by hand:
@@ -3355,6 +3454,9 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
       * THE TWO AXES ESCALATE IN ORDER, effort before rung (DEC-0096): the failed runs inside one
         rung's cycle raise the effort first, and only the threshold itself raises the rung -- the
         block at the end of this function carries the derivation and the reason.
+      * THE ANSWER IS PER PROVIDER AT THE TOP (DEC-0114 (4)): the tier table's `PROVIDER_TOP_KEY`
+        caps the role's top for `provider` (None = the reference platform, the one whose spawn
+        holds the rung), and the answer names the provider and its model id for the rung.
     A kit-less project (no scaffold record) gets `{"absent": why}` and the role runs on its own
     pin; every other failure to read is a refusal, never a guess (DEC-0078 (4)).
     `tools/test_ladder.py` holds one red-first test per rule named above.
@@ -3399,6 +3501,17 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
             % (role, pin, source, ", ".join(rungs), TIERS_FILE))
     exception = ladder["exceptions"].get(role, {})
     top = str(exception.get(CLASS_TOP, ladder[CLASS_TOP]))
+    provider, above_cap, models = provider_tiers(found.tiers_dir, provider)
+    top_why = top
+    if top in above_cap:
+        below = [rung for rung in rungs[:rungs.index(top)] if rung not in above_cap]
+        if not below:
+            raise DispatchError(
+                "%s tops role %r at %s and has no rung below it that provider %r may run (it caps "
+                "%s) -- dispatch blocked (DEC-0114 (4)). Remedy: declare a rung below the top."
+                % (source, role, top, provider, ", ".join(sorted(above_cap))))
+        top, top_why = below[-1], "%s (the declaration says %s; %s caps it, DEC-0114 (4))" % (
+            below[-1], top, provider)
     if RUNG_KEY in exception:
         floor = default_rung = str(exception[RUNG_KEY])
         floor_why = "the exception sets the floor"
@@ -3464,8 +3577,25 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
                       "path, with or without the node a runner appends after a double colon) into "
                       "an expected output or into the criterion (DEC-0112)"
                       % (order_rung, default_rung))
+    # A START ABOVE THE TOP IS HELD AT THE TOP before anything counts from it: a pin, a floor or an
+    # ask above a (capped) top would otherwise make the granted rung steps below negative, and the
+    # effort cycle would credit the order with failed runs it never had (verifier round 1 of
+    # TSK-0151, V2: FAIL 0 with a `fable` ask on Claude came back at the raised effort).
+    # `tools/test_ladder.py::test_a_start_above_the_capped_top_buys_no_effort_at_fail_0_bug_0306`
+    if rungs.index(start) > rungs.index(top):
+        start, start_why = top, start_why + ", held at the top %s" % top
     per_rung = ladder["failed_runs_per_rung"]
     chosen = rungs[min(rungs.index(start) + int(failed_runs) // per_rung, rungs.index(top))]
+    if chosen in above_cap:
+        # The cap lowered the top and the climb stops there, so what reaches this line is a
+        # declaration ordering a capped rung below its top -- `_valid_ladder` does not hold `rungs:`
+        # against the reference order.
+        # `tools/test_ladder.py::test_a_declaration_that_orders_a_capped_rung_below_its_top_is_refused_bug_0306`
+        raise DispatchError(
+            "%s would dispatch %s on %s, which provider %r does not run (DEC-0114 (4)): the "
+            "declaration orders it below its top, against the reference vocabulary's order. "
+            "Remedy: order `rungs:` low -> high as the tier table does." % (
+                source, task.get("id"), chosen, provider))
     # THE RUNG STEPS THAT WERE GRANTED, not the ones the threshold derived -- `top` caps the climb,
     # and everything below that reads this count (the effort cycle, the shown sentence) has to read
     # the granted one or it credits the order with a climb it did not get.
@@ -3555,19 +3685,47 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
         "escalation": escalation_line,
         CLASS_TOP: top,
         "goal_class": goal_class or None,
+        "provider": provider,
+        "model": models.get(chosen),
         "why": "%s: pin %s, %s, %s, top %s; effort %s: %s"
-               % (chosen, pin, start_why, escalation_line, top, effort, effort_why),
+               % (chosen, pin, start_why, escalation_line, top_why, effort, effort_why),
     }
 
 
+def ladders_by_provider(state: ProjectState, task: dict, root: dict, reference: dict) -> dict:
+    """provider -> {rung, effort, model, top} for every provider this project is installed for
+    (`installed_providers`), `reference` being the answer `ladder_for_order` already gave for the
+    reference platform at the same failed-run count -- every other provider is asked at THAT count
+    (BUG-0306, verifier round 2 of TSK-0151, R2-1). What the lease and its header carry under
+    `PROVIDERS_KEY`; `kernel.cli ladder` prints the same map, and one for its `next_lease`.
+    `tools/test_ladder.py::test_the_lease_and_the_header_carry_the_answer_for_every_installed_provider_bug_0306`"""
+    found = ladder_declaration(state)
+    answers = {}
+    for provider in installed_providers(state, found.tiers_dir):
+        answer = reference if provider == reference.get("provider") else ladder_for_order(
+            state, task, root, int(reference["failed_runs"]), provider)
+        answers[provider] = {key: answer[key] for key in (RUNG_KEY, EFFORT_KEY, "model", CLASS_TOP)}
+    return answers
+
+
 def ladder_line(lease: dict) -> str:
-    """The lease's ladder answer as one line for a human -- the `dispatch` command's stderr."""
+    """The lease's ladder answer as one line for a human -- the `dispatch` command's stderr. The
+    derivation is the reference platform's; every other installed provider follows as its own
+    rung, model and effort, because its top can differ (`PROVIDERS_KEY`)."""
     ladder = lease.get(LADDER_KEY)
     if not isinstance(ladder, dict):
         return "ladder: no answer on this lease (minted before the rule; a new lease carries one)"
     if "absent" in ladder:
         return "ladder: no rung -- %s" % ladder["absent"]
-    return "ladder: rung %s, effort %s (%s)" % (ladder[RUNG_KEY], ladder[EFFORT_KEY], ladder["why"])
+    line = "ladder: rung %s, effort %s (%s)" % (ladder[RUNG_KEY], ladder[EFFORT_KEY], ladder["why"])
+    by_provider = lease.get(PROVIDERS_KEY)
+    if isinstance(by_provider, dict) and by_provider:
+        line += " | per provider: " + "; ".join(
+            "%s rung %s = %s, effort %s, top %s" % (
+                provider, answer.get(RUNG_KEY), answer.get("model"), answer.get(EFFORT_KEY),
+                answer.get(CLASS_TOP))
+            for provider, answer in by_provider.items())
+    return line
 
 
 # The question the checkpoint ends with. The PM answers it to itself and not in a field

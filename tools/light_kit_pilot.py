@@ -84,6 +84,13 @@ def _clock():
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _ladder_line(err):
+    """The `dispatch` command's ladder line, WHOLE: the last stderr line `dispatch.ladder_line` wrote.
+    A fixed tail window cut the sentence a test reads once the `why` grew (TSK-0151 rework F1)."""
+    lines = [line for line in err.splitlines() if line.startswith("ladder:")]
+    return lines[-1] if lines else err.strip()[-400:]
+
+
 def _run(args, cwd, env, body=None, timeout=900):
     proc = subprocess.run(args, cwd=cwd, capture_output=True, text=True, encoding="utf-8",
                           errors="replace", env=env, timeout=timeout, input=body)
@@ -179,14 +186,14 @@ def pilot(kit, out, store, env):
         return record
     # the second builder WITHOUT a record: refused; then the record, then every lease
     first = entry("dispatch", tasks[0])
-    record["orders"][0]["dispatch"] = {"rc": first["rc"], "ladder_line": first["err"].strip()[-400:]}
+    record["orders"][0]["dispatch"] = {"rc": first["rc"], "ladder_line": _ladder_line(first["err"])}
     unmeasured = entry("dispatch", tasks[1])
     record["second_builder_without_record"] = {"rc": unmeasured["rc"], "stderr": unmeasured["err"][-500:]}
     checked = entry("check-scopes")
     record["check_scopes"] = {"rc": checked["rc"], "out": checked["out"][-1200:]}
     for index, task_id in enumerate(tasks[1:], 1):
         leased = entry("dispatch", task_id)
-        record["orders"][index]["dispatch"] = {"rc": leased["rc"], "ladder_line": leased["err"].strip()[-400:]}
+        record["orders"][index]["dispatch"] = {"rc": leased["rc"], "ladder_line": _ladder_line(leased["err"])}
     for order in record["orders"]:
         item = state.read_item(order["task"])
         order["leased"] = {key: item.get(key) for key in (dispatch.LEASE_RUNG_FIELD, dispatch.LEASE_EFFORT_FIELD)}
@@ -231,7 +238,7 @@ def pilot(kit, out, store, env):
             audit_id = created["out"].split()[0]
             entry("transition", audit_id, "READY")
             leased = entry("dispatch", audit_id)
-            audit["dispatch"] = {"rc": leased["rc"], "ladder_line": leased["err"].strip()[-300:]}
+            audit["dispatch"] = {"rc": leased["rc"], "ladder_line": _ladder_line(leased["err"])}
             audit["allowed_scope"] = state.read_item(audit_id).get("allowed_scope")
     record["clock_end"] = _clock()
     return record

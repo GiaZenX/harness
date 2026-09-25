@@ -1,0 +1,58 @@
+........................................................................ [ 12%]
+........................................................................ [ 25%]
+........................................................................ [ 38%]
+........................................................................ [ 51%]
+........................................................................ [ 64%]
+............................F........................................... [ 77%]
+........................................................................ [ 90%]
+...................................................                      [100%]
+================================== FAILURES ===================================
+_______________ test_every_test_a_hole_names_is_one_that_exists _______________
+
+    def test_every_test_a_hole_names_is_one_that_exists():
+        """A hole that claims to be closed names what would notice a relapse, and the name resolves.
+    
+        READ OFF THE ITEM (`backlog_types.HOLE_TEST_FIELD`), which is the move FR-0087 (c) asked for:
+        the predecessor of this test parsed markdown code spans, and its own docstring had to name
+        three things it could not read -- a citation inside a fenced block, a module abbreviated to an
+        ellipsis, a summary row whose cell carried the column separator. A list on the item has none of
+        those readings.
+    
+        THE CORPUS IS WHERE THE TESTS LIVE, and that is not one file: a hole closes a defect anywhere
+        in this repo, and the test that would notice a reopening lives where the defect lived -- under
+        `tools/` for the kits and the kernel, here for this repo's own gates.
+    
+        Names are matched loosely on purpose, exactly as before: the items carry the abbreviations the
+        entries used, so the name is looked up EXACTLY first and only as a substring when nothing
+        answers exactly.
+        """
+        backlog_types, _state, holes = _holes()
+        assert holes, "no hole item in %s -- see the sibling test for the migration command" % STATE_ROOT
+        defined = _tests_by_module()
+        assert defined, "no test file in this repo defines a test at all"
+        named, wrong = 0, []
+        for number, item in sorted(holes.items()):
+            for span in backlog_types.field_elements(item.get(backlog_types.HOLE_TEST_FIELD)):
+                citation = _cited_test(re.sub(r"\s+", "", str(span)))
+                if citation is None:
+                    wrong.append("%s carries %r in %s, which is no test citation at all"
+                                 % (number, span, backlog_types.HOLE_TEST_FIELD))
+                    continue
+                module, cited = citation
+                stem = cited.strip("_.\u2026")
+                matching = sorted(name for name, where in defined.items()
+                                  if (name == stem or (stem not in defined and stem in name))
+                                  and (module is None or module in where))
+                named += 1
+                if len(matching) != 1:
+                    wrong.append("%s names `%s`, and %d tests answer to it in %s"
+                                 % (number, span, len(matching), module or "any test file of this repo"))
+>       assert not wrong, "\n".join(wrong)
+E       AssertionError: H138 names `tools/test_design_conformance.py::test_a_record_is_written_even_when_the_checks_find_something_and_the_sighting_gate_still_opens`, and 0 tests answer to it in test_design_conformance
+E         H155 names `tools/test_approvals_dispatch.py::test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it`, and 0 tests answer to it in test_approvals_dispatch
+E       assert not ['H138 names `tools/test_design_conformance.py::test_a_record_is_written_even_when_the_checks_find_something_and_the_s...mpty_origin_excuses_the_step_while_the_root_criteria_measure_it`, and 0 tests answer to it in test_approvals_dispatch']
+
+.claude\hooks\test_gates.py:5053: AssertionError
+=========================== short test summary info ===========================
+FAILED .claude/hooks/test_gates.py::test_every_test_a_hole_names_is_one_that_exists
+1 failed, 554 passed in 1150.67s (0:19:10)

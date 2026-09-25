@@ -501,11 +501,15 @@ opens by double-click.
   session restart. Growing the TEAM is user-gated only — the MODEL rung is not, and has not been
   since DEC-0077: the dispatcher derives it (**The ladder is the kernel's**, below).
 - **Models:** three rungs per provider (`team-kits/model_tiers.yaml`, DEC-0076) -- `fable` /
-  `opus` / `sonnet` on Claude, `gpt-6-astra` / `gpt-5.6-sol` / `gpt-5.6-terra` on Codex; kit
-  sources pin the aliases `lead`/`worker` or the top rung `fable`. Judgment roles and the kit
+  `opus` / `sonnet` on Claude, `gpt-6-astra` / `gpt-6-sol` / `gpt-6-luna` on Codex (DEC-0114 (1));
+  the table carries no prices, it says per rung what the model is suited for. Kit sources pin the
+  aliases `lead`/`worker` or the top rung `fable`. Judgment roles and the kit
   LEADS pin opus, implementers pin worker and the ladder's `build` class starts them on opus anyway
-  (DEC-0095: the top rung is bought for the named architecture step and for the escalation after a
-  failed run, never as a standing tier); the specialist map is `project_config.yaml` — the scaffold stamps the
+  (DEC-0095); since DEC-0114 (4) the tier table caps the top at opus on Claude, so there neither the
+  architecture step nor the escalation after a failed run reaches `fable` -- the escalation climbs
+  the effort instead; on Codex both still reach `gpt-6-astra` in the ladder's answer, which the
+  dispatch header carries per installed provider (`by_provider`) and the Codex lead applies -- no
+  hook holds it there (H173); the specialist map is `project_config.yaml` — the scaffold stamps the
   shared Claude agent frontmatter and generates the Codex TOMLs from it; `session_status` nags on
   drift. Under Codex, re-sync only through a user-confirmed full scaffold run (which invokes the
   generator), request explicit filesystem permission escalation for read-only harness paths when

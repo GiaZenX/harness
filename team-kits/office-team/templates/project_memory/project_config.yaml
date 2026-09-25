@@ -15,7 +15,8 @@ project:
 providers: [claude, codex]
 
 # Three rungs, sonnet < opus < fable (DEC-0076); this kit's own ladder is `ladder.yaml` beside its
-# constitution, and its top rung is opus for every role but the office-developer (DEC-0078).
+# constitution: its top rung is opus for every role but the office-developer, which climbs to fable
+# (DEC-0078) -- on Codex; on Claude the top is capped at opus for every role (DEC-0114 (4)).
 # Specialists DEFAULT to sonnet. Accepted values: the aliases `lead`/`worker` (= opus/sonnet on
 # Claude), the rung names, or the top-rung pin `fable`; `light`/haiku are retired and the generator
 # refuses them with a sentence naming DEC-0076. Provider generators translate a value to the

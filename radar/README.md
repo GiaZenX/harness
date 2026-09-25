@@ -31,24 +31,28 @@ The reports written before that decision keep their two-part names (`<date>-clau
 of that watcher by its own provider, which keeps the history countable; the file names of those
 weeks simply do not record who ran them.
 
-## How a run starts (DEC-0089, DEC-0090 (4))
+## How a run starts (DEC-0089, DEC-0090 (4), DEC-0098)
 
-The mechanism is a **local routine of the app that runs it** — a Claude Desktop scheduled task for
-each of the two Claude halves, an Automation of the Codex app for each of the two Codex halves, four
-in all and on four evenings so that no two fire at once, and until each of them is created and
-recorded the lead starts that run by hand. `python tools/radar_routine.py --describe` prints all
-four with the exact Instructions text that creates each one, and the lead reads that out rather than
+The mechanism is a **local routine of the app that runs it**, four in all and all on one Friday
+evening (DEC-0098): the two Claude halves in ONE Claude Desktop scheduled task that runs them one
+after the other, because the Desktop app skips a task while another of its tasks runs, and the two
+Codex halves as two Automations of the Codex app, and until each of them is created and recorded
+the lead starts that run by hand. `python tools/radar_routine.py --describe` prints the four with
+the exact Instructions text that creates each app task, and the lead reads that out rather than
 retyping it here.
 
 - **Recorded and running: the claude-watcher's Friday run.** A Claude Desktop scheduled task
-  created by this repository's session agent on 2026-06-30
-  (`~/.claude/scheduled-tasks/radar-watcher/SKILL.md` — the folder keeps the name the task was
-  created under) started it on Friday evenings, and the reports show it: `2026-07-17` to
-  `2026-08-28` were written between 20:10 and 20:47, with one Sunday catch-up on `2026-08-16`. It
-  is the one entry in `radar/routine.json`.
-- **Not created yet: the other three.** Until the user has made them in the two apps and each has
-  run twice on its own evening, the lead starts what is missing by hand — `--run <watcher>` when
-  `--due` names it, which starts a Claude run and can start no other.
+  created by this repository's session agent on 2026-06-30 started it on Friday evenings, and the
+  reports show it: `2026-07-17` to `2026-08-28` were written between 20:10 and 20:47, with one
+  Sunday catch-up on `2026-08-16`. Since 2026-09-25 the Desktop task `watcher-duo`
+  (`~/.claude/scheduled-tasks/watcher-duo/SKILL.md`) carries that run in place of the first task,
+  it is the one entry in `radar/routine.json`, and every other run the lead starts by hand (next
+  bullet).
+- **Not recorded yet: the other three**, and until each has run twice on its evening the lead
+  starts what is missing by hand — `--run <watcher>` when `--due` names it, which starts a Claude
+  run and can start no other. The codex-watcher's Claude run is the second step of the Desktop task
+  `watcher-duo` and has not run from it yet, so the lead starts it by hand until it has; the two
+  Codex runs are each an Automation the user creates in the Codex app, and the lead starts neither.
 - **The rejected alternative** — the **claude.ai** **cloud routine** (**RemoteTrigger**), a
   **hosted code routine** of the platform running as a **sandbox routine** against the remote and
   returning each report as a pull request (DEC-0085) — is not built and nothing in this repo

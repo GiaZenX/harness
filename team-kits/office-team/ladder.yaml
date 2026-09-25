@@ -7,8 +7,9 @@
 #
 # THIS KIT RUNS THE LOWER LADDER ON PURPOSE (DEC-0078 (1)/(2), refining DEC-0047): the top rung is
 # opus for every office role except the office-developer, which climbs to fable like a dev-team
-# builder because code is where the cheap rung fails; the effort pair is medium / high instead of
-# high / xhigh, and xhigh is not an office effort. The sonnet-LOW filing floor of DEC-0047 (records
+# builder because code is where the cheap rung fails -- on Codex; on Claude the tier table's
+# `provider_top:` caps it at opus like every role (DEC-0114 (4)). The effort pair is medium / high
+# instead of high / xhigh, and xhigh is not an office effort. The sonnet-LOW filing floor of DEC-0047 (records
 # clerk + filing reviewer: two roles read every document and `gate_filing` decides the move) is
 # EXACTLY two things below, and the difference matters: `sonnet` is the pair's PIN, reached through
 # `classes: reading: pin`, and `low` is the named exception. So the pair STARTS on sonnet at low
@@ -30,7 +31,7 @@
 # `tools/test_model_ladder.py::test_the_constitutions_ladder_paragraph_says_what_the_declaration_says`
 # reads this file and the constitution's ladder paragraph together.
 
-rungs: [sonnet, opus, fable]          # ordered low -> high; fable is reachable by one role only
+rungs: [sonnet, opus, fable]          # ordered low -> high; fable is reachable by one role only, on Codex
 top: opus                             # DEC-0078 (1): opus is the office top rung
 
 effort:
@@ -53,7 +54,7 @@ escalation:
   # highest effort this kit runs at all (DEC-0078 (2)), so neither effort step moves it; and the
   # filing pair's fixed `low` (see `exceptions:`) is floor AND ceiling, so no failed run ever
   # raises its effort. In every one of the three the RUNG is what moves, at the third failed run,
-  # and it climbs to opus -- for every role but the office-developer that is also the last step.
+  # and it climbs to opus -- for every role but the office-developer on Codex that is also the last step.
   # (DEC-0096 (2) summarises this kit as "its first step is a no-op"; that holds for the second
   # and third case above and not for the first, which is the ordinary office order.)
   effort_steps_before_rung: 2           # DEC-0096 (2)
@@ -108,7 +109,7 @@ roles:
 # ask may lift it, never lower it).
 exceptions:
   office-developer:
-    top: fable                        # DEC-0078 (1): the one office role that may climb to fable
+    top: fable                        # DEC-0078 (1): the one office role that may climb to fable (Codex only, DEC-0114 (4))
   records-clerk:
     effort: low                       # DEC-0047: the filing floor -- pure reading, double control
   filing-reviewer:

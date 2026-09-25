@@ -65,7 +65,7 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "8385bc57db77584a",
+        "digest": "b986d05fbbd6d137",
         "hooks": [
           "gate_dispatch",
           "session_status"
@@ -222,7 +222,7 @@
         "hooks": []
       },
       "Before the order goes out: a smaller plan, and the five ways a line goes wrong": {
-        "digest": "15fb5e12163436e8",
+        "digest": "4d5dee53a0245cf0",
         "hooks": [
           "gate_dispatch"
         ]
@@ -277,7 +277,7 @@
         "hooks": []
       },
       "Work loop (every cycle — every \"capture\"/\"transition\" below runs through the kernel's entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)": {
-        "digest": "e3798341cce4a362",
+        "digest": "7d8c2cded75bf99e",
         "hooks": [
           "gate_design_sighted",
           "gate_dispatch",
@@ -411,7 +411,7 @@
         ]
       },
       "7. Models & presets": {
-        "digest": "13a1cca11c112b18",
+        "digest": "0ae9d643beba0ba6",
         "hooks": [
           "gate_filing",
           "session_status"
@@ -484,7 +484,7 @@
         "hooks": []
       },
       "Before the order goes out: a smaller plan, and the five ways a line goes wrong": {
-        "digest": "15fb5e12163436e8",
+        "digest": "4d5dee53a0245cf0",
         "hooks": [
           "gate_dispatch"
         ]
@@ -524,7 +524,7 @@
         "hooks": []
       },
       "Work loop (every cycle)": {
-        "digest": "a52fef70c49e5dea",
+        "digest": "3d00e75925b122b3",
         "hooks": [
           "gate_proc_approved",
           "gate_write_scope",
@@ -596,7 +596,7 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "af89734f301534e1",
+        "digest": "28cd7cba78f5c612",
         "hooks": [
           "gate_dispatch",
           "session_status"
@@ -749,7 +749,7 @@
         "hooks": []
       },
       "Before the order goes out: a smaller plan, and the five ways a line goes wrong": {
-        "digest": "15fb5e12163436e8",
+        "digest": "4d5dee53a0245cf0",
         "hooks": [
           "gate_dispatch"
         ]
@@ -804,7 +804,7 @@
         "hooks": []
       },
       "Work loop (every cycle — every \"capture\"/\"transition\" below runs through the kernel's entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)": {
-        "digest": "2a9ad4c427e20a04",
+        "digest": "04b0b3042de71a4d",
         "hooks": [
           "gate_write_scope",
           "guard_yaml_valid"

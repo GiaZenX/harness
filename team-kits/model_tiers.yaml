@@ -7,41 +7,45 @@
 #
 # WHICH RUNG IS A STANDING TIER AND WHICH IS BOUGHT PER OCCASION IS NOT THIS TABLE'S BUSINESS
 # (DEC-0095, beside DEC-0076): this file translates three rungs per provider and says nothing about
-# who runs on which. DEC-0095 answered the "who" on cost -- builder, orchestrator and verifier on
-# opus, the TOP rung only for the named architecture step of a large goal and as the escalation
-# target after a failed run -- and it did so by moving the `classes:` of the kits' `ladder.yaml`
-# and the role pins, not by changing a row here. A reader who came looking for the answer in this
-# table is in the wrong file: the kit's declaration is the one that decides, and DEC-0096 says in
-# which ORDER a failed run climbs the two axes.
+# who runs on which. That answer is the `classes:` and the `top:` of each kit's `ladder.yaml` and
+# the role pins -- DEC-0095 moved builder, orchestrator and verifier onto opus there. The ONE rule
+# here that is not a translation is per provider, because the kits' ladders are not:
+# `provider_top:` below caps the top a provider dispatches (DEC-0114 (4)). DEC-0096 says in which
+# ORDER a failed run climbs the two axes.
 #
 # THREE RUNGS PER PROVIDER, NO MORE (DEC-0076): fable / opus / sonnet in the reference vocabulary,
-# and the same three positions for every other provider. There is no `light` alias and no haiku or
-# luna row; a pin this table cannot place is refused by `gen_provider_artifacts.provider_neutral_model`
+# and the same three positions for every other provider. There is no `light` alias and no haiku
+# row; a pin this table cannot place is refused by `gen_provider_artifacts.provider_neutral_model`
 # with a sentence naming that decision, and
 # `tools/test_model_ladder.py::test_every_provider_declares_exactly_the_three_rungs` reads this file
-# for the count. What a kit DOES with the rungs -- its endpoints, its effort pair, the escalation --
-# is that kit's own `ladder.yaml` beside its constitution (DEC-0078), read by `kernel.dispatch` at
-# every lease and every spawn (DEC-0077); this table carries only the provider translation.
+# for the count. A provider's model NAMES are not rungs: `gpt-6-luna` is the codex model of the
+# `sonnet` rung (DEC-0114 (1)), and as a pin it is refused like any other value that is no rung.
+# What a kit DOES with the rungs -- its endpoints, its effort pair, the escalation -- is that kit's
+# own `ladder.yaml` beside its constitution (DEC-0078), read by `kernel.dispatch` at every lease and
+# every spawn (DEC-0077); this table carries only the provider translation.
 #
-# MAINTENANCE: the radar-watcher (Claude side) and the codex-watcher (OpenAI side) REPORT what moved
-# (new models, price moves, deprecations) into radar/. A finding becomes a change by exactly one
-# route: at triage the lead captures an item under the open goal (`capture BUG` or `capture FR`,
-# `related_pr` set) and a stream edits this file under that item. Never a line in radar/decided.md
-# on its own, and never the watcher itself, which may not write kit files -- BUG-0092 measured three
-# reports naming the same dead line while nothing changed, because no item carried it. Changing a
-# rung's model here re-tiers every project on the next restamp: always a USER-approved proposal,
-# never an automatic bump.
+# MAINTENANCE: the claude-watcher (Claude side) and the codex-watcher (OpenAI side) REPORT what
+# moved (new models, deprecations) into radar/. A finding becomes a change by exactly one route: at
+# triage the lead captures an item under the open goal (`capture BUG` or `capture FR`, `related_pr`
+# set) and a stream edits this file under that item. Never a line in radar/decided.md on its own,
+# and never the watcher itself, which may not write kit files -- BUG-0092 measured three reports
+# naming the same dead line while nothing changed, because no item carried it. Changing a row here
+# re-tiers every project on the next restamp, so it is always a USER-approved proposal. The claude
+# row is PASS-THROUGH on purpose (DEC-0114 (2)): `opus` and `sonnet` are whatever Claude Code calls
+# the current model of that name, so a new Claude model arrives WITHOUT an edit here -- wanted, not
+# a defect, and no test pins what a name resolves to.
 #
-# Price anchors, read 2026-09-05 off the vendors' pages (per 1M tokens in/out; sources
-# radar/2026-09-05-codex.md items 1-2 and radar/2026-09-04-claude.md) -- for a reader, not for code:
-#   claude: Opus-class $15/$75 . Sonnet 5 $2/$10 standard (the 2026-08-31 increase was cancelled,
-#           radar/decided.md radar-0821-sonnet5-price-trigger) . Opus 4.1 was shut down 2026-08-05
-#   openai: gpt-6-astra $10/$50 (GA 2026-09-03) . gpt-5.6-sol $4/$20 promotional, $5/$30 standard .
-#           gpt-5.6-terra $2/$12 (since 2026-07-30)
+# NO PRICES IN THIS FILE (DEC-0114 (3)): a price anchor here went stale twice while nothing read it
+# (radar/2026-09-25-claude-by-claude.md item 2). What a reader needs from this table is which model
+# a rung is FOR, so that roles land on the right rung -- that stands under `suited_for:` below, in
+# the vendor's own words with source and read date, and
+# `tools/test_model_ladder.py::test_the_tier_table_carries_no_price_and_says_what_each_rung_is_for_bug_0306`
+# holds both halves.
+#
 # Watch dates -- a date in the past on this list is a defect,
 # `tools/test_model_ladder.py::test_no_watch_date_in_the_tiers_table_lies_in_the_past` is red on it;
 # a date that passed is removed, and what it was about becomes a fact above or an item:
-#   2026-11-21 gpt-5.6-sol promotional pricing is guaranteed until at least this date
+#   none today (the one entry was a price promotion of a model DEC-0114 (1) stopped naming)
 
 # THE ORDER OF THE RUNGS, low -> high (DEC-0076 (1): worker < lead < top). The rows under `tiers:`
 # are mappings and carry no order; `kernel.dispatch._reference_rungs` reads THIS line for the
@@ -58,6 +62,8 @@ aliases:            # alias -> canonical (claude) rung name used in model_map an
 # the translation on the reference platform; an alias here would also be one the scaffold's
 # frontmatter rewrite does not know. What decides whether a kit source may carry a value is
 # `gen_provider_artifacts.provider_neutral_model`, which reads THIS file rather than a list of names.
+# A role pinned `fable` is still not DISPATCHED on it on Claude: `provider_top:` below caps the top
+# there, and the top caps a pin downwards (`kernel.dispatch.ladder_for_order`).
 
 tiers:              # provider -> rung name -> that provider's model id
   claude:           # reference platform -- rung names ARE the model ids, values pass through
@@ -67,10 +73,66 @@ tiers:              # provider -> rung name -> that provider's model id
     effort_field: effort              # agent frontmatter key; values low|medium|high|xhigh|max
   codex:
     fable: gpt-6-astra
-    opus: gpt-5.6-sol
-    sonnet: gpt-5.6-terra
+    opus: gpt-6-sol
+    sonnet: gpt-6-luna
     effort_field: model_reasoning_effort   # .codex/agents/*.toml; shared vocabulary low|medium|high|xhigh|max
     # The Codex effort CEILING is not stated here on purpose (DEC-0076 (3)): the vendor's model pages
     # say `max` and its CLI agent-config page says `ultra` (radar/2026-09-05-codex.md item 3), and
     # nothing in this repo has measured a `.codex/agents/*.toml` against the CLI yet. A provider-only
     # value goes through the `codex:` frontmatter overlay when a round has measured it.
+
+# THE HIGHEST RUNG EACH PROVIDER DISPATCHES (DEC-0114 (4), `kernel.dispatch.PROVIDER_TOP_KEY`): the
+# kernel lowers a ladder's `top:` to this for the provider named here, and leaves the top of every
+# other provider where the kit's ladder puts it -- on codex the architecture class and the
+# escalation reach `fable` (gpt-6-astra) as the ladders declare -- in the kernel's answer, which the
+# lease and the dispatch header carry for every provider a project is installed for
+# (`kernel.dispatch.PROVIDERS_KEY`); nothing on Codex holds it at the spawn (H173). Both halves are
+# the user's: DEC-0114
+# (4) for Claude, the answer of 2026-09-25 15:07 in project_memory/staging/generation-6-streams.md
+# for Codex.
+# `tools/test_ladder.py::test_no_shipped_ladder_answer_reaches_the_top_rung_bug_0306`
+# `tools/test_ladder.py::test_the_lease_and_the_header_carry_the_answer_for_every_installed_provider_bug_0306`
+provider_top:
+  claude: opus
+
+# WHAT EACH RUNG IS SUITED FOR, per provider (DEC-0114 (3)): the vendor's own positioning of the
+# model the rung names on the read date, quoted, with the page it stands on. For a reader choosing a
+# rung for a role -- no code reads it. `model` is what the row resolved to on `read`; on claude the
+# row is a name that moves by itself (the MAINTENANCE paragraph), so `model` is a dated observation
+# and not a pin. Sources are also in radar/2026-09-25-claude-by-claude.md (model lineup table) and
+# radar/2026-09-25-codex-by-claude.md item 1.
+suited_for:
+  claude:
+    fable:
+      model: Claude Fable 5.1
+      says: 'For demanding reasoning and long-horizon agentic work -- or when your evals on Claude
+        Opus 5.5 at higher effort still fall short'
+      source: https://platform.claude.com/docs/en/about-claude/models/overview
+      read: 2026-09-25
+    opus:
+      model: Claude Opus 5.5
+      says: 'For long-running agentic coding and knowledge work -- start with Claude Opus 5.5 for
+        most workloads'
+      source: https://platform.claude.com/docs/en/about-claude/models/overview
+      read: 2026-09-25
+    sonnet:
+      model: Claude Sonnet 5
+      says: 'The best combination of speed and intelligence'
+      source: https://platform.claude.com/docs/en/about-claude/models/overview
+      read: 2026-09-25
+  codex:
+    fable:
+      model: GPT-6 Astra
+      says: 'Our most capable model, built for the hardest end-to-end work'
+      source: https://developers.openai.com/api/docs/models
+      read: 2026-09-25
+    opus:
+      model: GPT-6 Sol
+      says: 'Built to power complex coding and agentic workflows'
+      source: https://developers.openai.com/api/docs/models
+      read: 2026-09-25
+    sonnet:
+      model: GPT-6 Luna
+      says: 'Our most efficient model for focused, high-volume tasks'
+      source: https://developers.openai.com/api/docs/models/gpt-6-luna
+      read: 2026-09-25

@@ -146,11 +146,12 @@ Occasion: `BUG-0073`.
    admitted on onto the lease (`measured_disjoint`); a light model only for a MECHANICAL slice with a
    complete spec and an acceptance criterion. The TIERS are yours to derive, never the user's to
    answer: this kit's ladder gives every role its floor and its ceiling (`DEC-0078`: opus at the top
-   for every role but the office-developer, `medium`/`high`, no `xhigh`), and per ORDER you lift the
+   for every role but the office-developer, which climbs to fable on Codex only, `DEC-0114` (4) -- the header's `by_provider` names it and you apply it by choosing the model, nothing holds it (`H173`); `medium`/`high`, no `xhigh`), and per ORDER you lift the
    floor with `create-task --rung <rung> --effort <effort>` by what the slice needs — the user's
    three-line rule: »der eine passt nur x an — sonnet high/xhigh; der andere arbeitet y ab,
    komplexer — opus high/xhigh; der dritte macht z, extrem viel Aufwand, Feinarbeit,
-   Bewertungspotenzial — fable high/xhigh« (inside this kit's ladder; the filing pair's `low` is
+   Bewertungspotenzial — fable high/xhigh« (inside this kit's ladder, whose top is opus -- on Claude for every role -- so the third
+   line ends there; the filing pair's `low` is
    floor and ceiling at once). This kit needs no test to reach sonnet the way dev and research do
    (`DEC-0097` (2)): its build class IS the pin, so the cheap rung is where an office order starts.
    **A LARGER OFFICE JOB IS SPLIT INTO TASKS, NEVER RAISED IN EFFORT (`DEC-0104`).** dev and
@@ -258,6 +259,18 @@ A line that, read literally, contradicts another line of the SAME order is wrong
 interpretation; read every line against every other one before you send it. And when a specialist
 comes back and refutes a line with a measurement, the line was wrong — that is the outcome this
 section buys earlier and cheaper, never an argument to win.
+
+**(3) Three cost lines every order carries, word for word (`FR-0093`).** Measured over the
+transcripts of one generation's builders and reviewers: what an order costs is the context each
+turn re-reads times the number of turns, and a waiting loop was a small share of it. A role applies
+only the rules its order names, so these three stand in every order you write:
+- **A rework is a FRESH agent**, given only the review's report, the item and the path of the
+  protocol — never a resumed builder, whose context carries the whole first attempt into every turn
+  of the second.
+- **A run longer than a few minutes starts in the background**, and the agent waits for its
+  completion notice — no loop of sleeping and looking at a log.
+- **A file over 2,000 lines, and every protocol, is read by section, never whole** — the
+  constitution's reading duty (`DEC-0095` (6)) applied to the order.
 
 ## Letters that leave the house: a draft, a reading, the user's send
 An offer, a reminder (Mahnung) or a customer letter is rendered by `python scripts/letter_draft.py`

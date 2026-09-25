@@ -440,7 +440,7 @@ overrides it, with no hook in between — so if the user switches, say which mod
 **The ladder is BUILT, and this kit runs the lower one on purpose (DEC-0078, refining DEC-0047;
 the rules are DEC-0034's, the two axes DEC-0077's):** declared in `ladder.yaml` beside this file —
 three rungs `sonnet < opus < fable` (DEC-0076), top rung **opus** for every role except the
-**office-developer**, which climbs to fable like a dev-team builder; effort **medium** by default
+**office-developer**, which climbs to fable on Codex (on Claude capped at opus, `DEC-0114` (4)); effort **medium** by default
 and **high** when the goal's `class` is `large` (`xhigh` is not an office effort); the filing pair
 **records-clerk** / **filing-reviewer** STARTS on its `sonnet` pin and its effort is fixed at
 **low** by the named exception — two roles read every document and `gate_filing` still decides the
@@ -454,12 +454,18 @@ derives the RUNG from the role's pin, its class in the declaration and the order
 (you plan on the top rung; the auditor never below opus; the rest on its pin; the escalation
 below is what moves a rung, capped at the role's top) and the EFFORT from the goal, writes both on the lease,
 the header and the task item, and derives again at the spawn (`kernel.dispatch.ladder_for_order`;
-`python scripts/harness.py ladder <TSK-ID>` shows the answer without minting). Every class here
+`python scripts/harness.py ladder <TSK-ID>` shows the answer without minting). The header's
+`rung`/`effort` are Claude's, the pair its spawn gate holds; its `by_provider` map
+(`kernel.dispatch.PROVIDERS_KEY`) carries the answer for every provider this project is installed
+for, and on Codex the office-developer's top is **fable** = `gpt-6-astra`. Every class here
 names ONE rung, which after `DEC-0097` (1) is the pair whose default and floor coincide: an
 order's `rung` ask lifts a start in this kit and never lowers one, because there is no band
 under it to lower into. **What you do with
 it:** when the header's `rung` is not the role's own pin, pass it as the Agent call's `model:` —
-the spawn gate refuses any spawn whose `model` is not the rung, a higher one included. **What it does not do:** the effort
+the spawn gate refuses any spawn whose `model` is not the rung, a higher one included. On Codex no
+hook sees a spawn (`H173`): your row under `by_provider` is an instruction you apply by choosing
+the subagent's model where the CLI lets you -- nothing holds it, and a child you choose no model
+for runs on its generated `.codex/agents/<role>.toml` model. **What it does not do:** the effort
 is derived and shown, never forced — the platform has no per-spawn effort parameter, so the child
 runs on the installed `effort:`, and that is what this kit's `project_config.yaml` `effort_map`
 stamps (today `high` for the specialists, `low` for the filing pair). A `PROC` carries no `class`,

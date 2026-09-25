@@ -287,10 +287,12 @@ def a_radar_dir_with(directory, *names):
 
 # 2026-07-17 / 07-24 are Fridays; 2026-09-05 / 09-12 are Saturdays; 2026-07-15 is a Wednesday.
 # 2026-09-06 / 09-13 are Sundays; 2026-09-07 / 09-14 are Mondays.
+# Two reports per routine, each on the evening the plan gives it -- since DEC-0098 a Friday for all
+# four, so the cadence of each routine is told apart by its NAME and not by its weekday.
 FRIDAYS = ("2026-07-17-claude-by-claude.md", "2026-07-24-claude-by-claude.md")
-SATURDAYS = ("2026-09-05-codex-by-claude.md", "2026-09-12-codex-by-claude.md")
-SUNDAYS = ("2026-09-06-claude-by-codex.md", "2026-09-13-claude-by-codex.md")
-MONDAYS = ("2026-09-07-codex-by-codex.md", "2026-09-14-codex-by-codex.md")
+CODEX_BY_CLAUDE = ("2026-09-04-codex-by-claude.md", "2026-09-11-codex-by-claude.md")
+CLAUDE_BY_CODEX = ("2026-09-04-claude-by-codex.md", "2026-09-11-claude-by-codex.md")
+CODEX_BY_CODEX = ("2026-09-04-codex-by-codex.md", "2026-09-11-codex-by-codex.md")
 
 
 _BULLET_END = "(?=" + chr(92) + "n" + chr(92) + "s*" + chr(92) + "n)"
@@ -380,25 +382,67 @@ def test_the_runner_vocabulary_is_the_ladders_provider_vocabulary():
         assert entry["kind"] and entry["app"] and "%(watcher)s" in entry["follow"], runner
 
 
-def test_the_routine_plan_covers_every_watcher_on_every_runner_and_staggers_them():
-    """The four routines of DEC-0090 (4): the PAIRS are derived, the evenings are the user's.
+def test_the_routine_plan_puts_every_watcher_on_one_evening_and_one_task_per_skipping_app_bug_0307():
+    """BUG-0307 / DEC-0098 (3): all four routines on the one evening the user named, Friday
+    ~20:00, with DEC-0098 as the schedule's source -- and the reason DEC-0090 (4) had staggered
+    them kept as a property: no two routines of a runner whose app SKIPS a task while another of its
+    own runs may stand in separate tasks at the same time. Such an app gets ONE task that runs its
+    watchers in sequence (the Claude Desktop task `watcher-duo`).
 
-    Three properties, and each one is a way the plan could be wrong without anybody noticing:
-    every watcher is planned on every runner (the product, not a list somebody maintains); no two
-    routines share an evening, because an app skips a scheduled task while another one of its own is
-    running, which is the reason the user was asked for four different days at all; and every
-    routine names the report it writes, so the four never collide on one file name.
+    THE CODEX SIDE IS THE OTHER BRANCH, and DEC-0098 (2) chose it: two Automations at the same
+    minute, because whether the Codex app skips is not measured yet. So a runner may carry separate
+    same-time tasks only while its declaration says the skip is UNMEASURED, with a source -- the day
+    the answer is `True` this test demands one task there too. BUG-0307's AC-1 words the rule for
+    every runner; DEC-0098 (2) is the decision it would contradict, and the decision wins.
 
-    The staggering is measured rather than described: two routines moved onto one evening make this
-    red, and until 2026-09-11 the four weekdays stood only in a decision's prose.
+    Also held, as before: every watcher on every runner (the product, not a list), and every routine
+    names the report it writes, so none collide on one file name. The `--describe` half: every task
+    the plan cuts is handed out with ONE Instructions text, and a task of several routines names
+    each routine's report in step order.
+
+    RED ON 8677bd2: `SCHEDULE_AS_TOLD` staggers Fri/Sat/Sun/Mon with DEC-0090 (4) as source, and
+    the plan knows no task at all.
     """
     routine = routine_module("radar_routine_plan")
     plan = routine.routine_plan()
     assert set(plan) == {routine.routine_id(watcher, runner)
                          for watcher in routine.WATCHERS for runner in routine.RUNNERS}
-    days = [entry["schedule_as_told"]["day"] for entry in plan.values()]
-    assert len(set(days)) == len(days), "two routines share an evening: %s" % sorted(days)
-    assert set(days) <= set(routine.WEEKDAYS), sorted(days)
+    evenings = {(entry["schedule_as_told"]["day"], entry["schedule_as_told"]["time_local"])
+                for entry in plan.values()}
+    assert evenings == {("friday", "~20:00")}, "DEC-0098 put all four on Friday ~20:00: %s" % evenings
+    assert "DEC-0098" in routine.SCHEDULE_SOURCE, routine.SCHEDULE_SOURCE
+    tasks = {}
+    for key, entry in plan.items():
+        told = entry["schedule_as_told"]
+        assert told.get("task") and isinstance(told.get("step"), int), (key, told)
+        tasks.setdefault(entry["runner"], {}).setdefault(told["task"], []).append(told["step"])
+    for runner, cut in tasks.items():
+        for task, steps in cut.items():
+            assert sorted(steps) == list(range(1, len(steps) + 1)), (
+                "%s/%s: its routines are not one sequence of steps: %s" % (runner, task, steps))
+        skips, source = routine.RUNNERS[runner]["skips_while_another_runs"]
+        assert source, "%s: the skip answer carries no source" % runner
+        at_once = {(plan[key]["schedule_as_told"]["day"], plan[key]["schedule_as_told"]["time_local"])
+                   for key in plan if plan[key]["runner"] == runner}
+        assert skips in (True, False, None), (runner, skips)
+        if len(at_once) == 1 and len(cut) > 1:
+            assert skips is not True, (
+                "%s's app skips a task while another of its tasks runs, and its routines stand in "
+                "%d separate tasks on one evening -- all but one would be skipped: %s"
+                % (runner, len(cut), sorted(cut)))
+    handed_out = {(entry["runner"], entry["task"]): entry for entry in routine.app_tasks(plan)}
+    assert set(handed_out) == {(runner, task) for runner, cut in tasks.items() for task in cut}
+    for (runner, task), entry in handed_out.items():
+        body = entry["instructions"]
+        # the STEP order comes from the plan, never from the list the text was built from
+        by_step = sorted((key for key in plan if plan[key]["runner"] == runner
+                          and plan[key]["schedule_as_told"]["task"] == task),
+                         key=lambda key: plan[key]["schedule_as_told"]["step"])
+        assert entry["routines"] == by_step, (task, entry["routines"], by_step)
+        positions = [body.index(plan[key]["writes"]) for key in by_step]
+        assert positions == sorted(positions), (task, entry["routines"])
+        if len(entry["routines"]) > 1:
+            assert "ONE AFTER THE OTHER" in body, task
     writes = [entry["writes"] for entry in plan.values()]
     assert len(set(writes)) == len(writes), "two routines write the same report name: %s" % writes
     for key, entry in plan.items():
@@ -503,11 +547,11 @@ def test_the_self_start_reader_answers_off_the_record_and_the_reports():
             "a report with no watcher suffix counted as a named watcher's run")
         # ...and a watcher turns True only when ALL of its routines are live
         four = every_routine_recorded(directory)
-        everything = a_radar_dir_with(directory, *FRIDAYS, *SATURDAYS, *SUNDAYS, *MONDAYS)
+        everything = a_radar_dir_with(directory, *FRIDAYS, *CODEX_BY_CLAUDE, *CLAUDE_BY_CODEX, *CODEX_BY_CODEX)
         assert all(routine.live_routines(four, everything).values())
         assert routine.starts_itself(four, everything) == {"claude-watcher": True,
                                                            "codex-watcher": True}
-        missing_one = a_radar_dir_with(directory, *FRIDAYS, *SATURDAYS, *SUNDAYS, MONDAYS[0])
+        missing_one = a_radar_dir_with(directory, *FRIDAYS, *CODEX_BY_CLAUDE, *CLAUDE_BY_CODEX, CODEX_BY_CODEX[0])
         assert routine.starts_itself(four, missing_one) == {"claude-watcher": True,
                                                             "codex-watcher": False}
     # ...and the repository's own answer, which is what the texts are held against today: the claude
@@ -534,8 +578,8 @@ def test_the_claim_rule_follows_the_record_per_watcher(tmp_path, monkeypatch):
     same reader the shipped texts go through.
     """
     routine = routine_module("radar_routine_two_states")
-    monkeypatch.setattr(routine, "RADAR", a_radar_dir_with(str(tmp_path), *FRIDAYS, *SATURDAYS,
-                                                           *SUNDAYS, *MONDAYS))
+    monkeypatch.setattr(routine, "RADAR", a_radar_dir_with(str(tmp_path), *FRIDAYS, *CODEX_BY_CLAUDE,
+                                                           *CLAUDE_BY_CODEX, *CODEX_BY_CODEX))
     monkeypatch.setattr(routine, "ROUTINE_RECORD", a_record_naming(str(tmp_path)))
     state_one = routine.description()
     assert state_one["starts_itself"] == {"claude-watcher": False, "codex-watcher": False}

@@ -5481,6 +5481,16 @@ def test_session_status_pending_counter_ignores_resume(tmp_path):
 GEN = os.path.join(ROOT, "team-kits", "gen_provider_artifacts.py")
 
 
+def _codex_model(rung):
+    """The codex row of `team-kits/model_tiers.yaml` for this rung, read the way the generator
+    reads it -- an id spelled in this file would pin the table to one lineup, and DEC-0114 (1)
+    moved two rows at once (`test_gen_accepts_fable_as_the_top_rung_pin` reads its row the same way).
+    """
+    reader = load_kit_module("gen_provider_artifacts_codex_row", GEN)
+    tiers, _aliases = reader.load_tiers()
+    return reader.rungs(tiers, "codex")[rung]
+
+
 def test_gen_provider_artifacts(tmp_path):
     import shutil
     repo = tmp_path / "repo"
@@ -5560,7 +5570,7 @@ def test_gen_provider_artifacts(tmp_path):
         hooks["hooks"]["SubagentStart"])
     import tomllib
     config = tomllib.loads((repo / ".codex" / "config.toml").read_text(encoding="utf-8"))
-    assert config["model"] == "gpt-5.6-sol"
+    assert config["model"] == _codex_model("opus")
     assert config["model_reasoning_effort"] == "high"
     assert config["default_permissions"] == "team-kit"
     assert config["features"]["multi_agent"] is True
@@ -5570,7 +5580,7 @@ def test_gen_provider_artifacts(tmp_path):
     assert fs[".codex"] == "read" and fs[".agents/skills"] == "read"
     assert fs["AGENTS.md"] == "read" and fs[".claude/hooks"] == "read"
     toml = open(str(repo / ".codex" / "agents" / "backend-developer.toml"), encoding="utf-8").read()
-    assert 'model = "gpt-5.6-terra"' in toml and "AGENTS.md" in toml
+    assert 'model = "%s"' % _codex_model("sonnet") in toml and "AGENTS.md" in toml
     assert ".agents/skills/backend-developer/SKILL.md" in toml
     # audit M3: folded (>) frontmatter descriptions must be joined, not collapsed to '>'
     assert "Backend specialist: builds the server side." in toml
@@ -5763,7 +5773,7 @@ def test_the_neutral_model_values_are_the_ones_the_generator_can_carry():
         assert gen.provider_neutral_model(value, tiers, aliases), value
     concrete = set(tiers[gen.REFERENCE_PROVIDER].values()) & set(aliases.values())
     assert concrete, (tiers, aliases)
-    for value in sorted(concrete) + ["gpt-5.6-sol", "", "made-up"]:
+    for value in sorted(concrete) + [_codex_model("opus"), "", "made-up"]:
         assert not gen.provider_neutral_model(value, tiers, aliases), value
 
 
@@ -5781,7 +5791,7 @@ def test_gen_codex_frontmatter_overlay(tmp_path):
     toml = (repo / ".codex" / "agents" / "backend-developer.toml").read_text(encoding="utf-8")
     assert 'sandbox_mode = "workspace-write"' in toml
     assert 'model_reasoning_effort = "xhigh"' in toml       # overlay wins over effort:
-    assert 'model = "gpt-5.6-terra"' in toml                # tier mapping still applies
+    assert 'model = "%s"' % _codex_model("sonnet") in toml   # tier mapping still applies
 
     # reserved keys are rejected fail-closed
     write(str(repo / ".claude" / "agents" / "backend-developer.md"),
@@ -14293,9 +14303,9 @@ def test_scaffold_preset_and_map_sync(tmp_path):
     assert (repo / ".codex" / "hooks.json").is_file()
     import tomllib
     codex_config = tomllib.loads((repo / ".codex" / "config.toml").read_text(encoding="utf-8-sig"))
-    assert codex_config["model"] == "gpt-5.6-sol"
+    assert codex_config["model"] == _codex_model("opus")
     alpha_toml = (repo / ".codex" / "agents" / "alpha.toml").read_text(encoding="utf-8-sig")
-    assert 'model = "gpt-5.6-sol"' in alpha_toml
+    assert 'model = "%s"' % _codex_model("opus") in alpha_toml
     assert not (repo / ".codex" / "agents" / "project-manager.toml").exists()
     assert (repo / ".agents" / "skills" / "alpha" / "SKILL.md").is_file()
     assert (repo / ".agents" / "skills" / "project-manager" / "SKILL.md").is_file()

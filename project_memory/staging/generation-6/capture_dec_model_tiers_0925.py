@@ -1,0 +1,64 @@
+"""Capture the user's model-tier decision of 2026-09-25 ~15:00 (Desktop session), answered on the radar findings of
+radar/2026-09-25-claude-by-claude.md items 1/2/6 and radar/2026-09-25-codex-by-claude.md items 1/7. Body on stdin to
+`kernel.cli capture DEC`, work = PR-0012. Not idempotent -- run once."""
+import json
+import os
+import subprocess
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+KERNEL = [sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory", "capture", "DEC"]
+
+BODY = {
+    "title": "Modell-Stufen Stand 2026-09-25: Codex-Sprossen auf GPT-6 (opus -> gpt-6-sol, sonnet -> gpt-6-luna); "
+             "Claude-Namen folgen weiter automatisch dem neuesten Modell; KEINE Preis-Anker mehr in der Stufen-Datei, "
+             "stattdessen je Sprosse wofuer das Modell taugt; oberste Stufe auf Claude = Opus (kein Fable-Aufruf mehr, "
+             "loest DEC-0095 (4) ab); der Lead laeuft mit effort xhigh",
+    "context": "USER 2026-09-25 ~15:00, four answers to the lead's questions after the two watcher reports: (1) Codex: "
+               "'Ja, beide' -- mid rung gpt-5.6-sol -> gpt-6-sol, small rung gpt-5.6-terra -> gpt-6-luna, top stays "
+               "gpt-6-astra. (2) Claude, verbatim: 'preis anhaltspunkte entfernen und so lassen, damit automatisch immer "
+               "die aktuellste version aufgerufen wird. es ist nur wichtig wofuer die modelle geeignet sind, dass sie "
+               "auch richtig eingesetzt werden'. (3) Top rung: 'Opus 5.5 reicht'. (4) harness-lead effort: 'xhigh'. "
+               "MEASURED by the watchers 2026-09-25 (sourced in the reports): Opus 5.5 GA 2026-09-22 and the default "
+               "Opus, so the pass-through `opus: opus` moved a generation by itself; the Claude price anchor in "
+               "team-kits/model_tiers.yaml ($15/$75) is Opus 4.1's; GPT-6 Sol ($2/$10) and Luna ($0.1/$0.5) GA "
+               "2026-09-22, the CLI offers migration off the 5.6 models; the three-rung header sentence 'no luna row' "
+               "turns false under (1); harness-lead.md declares no `effort:` and has run on Opus 5.5's default "
+               "`medium` since 2026-09-22.",
+    "decision": "(1) CODEX RUNGS: tiers.codex opus -> gpt-6-sol, sonnet -> gpt-6-luna, fable (top) -> gpt-6-astra "
+                "unchanged; the header sentence that forbids a luna row is reworded to what is true. (2) CLAUDE NAMES "
+                "STAY PASS-THROUGH on purpose: `opus`, `sonnet` resolve to whatever Claude Code calls the current model "
+                "of that name -- a silent move to a newer model is WANTED, not a defect, and no test pins a resolution. "
+                "The MAINTENANCE sentence 'never an automatic bump' is reworded so it no longer claims to forbid what "
+                "the pass-through does by design. (3) NO PRICE ANCHORS: the price block (both providers) and every "
+                "price-derived watch date leave model_tiers.yaml; in their place each rung carries, per provider, WHAT "
+                "THE MODEL IS SUITED FOR (the vendor's own positioning, with source URL and read date) -- the point is "
+                "that roles land on the right rung, which the kits' ladder classes decide. A test keeps the file free "
+                "of prices and requires a suitability line with a read date per rung. (4) TOP RUNG ON CLAUDE = OPUS: no "
+                "order, class or pin reaches Fable on the Claude side any more; the architecture step of a large goal "
+                "and the escalation after failed runs resolve to opus (escalation climbs EFFORT only on Claude, DEC-0096 "
+                "order kept, up to the ladder's effort top). This replaces DEC-0095 (4) 'when Fable'. The rung NAME "
+                "`fable` may stay as the ladder's top name if renaming would touch every kit's ladder -- what counts is "
+                "that on Claude it resolves to opus; the Codex top stays gpt-6-astra (not asked; the lead puts that "
+                "question to the user separately). (5) harness-lead effort xhigh: `.claude/agents/harness-lead.md` is "
+                "the user's file (gate 1) -- one line `effort: xhigh` goes into the next user patch. (6) Restamp + "
+                "rollout after the verifier: every kit project re-tiers at its next session start (the user's word "
+                "here is the approval the MAINTENANCE header asks for).",
+    "consequences": "Codex projects run on the current OpenAI generation at lower cost; Claude projects follow new models "
+                    "without an edit; no price in the table can go stale again. Cost: no Claude reserve above Opus -- a "
+                    "build that fails at Opus xhigh/max goes back to the user instead of up a model; the (g) table "
+                    "keeps measuring rounds-to-PASS so this is re-judged on data. Rejected: pinned Claude ids (a stale "
+                    "pin falls back silently, radar-0829-model-404-fallback); a resolution-asserting test (the user "
+                    "wants the automatic move).",
+    "work": ["PR-0012"],
+    "source": "user answers 2026-09-25 ~15:00 (Desktop session); radar/2026-09-25-claude-by-claude.md items 1, 2, 6; "
+              "radar/2026-09-25-codex-by-claude.md items 1, 7; team-kits/model_tiers.yaml; DEC-0095; DEC-0096; DEC-0076; "
+              "DEC-0078",
+}
+
+env = dict(os.environ, PYTHONPATH="team-kits")
+result = subprocess.run(KERNEL, cwd=ROOT, env=env, input=json.dumps(BODY),
+                        capture_output=True, text=True, encoding="utf-8")
+sys.stdout.write(result.stdout)
+sys.stderr.write(result.stderr)
+sys.exit(result.returncode)

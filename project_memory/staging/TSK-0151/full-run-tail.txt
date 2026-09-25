@@ -1,0 +1,30 @@
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+............................................................             [100%]
+================================== FAILURES ===================================
+E   AssertionError: these files name a watcher this repo has no definition for, so a reader and a run are sent at nothing: {
+        "radar/routine.json": [
+          "radar-watcher"
+        ]
+      }
+    assert not {'radar/routine.json': ['radar-watcher']}
+C:\Offline Repos\AgentAndSkills\tools\test_radar_trigger.py:768: AssertionError: these files name a watcher this repo has no definition for, so a reader and a run are sent at nothing: {
+E   AssertionError: 1 tracked text file(s) carry CRLF on disk while .gitattributes pins every text file to eol=lf, so a byte-size or byte-identity check reads a number no LF checkout can reproduce (BUG-0025). Remedy: `python tools/normalise_line_endings.py --apply`, which rewrites only files whose normalised bytes equal the committed blob exactly. Files: ['project_memory/staging/user-patch/measure-2026-09-25.txt']
+    assert not ['project_memory/staging/user-patch/measure-2026-09-25.txt']
+C:\Offline Repos\AgentAndSkills\tools\test_repo_hygiene.py:338: AssertionError: 1 tracked text file(s) carry CRLF on disk while .gitattributes pins every text file to eol=lf, so a byte-size or byte-identity check reads a number no LF checkout can reproduce (BUG-0025). Remedy: `python tools/normalise_line_endings.py --apply`, which rewrites only files whose normalised bytes equal the committed blob exactly. Files: ['project_memory/staging/user-patch/measure-2026-09-25.txt']
+============================== warnings summary ===============================
+tools/test_repo_hygiene.py::test_no_tracked_text_file_checks_out_with_crlf
+  C:\Offline Repos\AgentAndSkills\tools\test_repo_hygiene.py:333: UserWarning: these files carry CRLF in canonical state, which no tool write reaches (gate 1), so the sweep below cannot ask for them -- they are repaired where they are written, in the kit: ['project_memory/.audit/hook_events.jsonl']
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tools/test_radar_trigger.py::test_no_artifact_of_the_duo_names_a_watcher_the_repo_does_not_define
+FAILED tools/test_repo_hygiene.py::test_no_tracked_text_file_checks_out_with_crlf
+2 failed, 5156 passed, 14 skipped, 1 warning in 3678.97s (1:01:18)
+2026-09-25T17:14:53
+
+[exited with code 0]

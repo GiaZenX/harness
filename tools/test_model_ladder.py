@@ -83,6 +83,131 @@ def test_the_top_rung_translates_to_every_providers_own_top_row():
         assert translated != tiers_reader.provider_model(lead_alias, provider, tiers, aliases)
 
 
+def _currency_signs_and_names():
+    """Every currency SIGN Unicode knows (category `Sc`: $, €, £, ¥, ¢, ₹ ...) and the currency
+    NAME each sign's Unicode name carries ("DOLLAR SIGN" -> dollar, "EURO SIGN" -> euro, "CENT
+    SIGN" -> cent) -- derived from the character database, not typed here."""
+    import unicodedata
+
+    signs, names = set(), set()
+    for code in range(sys.maxunicode + 1):
+        char = chr(code)
+        if unicodedata.category(char) != "Sc":
+            continue
+        signs.add(char)
+        words = re.split(r"[\s-]+", unicodedata.name(char, "").lower())
+        if len(words) >= 2 and words[-1] == "sign" and words[-2].isalpha():
+            names.add(words[-2])
+    return signs, names
+
+
+_SIGNS, _CURRENCY_NAMES = _currency_signs_and_names()
+_AMOUNT = r"\d[\d.,]*"
+_SIGN = "[%s]" % re.escape("".join(sorted(_SIGNS)))
+# WHAT A PRICE IS, as a property of the text rather than a list of the figures that stood here: an
+# AMOUNT bound to MONEY -- a currency sign on either side of it, a currency's name DIRECTLY after
+# it, or three capitals (the shape of an ISO 4217 code) on either side -- or an amount PER A COUNT
+# OF TOKENS, the unit every vendor price table is written in (a rate is a price even with the
+# currency left out), the count's own figure optional ("2 per million"). Read over the WHOLE file,
+# comments included, because the anchors DEC-0114 (3) removed were comments.
+# `test_the_price_reader_sees_what_it_is_for` holds the spellings it reads.
+# ITS LIMITS, measured and left as they are (TSK-0151 verifier round 2, R2-3b; DEC-0102 (2): a
+# reader widened twice is re-filed, not widened a third time -- BUG-0309): NOT read are an amount
+# in words ("fifteen dollars"), a word between the amount and the currency's name ("15 US
+# dollars"), a lower-case code ("usd 15") and a word between the amount and "per" ("15 input / 75
+# output per 1M"). READ although no price: three capitals beside a figure ("CLI 0.131", "GPT6"), a
+# word a currency sign's Unicode name happens to carry ("2 marks", "3 mill"), an amount before
+# "per" or "/" and a bare size word ("3/k", "1 / M", "5 per k"), and "per token" or "/token" (a
+# path, "docs/tokens.md"). A false hit fails LOUD -- the tier-table test goes red and names the text -- so it costs a
+# rewording, never a missed price.
+PRICE_RX = re.compile(
+    r"%(sign)s\s?%(amount)s|%(amount)s\s?%(sign)s"
+    r"|%(amount)s\s?(?:%(names)s)s?\b"
+    r"|(?-i:\b[A-Z]{3}\s?%(amount)s|%(amount)s\s?[A-Z]{3}\b)"
+    r"|(?:%(amount)s\s*)?(?:\bper\b|/)\s*(?:%(amount)s\s*)?(?:[km]|thousand|million|mtok)?\s*"
+    r"(?:tokens?|tok)\b"
+    r"|%(amount)s\s*(?:\bper\b|/)\s*(?:%(amount)s)?\s*(?:[km]|thousand|million)\b"
+    % {"sign": _SIGN, "amount": _AMOUNT, "names": "|".join(sorted(_CURRENCY_NAMES))},
+    re.IGNORECASE)
+
+
+def test_the_tier_table_carries_no_price_and_says_what_each_rung_is_for_bug_0306():
+    """BUG-0306 AC-1 / DEC-0114 (1)/(3): the tier table carries no price anywhere, says per rung
+    and provider what the model is suited for (the vendor's words, a source URL, a read date), and
+    its codex rows are the GPT-6 family the user chose.
+
+    READ AS THE THINGS THAT RUN READ IT, per half: the rows and the suitability block through a
+    YAML parse (`suited_for:` is data), the price half over the raw text because that is where the
+    old anchors stood -- in comments no parser returns. The rung and provider sets are the file's
+    own `rungs:` line and `tiers:` keys, so a fourth provider owes a suitability line the day it
+    arrives. The header sentence that denied a row by a model name ("no haiku or luna row", the
+    rider radar/2026-09-25-codex-by-claude.md item 1 names) is reworded, and no reader of prose
+    negation holds it (TSK-0151 verifier round 2, R2-4; the class answer of DEC-0112).
+
+    RED ON 8677bd2: the price block (`$15/$75` and five more figures), no `suited_for:` at all, and
+    codex `gpt-5.6-sol` / `gpt-5.6-terra`.
+    """
+    text = read(TIERS)
+    prices = [hit.group(0) for hit in PRICE_RX.finditer(text)]
+    assert not prices, "the tier table still carries price figures (DEC-0114 (3)): %s" % prices
+    data = yaml.safe_load(text)
+    rungs, tiers = data["rungs"], data["tiers"]
+    assert tiers["codex"]["fable"] == "gpt-6-astra", tiers["codex"]
+    assert tiers["codex"]["opus"] == "gpt-6-sol", tiers["codex"]
+    assert tiers["codex"]["sonnet"] == "gpt-6-luna", tiers["codex"]
+    suited = data.get("suited_for")
+    assert isinstance(suited, dict), "the table says nowhere what a rung is for (DEC-0114 (3))"
+    today = datetime.date.today()
+    for provider in tiers:
+        for rung in rungs:
+            line = (suited.get(provider) or {}).get(rung)
+            assert isinstance(line, dict), "%s/%s: no suitability line" % (provider, rung)
+            assert str(line.get("says") or "").strip(), "%s/%s says nothing" % (provider, rung)
+            assert re.match(r"https://[^\s/]+\.[^\s/]+/", str(line.get("source") or "")), (
+                "%s/%s names no source URL: %r" % (provider, rung, line.get("source")))
+            read_on = line.get("read")
+            read_on = read_on if isinstance(read_on, datetime.date) else \
+                datetime.date.fromisoformat(str(read_on))
+            assert read_on <= today, "%s/%s was read in the future: %s" % (provider, rung, read_on)
+
+
+def test_the_price_reader_sees_what_it_is_for():
+    """The floor under the price reader above, so it cannot pass by reading nothing: each price
+    spelling the old block used, and each the verifier of TSK-0151 wrote past the reader in rounds
+    1 and 2 (R2-3a: a rate whose count carries no figure of its own), is found; prose about a
+    price and the table's own dates and model names are not."""
+    for price in ("Opus-class $15/$75", "gpt-6-sol $2/$10", "10 USD", "EUR 4", "4 / 20 per MTok",
+                  "$0.20/Mtok cache reads", "per 1M tokens in/out",
+                  "15 $ in / 75 $ out", "15€/75€", "15 dollars in and 75 dollars out",
+                  "0.002 per 1K tokens", "0.002 per 1K", "£3", "3 cents a call", "₹40",
+                  "2 per million tokens", "2 per million input tokens", "15/75 per million"):
+        assert PRICE_RX.search(price), price
+    for prose in ("NO PRICES IN THIS FILE (DEC-0114 (3))", "a price anchor went stale",
+                  "read 2026-09-25", "gpt-6-luna", "Claude Opus 5.5 at higher effort",
+                  "DEC-0114 (4)", "a 1M token context window", "GPT-6 Astra"):
+        assert not PRICE_RX.search(prose), prose
+
+
+def test_every_kit_settings_names_the_tier_its_bound_lead_pins_bug_0306():
+    """BUG-0306 / DEC-0114 (4), the one Claude-side value outside the ladders: each kit's
+    `settings.json` `model` (the project's default model) names the rung its bound `agent` pins,
+    both read through the table's aliases -- the sameness that file's own `_comment` states. RED
+    WITH `"model": "fable"` in dev and research (verifier round 1 of TSK-0151, V7), whose bound
+    project-manager pins `lead`, i.e. opus."""
+    import json
+
+    _tiers, aliases = tiers_reader.load_tiers()
+    for kit in kit_dirs():
+        with io.open(os.path.join(kit, "settings", "settings.json"), encoding="utf-8") as handle:
+            settings = json.load(handle)
+        agent = os.path.join(kit, "agents", settings["agent"] + ".md")
+        front = read(agent).split("\n---", 1)[0]
+        pin = yaml.safe_load(front.lstrip("-\n"))["model"]
+        assert aliases.get(settings["model"], settings["model"]) == aliases.get(pin, pin), (
+            "%s: settings.json names %r, the bound %s pins %r" % (
+                os.path.basename(kit), settings["model"], settings["agent"], pin))
+
+
 def _generator_repo(tmp_path, model):
     """The smallest repo the generator reads up to its pin check: settings, the roles manifest and
     one role definition. It stops at the pin when the pin is retired, and at the missing skill

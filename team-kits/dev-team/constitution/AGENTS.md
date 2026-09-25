@@ -401,13 +401,15 @@ turn the tree over.
   running instead of claiming the rung (numbers: docs/reviews/2026-08-21-tsk0078-measurements.md).
 - **The ladder is BUILT, not prose (DEC-0077, DEC-0078; the rules are DEC-0034's, the endpoints
   DEC-0047's):** this kit declares it in `ladder.yaml` beside this file — three rungs
-  `sonnet < opus < fable` (DEC-0076), top rung **fable**, effort **high** by default and **xhigh**
+  `sonnet < opus < fable` (DEC-0076), top rung **fable**, on Claude capped at **opus** (`DEC-0114` (4)), effort **high** by default and **xhigh**
   when the goal's `class` is `large`. At every `dispatch` the kernel derives the RUNG from the
   role's pin, its class in the declaration and the order's failed runs (the BUILD starts on
   **opus** and so do planning, design and QA — `DEC-0095` (1)/(2); the ARCHITECTURE starts on the
   top rung, and a class floor never lowers a role's own pin) and the EFFORT from the goal, writes both on the lease, the
   header and the task item, and derives again at the spawn (`kernel.dispatch.ladder_for_order`;
-  `python scripts/harness.py ladder <TSK-ID>` shows the answer without minting). That **opus**
+  `python scripts/harness.py ladder <TSK-ID>` shows the answer without minting). The header's `rung`/`effort` are Claude's, the pair its spawn gate holds; its
+  `by_provider` map (`kernel.dispatch.PROVIDERS_KEY`) carries the answer for every provider this
+  project is installed for, and on Codex the top is **fable** = `gpt-6-astra`. That **opus**
   is the class's DEFAULT and not its bottom (`DEC-0097` (1)): its floor is the coder's own pin,
   so an order whose acceptance NAMES A TEST may be asked down to **sonnet** with
   `create-task --rung sonnet` — naming one means its ADDRESS: a test module path, with or
@@ -423,14 +425,15 @@ turn the tree over.
   included (measured 2026-09-05: the parameter overrides the child's pin, so a spawn that
   names none would silently drop back to it). **What it does not do:** the effort is derived and
   shown, never forced — the platform has no per-spawn effort parameter, so the child runs on the
-  `effort:` its installed definition carries. There is no user-gated escalation ladder any more.
+  `effort:` its installed definition carries. There is no user-gated escalation ladder any more. On Codex no hook sees a spawn (`H173`): your row under `by_provider` is an instruction you
+  apply by choosing the subagent's model where the CLI lets you -- nothing holds it, and a child
+  you choose no model for runs on its generated `.codex/agents/<role>.toml` model.
   On a FAILED run the EFFORT climbs before the RUNG (`DEC-0096`): the declaration's two thresholds
   spend the first failed runs of each cycle on one effort step each on the SAME rung, and only the
   threshold itself buys a rung step, from where the effort starts over at the kit's default -- and
   that restart is paid for BY the rung step, so at the top rung, where no step is granted any more,
-  the effort stays at the ceiling instead of falling back. So the
-  top rung is reached by a measured failure or by the named architecture step of a large goal, and
-  is never chosen as a standing tier (`DEC-0095` (4)).
+  the effort stays at the ceiling instead of falling back. On Claude that top is opus, so failed
+  runs there climb only the effort (`test_no_shipped_ladder_answer_reaches_the_top_rung_bug_0306`).
 - **A QA FAIL and the `escalation: true` flag of §14a:** the flag stays and is still yours to set on
   the first FAIL — but the CLIMB no longer waits for it or for the user. What the dispatcher counts
   is the FAILED RUN itself (`kernel.dispatch.count_failed_run_locked`), so the retry's lease comes

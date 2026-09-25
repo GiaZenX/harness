@@ -1,0 +1,18 @@
+id: EVD-0472
+kind: test
+related:
+- BUG-0306
+- TSK-0151
+result: pass
+summary: 'Close-out F3-2: installed_providers answers every row for a scalar providers
+  value (case ''a scalar''); green on the working tree, red under verifier mutant
+  M16 in closeout/m16 (AssertionError: a scalar).'
+artifact_refs:
+- staging/TSK-0151/protocol.md
+- staging/TSK-0151/verify-round-3.md
+run_command: python -B -m pytest tools/test_ladder.py::test_the_installed_providers_are_the_config_list_plus_the_reference_bug_0306
+  -q -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-25T21:19:05'

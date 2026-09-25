@@ -803,3 +803,6 @@
 {"ts": "2026-09-13T15:28:03", "hook": "gate_approval", "event": "note", "reason": "minted APR-0075 for request 888da6d184e44f32b6cfb1a3dda2710e (user_answer_via_approval_hook)"}
 {"ts": "2026-09-25T14:44:19", "hook": "gate_approval", "event": "note", "reason": "approval question for f801a7b896904bcdb370f7545a0c533b matched the kernel's"}
 {"ts": "2026-09-25T14:47:32", "hook": "gate_approval", "event": "note", "reason": "minted APR-0076 for request f801a7b896904bcdb370f7545a0c533b (user_answer_via_approval_hook)"}
+{"ts": "2026-09-25T15:02:11", "hook": "gate_approval", "event": "note", "reason": "1 approval request(s) outstanding and the answered question was none of them — nothing to mint, and the user was told (BUG-0039)."}
+{"ts": "2026-09-25T15:02:33", "hook": "gate_approval", "event": "note", "reason": "approval question for 244f0690b636402491aa16aa9d11100c matched the kernel's"}
+{"ts": "2026-09-25T15:02:53", "hook": "gate_approval", "event": "note", "reason": "minted APR-0077 for request 244f0690b636402491aa16aa9d11100c (user_answer_via_approval_hook)"}

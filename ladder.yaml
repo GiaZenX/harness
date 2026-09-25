@@ -19,7 +19,8 @@
 
 rungs: [sonnet, opus, fable]          # ordered low -> high, the reference vocabulary of
                                       # `team-kits/model_tiers.yaml` (DEC-0076)
-top: fable                            # the escalation target, not a standing tier
+top: fable                            # the escalation target; on Claude capped at opus by
+                                      # `team-kits/model_tiers.yaml` `provider_top:` (DEC-0114 (4))
 
 effort:
   default: high
@@ -34,8 +35,9 @@ escalation:
 
 # THE THREE CLASSES THIS PROJECT HAS, all on opus. `DEC-0095` (1)/(2) is the decision and carries
 # the reason (cost): builder, orchestrator and verifier are standing roles, and a standing role on
-# the top rung is what that decision removed. The top rung is reached here only by the escalation
-# above -- this repo declares no architecture class, so it has no bought-per-occasion step either.
+# the top rung is what that decision removed. On Claude, where this circle runs, `DEC-0114` (4) caps
+# the top at opus as well, so the escalation climbs the EFFORT and nothing else -- this repo declares
+# no architecture class, so it has no bought-per-occasion step either.
 classes:
   planning: opus
   build: opus

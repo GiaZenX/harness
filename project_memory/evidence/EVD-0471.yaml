@@ -1,0 +1,26 @@
+id: EVD-0471
+kind: test
+related:
+- BUG-0306
+- TSK-0151
+result: pass
+summary: 'BUG-0306 / DEC-0114 (4) after verifier round 2 (R2-1, R2-2, R2-5): the per-provider
+  map is asked at the failed-run count (a dev build order after three failed runs:
+  codex fable = gpt-6-astra, claude capped at opus; architecture at FAIL 0 codex fable),
+  ''ladder'' shows under next_lease the map the next dispatch header writes, installed_providers
+  held per docstring promise; tier table free of prices (R2-3a figure after ''per''
+  optional; prose negation reader retired, R2-4). Red-first per mutation: protocol
+  section Rework 3'
+artifact_refs:
+- staging/TSK-0151/protocol.md
+run_command: python -B -m pytest -q -p no:cacheprovider "tools/test_ladder.py::test_no_shipped_ladder_answer_reaches_the_top_rung_bug_0306"
+  "tools/test_ladder.py::test_a_declaration_that_orders_a_capped_rung_below_its_top_is_refused_bug_0306"
+  "tools/test_ladder.py::test_the_lease_and_the_header_carry_the_answer_for_every_installed_provider_bug_0306"
+  "tools/test_ladder.py::test_the_installed_providers_are_the_config_list_plus_the_reference_bug_0306"
+  "tools/test_ladder.py::test_a_start_above_the_capped_top_buys_no_effort_at_fail_0_bug_0306"
+  "tools/test_model_ladder.py::test_the_tier_table_carries_no_price_and_says_what_each_rung_is_for_bug_0306"
+  "tools/test_model_ladder.py::test_every_kit_settings_names_the_tier_its_bound_lead_pins_bug_0306"
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-25T21:01:11'

@@ -1,0 +1,31 @@
+id: BUG-0307
+title: Das Watcher-Werkzeug fuehrt noch die gestaffelten Tage Sa/So/Mo, obwohl DEC-0098
+  alle Watcher auf Freitag ~20:00 gelegt hat
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-25: tools/radar_routine.py SCHEDULE_AS_TOLD = friday/saturday/sunday/monday
+  with SCHEDULE_SOURCE ''DEC-0090 (4)''; `--describe` therefore tells the user to
+  create the Codex Automations on Sunday/Monday and the codex-watcher-by-claude run
+  on Saturday, while DEC-0098 (1)/(2) put all four on Friday ~20:00 and the Desktop
+  task `watcher-duo` (created 2026-09-25) runs both Claude-side watchers in ONE task.
+  The stagger test (test_the_routine_plan_covers_every_watcher_on_every_runner_and_staggers_them)
+  pins the old shape.'
+expected: 'DEC-0098 (3): the schedule table says Friday ~20:00 for all four with DEC-0098
+  as its source; the skip rule is expressed as ''one task per app runs its watchers
+  in sequence'' rather than ''different weekdays''; the describe text for the Claude
+  side names the one task watcher-duo.'
+repro: python tools/radar_routine.py --describe  -> schedule_as_told.day of codex-watcher-by-claude
+  = saturday
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: 'a test NAMING this bug reads the declaration and is red on 8677bd2: every
+    routine friday, source DEC-0098, and no two routines of the same runner as separate
+    tasks at the same time'
+source: DEC-0098; radar/routine.json (recorded_by, 2026-09-25)
+limits: 'Nur die Beschreibung ist veraltet: die Desktop-Aufgabe läuft schon richtig
+  freitags; wer die Codex-Automationen nach dem Werkzeug anlegt, bekäme falsche Tage
+  -- die richtigen Texte hat der Nutzer im Chat bekommen.'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-25T15:04:34'

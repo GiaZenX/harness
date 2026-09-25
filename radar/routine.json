@@ -11,7 +11,7 @@
         "time_local": "~20:00",
         "as_told_by": "the user, 2026-09-11 (DEC-0098: both watchers on one Friday evening, ONE Desktop task running claude-watcher first and codex-watcher second); cron 0 20 * * 5, the app adds a few minutes"
       },
-      "source": "DEC-0089; radar/ file mtimes 2026-07-17 20:10, 07-24 20:12, 07-31 20:16, 08-07 20:47, 08-21 20:16, 08-28 20:12 (Fridays) and 08-16 20:25 (a Sunday catch-up run), all by the task `radar-watcher` (created 2026-06-30). DEC-0098: on 2026-09-25 14:5x the lead, in a Claude Desktop session, created the task `watcher-duo` (Fridays 20:00, both watchers in sequence, each as its own subagent) and DELETED `radar-watcher` (its SKILL.md stays on disk for recovery). The 2026-09-25 report was started by hand (`tools/radar_routine.py --run claude-watcher`, 14:25), not by a routine.",
+      "source": "DEC-0089; radar/ file mtimes 2026-07-17 20:10, 07-24 20:12, 07-31 20:16, 08-07 20:47, 08-21 20:16, 08-28 20:12 (Fridays) and 08-16 20:25 (a Sunday catch-up run), all by the former Desktop task for one watcher created 2026-06-30. DEC-0098: on 2026-09-25 14:5x the lead, in a Claude Desktop session, created the task `watcher-duo` (Fridays 20:00, both watchers in sequence, each as its own subagent) and DELETED that former task (its SKILL.md stays on disk under its old folder name for recovery). The 2026-09-25 report was started by hand (`tools/radar_routine.py --run claude-watcher`, 14:25), not by a routine.",
       "first_report": "2026-07-17",
       "last_report": "2026-09-25",
       "recorded": "2026-09-25"

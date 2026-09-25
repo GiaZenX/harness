@@ -1,0 +1,36 @@
+id: BUG-0306
+title: 'Die Stufen-Datei der Kits ist veraltet: Codex-Sprossen auf GPT-5.6, Claude-Preisanker
+  von Opus 4.1, Fable als oberste Claude-Stufe -- DEC-0114 sagt, wie es richtig ist'
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-25 (radar/2026-09-25-claude-by-claude.md items 1/2, radar/2026-09-25-codex-by-claude.md
+  items 1/7, read against team-kits/model_tiers.yaml at 8677bd2): tiers.codex opus:
+  gpt-5.6-sol, sonnet: gpt-5.6-terra while GPT-6 Sol/Luna are GA (2026-09-22) and
+  the Codex CLI prompts migration off 5.6; the price-anchor block says ''claude: Opus-class
+  $15/$75'' (Opus 4.1''s price; today $4/$20); the header says ''no luna row''; the
+  MAINTENANCE header says ''never an automatic bump'' while `opus: opus` moved to
+  Opus 5.5 by itself; the Claude top rung `fable` is reachable by the architecture
+  class and by escalation although the user decided ''Opus 5.5 reicht'' (DEC-0114
+  (4)).'
+expected: 'DEC-0114 built: codex opus -> gpt-6-sol, sonnet -> gpt-6-luna; no price
+  anywhere in the tier file, a per-rung suitability line (source + read date) instead;
+  Claude names stay pass-through and the file says so truthfully; on Claude no path
+  reaches Fable; restamp; the watcher definitions and the kits'' lead texts that describe
+  the tiers agree with the file.'
+repro: grep -n 'gpt-5.6\|\$15/\$75\|luna row' team-kits/model_tiers.yaml
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: 'a test NAMING this bug is red on 8677bd2''s model_tiers.yaml and green after:
+    no price figure in the file, a suitability line with read date per rung and provider,
+    the codex rows are gpt-6-sol / gpt-6-luna / gpt-6-astra'
+- id: AC-2
+  text: on the Claude side no class, pin or escalation step resolves to Fable, measured
+    through the kernel's ladder answer for every kit, red before
+source: DEC-0114; radar/2026-09-25-claude-by-claude.md; radar/2026-09-25-codex-by-claude.md
+limits: 'Nichts ist kaputt: die alten Codex-Modelle laufen noch, und die Claude-Namen
+  zeigen schon auf das neueste Modell. Falsch sind die Preisangaben und die oberste
+  Claude-Stufe gegenüber deiner Entscheidung vom 25.09.'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-25T15:04:32'

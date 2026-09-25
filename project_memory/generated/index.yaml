@@ -1,4 +1,4 @@
-generated_at: '2026-09-25T14:52:06'
+generated_at: '2026-09-25T22:43:56'
 items:
 - id: APR-0001
   type: APR
@@ -456,6 +456,12 @@ items:
   status: null
   revision: null
   approval_ref: null
+- id: APR-0077
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
 - id: BUG-0069
   type: BUG
   title: GitHub CI is red on every push -- the delivery suite passes locally but fails
@@ -466,26 +472,6 @@ items:
 - id: BUG-0105
   type: BUG
   title: Der Produzent ist als DATEI geschützt, nicht als Verzeichnis
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0110
-  type: BUG
-  title: Das Repo als Operand eines Kopier- oder Archivbefehls gilt als Schreibzugriff
-    (TSK-0008, korrigiert TSK-0011)
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0111
-  type: BUG
-  title: Ein Kandidat, der einen VORFAHREN eines geschützten Baums nennt (neu, TSK-0011)
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0115
-  type: BUG
-  title: Ein unerreichbarer Pfad kostet die Beurteilung, nicht mehr die Frist (neu,
-    TSK-0011)
   status: TRIAGED
   revision: 1
   approval_ref: null
@@ -519,20 +505,43 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0272
-  type: BUG
-  title: 'Gate 1 refuses a READ-ONLY grep as a write to the drive root when its double-quoted
-    pattern carries escaped backticks AND a space: `grep -c "\`a\`, \`b\`" README.md`
-    is rc 2 with ''no tool call in this repo may write C:\'' (over-refusal, measured
-    2026-09-06 in the generation-5 merge, TSK-0133)'
-  status: OPEN
-  revision: 1
-  approval_ref: null
 - id: BUG-0305
   type: BUG
   title: 'Über-Verweigerung der Schreiben-und-Ausführen-Regel: eine reine LESE-Stufe
     mit unbekanntem Kommandowort (`sudo -u me cat tools/ci.sh ; bash tools/ci.sh`)
     gilt als Schreiber, und der Satz behauptet ''this line WRITES tools/ci.sh'''
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0306
+  type: BUG
+  title: 'Die Stufen-Datei der Kits ist veraltet: Codex-Sprossen auf GPT-5.6, Claude-Preisanker
+    von Opus 4.1, Fable als oberste Claude-Stufe -- DEC-0114 sagt, wie es richtig
+    ist'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0307
+  type: BUG
+  title: Das Watcher-Werkzeug fuehrt noch die gestaffelten Tage Sa/So/Mo, obwohl DEC-0098
+    alle Watcher auf Freitag ~20:00 gelegt hat
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0308
+  type: BUG
+  title: 'Die Buchfuehrung der Sprosse kennt nur Claude: `lease_rung`/`lease_effort`
+    am Auftrag und damit die Sprossen-Verteilung und die Runden-bis-PASS je Sprosse
+    zaehlen auf einem Codex-Projekt die Claude-Antwort, nicht die, nach der der Codex-Lead
+    gearbeitet hat (Rest von TSK-0151 V1)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0309
+  type: BUG
+  title: Der Preis-Leser der Stufentabelle liest nicht jede Preis-Schreibweise und
+    meldet einige Nicht-Preise (Rest von TSK-0151 R2-3b, nach DEC-0102 (2) neu eingereicht
+    statt ein drittes Mal verbreitert)
   status: OPEN
   revision: 1
   approval_ref: null
@@ -1368,6 +1377,26 @@ items:
     the PM puts one plain-German question per goal (''hier hat niemand geprueft --
     ist das so gewollt?'') and the answer is recorded (H59 / BUG-0151, the user''s
     answer C)'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0114
+  type: DEC
+  title: 'Modell-Stufen Stand 2026-09-25: Codex-Sprossen auf GPT-6 (opus -> gpt-6-sol,
+    sonnet -> gpt-6-luna); Claude-Namen folgen weiter automatisch dem neuesten Modell;
+    KEINE Preis-Anker mehr in der Stufen-Datei, stattdessen je Sprosse wofuer das
+    Modell taugt; oberste Stufe auf Claude = Opus (kein Fable-Aufruf mehr, loest DEC-0095
+    (4) ab); der Lead laeuft mit effort xhigh'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0115
+  type: DEC
+  title: 'FR-0023 Praemissen (anbieterfreie App): alles inkl. Chats ueberlebt einen
+    Wechsel; Abos bleiben die Grundlage; Schutz darf je Anbieter abgestuft sein (sichtbar);
+    erst nur fuer den Nutzer, Ziel: jeder Anbieter inkl. Kimi/Qwen/GLM/DeepSeek/Gemini
+    und lokale Modelle, schnell wechselbar wenn Tarife sich aendern; Claude Code als
+    Standard-Laufzeit wird geprueft'
   status: VALID
   revision: 1
   approval_ref: null
@@ -4029,6 +4058,54 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0467
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0468
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0469
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0470
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0471
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0472
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0473
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0474
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -4277,5 +4354,11 @@ items:
   type: TSK
   title: null
   status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0151
+  type: TSK
+  title: null
+  status: READY
   revision: 1
   approval_ref: null

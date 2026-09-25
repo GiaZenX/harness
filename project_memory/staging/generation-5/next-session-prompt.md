@@ -109,3 +109,10 @@ STAND 2026-09-11 11:35 (clock read) -- GENERATION 6 GESCHLOSSEN, AUSGEROLLT, GES
 - **Nutzer-Patch als Skript:** `project_memory/staging/user-patch/apply_user_patch.py` (9 Textstellen in .claude/ + Konfig-Zeile `model_tiers: ladder.yaml`; alles-oder-nichts; `--check`: alle 9 Anker exakt 1x, Zeile fehlt noch).
 - **FR-0093** (Token je Auftrag senken: frische Agenten für Nacharbeit, Hintergrund-Läufe statt Nachschauen, Lese-Disziplin; gemessen: Polling nur 3,5 %, Kontext je Schritt Median 285k).
 - Nächste Sitzung (Desktop-App): Patch nachmessen + 2 Klicks, Routinen anlegen (DEC-0098), Watcher-Berichte lesen, nächsten Auftrag mit dem Nutzer wählen.
+
+### Nachtrag 2026-09-25 14:53 (Uhr gelesen) -- Desktop-Sitzung: Patch gemessen, Routine angelegt
+
+- Patch gemessen und committet+gepusht (d0c6fac, EVD-0465); **BUG-0297 + BUG-0253 VERIFIED** (Klick). Aktive BUGs 11: BUG-0069 (CI, Lauf 36137046454 lief), BUG-0305/H220, BUG-0264/H182 (Patch hat die vier Stellen geändert, aber KEIN Test nennt den Fehler -> Schließtest nötig, dann Klick), 8 Schutzdatei-Löcher H13 H18 H19 H23 H47 H69 H151 H188.
+- **Desktop-Aufgabe `watcher-duo`** (freitags 20:00, claude- dann codex-watcher als Subagenten) ersetzt `radar-watcher` (gelöscht); radar/routine.json nachgeführt (8677bd2, EVD-0466). OFFEN: DEC-0098 (3) -- `SCHEDULE_AS_TOLD` in tools/radar_routine.py trägt noch Sa/So/Mo (Code + Stagger-Test -> Item). Die zwei Codex-Automationen legt der Nutzer selbst an (Texte aus `--describe`, Tag Freitag ~20:00).
+- Watcher-Berichte 2026-09-25 (beide by-claude) gelesen; Kern: Opus 5.5 ist seit 22.09. das, worauf `opus` zeigt (Sprosse still gewandert), Preisanker Claude falsch; GPT-6 Sol/Luna GA -> Codex-Sprossen-Vorschlag; `harness-lead.md` ohne `effort:`; AGENTS.md nativ gelesen (Shim bleibt nötig wegen Marker). Triage nach radar/decided.md steht noch aus.
+- Auswahl des nächsten Auftrags liegt beim Nutzer (Tabelle im Chat 2026-09-25).

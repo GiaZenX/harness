@@ -1,0 +1,16 @@
+id: EVD-0467
+kind: test
+related:
+- BUG-0306
+- TSK-0151
+result: pass
+summary: 'BUG-0306 AC-1/AC-2 (DEC-0114): the two naming nodes pass on the TSK-0151
+  tree and were red on 8677bd2''s model_tiers.yaml and ladders (protocol section 3)'
+artifact_refs:
+- staging/TSK-0151/protocol.md
+run_command: python -B -m pytest -q -p no:cacheprovider "tools/test_model_ladder.py::test_the_tier_table_carries_no_price_and_says_what_each_rung_is_for_bug_0306"
+  "tools/test_ladder.py::test_no_shipped_ladder_answer_reaches_the_top_rung_bug_0306"
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-25T17:38:44'

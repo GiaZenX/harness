@@ -24,7 +24,9 @@ limits: 'the other half of the same over-refusal, and it is the price of a membe
   Measured: `cp -r docs ..` is rc 2. Nothing gets through; what it costs is a refused
   line with a relative target above the repo. The way round it: name the target absolutely
   and outside the repo.'
-status: TRIAGED
+status: ACCEPTED_EXCEPTION
 revision: 1
-approval_ref: null
+approval_ref: APR-0077
 created: '2026-09-05T20:22:32'
+approved_hash: 26f1616c5962e66ff8f26544cd78cb80888a78dd4d23e28f78a2f3d2802f45c4
+closed_at: '2026-09-25T15:02:51'

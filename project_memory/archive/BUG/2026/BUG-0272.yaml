@@ -59,7 +59,9 @@ source: TSK-0133 merge protocol (project_memory/staging/TSK-0133/merge-protocol.
   merge session; H19 (the gate's own pointer in the refusal); CLAUDE.md 'Die vier
   Gates dieses Repos' (the over-refusal paragraph)
 hole_number: H188
-status: OPEN
+status: ACCEPTED_EXCEPTION
 revision: 1
-approval_ref: null
+approval_ref: APR-0077
 created: '2026-09-06T21:18:15'
+approved_hash: 8cc854a5e8674e229eeaa0f592b14e5e721995013f7a35b22d9d57f31a82cbdf
+closed_at: '2026-09-25T15:02:52'

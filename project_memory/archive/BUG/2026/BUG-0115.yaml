@@ -26,7 +26,9 @@ limits: 'the DEADLINE half is closed and only the judgement is spent: `_harness.
   is that a line whose candidates spend the budget is REFUSED instead of judged, and
   it may take up to four fifths of the registered time to say so. Fail-closed in both
   halves: the answer is never an allow.'
-status: TRIAGED
+status: ACCEPTED_EXCEPTION
 revision: 1
-approval_ref: null
+approval_ref: APR-0077
 created: '2026-09-05T20:22:42'
+approved_hash: fdf3a4be7ee26318a4cf06b06501f1ad6ca13fb1ffe813f4a74747759f8c7f28
+closed_at: '2026-09-25T15:02:51'

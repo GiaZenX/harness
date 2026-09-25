@@ -99,6 +99,7 @@ def test_an_order_rung_lifts_the_start_and_the_climb_begins_there(store):
     RED WITHOUT the `max()`: the builder below leases on its pin (sonnet) and climbs to opus after
     the failed run, not to fable; and the `why` names no ask.
     """
+    store.without_the_provider_cap()     # a ladder RULE, measured uncapped
     store.kit("kit")
     state, pr = store.project("p", "kit", {"backend-developer": "sonnet", "software-architect": "opus"})
     lifted = store.order(state, pr, **{dispatch.RUNG_KEY: "opus"})
@@ -390,6 +391,7 @@ def test_the_shipped_spawn_gate_prints_the_four_line_checkpoint_and_never_blocks
     checkpoint which cannot be derived still exits 0 is the red-first rig's row (the derivation
     made to raise), not a case this test can produce against a healthy state.
     """
+    store.without_the_provider_cap()     # a ladder RULE, measured uncapped
     store.kit("kit")
     state, pr = store.project("p", "kit", {"backend-developer": "sonnet", "quality-engineer": "sonnet"})
     repo = str(store.tmp_path / "p")
@@ -590,7 +592,8 @@ def test_the_pilot_rig_leases_three_orders_of_different_size_per_kit(tmp_path):
     own. Per kit: the smallest preset is what got installed (AC-5, the entry files' default); the
     lead's code write is refused by the registered Edit|Write chain (AC-1); three orders of
     obviously different size lease inside the kit's ladder, so the
-    office bookkeeper's `fable`/`xhigh` ask lands on its `opus`/`high` ceiling (DEC-0078) -- and in
+    office bookkeeper's `fable`/`xhigh` ask lands on its `opus`/`high` ceiling (DEC-0078), the dev and
+    research large order's `fable` ask on the Claude cap `opus` (DEC-0114 (4)) -- and in
     dev and research the SMALL order's `sonnet` ask no longer reaches sonnet at all, because
     DEC-0095 (1) starts the `build` class on opus and an ask never lowers a floor (DEC-0091 (2)).
     That last row is the measured price of the builder default and is named in TSK-0136's protocol;
@@ -628,7 +631,8 @@ def test_the_pilot_rig_leases_three_orders_of_different_size_per_kit(tmp_path):
             # office keeps DEC-0078's floors (`build: pin`), so its small order still reaches sonnet
             assert rungs == ["sonnet", "opus", "opus"] and efforts == ["high", "high", "high"], (rungs, efforts)
         else:
-            assert rungs == ["opus", "opus", "fable"] and efforts == ["high", "high", "xhigh"], (rungs, efforts)
+            # the large order ASKS fable; the lease derives for Claude, capped at opus (DEC-0114 (4))
+            assert rungs == ["opus", "opus", "opus"] and efforts == ["high", "high", "xhigh"], (rungs, efforts)
             # ...and the first row is the class DEFAULT beating the ASK, not an ask of opus: the rig
             # asks sonnet for the small order, and after DEC-0097 (2) that ask is inside the build
             # class's band (default opus, floor pin) -- so what refuses it here is the ACCEPTANCE,

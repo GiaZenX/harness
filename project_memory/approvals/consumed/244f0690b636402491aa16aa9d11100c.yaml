@@ -1,0 +1,31 @@
+request_id: 244f0690b636402491aa16aa9d11100c
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0110
+    revision: 1
+    scope_hash: abd3f76440d53566508425c2b21678cac4a8c6c2f6fe0bdb641b194223fa7ec6
+    bound: 'an OVER-refusal, not a hole: nothing gets through, a read-only line is
+      turned away. `cp`, `robocopy`, `xcopy` and `tar` are not read-only to the kits…'
+  - item: BUG-0111
+    revision: 1
+    scope_hash: 1ae7f6a7809f8c85114c635eff3344c8d4d2c3cdecc62ae8c986ad04fd2ce876
+    bound: 'the other half of the same over-refusal, and it is the price of a membership
+      test that must answer in BOTH directions: `rm -rf team-kits` names every…'
+  - item: BUG-0115
+    revision: 1
+    scope_hash: 3cb68e687d76b42880c5726d3f0664be7b7f6e1aa41ec5dac0fab66f1b249ac8
+    bound: 'the DEADLINE half is closed and only the judgement is spent: `_harness.Deadline`
+      reads the registered `timeout` out of `.claude/settings.json` and re…'
+  - item: BUG-0272
+    revision: 1
+    scope_hash: 61442a01011960fc900ef3420db515deb7407e3c1ea06670d6b27dc446bedc71
+    bound: 'An over-refusal, no hole in the protection: nothing gets through, a read-only
+      line is turned away. What it costs is measured on this round -- two ref…'
+subject_manifest_hash: 91a1af9eb1885e7c59f29d5f98e6ae72732e8525bf93a062db9ef95b5f87f1d4
+created: '2026-09-25T14:59:25'
+expires_at_epoch: 1790427565.180604
+mint_code: 11c3ed

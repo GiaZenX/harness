@@ -90,6 +90,17 @@ class Store:
         # the store's own tiers table, so an alias pin resolves the way it does on a real machine
         shutil.copy(os.path.join(TEAM_KITS, dispatch.TIERS_FILE), str(self.root / dispatch.TIERS_FILE))
 
+    def without_the_provider_cap(self):
+        """The store's tier table minus `dispatch.PROVIDER_TOP_KEY`: for a test of a ladder RULE
+        (DEC-0034), measured on the declaration alone. With the shipped table the reference
+        provider's cap (DEC-0114 (4)) stops every climb below the top these tests declare; the cap
+        is measured on its own by `test_no_shipped_ladder_answer_reaches_the_top_rung_bug_0306`."""
+        path = str(self.root / dispatch.TIERS_FILE)
+        with io.open(path, encoding="utf-8") as handle:
+            table = yaml.safe_load(handle)
+        assert table.pop(dispatch.PROVIDER_TOP_KEY), "the shipped tier table carries no cap to drop"
+        write(path, yaml.safe_dump(table, sort_keys=False))
+
     def kit(self, name, ladder=LADDER, with_architect_step=False):
         """A kit in the store: a template tree (with or without the architect step's home) and a
         ladder declaration; `ladder=None` ships none."""
@@ -176,7 +187,9 @@ def test_every_kit_role_has_a_class_and_every_classed_role_ships():
 
 def test_the_shipped_declarations_say_what_the_decisions_decided():
     """DEC-0047 / DEC-0078 as data: dev and research climb to fable at high/xhigh; office tops at
-    opus at medium/high, the office-developer alone climbs to fable, the filing pair runs low.
+    opus at medium/high, the office-developer alone climbs to fable, the filing pair runs low. These
+    are the PROVIDER-NEUTRAL declarations; DEC-0114 (4)'s Claude cap is the tier table's and
+    `test_no_shipped_ladder_answer_reaches_the_top_rung_bug_0306` measures it per provider.
 
     The decisions name the kits, so this test does too -- it is the one place the user's words are
     compared with the file, and a declaration that drifted from them is a finding for the user, not
@@ -193,10 +206,10 @@ def test_the_shipped_declarations_say_what_the_decisions_decided():
     assert office["top"] == "opus"
     assert office["effort"] == {"default": "medium", "large": "high"}
     assert office["exceptions"]["office-developer"] == {"top": "fable"}
-    for role in ("records-clerk", "filing-reviewer"):
-        assert office["exceptions"][role] == {"effort": "low"}, role
     assert not any(rule.get("top") == "fable" for role, rule in office["exceptions"].items()
                    if role != "office-developer"), "a second office role climbs to fable"
+    for role in ("records-clerk", "filing-reviewer"):
+        assert office["exceptions"][role] == {"effort": "low"}, role
     for name, ladder in ladders.items():
         assert ladder["rungs"] == ["sonnet", "opus", "fable"], name
 
@@ -234,7 +247,7 @@ def test_the_build_starts_on_opus_and_only_the_architecture_starts_on_the_top_ru
         assert ladder["classes"]["build"] == "opus", kit
         assert ladder["classes"]["planning"] == "opus", kit
         assert ladder["classes"]["architecture"] == dispatch.CLASS_TOP, kit
-        assert ladder["top"] == "fable", kit
+        assert ladder["top"] == "fable", kit          # provider-neutral; the Claude cap is BUG-0306's
         assert [name for name, rule in ladder["classes"].items() if rule == dispatch.CLASS_TOP] \
             == ["architecture"], (
             "%s: a class other than the architecture starts on the top rung, which DEC-0095 (4) "
@@ -247,6 +260,337 @@ def test_the_build_starts_on_opus_and_only_the_architecture_starts_on_the_top_ru
     lease = dispatch.create_lease(state, store.order(state, pr)["id"])
     assert lease[dispatch.RUNG_KEY] == "opus", lease[dispatch.LADDER_KEY]
     assert lease[dispatch.LADDER_KEY]["pin"] == "sonnet", lease[dispatch.LADDER_KEY]
+
+
+def _reference_top_rung():
+    """The TOP rung of the reference vocabulary, read off the tier table in its own order
+    (`dispatch._reference_rungs`, low -> high) -- never typed here."""
+    return dispatch._reference_rungs(os.path.join(TEAM_KITS, dispatch.TIERS_FILE))[-1]
+
+
+def _every_answer(state, ladder, pins, provider=None, every_pin_and_ask=True):
+    """Every ladder answer an order of this declaration can get for `provider`: each role, on its
+    shipped pin AND pinned to every rung, at each goal class, with no ask and with an ask of every
+    rung (under an acceptance that names a test, so a downward ask is granted where a band allows
+    it), across enough failed runs to climb from the lowest rung to the top and hold one cycle
+    there -- or, with `every_pin_and_ask=False`, the shipped pin and no ask only. Yields (case,
+    answers in fail order)."""
+    rungs = ladder["rungs"]
+    # from the lowest rung to the top is len(rungs) - 1 rung steps; one cycle more shows the hold
+    runs = len(rungs) * ladder["failed_runs_per_rung"] + 1
+    classes = ["normal", dispatch.LARGE_CLASS]
+    for role in ladder["roles"]:
+        # the SHIPPED pin first, so the first failure a reader sees is the case a project runs
+        others = [rung for rung in rungs if rung != pins[role]] if every_pin_and_ask else []
+        for pin in [pins[role]] + others:
+            write(os.path.join(os.path.dirname(state.root), ".claude", "agents", role + ".md"),
+                  "---\nname: %s\nmodel: %s\neffort: high\ntools: Read\n---\nbody\n" % (role, pin))
+            for goal_class in classes:
+                for ask in [None] + (list(rungs) if every_pin_and_ask else []):
+                    task = {"id": "TSK-9999", "assigned_role": role,
+                            "expected_outputs": ["tools/test_x.py"], "acceptance_refs": []}
+                    if ask:
+                        task[dispatch.RUNG_KEY] = ask
+                    root = {"class": goal_class, "acceptance_criteria": []}
+                    yield ((role, pin, goal_class, ask),
+                           [dispatch.ladder_for_order(state, task, root, failed, provider)
+                            for failed in range(runs)])
+
+
+def _shipped_declarations(store):
+    """(name, project state, validated declaration, shipped pins) for every shipped ladder: the
+    three kits' through a store stocked with the SHIPPED tier table, and this repository's own
+    through the kit-less route (DEC-0105), which reads the tier table beside the kernel."""
+    declarations = []
+    for kit in [os.path.basename(path) for path in kit_dirs()]:
+        store.kit(kit, ladder=shipped_ladder(kit))
+        pins = {role: str(dispatch.role_pin(os.path.join(TEAM_KITS, kit, "agents"), role))
+                for role in shipped_ladder(kit)["roles"]}
+        state, _pr = store.project("p-" + kit, kit, pins)
+        declarations.append((kit, state, dispatch._valid_ladder(kit, shipped_ladder(kit)), pins))
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with io.open(os.path.join(root, "ladder.yaml"), encoding="utf-8") as handle:
+        own = yaml.safe_load(handle)
+    own_pins = {role: str(dispatch.role_pin(os.path.join(root, ".claude", "agents"), role))
+                for role in own["roles"]}
+    state, _pr = _kit_less_project(store, "this-repo", tier_file=own)
+    declarations.append(("ladder.yaml of this repository", state,
+                         dispatch._valid_ladder("this-repo", own), own_pins))
+    return declarations
+
+
+def test_no_shipped_ladder_answer_reaches_the_top_rung_bug_0306(store):
+    """BUG-0306 AC-2 / DEC-0114 (4), PER PROVIDER, through the kernel's ladder answer
+    (`ladder_for_order`, which `kernel.cli ladder --provider` prints) for every role of every
+    shipped ladder -- the three kits' and this repository's own.
+
+    ON CLAUDE -- the provider the lease and the spawn gate derive for -- no class, no pin and no
+    escalation step resolves to Fable. "Fable on Claude" is the answer's RUNG NAME, not a
+    translation of it: the Claude spawn passes the rung name itself as the Agent call's `model`
+    (`dispatch.spawn_model_refusal` compares the two), so an answer naming the reference
+    vocabulary's TOP rung (read off the tier table's order, never typed) is a Fable spawn whatever
+    the claude row translates. And DEC-0114 (4)'s "escalation climbs EFFORT only on Claude, up to
+    the ladder's effort top": wherever the rung did not move the effort never falls, and the last
+    answer sits at the role's effort ceiling.
+
+    ON CODEX the top stays where the ladder declares it (the user's answer of 2026-09-25 15:07,
+    project_memory/staging/generation-6-streams.md): every role whose declared top is the top rung
+    reaches it on its shipped pin -- the architecture class at once, every other role by the
+    escalation -- and the answer's model is the codex row's top model (read off the table); a role
+    whose declared top lies below never reaches it (office: every role but the office-developer).
+    As a PROCESS too: `kernel.cli ladder --provider` on a dev architecture order.
+
+    RED ON 8677bd2 for the Claude half (every `top: fable` reached Fable); RED ON THIS ROUND'S
+    FIRST BUILD for the Codex half, which moved every ladder's `top:` to opus and took the Codex
+    top along with the Claude one. A Claude translation of the top row alone (`fable: opus`) would
+    not turn the Claude half green: the answer's rung stays `fable`.
+    """
+    fable = _reference_top_rung()
+    reference = dispatch.provider_tiers(TEAM_KITS)[0]
+    others = [name for name in dispatch._read_yaml_mapping(
+        os.path.join(TEAM_KITS, dispatch.TIERS_FILE), dispatch.TIERS_FILE)["tiers"]
+        if name != reference]
+    assert others == ["codex"], "the tier table's rows beside the reference changed: %s" % others
+    top_model = dispatch.provider_tiers(TEAM_KITS, "codex")[2][fable]
+    judged = {"claude": 0, "codex reaches": 0, "codex holds below": 0}
+    for name, state, ladder, pins in _shipped_declarations(store):
+        for case, answers in _every_answer(state, ladder, pins):
+            assert {answer["provider"] for answer in answers} == {reference}, (name, case)
+            reached = [failed for failed, answer in enumerate(answers)
+                       if answer[dispatch.RUNG_KEY] == fable]
+            assert not reached, "%s %s: the Claude answer names %s at failed run(s) %s -- %s" % (
+                name, case, fable, reached, answers[reached[0]]["why"])
+            for before, after in zip(answers, answers[1:]):
+                if before[dispatch.RUNG_KEY] == after[dispatch.RUNG_KEY]:
+                    assert (dispatch.EFFORT_LEVELS.index(after[dispatch.EFFORT_KEY])
+                            >= dispatch.EFFORT_LEVELS.index(before[dispatch.EFFORT_KEY])), (
+                        name, case, before["why"], after["why"])
+            exception = ladder["exceptions"].get(case[0], {})
+            ceiling = exception.get(dispatch.EFFORT_KEY) or max(
+                ladder[dispatch.EFFORT_KEY].values(), key=dispatch.EFFORT_LEVELS.index)
+            assert answers[-1][dispatch.EFFORT_KEY] == ceiling, (name, case, answers[-1]["why"])
+            judged["claude"] += 1
+        climbers = set()
+        for case, answers in _every_answer(state, ladder, pins, "codex", every_pin_and_ask=False):
+            role = case[0]
+            declared_top = ladder["exceptions"].get(role, {}).get(dispatch.CLASS_TOP, ladder["top"])
+            rungs = [answer[dispatch.RUNG_KEY] for answer in answers]
+            if declared_top != fable:
+                assert fable not in rungs, (name, case, rungs, answers[-1]["why"])
+                judged["codex holds below"] += 1
+                continue
+            assert rungs[-1] == fable, "%s %s: on Codex the escalation never reaches %s: %s -- %s" % (
+                name, case, fable, rungs, answers[-1]["why"])
+            if ladder["classes"][ladder["roles"][role]] == dispatch.CLASS_TOP:
+                assert rungs[0] == fable, "%s %s: the architecture class does not start on %s: %s" % (
+                    name, case, fable, answers[0]["why"])
+            assert all(answer["model"] == top_model for answer in answers
+                       if answer[dispatch.RUNG_KEY] == fable), (name, case)
+            climbers.add(role)
+            judged["codex reaches"] += 1
+        # EVERY SHIPPED LADDER KEEPS A CODEX PATH TO THE TOP -- the half the user kept (dev and
+        # research: every role; office: the office-developer). Without this line a ladder whose
+        # `top:` moved below the top rung would pass the loop above as "holds below".
+        assert climbers, "%s: on Codex no role reaches %s (%s) any more -- DEC-0114 (4) keeps the " \
+            "Codex top; declared tops: %s" % (name, fable, top_model, {
+                role: ladder["exceptions"].get(role, {}).get(dispatch.CLASS_TOP, ladder["top"])
+                for role in ladder["roles"]})
+    assert (judged["claude"] >= 8 and judged["codex reaches"] >= 4
+            and judged["codex holds below"] >= 4), "the walk measured almost nothing: %s" % judged
+    # AS A PROCESS: the command a lead types, without the option and per provider
+    store.kit("dev-cli", ladder=shipped_ladder("dev-team"))
+    pins = {role: str(dispatch.role_pin(os.path.join(TEAM_KITS, "dev-team", "agents"), role))
+            for role in shipped_ladder("dev-team")["roles"]}
+    state, pr = store.project("p-cli", "dev-cli", pins)
+    order = store.order(state, pr, role="software-architect")
+    env = dict(os.environ, HOME=str(store.home), USERPROFILE=str(store.home), PYTHONPATH=TEAM_KITS)
+    shown = {}
+    for provider in (None, reference, "codex"):
+        line = [sys.executable, "-B", "-m", "kernel.cli", "--root", state.root, "ladder", order["id"]]
+        line += ["--provider", provider] if provider else []
+        ran = subprocess.run(line, capture_output=True, text=True, encoding="utf-8", env=env,
+                             timeout=120)
+        assert ran.returncode == 0, ran.stdout + ran.stderr
+        answer = json.loads(ran.stdout)
+        shown[provider] = (answer["provider"], answer[dispatch.RUNG_KEY], answer["model"])
+    assert shown[None] == shown[reference] and shown[reference][1] != fable, shown
+    assert shown["codex"] == ("codex", fable, top_model), shown
+
+
+def test_a_declaration_that_orders_a_capped_rung_below_its_top_is_refused_bug_0306(store):
+    """BUG-0306 AC-2, the case the cap cannot reach by position: `ladder_for_order` lowers the TOP
+    to the provider's cap, and a climb stops at the top -- so only a declaration that orders a
+    capped rung BELOW its top could still answer it. `_valid_ladder` does not hold `rungs:` against
+    the reference order, so the kernel refuses that answer at the end instead of giving it.
+
+    RED WITHOUT the refusal: a role pinned `fable` in a declaration ordered `[fable, sonnet, opus]`
+    is answered `fable` on Claude. The same order on Codex (no cap) is answered as declared."""
+    fable = _reference_top_rung()
+    ladder = dict(LADDER, rungs=[fable, "sonnet", "opus"], top="opus")
+    store.kit("inverted-kit", ladder=ladder)
+    state, pr = store.project("p", "inverted-kit", {"backend-developer": fable})
+    task = {"id": "TSK-9999", "assigned_role": "backend-developer", "expected_outputs": [],
+            "acceptance_refs": []}
+    root = {"class": "normal", "acceptance_criteria": []}
+    with pytest.raises(DispatchError, match="does not run"):
+        dispatch.ladder_for_order(state, task, root, 0)
+    assert dispatch.ladder_for_order(state, task, root, 0, "codex")[dispatch.RUNG_KEY] == fable
+
+
+def test_the_lease_and_the_header_carry_the_answer_for_every_installed_provider_bug_0306(store):
+    """BUG-0306 / DEC-0114 (4) on the path that RUNS: one dispatch is read by whichever client runs
+    the order, so the lease, the header `dispatch` prints and the `ladder` command without an option
+    carry the answer for every provider the project is installed for (`dispatch.PROVIDERS_KEY`) --
+    on a dev architecture order the reference platform's capped rung AND the Codex top with its
+    model id, read off the tier table. The top-level `rung`/`effort` stay the reference platform's,
+    the pair its spawn gate holds. `providers: [claude]` in the project config drops the Codex row;
+    no config line answers every row. AND AT THE FAILED-RUN COUNT: a build order after three failed
+    runs is answered `gpt-6-astra` on Codex and the capped rung on Claude, and `ladder` shows under
+    `next_lease` the map that very dispatch then writes.
+
+    RED BEFORE verifier round 1 of TSK-0151 (V1): the header carried the Claude answer alone, so a
+    Codex lead read `opus` where its ladder climbs to `gpt-6-astra`. RED BEFORE round 2 (R2-1/R2-2):
+    with every other provider asked at FAIL 0 the build order's Codex row stayed `gpt-6-sol` at
+    FAIL 3, and `ladder` carried no map under `next_lease`."""
+    fable = _reference_top_rung()
+    reference = dispatch.provider_tiers(TEAM_KITS)[0]
+    top_model = dispatch.provider_tiers(TEAM_KITS, "codex")[2][fable]
+    store.kit("dev-lease", ladder=shipped_ladder("dev-team"))
+    pins = {role: str(dispatch.role_pin(os.path.join(TEAM_KITS, "dev-team", "agents"), role))
+            for role in shipped_ladder("dev-team")["roles"]}
+    env = dict(os.environ, HOME=str(store.home), USERPROFILE=str(store.home), PYTHONPATH=TEAM_KITS)
+    seen = {}
+    for label, providers in (("both", ["claude", "codex"]), ("claude only", ["claude"]),
+                             ("no line", None)):
+        state, pr = store.project("p-" + label.replace(" ", "-"), "dev-lease", pins)
+        if providers is not None:
+            write(os.path.join(state.root, dispatch.CONFIG_FILE),
+                  yaml.safe_dump({"project": {"name": "x"}, "providers": providers}))
+        order = store.order(state, pr, role="software-architect")
+
+        def kernel(*args):
+            return subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", state.root]
+                                  + list(args), capture_output=True, text=True, encoding="utf-8",
+                                  env=env, timeout=120)
+
+        shown = kernel("ladder", order["id"])
+        assert shown.returncode == 0, shown.stdout + shown.stderr
+        leased = kernel("dispatch", order["id"])
+        assert leased.returncode == 0, leased.stdout + leased.stderr
+        header = json.loads(leased.stdout.strip()[len(dispatch.HEADER_PREFIX):])
+        by_provider = header.get(dispatch.PROVIDERS_KEY)
+        assert by_provider == dispatch._read_lease(state, order["id"])[dispatch.PROVIDERS_KEY]
+        assert by_provider == json.loads(shown.stdout)[dispatch.PROVIDERS_KEY], (label, shown.stdout)
+        assert (header[dispatch.RUNG_KEY], header[dispatch.EFFORT_KEY]) == (
+            by_provider[reference][dispatch.RUNG_KEY], by_provider[reference][dispatch.EFFORT_KEY])
+        assert by_provider[reference][dispatch.RUNG_KEY] != fable, (label, by_provider)
+        for provider in by_provider:
+            assert "%s rung %s = %s" % (provider, by_provider[provider][dispatch.RUNG_KEY],
+                                        by_provider[provider]["model"]) in leased.stderr, leased.stderr
+        seen[label] = by_provider
+    assert seen["both"]["codex"] == {dispatch.RUNG_KEY: fable, "model": top_model,
+                                     dispatch.EFFORT_KEY: "high", dispatch.CLASS_TOP: fable}, seen
+    assert list(seen["claude only"]) == [reference], seen
+    assert seen["no line"] == seen["both"], seen
+
+    # THE ESCALATION HALF: the same map at the count the lease climbs with. Three failed runs of a
+    # build order, then `ladder` (its `next_lease` counts the third) and the dispatch it announces.
+    state, pr = store.project("p-climb", "dev-lease", pins)
+    write(os.path.join(state.root, dispatch.CONFIG_FILE),
+          yaml.safe_dump({"project": {"name": "x"}, "providers": ["claude", "codex"]}))
+    order = store.order(state, pr, role="backend-developer")
+    for _run in range(3):
+        drive_task_to(state, order["id"], "FAILED")
+        state.transition(order["id"], "READY", approved_retry=True)
+    run = [sys.executable, "-B", "-m", "kernel.cli", "--root", state.root]
+    shown = subprocess.run(run + ["ladder", order["id"]], capture_output=True, text=True,
+                           encoding="utf-8", env=env, timeout=120)
+    assert shown.returncode == 0, shown.stdout + shown.stderr
+    shown = json.loads(shown.stdout)
+    assert shown["next_lease_counts"] == 3, shown
+    upcoming = shown["next_lease"].get(dispatch.PROVIDERS_KEY)
+    assert upcoming != shown[dispatch.PROVIDERS_KEY], "the map at the old count equals the climb"
+    leased = subprocess.run(run + ["dispatch", order["id"]], capture_output=True, text=True,
+                            encoding="utf-8", env=env, timeout=120)
+    assert leased.returncode == 0, leased.stdout + leased.stderr
+    header = json.loads(leased.stdout.strip()[len(dispatch.HEADER_PREFIX):])
+    assert dispatch._read_lease(state, order["id"])[dispatch.LADDER_KEY]["failed_runs"] == 3
+    assert upcoming == header[dispatch.PROVIDERS_KEY], (upcoming, header)
+    assert (upcoming["codex"][dispatch.RUNG_KEY], upcoming["codex"]["model"]) == (fable, top_model), (
+        upcoming)
+    assert upcoming[reference][dispatch.RUNG_KEY] == header[dispatch.RUNG_KEY] != fable, upcoming
+
+
+def test_the_installed_providers_are_the_config_list_plus_the_reference_bug_0306(store):
+    """BUG-0306 / DEC-0114 (4): which providers a lease answers for (`dispatch.installed_providers`)
+    -- the reference row whether the config lists it or not, the listed names trimmed and
+    case-folded, a name no row carries dropped, and EVERY row when the config is unreadable or
+    carries no list.
+
+    RED BEFORE verifier round 2 of TSK-0151 (R2-5), per mutant of the function: the reference only
+    when listed (`[codex]` answers codex alone), an unreadable config answered with the reference
+    alone, and the names compared as written (`[Claude, ' Codex ']` drops codex)."""
+    reference = dispatch.provider_tiers(TEAM_KITS)[0]
+    with io.open(os.path.join(TEAM_KITS, dispatch.TIERS_FILE), encoding="utf-8") as handle:
+        rows = list(yaml.safe_load(handle)["tiers"])
+    every = tuple([reference] + [row for row in rows if row != reference])
+    other = every[1]
+    store.kit("dev-installed", ladder=shipped_ladder("dev-team"))
+    state, _pr = store.project("p-installed", "dev-installed", {"backend-developer": "opus"})
+    config = os.path.join(state.root, dispatch.CONFIG_FILE)
+    cases = (
+        ("listed without the reference", "providers: [%s]\n" % other, (reference, other)),
+        ("spelled loosely", "providers: [%s, ' %s ']\n" % (reference.title(), other.title()), every),
+        ("a name no row carries", "providers: [no-such-provider]\n", (reference,)),
+        ("unreadable", "providers: [%s\n  : : ]\n" % other, every),
+        ("empty list", "providers: []\n", every),
+        ("a scalar", "providers: %s\n" % reference, every),
+        ("no list","project: {name: x}\n", every),
+        ("no file", None, every),
+    )
+    for label, text, expected in cases:
+        if os.path.exists(config):
+            os.remove(config)
+        if text is not None:
+            write(config, text)
+        assert dispatch.installed_providers(state, TEAM_KITS) == expected, label
+
+
+def test_a_start_above_the_capped_top_buys_no_effort_at_fail_0_bug_0306(store):
+    """BUG-0306 / DEC-0114 (4), the effort half of the cap: an order whose START lies above the
+    role's capped top -- an ask of the top rung, a pin on it -- is held at the top before the
+    escalation counts from it, so at FAIL 0 it runs on the effort it would run on without the ask
+    (`rung +0, effort +0`). On Codex, uncapped, the same ask is granted.
+
+    RED WITHOUT the hold (verifier round 1 of TSK-0151, V2): the granted rung steps came out
+    negative and a dev backend-developer asking `fable` came back at `xhigh` at FAIL 0, its
+    escalation line reading `rung +-1, effort +1`."""
+    fable = _reference_top_rung()
+    store.kit("dev-start", ladder=shipped_ladder("dev-team"))
+    pins = {role: str(dispatch.role_pin(os.path.join(TEAM_KITS, "dev-team", "agents"), role))
+            for role in shipped_ladder("dev-team")["roles"]}
+    state, _pr = store.project("p-start", "dev-start", pins)
+    root = {"class": "normal", "acceptance_criteria": []}
+
+    def answer(ask=None, pin=None, provider=None):
+        role = "backend-developer"
+        write(os.path.join(os.path.dirname(state.root), ".claude", "agents", role + ".md"),
+              "---\nname: %s\nmodel: %s\neffort: high\ntools: Read\n---\nbody\n"
+              % (role, pin or pins[role]))
+        task = {"id": "TSK-9999", "assigned_role": role, "expected_outputs": [],
+                "acceptance_refs": []}
+        if ask:
+            task[dispatch.RUNG_KEY] = ask
+        return dispatch.ladder_for_order(state, task, root, 0, provider)
+
+    plain = answer()
+    for case in ({"ask": fable}, {"pin": fable}):
+        held = answer(**case)
+        assert (held[dispatch.RUNG_KEY], held[dispatch.EFFORT_KEY]) == (
+            plain[dispatch.RUNG_KEY], plain[dispatch.EFFORT_KEY]), (case, held["why"])
+        assert held["escalation"].startswith("FAIL 0: rung +0, effort +0"), (case, held["escalation"])
+        assert "held at the top" in held["why"], (case, held["why"])
+    assert answer(ask=fable, provider="codex")[dispatch.RUNG_KEY] == fable
 
 
 def new_goal(state, title, **fields):
@@ -683,15 +1027,16 @@ def test_a_failed_run_raises_the_effort_before_it_raises_the_rung(store):
             ("r3", "high")]                                          # FAIL 9: past the cap, held
     measured = walk_the_failed_runs(state, task, len(rows))
     assert measured == rows, measured
-    # ...and the same four counts against the SHIPPED dev declaration, whose pair (high/xhigh)
-    # leaves one step of headroom: the second effort step lands on the ceiling.
+    # ...and the same counts against the SHIPPED dev declaration, whose pair (high/xhigh) leaves
+    # one step of headroom: the second effort step lands on the ceiling. On the reference provider
+    # the shipped tier table caps its top at the opus the build starts on (DEC-0114 (4)), so the
+    # third failed run is granted no rung step and the effort stays at the ceiling from there on --
+    # the "past the cap" rows start at FAIL 2.
     store.kit("dev-like", ladder=shipped_ladder("dev-team"))
     other, goal = store.project("d", "dev-like", {"backend-developer": "sonnet"})
     order = store.order(other, goal)
     shipped = walk_the_failed_runs(other, order, 7)
-    assert shipped == [("opus", "high"), ("opus", "xhigh"), ("opus", "xhigh"),
-                       ("fable", "high"), ("fable", "xhigh"), ("fable", "xhigh"),
-                       ("fable", "xhigh")], shipped
+    assert shipped == [("opus", "high")] + [("opus", "xhigh")] * 6, shipped
 
 
 # -- the three ways a project meets the declaration ----------------------------------------------
@@ -827,6 +1172,7 @@ def test_a_pin_that_is_an_alias_resolves_through_the_stores_tiers_table(store):
 def test_planning_and_architecture_start_on_the_top_rung_and_the_build_on_its_pin(store):
     """Rule 1. An architecture-class role pinned to the worker rung is dispatched on the top rung;
     a build-class role with the same pin is dispatched on that pin."""
+    store.without_the_provider_cap()
     store.kit("kit")
     state, pr = store.project("p", "kit", {"software-architect": "sonnet", "backend-developer": "sonnet"})
     architect, _ = lease_of(state, store.order(state, pr, role="software-architect", type="architecture"))
@@ -869,6 +1215,7 @@ def test_an_order_that_failed_climbs_one_rung_per_failed_run_capped_at_the_top(s
     RED WITHOUT `count_failed_run_locked` (the count stays 0 and the rung stays sonnet) and RED
     with the cap removed (the third retry indexes past the rungs).
     """
+    store.without_the_provider_cap()
     store.kit("kit")
     ladder_rungs = LADDER["rungs"]
     state, pr = store.project("p", "kit", {"backend-developer": "sonnet"})
@@ -937,6 +1284,7 @@ def test_every_way_from_a_started_run_back_to_ready_passes_failed():
 def test_a_change_touching_the_architecture_lifts_that_order_to_the_top_and_the_next_build_falls_back(store):
     """Rule 3. An architecture-class order deriving from a CR runs on the top rung; the build order
     dispatched after it runs on its pin -- nothing stored on the goal carries the climb over."""
+    store.without_the_provider_cap()
     store.kit("kit")
     state, pr = store.project("p", "kit", {"software-architect": "opus", "backend-developer": "sonnet"})
     cr = state.capture("CR", {"title": "change", "target_pr": pr["id"], "target_revision": pr["revision"],
@@ -958,6 +1306,7 @@ def test_design_and_qa_start_above_the_build_floor_and_a_floor_never_lowers_a_pi
     green (mutation rig R5, 2026-09-05 21:59). The second QA project below pins the QA role to fable
     over its opus floor; with the `max` gone it is lowered to opus and this is red.
     """
+    store.without_the_provider_cap()
     store.kit("kit")
     state, pr = store.project("p", "kit", {"product-designer": "sonnet", "quality-engineer": "sonnet",
                                            "backend-developer": "fable"})
@@ -1064,6 +1413,7 @@ def test_the_effort_follows_the_goals_class_and_an_exception_fixes_it(store):
 def test_an_exception_moves_one_roles_top_and_the_climb_stops_there(store):
     """DEC-0078 (1) in the kernel's own terms: a role whose exception names a higher top climbs past
     the kit's top; every other role's climb stops at the kit's."""
+    store.without_the_provider_cap()
     ladder = json.loads(json.dumps(LADDER))
     ladder["top"] = "opus"
     ladder["exceptions"] = {"backend-developer": {"top": "fable"}}
@@ -1159,6 +1509,7 @@ def test_a_spawn_below_the_lease_rung_is_refused_and_one_that_names_it_passes(st
     that IS the pin needs no model, a kit-less project holds nothing -- and a refusal spends no
     claim. RED WITHOUT the `spawn_model` branch: every case below passes and the child runs on
     the pin the state climbed away from."""
+    store.without_the_provider_cap()
     store.kit("kit")
     state, pr = store.project("p", "kit", {"software-architect": "sonnet", "backend-developer": "sonnet"})
     lifted = store.order(state, pr, role="software-architect", type="architecture")
@@ -1193,6 +1544,7 @@ def test_the_shipped_spawn_gate_holds_the_rung_as_a_process(store):
     """The kit dispatch path: the shipped `gate_dispatch.py`, PreToolUse on an Agent call, refuses
     the spawn that names no model for a climbed order (rc 2, the remedy names the rung), refuses
     the wrong one, and lets the one naming the rung through (rc 0, the lease is claimed)."""
+    store.without_the_provider_cap()
     store.kit("kit")
     state, pr = store.project("p", "kit", {"software-architect": "sonnet"})
     order = store.order(state, pr, role="software-architect", type="architecture")

@@ -21,8 +21,10 @@ WHAT WAS MEASURED, in the order the answer changed inside one round -- the log f
     the log was the wrong place to look, and the timestamps in `radar/` had been there all along.
 
 SO THE MECHANISM IS A LOCAL APP ROUTINE, and DEC-0090 (3) makes it FOUR of them, because every
-watcher runs under BOTH providers: a Claude Desktop scheduled task and a Codex app Automation per
-watcher, staggered across four evenings so no two fire at once. What a run produces therefore
+watcher runs under BOTH providers. DEC-0098 put all four on ONE evening, Friday ~20:00: the Claude
+side is ONE Desktop task (`watcher-duo`) that runs both watchers in sequence, because the Desktop
+app skips a task while another of its tasks runs, and the Codex side is two Automations at the
+same time, whose app has not been measured for that skip yet (`SCHEDULE_AS_TOLD`). What a run produces therefore
 carries TWO names -- the watcher whose subject was scanned and the RUNNER that executed it -- and
 so does its report (`report_name`). The cloud routine is the REJECTED alternative and stays below
 only as a documented option that says it is not built (`CLOUD_OPTION`, DEC-0089 (2)).
@@ -86,12 +88,20 @@ RUNNERS = {
         "app": "Claude Desktop (Routines -> New routine -> Local, or by asking Claude in any "
                "Desktop session)",
         "follow": "Follow .claude/agents/%(watcher)s.md exactly.",
+        # WHETHER THIS APP SKIPS A SCHEDULED TASK WHILE ANOTHER OF ITS OWN IS RUNNING: True, False,
+        # or None for "not measured" -- with the source either way. The answer decides how many
+        # tasks this runner's routines may be spread over at one time (`routine_plan`).
+        "skips_while_another_runs": (True, "code.claude.com/docs/en/desktop-scheduled-tasks, "
+                                           "skipped runs (DEC-0098 context)"),
     },
     "codex": {
         "kind": "codex_automation",
         "app": "the Codex app (Automations)",
         "follow": "Run the agent defined in .codex/agents/%(watcher)s.toml and follow its "
                   "developer_instructions exactly.",
+        "skips_while_another_runs": (None, "not measured: DEC-0098 (2) measures it at the first "
+                                           "Friday (skipped-run entries); if the app serialises, "
+                                           "the two Automations run back to back"),
     },
 }
 # The runner `--run` produces, and it is a PROPERTY of the command in `run_watcher` rather than a
@@ -168,23 +178,40 @@ WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", 
 # `tools/test_radar_trigger.py::test_the_self_start_reader_answers_off_the_record_and_the_reports`
 CADENCE_EVIDENCE_MIN = 2
 
-# THE FOUR ROUTINES the user asked for (DEC-0090 (4)), and the ONE thing about them this repository
-# cannot derive: the evening the user picked for each. Staggered on purpose -- an app skips a task
-# while another scheduled task of the same app is running -- which is a property and is measured as
-# one (`::test_the_routine_plan_covers_every_watcher_on_every_runner_and_staggers_them`), not a
-# sentence about four weekdays. The PAIRS are derived from `WATCHERS` x `RUNNERS` by `routine_plan`;
-# this table carries only the schedule, so a third watcher cannot be half-added.
+# THE FOUR ROUTINES the user asked for (DEC-0090 (4)), and the things about them this repository
+# cannot derive: the evening the user picked, and which app TASK runs each routine at which STEP.
+# DEC-0098 put all four on one Friday evening, and that is safe only because of how the tasks are
+# cut: an app that skips a task while another of its own tasks runs (`RUNNERS[...]
+# ['skips_while_another_runs']`) gets ONE task, which runs its watchers one after the other -- the
+# Claude Desktop task `watcher-duo` (~/.claude/scheduled-tasks/watcher-duo/SKILL.md). That is a
+# property and is measured as one
+# (`tools/test_radar_trigger.py::test_the_routine_plan_puts_every_watcher_on_one_evening_and_one_task_per_skipping_app_bug_0307`),
+# not a sentence about weekdays. The PAIRS are derived from `WATCHERS` x `RUNNERS` by
+# `routine_plan`; this table carries only the schedule, so a third watcher cannot be half-added.
 # None of the four is created from a remote session (DEC-0090 (5)): the schedule lives in the app,
 # and `description()` hands out the Instructions text the lead gives Claude Desktop and the user
 # pastes into the Codex app.
 SCHEDULE_AS_TOLD = {
-    "claude-watcher-by-claude": {"day": "friday", "time_local": "~20:00"},
-    "codex-watcher-by-claude": {"day": "saturday", "time_local": "~20:00"},
-    "claude-watcher-by-codex": {"day": "sunday", "time_local": "~20:00"},
-    "codex-watcher-by-codex": {"day": "monday", "time_local": "~20:00"},
+    "claude-watcher-by-claude": {"day": "friday", "time_local": "~20:00",
+                                 "task": "watcher-duo", "step": 1},
+    "codex-watcher-by-claude": {"day": "friday", "time_local": "~20:00",
+                                "task": "watcher-duo", "step": 2},
+    "claude-watcher-by-codex": {"day": "friday", "time_local": "~20:00",
+                                "task": "claude-watcher-by-codex", "step": 1},
+    "codex-watcher-by-codex": {"day": "friday", "time_local": "~20:00",
+                               "task": "codex-watcher-by-codex", "step": 1},
 }
-SCHEDULE_SOURCE = ("the user, 2026-09-06 (DEC-0090 (4)) -- as TOLD, not readable from disk: the "
-                   "day, the hour and the enabled flag live in the app that owns the routine")
+SCHEDULE_SOURCE = ("the user, 2026-09-11 (DEC-0098, replacing DEC-0090 (4)'s four evenings) -- as "
+                   "TOLD, not readable from disk: the day, the hour and the enabled flag live in "
+                   "the app that owns the routine")
+# The Instructions body of a task that runs MORE than one routine: the routines' own bodies, in
+# step order, under one sentence that says they run one after the other.
+TASK_TEMPLATE = (
+    "You are the weekly %(task)s run of the agents-and-skills harness repository (%(source)s).\n"
+    "Run the %(count)d routines below ONE AFTER THE OTHER, each as its own subagent and each to its "
+    "end before the next starts, never in parallel: %(app)s skips a task while another of its "
+    "tasks runs, so this one task carries all of them.\n\n%(steps)s"
+)
 # ONE template for all four Instructions bodies; what differs per app is `RUNNERS[...]['follow']`.
 # The lead hands the two `claude` texts to Claude Desktop and the user pastes the two `codex` texts
 # into the Codex app (DEC-0090 (5)); both are printed verbatim by `--describe`.
@@ -394,8 +421,9 @@ def routine_plan():
             key = routine_id(watcher, runner)
             told = SCHEDULE_AS_TOLD.get(key)
             if told is None:
-                raise SystemExit("no schedule was ever told for the routine %s -- DEC-0090 (4) "
-                                 "names an evening for each watcher on each runner" % key)
+                raise SystemExit("no schedule was ever told for the routine %s -- DEC-0098 "
+                                 "names an evening and a task for each watcher on each runner"
+                                 % key)
             plan[key] = {
                 "id": key,
                 "watcher": watcher,
@@ -407,6 +435,37 @@ def routine_plan():
                 "instructions": instructions_for(watcher, runner),
             }
     return plan
+
+
+def app_tasks(plan=None):
+    """[{task, runner, app, day, time_local, routines (in step order), instructions}] -- the app
+    tasks the routines are cut into, one entry per task the user or the lead creates.
+
+    A task with ONE routine hands out that routine's own Instructions text; a task with more hands
+    out `TASK_TEMPLATE` around theirs, in step order, because that one text is what creates it.
+    `tools/test_radar_trigger.py::test_the_routine_plan_puts_every_watcher_on_one_evening_and_one_task_per_skipping_app_bug_0307`
+    """
+    plan = routine_plan() if plan is None else plan
+    grouped = {}
+    for key, entry in plan.items():
+        told = entry["schedule_as_told"]
+        grouped.setdefault((entry["runner"], told["task"]), []).append((told["step"], key))
+    out = []
+    for (runner, task), steps in sorted(grouped.items()):
+        ordered = [key for _step, key in sorted(steps)]
+        first = plan[ordered[0]]["schedule_as_told"]
+        if len(ordered) == 1:
+            text = plan[ordered[0]]["instructions"]
+        else:
+            text = TASK_TEMPLATE % {
+                "task": task, "source": "DEC-0098", "count": len(ordered),
+                "app": RUNNERS[runner]["app"].split(" (")[0],
+                "steps": "\n\n".join("%d. %s" % (number, plan[key]["instructions"])
+                                     for number, key in enumerate(ordered, 1))}
+        out.append({"task": task, "runner": runner, "app": RUNNERS[runner]["app"],
+                    "day": first["day"], "time_local": first["time_local"],
+                    "routines": ordered, "instructions": text})
+    return out
 
 
 def instructions_for(watcher, runner):
@@ -650,6 +709,7 @@ def description():
         "period": PERIOD,
         "starts_itself": starts_itself(),
         "started_by": {name: _started_by(name, live) for name in sorted(WATCHERS)},
+        "tasks": app_tasks(),
         "routines": [dict(entry,
                           recorded=key in recorded,
                           starts_itself=live[key],

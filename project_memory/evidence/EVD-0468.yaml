@@ -1,0 +1,15 @@
+id: EVD-0468
+kind: test
+related:
+- BUG-0307
+- TSK-0151
+result: pass
+summary: 'BUG-0307 AC-1 (DEC-0098 (3)): the naming node passes on the TSK-0151 tree
+  and was red on 8677bd2''s tools/radar_routine.py (protocol section 3)'
+artifact_refs:
+- staging/TSK-0151/protocol.md
+run_command: python -B -m pytest -q -p no:cacheprovider "tools/test_radar_trigger.py::test_the_routine_plan_puts_every_watcher_on_one_evening_and_one_task_per_skipping_app_bug_0307"
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-25T17:38:51'

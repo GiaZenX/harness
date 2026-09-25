@@ -1,0 +1,24 @@
+id: EVD-0470
+kind: test
+related:
+- BUG-0306
+- TSK-0151
+result: pass
+summary: 'BUG-0306 / DEC-0114 (4) after verifier round 1 (V1, V2, V7): the lease,
+  the dispatch header and ''ladder'' without an option carry the answer per installed
+  provider (codex fable = gpt-6-astra, claude capped at opus); a start above the capped
+  top buys no effort at FAIL 0; every kit settings.json names its bound lead''s tier;
+  tier table free of prices under the definition reader (V3/V4). Red-first per mutation:
+  protocol section Rework 2'
+artifact_refs:
+- staging/TSK-0151/protocol.md
+run_command: python -B -m pytest -q -p no:cacheprovider "tools/test_ladder.py::test_no_shipped_ladder_answer_reaches_the_top_rung_bug_0306"
+  "tools/test_ladder.py::test_a_declaration_that_orders_a_capped_rung_below_its_top_is_refused_bug_0306"
+  "tools/test_ladder.py::test_the_lease_and_the_header_carry_the_answer_for_every_installed_provider_bug_0306"
+  "tools/test_ladder.py::test_a_start_above_the_capped_top_buys_no_effort_at_fail_0_bug_0306"
+  "tools/test_model_ladder.py::test_the_tier_table_carries_no_price_and_says_what_each_rung_is_for_bug_0306"
+  "tools/test_model_ladder.py::test_every_kit_settings_names_the_tier_its_bound_lead_pins_bug_0306"
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-25T20:14:11'

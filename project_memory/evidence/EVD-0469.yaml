@@ -1,0 +1,18 @@
+id: EVD-0469
+kind: test
+related:
+- BUG-0306
+- TSK-0151
+result: pass
+summary: 'BUG-0306 AC-2 per provider (DEC-0114 (4), lead finding F1): the Claude answer
+  never names fable, the Codex answer reaches fable (gpt-6-astra) as before 8677bd2;
+  red on the pre-rework tree and on the first build''s ladders (protocol, Rework F1)'
+artifact_refs:
+- staging/TSK-0151/protocol.md
+run_command: python -B -m pytest -q -p no:cacheprovider "tools/test_ladder.py::test_no_shipped_ladder_answer_reaches_the_top_rung_bug_0306"
+  "tools/test_ladder.py::test_a_declaration_that_orders_a_capped_rung_below_its_top_is_refused_bug_0306"
+  "tools/test_model_ladder.py::test_the_tier_table_carries_no_price_and_says_what_each_rung_is_for_bug_0306"
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-25T18:26:22'

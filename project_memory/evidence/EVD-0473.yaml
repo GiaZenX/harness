@@ -1,0 +1,18 @@
+id: EVD-0473
+kind: test
+related:
+- TSK-0151
+- BUG-0306
+- BUG-0307
+result: pass
+summary: 'delivery run after the last rework (TSK-0151 close-out): 5163 passed, 14
+  skipped, 0 failed in 64 min; gates suite 554 passed / 1 failed (H138/H155 test names,
+  pre-existing on 8677bd2, order 6)'
+artifact_refs:
+- staging/TSK-0151/full-run-final.txt
+- staging/TSK-0151/gates-run-final.txt
+run_command: DELIVERY_RUN=TSK-0151 python -B -m pytest tools/ -q -p no:cacheprovider
+run_scope: full
+revision: 1
+approval_ref: null
+created: '2026-09-25T22:43:48'
