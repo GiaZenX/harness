@@ -1,0 +1,29 @@
+id: BUG-0319
+title: 'Die Kit-Update-Nacharbeit hat keine Tueren: die Pending-Liste loeschen, eine
+  Kit-Vorlage uebernehmen, neu ignorierte Dateien aus git nehmen -- alles verweigert;
+  und die Liste meldet Projekt-gegen-Vorlage-Abweichung als Kit-Aenderung (leere Merge-Runde
+  je Update, dazu ein UTF-8-BOM)'
+related_pr: PR-0012
+severity: medium
+observed: 'FIELD (synaipse-unified), entries 99ab1bcbe672d3d6, 169e0ed3594f49f1, 5b87abeccbef4061,
+  25f81f43379be18d: the pending list''s header and the session notice say ''then DELETE
+  this file'' -- gate_write_scope refuses; taking a byte-identical kit template needs
+  a write into the enforcement layer; `git rm --cached` under the state directory
+  refused; seven templates reported as changed although the pre/post kit diff is empty.'
+expected: kernel doors for the three chores (resolve the pending list; adopt the kit
+  template for a listed path; untrack paths the kit now ignores), and the pending
+  list lists only templates the KIT changed between the two versions, written without
+  BOM.
+repro: see the harvest entries named in `observed`
+acceptance_criteria:
+- id: AC-1
+  text: 'tests for each door and for the list: an update with no kit-side template
+    change lists nothing -- names this bug'
+source: synaipse-unified kit_gaps.jsonl, harvested 2026-09-26 (staging/generation-6/harvest-synaipse-2026-09-26.txt)
+limits: 'Jedes Kit-Update kostet eine leere Nacharbeitsrunde und hinterlässt Dateien,
+  die niemand entfernen darf. Begrenzt: der Schutz selbst ist korrekt, nur die Aufräumwege
+  fehlen.'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-26T21:33:52'

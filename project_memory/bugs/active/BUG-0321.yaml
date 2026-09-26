@@ -1,0 +1,23 @@
+id: BUG-0321
+title: Der Widerspruchs-Check haelt einen VERIFIED-Fehler fuer widerspruechlich, solange
+  ein aelterer gescheiterter Selektionslauf sein 'aktuelles Urteil' ist -- ein spaeterer
+  bestandener Selektionslauf ersetzt ihn nie
+related_pr: PR-0012
+severity: medium
+observed: 'FIELD (synaipse-unified), entries 1542b4c4d303833c: BUG-0001 VERIFIED vs
+  EVD-0025 (old failing selection) while EVD-0028 (passing selection) exists; resolved
+  only by archiving; the same trap waits for BUG-0002.'
+expected: the current verdict for a bug is the NEWEST run of the same scope that names
+  it; a later passing selection supersedes an older failing one.
+repro: see the harvest entries named in `observed`
+acceptance_criteria:
+- id: AC-1
+  text: 'a test: fail(selection) then pass(selection) on the same bug -> no contradiction
+    -- names this bug'
+source: synaipse-unified kit_gaps.jsonl, harvested 2026-09-26 (staging/generation-6/harvest-synaipse-2026-09-26.txt)
+limits: 'Ein korrekt geschlossener Fehler meldet einen Widerspruch. Begrenzt: Umgehung
+  durch Archivieren.'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-26T21:33:56'

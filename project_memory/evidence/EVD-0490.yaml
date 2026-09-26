@@ -1,0 +1,15 @@
+id: EVD-0490
+kind: review
+related:
+- BUG-0313
+result: pass
+summary: 'lead check for diff:e73340c59876cea0efd44d5d1de111c0e294468580b145ca24323dd333a2e845
+  -- state-only commit after e745e55: BUG-0105/0161/0233 verified, synaipse harvest
+  -> BUG-0313..0324, round log'
+artifact_refs:
+- staging/generation-6/harvest-synaipse-2026-09-26.txt
+run_command: git status --short
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-26T21:37:29'

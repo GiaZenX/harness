@@ -39,7 +39,9 @@ limits: 'die Erklärung, auf der Gate 5 entscheidet (`tools/test_surface.json`),
 regression_tests:
 - .claude/hooks/test_gates.py::test_gate5_charges_nothing_to_a_project_whose_suite_runs_in_seconds
 - test_gates.py::test_every_test_file_of_this_repo_lies_under_a_declared_surface
-status: TRIAGED
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0080
 created: '2026-09-05T20:27:54'
+approved_hash: 73dd94d82b679a9df7b8069440e9d34f6859d05809a2a2160536712f0e4ebfd1
+closed_at: '2026-09-26T21:31:33'

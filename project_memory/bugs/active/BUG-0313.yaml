@@ -1,0 +1,33 @@
+id: BUG-0313
+title: 'Die FR-0093-Kostenzeile (''lange Laeufe im Hintergrund, auf die Meldung warten'')
+  kollidiert mit dem Subagenten-Lebenszyklus der Kits: gate_dispatch liest ein Kind,
+  das auf seinen eigenen Hintergrundlauf wartet, als gestoppt -- Folge: FAILED gebucht,
+  Retry, ein ZWEITER Bauer auf denselben Dateien'
+related_pr: PR-0012
+severity: high
+observed: 'FIELD (synaipse-unified), entries e3787f88e90b1259, 815d3f586242165c: TSK-0448:
+  the child started its red run in the background and ended its turn to wait; gate_dispatch
+  refused the lead''s turn end (''no child is on TSK-0448'', child stopped, nothing
+  staged) and named FAILED; the lead booked FAILED, the user approved a retry, and
+  a second builder ran concurrently while the first child resumed on its completion
+  notice, finished CR-0012 (81d7ff7) and submitted. REGRESSION of TSK-0151 (0a79fc5),
+  which put the line word for word into every kit''s order text.'
+expected: The dispatch/stop gates treat a child that waits on its own background command
+  as ALIVE (it has an outstanding background task), or the kits' order line tells
+  a SUBAGENT to run long commands in the foreground with a timeout and keeps the background
+  rule for the LEAD only -- whichever the running path can measure; no FAILED is ever
+  proposed for a child with a pending completion notice.
+repro: see the harvest entries named in `observed`
+acceptance_criteria:
+- id: AC-1
+  text: 'a process test: a child that starts a background run and ends its turn is
+    not reported stopped by gate_dispatch, and the lead''s turn end is not answered
+    with FAILED -- names this bug, red on 2026.09.26-5'
+source: synaipse-unified kit_gaps.jsonl, harvested 2026-09-26 (staging/generation-6/harvest-synaipse-2026-09-26.txt)
+limits: 'Im Feld passiert: ein Auftrag wurde fälschlich als gescheitert gebucht und
+  doppelt gebaut. Begrenzt: der erste Bauer hat trotzdem fertig geliefert; bis zur
+  Korrektur sollen Unteragenten lange Läufe im Vordergrund mit Zeitlimit fahren.'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-26T21:33:41'

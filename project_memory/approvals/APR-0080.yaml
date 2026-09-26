@@ -1,0 +1,11 @@
+id: APR-0080
+kind: verification
+item: null
+revision: null
+subject_manifest_hash: 93b7ea197e57dd07e8bba9626a98ee74ff59219349353ceb0e63f42d8b6476f0
+request_id: 1616abb3b7564c929a3efa22e162fea8
+mint_code: 4a77b7
+minted_via: user_answer_via_approval_hook
+approved_at: '2026-09-26T21:31:23'
+expires: null
+revoked: false

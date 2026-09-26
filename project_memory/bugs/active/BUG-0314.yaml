@@ -1,0 +1,31 @@
+id: BUG-0314
+title: 'Der Lease-Lebenszyklus hat Sackgassen: eine abgelaufene Lease laesst den Auftrag
+  in IN_PROGRESS haengen, und ein Vordergrund-Kind kann sich nie selbst buchen, weil
+  LEASED->IN_PROGRESS erst nach seinem Ende laeuft'
+related_pr: PR-0012
+severity: high
+observed: 'FIELD (synaipse-unified), entries a4660368946a097a, 84eb410f8037d1cf, 4ed998fc5d5b05a7:
+  TSK-0358: ''lease expired -- task returned to READY'' while the task stayed IN_PROGRESS;
+  dispatch then refused (''IN_PROGRESS, not READY''), IN_PROGRESS->READY is illegal.
+  TSK-0437: submit-result refused ''LEASED -- needs IN_PROGRESS''; the promotion runs
+  in the spawn''s PostToolUse, which for a foreground spawn fires only after the child
+  finished -- and the PM skill recommends run_in_background false. sweep-leases then
+  released the committed work to READY with no self-service route back.'
+expected: 'Every lease state has an exit the running roles can take: an expired lease
+  really returns the task to READY (or offers a re-lease that keeps the committed
+  result); a self-path child can book while its lease is LEASED or the promotion happens
+  at spawn start; the PM skill''s foreground default and the lifecycle agree.'
+repro: see the harvest entries named in `observed`
+acceptance_criteria:
+- id: AC-1
+  text: process tests for the three dead ends (expired lease left IN_PROGRESS; foreground
+    self-path child books; swept lease with committed work re-bookable) -- each names
+    this bug, red on 2026.09.26-5
+source: synaipse-unified kit_gaps.jsonl, harvested 2026-09-26 (staging/generation-6/harvest-synaipse-2026-09-26.txt)
+limits: 'Im Feld: Arbeit war fertig und committet, liess sich aber nicht verbuchen;
+  der PM musste von Hand nachtragen. Begrenzt: nichts geht verloren, es kostet Nacharbeit
+  des PM.'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-26T21:33:43'

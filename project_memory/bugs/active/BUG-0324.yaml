@@ -1,0 +1,24 @@
+id: BUG-0324
+title: 'Die Fehlschlag-Klasse (DEC-0107) kann der pruefenden Rolle nie gelingen: waehrend
+  IN_PROGRESS verweigert der Kernel (''nur fuer einen FAILED-Lauf''), nach FAILED
+  verweigert gate_dispatch (keine Lease mehr beim Pruefer)'
+related_pr: PR-0012
+severity: medium
+observed: 'FIELD (synaipse-unified), entries 9252f74bcdf50ed5: TSK-0454 failed only
+  on a delivery-sequence state rule; the verifier tried `mechanical` and was refused
+  in both states.'
+expected: the classification is accepted from the verifying role in the one window
+  the process really has (e.g. with the FAILED transition itself, or by the role whose
+  lease just ended, within its hand-back).
+repro: see the harvest entries named in `observed`
+acceptance_criteria:
+- id: AC-1
+  text: 'a process test: the verifier classifies its failed run as mechanical and
+    the climb counter skips it -- names this bug'
+source: synaipse-unified kit_gaps.jsonl, harvested 2026-09-26 (staging/generation-6/harvest-synaipse-2026-09-26.txt)
+limits: 'Jeder gescheiterte Prüflauf zählt als Fehler des Bauers und kann das Modell
+  unnötig hochstufen. Begrenzt: Kosten, keine falsche Lieferung.'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-26T21:34:01'

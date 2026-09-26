@@ -1,4 +1,4 @@
-generated_at: '2026-09-26T20:49:54'
+generated_at: '2026-09-26T21:37:29'
 items:
 - id: APR-0001
   type: APR
@@ -474,6 +474,12 @@ items:
   status: null
   revision: null
   approval_ref: null
+- id: APR-0080
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
 - id: BUG-0069
   type: BUG
   title: GitHub CI is red on every push -- the delivery suite passes locally but fails
@@ -481,30 +487,10 @@ items:
   status: OPEN
   revision: 1
   approval_ref: null
-- id: BUG-0105
-  type: BUG
-  title: Der Produzent ist als DATEI geschützt, nicht als Verzeichnis
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
 - id: BUG-0139
   type: BUG
   title: 'Das Repo-Gate leiht den Ziel-Leser des Kits, aber nicht dessen Zeilen-Zuweisungskarte:
     `F=…; > $F` schreibt kanonischen Zustand an Gate 1 vorbei — OFFEN (neu, TSK-0070)'
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0161
-  type: BUG
-  title: Die Gates dieses Repos erben die halbe CR-Härtung der Kits — offen, Werkbank,
-    `DEC-0022` (TSK-0084)
-  status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0233
-  type: BUG
-  title: Die Erklärung, auf der Gate 5 entscheidet, liegt ausserhalb seines eigenen
-    Schutzbereichs (neu, TSK-0121, PR-0004 AC-1)
   status: TRIAGED
   revision: 1
   approval_ref: null
@@ -535,6 +521,108 @@ items:
   type: BUG
   title: 'Archivtür (DEC-0117): eine Wegwerf-Testdatei außerhalb des Zustandsordners
     wird als neuer Knoten angenommen'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0313
+  type: BUG
+  title: 'Die FR-0093-Kostenzeile (''lange Laeufe im Hintergrund, auf die Meldung
+    warten'') kollidiert mit dem Subagenten-Lebenszyklus der Kits: gate_dispatch liest
+    ein Kind, das auf seinen eigenen Hintergrundlauf wartet, als gestoppt -- Folge:
+    FAILED gebucht, Retry, ein ZWEITER Bauer auf denselben Dateien'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0314
+  type: BUG
+  title: 'Der Lease-Lebenszyklus hat Sackgassen: eine abgelaufene Lease laesst den
+    Auftrag in IN_PROGRESS haengen, und ein Vordergrund-Kind kann sich nie selbst
+    buchen, weil LEASED->IN_PROGRESS erst nach seinem Ende laeuft'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0315
+  type: BUG
+  title: 'Die Pruefung ''ist die Freigabe verdrahtet'' irrt: report._runs_no_file
+    loest das Argument des _gate.py-Starters gegen die Repo-Wurzel statt gegen das
+    Hooks-Verzeichnis auf -- jede Plan-Frage warnt ''wird nichts freigeben'', obwohl
+    gate_approval registriert ist'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0316
+  type: BUG
+  title: 'Hash und Vertrauen brechen auf einem Windows-Checkout mit autocrlf: hook_bundle_hash
+    und diagram_hash normalisieren CRLF nicht, das Kit liefert keine .gitattributes-Regel
+    dafuer; dazu verweigert gate_write_scope lesende git check-attr/check-ignore und
+    gate_shell_hygiene liest einen Checkout in einem Scratch-Klon als Branchwechsel'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0317
+  type: BUG
+  title: Die V1->V2-Migration importiert offene Auftraege, die nie startbar sind (Abhaengigkeiten
+    als V1-Ids, V1-Rollenwoerter, leere acceptance_refs) -- jede muss storniert und
+    neu angelegt werden
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0318
+  type: BUG
+  title: Der PM schneidet in winzige Scheiben und laesst nach fast jeder pruefen --
+    entgegen der leichten Form (EIN Bauer je Ziel, EIN Pruefer am Ziel, kleine Aenderung
+    ohne eigenen Pruefer, DEC-0087/0088); nichts im Kit bemerkt es, und parallel gebaut
+    wird nie
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0319
+  type: BUG
+  title: 'Die Kit-Update-Nacharbeit hat keine Tueren: die Pending-Liste loeschen,
+    eine Kit-Vorlage uebernehmen, neu ignorierte Dateien aus git nehmen -- alles verweigert;
+    und die Liste meldet Projekt-gegen-Vorlage-Abweichung als Kit-Aenderung (leere
+    Merge-Runde je Update, dazu ein UTF-8-BOM)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0320
+  type: BUG
+  title: 'gate_shell_hygiene: Aufraeumen der eigenen Test-Container (eigenes Compose-Projekt)
+    ist unmoeglich, und die Zustimmung des Nutzers laesst sich nicht registrieren
+    -- rund 8 GB bleiben liegen'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0321
+  type: BUG
+  title: Der Widerspruchs-Check haelt einen VERIFIED-Fehler fuer widerspruechlich,
+    solange ein aelterer gescheiterter Selektionslauf sein 'aktuelles Urteil' ist
+    -- ein spaeterer bestandener Selektionslauf ersetzt ihn nie
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0322
+  type: BUG
+  title: 'Der Architektur-Schritt ist ein Henne-Ei: unter einem grossen Ziel ohne
+    ACCEPTED SR wird genau der Architekten-Auftrag verweigert, der das SR ableiten
+    soll; und ein SR mit einem fremden zweiten Elternteil zaehlt still nicht -- die
+    Verweigerung nennt keins'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0323
+  type: BUG
+  title: 'Handwerks-Gedaechtnis: ein Shell-Schreibzugriff nach `cd` in das Gedaechtnis-Verzeichnis
+    wird nicht gesehen (relative Pfade), und ein Gedaechtnis ueber dem Budget ist
+    aus keiner Sitzung wieder unter das Budget zu bringen'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0324
+  type: BUG
+  title: 'Die Fehlschlag-Klasse (DEC-0107) kann der pruefenden Rolle nie gelingen:
+    waehrend IN_PROGRESS verweigert der Kernel (''nur fuer einen FAILED-Lauf''), nach
+    FAILED verweigert gate_dispatch (keine Lease mehr beim Pruefer)'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -4234,6 +4322,12 @@ items:
   revision: 1
   approval_ref: null
 - id: EVD-0489
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0490
   type: EVD
   title: null
   status: null

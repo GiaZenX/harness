@@ -23,7 +23,9 @@ limits: 'what IS protected is every module the gate really loaded while deriving
   not loaded and so not protected. Bounded because such a file decides nothing until
   something imports it, and that import is a second change standing in the same commit
   diff gate 3 judges.'
-status: TRIAGED
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0080
 created: '2026-09-05T20:22:18'
+approved_hash: c98004fdf1902582a201e4c8db40bab4a13e71d5cd4c40e5547856f2041a0707
+closed_at: '2026-09-26T21:31:26'

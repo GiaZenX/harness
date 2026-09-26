@@ -1,0 +1,26 @@
+id: BUG-0323
+title: 'Handwerks-Gedaechtnis: ein Shell-Schreibzugriff nach `cd` in das Gedaechtnis-Verzeichnis
+  wird nicht gesehen (relative Pfade), und ein Gedaechtnis ueber dem Budget ist aus
+  keiner Sitzung wieder unter das Budget zu bringen'
+related_pr: PR-0012
+severity: medium
+observed: 'FIELD (synaipse-unified), entries c995c06a91035d2d, 9ab362823d864942: TSK-0450''s
+  frontend-developer appended to its agent-memory MEMORY.md via the shell after a
+  cd (gate saw only relative paths); the memory holds 103 topics vs budget 20, guard_memory_budget
+  refuses every Edit while it references items, git restore refused, no route deletes
+  surplus topic files.'
+expected: gate_write_scope places relative words after a cd it can compute (or refuses
+  them like this repo's gate does, H20 class), and a kernel/guard door prunes an over-budget
+  memory to budget (deleting is safe).
+repro: see the harvest entries named in `observed`
+acceptance_criteria:
+- id: AC-1
+  text: 'tests: the cd+append line is refused; the prune door brings a 103-topic memory
+    under budget -- name this bug'
+source: synaipse-unified kit_gaps.jsonl, harvested 2026-09-26 (staging/generation-6/harvest-synaipse-2026-09-26.txt)
+limits: 'Ein Gedächtnis-Eintrag kam am Schutz vorbei, und das übervolle Gedächtnis
+  ist gesperrt. Begrenzt: betrifft nur die Handwerks-Notizen, nicht Code oder Projektakte.'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-26T21:33:59'

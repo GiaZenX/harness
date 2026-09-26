@@ -1,0 +1,35 @@
+id: BUG-0318
+title: Der PM schneidet in winzige Scheiben und laesst nach fast jeder pruefen --
+  entgegen der leichten Form (EIN Bauer je Ziel, EIN Pruefer am Ziel, kleine Aenderung
+  ohne eigenen Pruefer, DEC-0087/0088); nichts im Kit bemerkt es, und parallel gebaut
+  wird nie
+related_pr: PR-0012
+severity: high
+observed: 'FIELD (synaipse-unified), entries : MEASURED by the lead 2026-09-26 in
+  synaipse-unified/project_memory/tasks: after the migration the PM re-created 96
+  orders in 9 minutes (TSK-0363..0458: 36 backend, 14 ui, 11 quality-engineer REVIEW
+  orders, one QA review per SR) and runs them one at a time (leased_at strictly serial);
+  every small UI change of the user (CR-0012..CR-0015, one expected output each) got
+  its own builder order AND its own QA test order. The dev-team PM skill says the
+  opposite (project-manager/SKILL.md step 7: ''no verifier DURING the build ... a
+  small change under an existing goal gets NO separate verifier''), but only as prose;
+  the brief''s lease_distribution line does not flag it.'
+expected: 'The kit notices and says it where the PM decides: (a) at create-task, an
+  order below a goal that already has an open build order, or a QA order for a change
+  with one expected output, gets a fact line (not a refusal) naming DEC-0087/0088;
+  (b) the session brief shows orders per goal and the verifier share; (c) the migration
+  re-cut (previous item) does not reproduce V1 granularity; (d) disjoint goals can
+  run as parallel builders -- the brief names candidates (`check-scopes`).'
+repro: see the harvest entries named in `observed`
+acceptance_criteria:
+- id: AC-1
+  text: 'a test: create-task for a second build order under the same goal, and for
+    a QA order on a one-output change, prints the fact line; the brief carries orders-per-goal
+    -- names this bug'
+source: synaipse-unified kit_gaps.jsonl, harvested 2026-09-26 (staging/generation-6/harvest-synaipse-2026-09-26.txt)
+limits: 'Kostet im Feld Zeit und Tokens: viele kleine Runden statt einer grossen.
+  Begrenzt: die Qualität leidet nicht, nur Tempo und Budget.'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-26T21:33:50'
