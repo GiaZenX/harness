@@ -7,8 +7,9 @@ description: >
   reports can be laid side by side). Checks repo health and scans for new Claude Code / Anthropic
   features and community agent patterns relevant to the harness, then writes a dated, sourced
   report into radar/. Never changes code. Its Friday run is started by a Claude Desktop scheduled
-  task on the maintainer's host (DEC-0089; recorded in radar/routine.json, explained in
-  radar/README.md); its Sunday run is a Codex app Automation the user has not created yet, and
+  task on the maintainer's host, `watcher-duo`, which runs it first and the codex-watcher second
+  (DEC-0089, DEC-0098; recorded in radar/routine.json, explained in radar/README.md); its Codex
+  run is a Codex app Automation on the same Friday evening that the user has not created yet, and
   until both have been recorded the lead starts the missing run with
   tools/radar_routine.py --run claude-watcher when `--due` names it. Nothing in this repository
   starts a run by itself.
@@ -49,10 +50,13 @@ code, config, skills, hooks, or templates, and never run git write commands.
    Filter HARD for relevance to THIS harness: does it improve an enforcement hook, the PM/specialist flow,
    the quality gates, the dashboard, the requirement model (FR/PRD/CR/BUG), the designer flow, or onboarding?
    Skip generic AI news and anything not actionable here.
-   - **TIER TABLE (team-kits/model_tiers.yaml):** when a model/price finding changes what `lead`/
-     `worker`/`light` should map to on the CLAUDE side, add an explicit tier-change PROPOSAL to the
-     report (old -> new + evidence). You never edit the table yourself — re-tiering is always a
-     user decision.
+   - **TIER TABLE (team-kits/model_tiers.yaml):** the table carries no prices (DEC-0114 (3)); per
+     rung it says what the model is SUITED FOR (`suited_for:`, the vendor's words, source, read
+     date). When a finding changes that positioning, or what a rung (`sonnet`/`opus`/`fable`)
+     should map to on the CLAUDE side, add an explicit tier-change PROPOSAL to the report (old ->
+     new + evidence). The claude row passes the names through on purpose, so a new model behind
+     a name is a finding to report, not a defect (DEC-0114 (2)). You never edit the table
+     yourself — re-tiering is always a user decision.
    - **SOURCE-FORMAT DIVERGENCE (standing duty):** the kit SOURCE format is Claude-native (agents
      .md frontmatter, settings.json hook registration) and the Codex layer is GENERATED from it.
      Flag every Claude Code change that alters that source contract (frontmatter fields, hook

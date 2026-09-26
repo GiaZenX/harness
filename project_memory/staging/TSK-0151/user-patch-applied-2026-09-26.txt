@@ -1,0 +1,11 @@
+User patch 2 (staging/TSK-0151/apply_user_patch.py) applied by the user outside Claude Code, measured by the lead 2026-09-26 07:5x:
+
+$ python project_memory/staging/TSK-0151/apply_user_patch.py --check
+  already done 1-6 (lead effort xhigh; FR-0093 order cost lines; claude-/codex-watcher schedule; claude-/codex-watcher tier duty)
+  CHECK ONLY -- 0 site(s) to change.
+$ grep -n "^effort" .claude/agents/harness-lead.md
+  11:effort: xhigh
+$ python -B -m pytest tools/test_radar_trigger.py -q -p no:cacheprovider
+  19 passed in 6.96s
+$ python -B -m pytest .claude/hooks/test_gates.py -q -p no:cacheprovider -k "spawn or role or item"
+  30 passed, 525 deselected in 193.31s

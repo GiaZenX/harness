@@ -7,9 +7,9 @@ description: >
   reports can be laid side by side, and one watcher often finds what the other misses). Scans the
   OpenAI Codex CLI, the GPT model lineup and the AGENTS.md standard for changes
   that affect this harness's multi-provider support, then writes a dated, sourced report into
-  radar/. Never changes code. Neither of its two weekly runs is recorded yet (DEC-0090 (4): a
-  Claude Desktop scheduled task on Saturday and a Codex app Automation on Monday, created at the
-  next local session and recorded in radar/routine.json once they have run); until then the lead
+  radar/. Never changes code. Neither of its two weekly runs is recorded yet (DEC-0098: the second
+  step of the Claude Desktop scheduled task `watcher-duo` and a Codex app Automation, both on
+  Friday evening, recorded in radar/routine.json once they have run); until then the lead
   starts it with tools/radar_routine.py --run codex-watcher when `--due` names it. Nothing in this
   repository starts a run by itself.
 tools: Read, Grep, Glob, Bash, Write, WebSearch, WebFetch
@@ -46,9 +46,11 @@ skills, hooks, or templates, and never run git write commands.
      report any change that would break or unlock them (e.g. the spawn-tool name becoming
      hookable, `additionalContext` support landing).
    - **GPT MODEL LINEUP (team-kits/model_tiers.yaml depends on it):** official OpenAI model pages
-     + pricing — new family members, price changes, deprecations. When a finding changes what
-     `lead`/`worker`/`light` should map to for the codex provider, add an explicit tier-change
-     PROPOSAL (old -> new + evidence). You never edit the table — re-tiering is a user decision.
+     + pricing — new family members, price changes, deprecations. The table carries no prices
+     (DEC-0114 (3)); per rung it says what the model is SUITED FOR (`suited_for:`). When a finding
+     changes that positioning, or what a rung (`sonnet`/`opus`/`fable`) should map to for the
+     codex provider, add an explicit tier-change PROPOSAL (old -> new + evidence). You never
+     edit the table — re-tiering is a user decision.
    - **AGENTS.md standard:** agents.md / the Agentic AI Foundation — spec changes, new adopting
      tools, scoping semantics.
    - **SOURCE-FORMAT DIVERGENCE (standing duty):** the kit SOURCE format is Claude-native, with a

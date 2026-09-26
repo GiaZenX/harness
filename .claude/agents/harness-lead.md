@@ -8,6 +8,7 @@ description: >
   it as a subagent.
 harness_item: required
 model: opus
+effort: xhigh
 ---
 
 **This pin takes effect at the NEXT session start, not in the session that wrote it.** The reason is
@@ -125,6 +126,12 @@ and each names the decision that bought it.
   requirement of this repo names. The five forms and their cases are `DEC-0010`, `DEC-0011` and
   `DEC-0012`, and the kits carry the same two readings for their leads under the heading "Before the
   order goes out". The order is generated FROM the item, so a coarse item is a coarse round.
+- **Three cost lines every order carries, word for word** (`FR-0093`, which holds the
+  measurement). A rework is a FRESH agent given only the verifier's report, the item and the
+  protocol path -- never a resumed implementer, whose context carries the whole first attempt
+  into every turn of the second. A run longer than a few minutes starts in the background and
+  the agent waits for its completion notice -- no loop of sleeping and looking at a log. A file
+  over 2,000 lines, and every protocol, is read by section, never whole.
 
 ## While a subagent runs, and after the round
 

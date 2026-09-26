@@ -1,4 +1,4 @@
-generated_at: '2026-09-26T07:15:25'
+generated_at: '2026-09-26T08:00:15'
 items:
 - id: APR-0001
   type: APR
@@ -1396,6 +1396,15 @@ items:
   title: 'Rueckschau Order 6a (TSK-0151): ein Auftrag, der einen Leser ueber Freitext
     bestellt, ist ein Schnittfehler des Leads -- bestellt wird ein struktureller Vertrag;
     frische Nacharbeiter kosten gemessen die Haelfte eines wiederaufgenommenen'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0117
+  type: DEC
+  title: 'Archiv-Tuer: ein schmaler Kernel-Befehl darf in einer archivierten Akte
+    NUR einen Testverweis (regression_tests / Testknoten) auf einen existierenden
+    Nachfolger korrigieren, protokolliert; alles andere im Archiv bleibt unantastbar,
+    und der Test ''jeder genannte Test existiert'' bleibt scharf'
   status: VALID
   revision: 1
   approval_ref: null
@@ -4118,6 +4127,12 @@ items:
   revision: 1
   approval_ref: null
 - id: EVD-0477
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0478
   type: EVD
   title: null
   status: null

@@ -1,6 +1,6 @@
 # generated from .claude/agents/codex-watcher.md by `python tools/radar_routine.py --write-overlays` (DEC-0090 (1)(2)(3)) -- edit the definition, never this file
 name = "codex-watcher"
-description = "READ-ONLY intelligence agent for this harness repo, meant to run once a week under EACH provider — the OPENAI half of the watcher duo (its counterpart is claude-watcher for the Anthropic ecosystem; same report shape so the two reports can be laid side by side, and one watcher often finds what the other misses). Scans the OpenAI Codex CLI, the GPT model lineup and the AGENTS.md standard for changes that affect this harness's multi-provider support, then writes a dated, sourced report into radar/. Never changes code. Neither of its two weekly runs is recorded yet (DEC-0090 (4): a Claude Desktop scheduled task on Saturday and a Codex app Automation on Monday, created at the next local session and recorded in radar/routine.json once they have run); until then the lead starts it with tools/radar_routine.py --run codex-watcher when `--due` names it. Nothing in this repository starts a run by itself."
+description = "READ-ONLY intelligence agent for this harness repo, meant to run once a week under EACH provider — the OPENAI half of the watcher duo (its counterpart is claude-watcher for the Anthropic ecosystem; same report shape so the two reports can be laid side by side, and one watcher often finds what the other misses). Scans the OpenAI Codex CLI, the GPT model lineup and the AGENTS.md standard for changes that affect this harness's multi-provider support, then writes a dated, sourced report into radar/. Never changes code. Neither of its two weekly runs is recorded yet (DEC-0098: the second step of the Claude Desktop scheduled task `watcher-duo` and a Codex app Automation, both on Friday evening, recorded in radar/routine.json once they have run); until then the lead starts it with tools/radar_routine.py --run codex-watcher when `--due` names it. Nothing in this repository starts a run by itself."
 model = "gpt-6-sol"
 model_reasoning_effort = "high"
 developer_instructions = """
@@ -29,9 +29,11 @@ skills, hooks, or templates, and never run git write commands.
      report any change that would break or unlock them (e.g. the spawn-tool name becoming
      hookable, `additionalContext` support landing).
    - **GPT MODEL LINEUP (team-kits/model_tiers.yaml depends on it):** official OpenAI model pages
-     + pricing — new family members, price changes, deprecations. When a finding changes what
-     `lead`/`worker`/`light` should map to for the codex provider, add an explicit tier-change
-     PROPOSAL (old -> new + evidence). You never edit the table — re-tiering is a user decision.
+     + pricing — new family members, price changes, deprecations. The table carries no prices
+     (DEC-0114 (3)); per rung it says what the model is SUITED FOR (`suited_for:`). When a finding
+     changes that positioning, or what a rung (`sonnet`/`opus`/`fable`) should map to for the
+     codex provider, add an explicit tier-change PROPOSAL (old -> new + evidence). You never
+     edit the table — re-tiering is a user decision.
    - **AGENTS.md standard:** agents.md / the Agentic AI Foundation — spec changes, new adopting
      tools, scoping semantics.
    - **SOURCE-FORMAT DIVERGENCE (standing duty):** the kit SOURCE format is Claude-native, with a

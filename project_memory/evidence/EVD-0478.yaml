@@ -1,0 +1,17 @@
+id: EVD-0478
+kind: review
+related:
+- DEC-0114
+result: pass
+summary: lead measurement of user patch 2 (applied by the user outside Claude Code)
+  for diff:7ff8b516431651e25a83c52bc3e89bfab1b908568b970667e17a49a9ac9f4b2f -- 6/6
+  sites done, harness-lead effort xhigh, watcher texts per DEC-0098/DEC-0114; radar
+  suite 19 passed, gate selection 30 passed
+artifact_refs:
+- staging/TSK-0151/user-patch-applied-2026-09-26.txt
+run_command: python -B -m pytest .claude/hooks/test_gates.py -q -p no:cacheprovider
+  -k "spawn or role or item"
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-26T08:00:13'
