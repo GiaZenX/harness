@@ -30,7 +30,9 @@ source: DEC-0114; radar/2026-09-25-claude-by-claude.md; radar/2026-09-25-codex-b
 limits: 'Nichts ist kaputt: die alten Codex-Modelle laufen noch, und die Claude-Namen
   zeigen schon auf das neueste Modell. Falsch sind die Preisangaben und die oberste
   Claude-Stufe gegenüber deiner Entscheidung vom 25.09.'
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0078
 created: '2026-09-25T15:04:32'
+approved_hash: 2a28b50167c3f3fe375115abeafc1490fda83f07dab208e3defd4284b8c761c0
+closed_at: '2026-09-26T07:14:20'

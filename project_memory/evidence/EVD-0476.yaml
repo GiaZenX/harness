@@ -1,0 +1,14 @@
+id: EVD-0476
+kind: test
+related:
+- BUG-0307
+result: pass
+summary: 'on the committed tree 0a79fc5: the test naming BUG-0307 passes'
+artifact_refs:
+- staging/TSK-0151/protocol.md
+run_command: python -B -m pytest tools/test_radar_trigger.py::test_the_routine_plan_puts_every_watcher_on_one_evening_and_one_task_per_skipping_app_bug_0307
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-25T22:49:02'

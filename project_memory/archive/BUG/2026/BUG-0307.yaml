@@ -25,7 +25,9 @@ source: DEC-0098; radar/routine.json (recorded_by, 2026-09-25)
 limits: 'Nur die Beschreibung ist veraltet: die Desktop-Aufgabe läuft schon richtig
   freitags; wer die Codex-Automationen nach dem Werkzeug anlegt, bekäme falsche Tage
   -- die richtigen Texte hat der Nutzer im Chat bekommen.'
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0078
 created: '2026-09-25T15:04:34'
+approved_hash: decc044f55ed1ebe0f77e28b9956c868d8caf64125525da0135fbde7398b5940
+closed_at: '2026-09-26T07:14:23'

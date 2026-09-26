@@ -1,0 +1,15 @@
+id: EVD-0477
+kind: review
+related:
+- DEC-0116
+result: pass
+summary: 'lead check for diff:91ca155eb0042ecae6d55d0fdfd47e2149ae282482c66234db50b3450a70f797
+  -- state-only commit after 0a79fc5 (no file outside project_memory changed): BUG-0306/0307
+  verified, DEC-0116 retrospective, round log and handover note'
+artifact_refs:
+- staging/generation-6-streams.md
+run_command: git status --short
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-26T07:15:24'

@@ -1,0 +1,20 @@
+id: EVD-0475
+kind: test
+related:
+- BUG-0306
+result: pass
+summary: 'on the committed tree 0a79fc5: the seven tests naming BUG-0306 pass (7 passed)'
+artifact_refs:
+- staging/TSK-0151/protocol.md
+run_command: python -B -m pytest tools/test_ladder.py::test_no_shipped_ladder_answer_reaches_the_top_rung_bug_0306
+  tools/test_ladder.py::test_a_declaration_that_orders_a_capped_rung_below_its_top_is_refused_bug_0306
+  tools/test_ladder.py::test_the_lease_and_the_header_carry_the_answer_for_every_installed_provider_bug_0306
+  tools/test_ladder.py::test_the_installed_providers_are_the_config_list_plus_the_reference_bug_0306
+  tools/test_ladder.py::test_a_start_above_the_capped_top_buys_no_effort_at_fail_0_bug_0306
+  tools/test_model_ladder.py::test_the_tier_table_carries_no_price_and_says_what_each_rung_is_for_bug_0306
+  tools/test_model_ladder.py::test_every_kit_settings_names_the_tier_its_bound_lead_pins_bug_0306
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-25T22:48:59'
