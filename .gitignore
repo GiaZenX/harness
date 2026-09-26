@@ -21,6 +21,11 @@ __pycache__/
 
 # Logs
 *.log
+# ...except the ones under the state tree: an Evidence record's `artifact_refs` point there
+# (`staging/<item>/run.log`), and an ignored file never reaches a checkout -- the hosted CI then
+# found every such ref dangling while every local run was green (BUG-0069, run 36187576523).
+# `tools/test_repo_hygiene.py::test_no_artifact_ref_points_at_a_file_git_ignores_bug_0069`
+!project_memory/**/*.log
 
 # Stray runtime state a measurement run drops into the repo root. Both landed in
 # b32ec98 because nothing ignored them: a PowerShell module cache (a subagent ran with

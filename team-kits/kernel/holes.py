@@ -46,6 +46,7 @@ from .backlog_types import (
     HOLE_LIMIT_FIELD,
     HOLE_NUMBER_FIELD,
     HOLE_TEST_FIELD,
+    TEST_REF_AMENDMENTS_FIELD,
 )
 from .state import ProjectState
 
@@ -341,11 +342,26 @@ def _assert_it_is_the_same_hole(name, existing, fields):
            str(existing.get(differing[0]) or "")[:120], str(fields.get(differing[0]) or "")[:120]))
 
 
+def _amendment_note(item) -> str:
+    """What the Stand cell adds for a hole whose test reference the archive door corrected.
+
+    DEC-0117 (2): the hole list shows every use of the door. The newest record's date and the count
+    are enough for a row; who and why stand in the item's own record.
+    `tools/test_archive_door.py::test_the_hole_list_shows_the_correction`
+    """
+    records = [one for one in (item.get(TEST_REF_AMENDMENTS_FIELD) or []) if isinstance(one, dict)]
+    if not records:
+        return ""
+    return "Testverweis korrigiert %s (%dx)" % (str(records[-1].get("at") or "?")[:10],
+                                               len(records))
+
+
 def index_rows(state):
-    """[(H number, item id, status, title)] for every hole the STORE carries, sorted by number.
+    """[(H number, item id, status, title, note)] for every hole the STORE carries, by number.
 
     THE INDEX IS GENERATED FROM THE ITEMS and from nothing else -- that is the whole point of the
     migration. A reader falling back to the document would be the second list FR-0087 forbids.
+    `note` is `_amendment_note`'s, "" for every hole the archive door never touched.
     """
     rows = []
     with state.lock:
@@ -354,7 +370,7 @@ def index_rows(state):
             if not number:
                 continue
             rows.append((number, str(item.get("id")), str(item.get("status") or "-"),
-                         str(item.get("title") or "")))
+                         str(item.get("title") or ""), _amendment_note(item)))
     return sorted(rows, key=lambda row: int(row[0][1:]) if row[0][1:].isdigit() else 0)
 
 
@@ -401,9 +417,10 @@ def render_index(state, holes_dir=DEFAULT_HOLES_DIR):
         "| Loch | Item | Stand | Titel |",
         "|---|---|---|---|",
     ]
-    for number, item_id, status, title in index_rows(state):
+    for number, item_id, status, title, note in index_rows(state):
         lines.append("| %s | %s | %s | %s |"
-                     % (_prose_link(repo, holes_dir, number), item_id, status,
+                     % (_prose_link(repo, holes_dir, number), item_id,
+                        "%s; %s" % (status, note) if note else status,
                         title.replace("|", "/")))
     lines.append("")
     return lines

@@ -1,0 +1,4 @@
+python -B -m pytest tools/test_close_measured_pass.py::test_the_evidence_comes_from_the_tests_that_name_the_bug_and_from_no_other_node -q
+
+.                                                                        [100%]
+1 passed in 0.67s

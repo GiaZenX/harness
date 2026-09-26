@@ -96,7 +96,9 @@ Abbrechen fehlen in dessen Python-SDK, alle acht Pflicht-Nachweise H01–H08 ste
 
 Gebaut ist davon heute vor allem: Chat mit lokalen Modellen (Ollama), Chat-Speicher mit Modell je
 Nachricht, Dokumente/RAG, Regeln für ausgehende Verbindungen. Entwickelt wird es mit dem Entwickler-Kit
-dieses Repos — **noch in der alten Fassung 2026.07.18-3** (vor V2).
+dieses Repos, seit 2026-09-25 in der Fassung 2026.09.13-6 (Angabe des synaipse-PM; die Durchsicht hatte
+eine veraltete Datei mit 2026.07.18-3 gelesen). Erstes gemeinsames Stück: das Kommentar-Werkzeug für
+Vorschauen — synaipse baut es eigenständig (dort PR-0031), das Kit übernimmt es später (FR-0094).
 
 **Das korrigiert mein erstes Bild:** Synaipse ist nicht „nur die Oberfläche“, sondern **das ganze
 Programm** — inklusive eigener Harness-Schnittstelle, Anbieter-Verwaltung und Agenten-Teams. Die Frage
@@ -116,8 +118,9 @@ feste Schnittstelle eingesteckt.**
 - **Warum getrennt:** beide ändern sich ständig; getrennt behält jedes seinen Takt, solange die
   Schnittstelle stabil bleibt. Vereinen lässt sich später immer noch (ein Installer, der beides
   mitbringt), umgekehrt ist es schwer.
-- **Erster kleiner Schritt:** synaipse-unified auf das aktuelle Kit heben; dann sieht Synaipse bei der
-  eigenen Entwicklung schon den Motor, den es später einsteckt.
+- **Erster gemeinsamer Schritt ist schon vereinbart:** das Kommentar-Werkzeug für Vorschauen (synaipse
+  PR-0031 baut es eigenständig, das Kit übernimmt es als FR-0094). Das ist zugleich die erste Probe der
+  Schnittstelle „getrennt bauen, über Dateien verbinden“.
 
 ## 5a. Eine Vorlage für alle — statt .md hier, .toml dort
 
@@ -172,9 +175,6 @@ ACP überträgt den Chat nicht von einem Harness zum anderen — dafür bleibt d
 | **E4** | **Drittes Harness als Kit-Ziel** (Kimi CLI oder Qwen Code), Neuentscheidung des Quellformats vom 14.07. | Ob die Kit-Quelle Claude-nativ bleibt oder neutral wird | Wochen |
 | **E5** | App-Politur: Desktop-Hülle, Einstellungen, Tarif-Übersicht | Nutzbar im Alltag | offen |
 
-Vorher (klein, sofort sinnvoll): **synaipse-unified auf das aktuelle Kit heben** — sonst arbeitet das
-Programm, das den Motor später benutzen soll, mit einer zwei Monate alten Fassung davon.
-
 ## 7. Offene Fragen an dich
 
 1. Ist die Aufteilung **Synaipse = das Programm, AgentAndSkills = sein Team-Kit-Modul (P6/P8)** so richtig?
@@ -182,7 +182,8 @@ Programm, das den Motor später benutzen soll, mit einer zwei Monate alten Fassu
 2. Soll E0 mit **Kimi** (Abo) oder **DeepSeek** (API) anfangen? Und welches lokale Modell hast du oder willst du?
 3. Soll Synaipse ein **Browser-Programm** bleiben oder eine **Desktop-App** werden (M4 ist dort geplant)?
 4. Welches **dritte Harness** ist dir wichtiger: Kimi CLI (dein Abo), Qwen Code, Gemini CLI?
-5. Darf synaipse-unified jetzt auf das aktuelle Kit gehoben werden?
+5. ~~Darf synaipse-unified auf das aktuelle Kit gehoben werden?~~ Erledigt: synaipse läuft seit 2026-09-25
+   auf 2026.09.13-6. Die heutige Fassung (2026.09.25-6, neue Modell-Stufen) kommt beim nächsten Sitzungsstart dort an.
 
 ## 8. Risiken
 

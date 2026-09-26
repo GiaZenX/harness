@@ -1,0 +1,4 @@
+python -B -m pytest tools/test_report.py::test_the_session_brief_shows_the_rung_and_effort_a_lease_wrote_on_the_task -q
+
+.                                                                        [100%]
+1 passed in 1.48s

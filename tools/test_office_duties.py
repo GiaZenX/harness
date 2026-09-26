@@ -38,6 +38,41 @@ LEDGER_HEADER = ("id,doc_date,payment_date,direction,doc_type,counterparty,invoi
                  "vat_rate,gross,vat_treatment,category,source,reverses,note\n")
 
 
+def _imports_zoneinfo(path):
+    """Does this file import `zoneinfo` anywhere -- parsed, so a mention in prose does not count."""
+    with open(path, encoding="utf-8") as handle:
+        tree = ast.parse(handle.read())
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import) and any(one.name == "zoneinfo" for one in node.names):
+            return True
+        if isinstance(node, ast.ImportFrom) and node.module == "zoneinfo":
+            return True
+    return False
+
+
+def test_the_office_requirements_carry_the_time_zone_database_zoneinfo_reads_bug_0069():
+    """BUG-0069, the office half of hosted run 36187576523: windows-latest failed
+    `test_the_register_reads_the_business_time_zone_and_names_one_it_cannot_resolve` with
+    ZoneInfoNotFoundError for both zones, and so would every Windows machine the office kit runs on.
+
+    `zoneinfo` reads the system's time-zone database and, where the system has none -- Windows --
+    the `tzdata` package; the CI installs exactly `requirements-office.txt`, and that file did not
+    name it. So a kit file that imports `zoneinfo` owes `tzdata` in the requirements it ships.
+    """
+    importers = sorted(os.path.relpath(os.path.join(directory, name), TEAM_KITS)
+                       for top in (OFFICE_HOOKS, OFFICE_SCRIPTS)
+                       for directory, _dirs, names in os.walk(top)
+                       for name in names
+                       if name.endswith(".py") and _imports_zoneinfo(os.path.join(directory, name)))
+    assert importers, "no office file imports zoneinfo any more -- this test has no subject"
+    with open(os.path.join(os.path.dirname(OFFICE_SCRIPTS), "requirements-office.txt"),
+              encoding="utf-8") as handle:
+        wanted = {line.split("#")[0].split()[0].lower() for line in handle
+                  if line.split("#")[0].strip()}
+    assert "tzdata" in wanted, ("%s import zoneinfo, and requirements-office.txt names no tzdata "
+                                "-- on Windows no business time zone resolves" % importers)
+
+
 def duties_module():
     return load_kit_module("office_duties", os.path.join(OFFICE_HOOKS, "_duties.py"))
 

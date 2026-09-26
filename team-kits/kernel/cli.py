@@ -49,7 +49,8 @@ import subprocess
 import sys
 import time
 
-from . import (approvals, board, checkpoints, dispatch, documents, duties, filing, gaplog,
+from . import (approvals, archive_door, board, checkpoints, dispatch, documents, duties, filing,
+               gaplog,
                hashing, holes, kitupdate, migrate, plan_diagram, presets, report, scopes,
                staging)
 from .backlog_types import (
@@ -70,6 +71,7 @@ from .backlog_types import (
     REQUIRED_FIELDS,
     RUN_SCOPES,
     TASK_TYPES,
+    TEST_REF_AMENDMENTS_FIELD,
     TransitionError,
     area_segments,
     field_elements,
@@ -1129,6 +1131,21 @@ def build_parser() -> argparse.ArgumentParser:
                                 "uebermittelt\")")
     archive = sub.add_parser("archive", help="move a terminal item to archive/")
     archive.add_argument("item_id")
+    # THE ARCHIVE DOOR (DEC-0117): one test reference of an ARCHIVED item follows a rename, and
+    # every refusal the decision names is `kernel.archive_door`'s -- this is only the surface.
+    door = sub.add_parser(
+        archive_door.COMMAND,
+        help="correct ONE test reference of an archived item: the old node resolves nowhere, the "
+             "new one resolves now; recorded with who/when/why (DEC-0117)")
+    door.add_argument("item_id")
+    door.add_argument("--old", required=True, metavar="NODE", help="the node the item names now")
+    door.add_argument("--new", required=True, metavar="NODE",
+                      help="the node it should name: `<path/test_x.py>::<test_name>`, the "
+                           "path relative to the checkout root and outside the state directory")
+    door.add_argument("--reason", required=True, help="why the reference moved")
+    door.add_argument("--by", required=True, help="who corrects it (a role or a person)")
+    door.add_argument("--field", default=archive_door.TEST_REFERENCE_FIELD,
+                      help="the test-reference field (default %(default)s)")
     # THE PRE-DISPATCH CHECK OF THE CUT (DEC-0062 (1)/(2), stream D requirement C-1). On the
     # kernel's own surface and not as a repo script, for the reason `kernel.scopes` gives: from a
     # skill directory there is no executable route at all (`gate_write_scope` refuses it, measured
@@ -2163,6 +2180,24 @@ def main(argv=None) -> int:
             return 0
         if args.command == "archive":
             print(state.archive(args.item_id))
+            return 0
+        if args.command == archive_door.COMMAND:
+            amended = archive_door.amend_test_ref(state, args.item_id, args.old, args.new,
+                                                  args.reason, args.by, field=args.field)
+            last = amended[TEST_REF_AMENDMENTS_FIELD][-1]
+            print("%s %s: %s -> %s (%s, %s)" % (args.item_id, last["field"], last["old"],
+                                               last["new"], last["by"], last["at"]))
+            # THE HOLE LIST SHOWS THE CORRECTION (DEC-0117 (2)), so a hole item's document index is
+            # regenerated here -- the same writer `migrate-holes --reindex` runs, and only where
+            # this project carries that document.
+            document = holes.document_for(state)
+            if amended.get(HOLE_NUMBER_FIELD) and os.path.isfile(document):
+                try:
+                    print(holes.reindex(state, document))
+                except SystemExit as exc:
+                    print("the item is corrected, the hole index is NOT: %s -- run `%s "
+                          "migrate-holes --reindex`" % (exc, INVOCATION))
+                    return 1
             return 0
         if args.command == "sweep-leases":
             # BOTH ways a lease comes back, because the remedy line that sends a role here does

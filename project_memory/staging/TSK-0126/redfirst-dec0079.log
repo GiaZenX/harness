@@ -1,0 +1,33 @@
+
+===== SHIPPED (DEC-0079 in place) =====
+  dev-team       origin=root live=none    | live system/active: True  | VERDICT: REFUSED -- TSK-0001 hangs from PR-0001 (class 'normal'), and no SR in status ACCEPTED hangs
+  dev-team       origin=root live=rmdir   | live system/active: False | VERDICT: REFUSED -- TSK-0001 hangs from PR-0001 (class 'normal'), and no SR in status ACCEPTED hangs
+  office-team    origin=root live=none    | live system/active: False | VERDICT: not asked
+  office-team    origin=root live=mkdir   | live system/active: True  | VERDICT: not asked
+  office-team    origin=root live=sr      | live system/active: True  | VERDICT: not asked
+  office-team    origin=root live=capture | capture SR rc 2 | live system/active: False | VERDICT: not asked
+  research-team  origin=root live=none    | live system/active: False | VERDICT: not asked
+  research-team  origin=HYP  live=none    | live system/active: False | VERDICT: not asked
+  research-team  origin=EXP  live=none    | live system/active: False | VERDICT: not asked
+
+===== MUTATED (the DEC-0079 exemption removed) =====
+  dev-team       origin=root live=none    | live system/active: True  | VERDICT: REFUSED -- TSK-0001 hangs from PR-0001 (class 'normal'), and no SR in status ACCEPTED hangs
+  dev-team       origin=root live=rmdir   | live system/active: False | VERDICT: REFUSED -- TSK-0001 hangs from PR-0001 (class 'normal'), and no SR in status ACCEPTED hangs
+  office-team    origin=root live=none    | live system/active: False | VERDICT: REFUSED -- TSK-0001 hangs from PROC-0001 (class 'normal'), and no SR in status ACCEPTED han
+  office-team    origin=root live=mkdir   | live system/active: True  | VERDICT: REFUSED -- TSK-0001 hangs from PROC-0001 (class 'normal'), and no SR in status ACCEPTED han
+  office-team    origin=root live=sr      | live system/active: True  | VERDICT: REFUSED -- TSK-0001 hangs from PROC-0001 (class 'normal'), and no SR in status ACCEPTED han
+  office-team    origin=root live=capture | capture SR rc 2 | live system/active: False | VERDICT: REFUSED -- TSK-0001 hangs from PROC-0001 (class 'normal'), and no SR in status ACCEPTED han
+  research-team  origin=root live=none    | live system/active: False | VERDICT: REFUSED -- TSK-0001 hangs from RQ-0001 (class 'normal'), and no SR in status ACCEPTED hangs
+  research-team  origin=HYP  live=none    | live system/active: False | VERDICT: REFUSED -- TSK-0001 hangs from RQ-0001 (class 'normal'), and no SR in status ACCEPTED hangs
+  research-team  origin=EXP  live=none    | live system/active: False | VERDICT: not asked
+
+===== RESTORED =====
+  dev-team       origin=root live=none    | live system/active: True  | VERDICT: REFUSED -- TSK-0001 hangs from PR-0001 (class 'normal'), and no SR in status ACCEPTED hangs
+  dev-team       origin=root live=rmdir   | live system/active: False | VERDICT: REFUSED -- TSK-0001 hangs from PR-0001 (class 'normal'), and no SR in status ACCEPTED hangs
+  office-team    origin=root live=none    | live system/active: False | VERDICT: not asked
+  office-team    origin=root live=mkdir   | live system/active: True  | VERDICT: not asked
+  office-team    origin=root live=sr      | live system/active: True  | VERDICT: not asked
+  office-team    origin=root live=capture | capture SR rc 2 | live system/active: False | VERDICT: not asked
+  research-team  origin=root live=none    | live system/active: False | VERDICT: not asked
+  research-team  origin=HYP  live=none    | live system/active: False | VERDICT: not asked
+  research-team  origin=EXP  live=none    | live system/active: False | VERDICT: not asked

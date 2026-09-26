@@ -521,6 +521,53 @@ def test_the_lease_and_the_header_carry_the_answer_for_every_installed_provider_
     assert upcoming[reference][dispatch.RUNG_KEY] == header[dispatch.RUNG_KEY] != fable, upcoming
 
 
+def test_the_lease_distribution_names_the_provider_whose_rung_it_counts_bug_0308(store):
+    """BUG-0308 / H221: on a project installed for Claude AND Codex, an order that climbed is
+    counted in the lease distribution under EACH provider's own rung, and the rollup says which
+    provider its top-level `rungs` are.
+
+    MEASURED BEFORE (TSK-0151 rework 2): the task kept only `lease_rung`/`lease_effort`, the
+    reference platform's pair, so after three failed runs a build order leased `gpt-6-astra`
+    (the Codex top) was counted under the capped Claude rung, and nothing in the rollup named the
+    platform. Driven through the kernel's own `dispatch` command (the path that writes the task),
+    then read the way the session brief and the spawn gate's checkpoint read it
+    (`report.lease_distribution`)."""
+    from kernel import report
+
+    fable = _reference_top_rung()
+    reference = dispatch.provider_tiers(TEAM_KITS)[0]
+    store.kit("dev-h221", ladder=shipped_ladder("dev-team"))
+    pins = {role: str(dispatch.role_pin(os.path.join(TEAM_KITS, "dev-team", "agents"), role))
+            for role in shipped_ladder("dev-team")["roles"]}
+    env = dict(os.environ, HOME=str(store.home), USERPROFILE=str(store.home), PYTHONPATH=TEAM_KITS)
+    state, pr = store.project("p-h221", "dev-h221", pins)
+    write(os.path.join(state.root, dispatch.CONFIG_FILE),
+          yaml.safe_dump({"project": {"name": "x"}, "providers": ["claude", "codex"]}))
+    order = store.order(state, pr, role="backend-developer")
+    for _run in range(3):
+        drive_task_to(state, order["id"], "FAILED")
+        state.transition(order["id"], "READY", approved_retry=True)
+    leased = subprocess.run([sys.executable, "-B", "-m", "kernel.cli", "--root", state.root,
+                             "dispatch", order["id"]], capture_output=True, text=True,
+                            encoding="utf-8", env=env, timeout=120)
+    assert leased.returncode == 0, leased.stdout + leased.stderr
+    drive_task_to(state, order["id"], "SUBMITTED")
+    task = state.read_item(order["id"])
+    assert task[dispatch.LEASE_PROVIDER_FIELD] == reference, task
+    codex_rung = task[dispatch.LEASE_PROVIDERS_FIELD]["codex"][dispatch.RUNG_KEY]
+    assert codex_rung == fable != task[dispatch.LEASE_RUNG_FIELD], task
+
+    shown = report.lease_distribution(state)
+    assert shown["counted_provider"] == [reference], shown
+    assert shown["rungs"] == {task[dispatch.LEASE_RUNG_FIELD]: 1}, shown
+    assert shown["by_provider"]["codex"]["rungs"] == {fable: 1}, shown
+    codex_effort = task[dispatch.LEASE_PROVIDERS_FIELD]["codex"][dispatch.EFFORT_KEY]
+    assert shown["by_provider"]["codex"]["efforts"] == {str(codex_effort): 1}, shown
+    assert shown["by_provider"]["codex"]["runs_to_hand_back_per_rung"] == {fable: 4.0}, shown
+    assert "counted as answered for %s" % reference in shown["line"], shown["line"]
+    assert "codex rungs %s x 1" % fable in shown["line"], shown["line"]
+
+
 def test_the_installed_providers_are_the_config_list_plus_the_reference_bug_0306(store):
     """BUG-0306 / DEC-0114 (4): which providers a lease answers for (`dispatch.installed_providers`)
     -- the reference row whether the config lists it or not, the listed names trimmed and

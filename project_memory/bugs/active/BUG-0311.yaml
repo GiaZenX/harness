@@ -1,0 +1,31 @@
+id: BUG-0311
+title: 'Feld: update-kit bricht ab, wenn .claude/settings.local.json ein (leerer)
+  ORDNER statt einer Datei ist -- und die Sitzung darf ihn nicht entfernen'
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-26 (synaipse-unified): `.claude/settings.local.json` was
+  an EMPTY DIRECTORY (created 2026-09-12 13:57). The update to 2026.09.25-6 aborted
+  on it (synaipse PM), and the session may not remove anything under .claude (gate_write_scope).
+  The lead removed the empty directory from outside that project (rmdir) on 2026-09-26
+  ~08:5x.'
+expected: 'update-kit / scaffold treat a path they expect as a FILE but find as a
+  directory explicitly: an EMPTY directory is removed and the step continues (it carries
+  nothing); a non-empty one refuses with the exact remedy the user runs outside the
+  session. Plus: find who creates such a directory (a tool that mkdir-s a settings
+  path).'
+repro: mkdir .claude/settings.local.json in an installed project, then update-kit
+  -> abort.
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: update-kit over an empty directory at .claude/settings.local.json completes;
+    over a non-empty one it refuses with a remedy line -- a test naming this bug,
+    red on 2026.09.25-6
+source: synaipse-unified PM report relayed by the user 2026-09-26; lead's read-only
+  measurement
+limits: 'Im Feld blockiert: das Kit-Update lief nicht durch, bis der leere Ordner
+  von außen entfernt war. Begrenzt: nichts wird falsch installiert -- das Update bricht
+  vorher ab.'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-26T08:41:58'

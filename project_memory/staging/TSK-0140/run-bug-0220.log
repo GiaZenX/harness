@@ -1,0 +1,4 @@
+python -B -m pytest tools/test_parallel_streams.py::test_the_shipped_routine_module_claims_no_cadence_for_a_text_it_does_not_own -q
+
+.                                                                        [100%]
+1 passed in 0.67s

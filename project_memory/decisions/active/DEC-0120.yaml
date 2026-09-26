@@ -1,0 +1,29 @@
+id: DEC-0120
+title: 'H47: Gate 1 dieses Repos lehnt eine Umleitung ab, deren Ziel eine Variable
+  enthaelt -- es loest sie nicht auf (Richtung (c) der Klassenfrage aus TSK-0152)'
+context: 'TSK-0152 protocol section 6, MEASURED 2026-09-26 as gate-1 processes: `F=team-kits/kernel/state.py;
+  echo x > $F` rc 0, `... > "$F"` rc 0, `F=project_memory/generated/index.yaml; echo
+  x > $F` rc 0 for every caller (canonical state). Mechanism: `_harness._could_name_a_path`
+  reads a word as a possible path only with a separator or in program position; a
+  redirect TARGET is neither. The kits resolve such variables since TSK-0070. Asked
+  with three options (shared reader / own copy / refuse), the user chose ''Ablehnen''
+  (the builder''s and the lead''s recommendation).'
+decision: '(1) The redirect target of a write-capable stage is ALWAYS a path, so gate
+  1 of this repo refuses a redirect whose target carries a shell expansion (`$`, backtick,
+  `$(`) instead of resolving it -- the same answer the gate already gives a word it
+  cannot place. (2) No second copy of the kits'' resolver, no change to the kits''
+  shared reader. (3) Cost accepted: harmless lines like `echo x > $LOG` are refused;
+  the remedy text says to spell the path. (4) Built as a patch site of the user''s
+  next patch (the gate is the user''s file) with a test in .claude/hooks/test_gates.py
+  naming BUG-0139, red before the patch and green after.'
+consequences: 'Closes the last measured path from a variable into canonical state
+  at this repo''s gate. Rejected: (a) shared reader (changes what the kits allow in
+  every project), (b) own copy (two versions of one rule drift).'
+work:
+- PR-0012
+source: project_memory/staging/TSK-0152/protocol.md section 6; user answer 2026-09-26
+  ~16:3x; DEC-0070 rule 2
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-26T16:48:30'

@@ -39,6 +39,7 @@ def make_brief(**overrides):
         "standing_decisions": [{"id": "DEC-0001", "title": "Local-only", "decision": "SQLite, no cloud"}],
         # the shape `report.lease_distribution` writes (DEC-0092 (4)); required, like every section
         "lease_distribution": {"window": 10, "orders": 0, "goals_with_builders": 0,
+                               "counted_provider": [], "by_provider": {},
                                "builders_per_goal": {}, "rungs": {}, "efforts": {},
                                "runs_to_hand_back_per_rung": {}, "runs_to_hand_back_per_effort": {},
                                "line": "no lease recorded in this project yet -- no habit to show"},

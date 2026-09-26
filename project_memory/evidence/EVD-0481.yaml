@@ -1,0 +1,16 @@
+id: EVD-0481
+kind: test
+related:
+- BUG-0264
+- TSK-0152
+result: pass
+summary: 'BUG-0264/H182: gate 2 decides the exemption on the frontmatter key alone,
+  whatever the prose says (structural, DEC-0116; no prose reader). 1 passed.'
+artifact_refs:
+- staging/TSK-0152/evd-bug-0264.log
+run_command: python -B -m pytest ".claude/hooks/test_gates.py::test_gate2_decides_the_exemption_on_the_frontmatter_key_whatever_the_prose_says"
+  -q -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-26T16:27:10'

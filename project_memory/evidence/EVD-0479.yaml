@@ -1,0 +1,19 @@
+id: EVD-0479
+kind: test
+related:
+- BUG-0305
+- TSK-0152
+result: pass
+summary: 'BUG-0305/H220 closed on the kit gate: read-only stages behind a known prefix
+  option are no longer read as writes (3 kits), BUG-0304 attack lines stay refused;
+  tripwire over _PREFIX_OPTIONS both ends. 7 passed, 1 skipped (sudo absent on this
+  host).'
+artifact_refs:
+- staging/TSK-0152/evd-bug-0305.log
+run_command: python -B -m pytest "tools/test_hooks.py::test_a_read_only_stage_behind_a_known_prefix_option_is_not_read_as_a_write"
+  "tools/test_hooks.py::test_every_known_prefix_option_is_needed_and_is_what_the_real_program_does"
+  -q -p no:cacheprovider -rs
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-26T16:26:58'

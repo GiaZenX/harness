@@ -1,0 +1,16 @@
+id: EVD-0483
+kind: test
+related:
+- TSK-0152
+result: pass
+summary: 'TSK-0152 delivery run of tools/ after the finish fixes (archive door vs
+  the status-write reader, the board writer contract and the command-surface lists):
+  5188 passed, 15 skipped, exit 0 (1:27:19). Gate suite separately: 5 red = 4 patch-pending
+  (BUG-0105/0233/0161) + H138/H155 door lines, see protocol section 9.'
+artifact_refs:
+- staging/TSK-0152/full-run-final.txt
+run_command: DELIVERY_RUN=TSK-0152 python -B -m pytest tools/ -q -p no:cacheprovider
+run_scope: full
+revision: 1
+approval_ref: null
+created: '2026-09-26T16:27:18'

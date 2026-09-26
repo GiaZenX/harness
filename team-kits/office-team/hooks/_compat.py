@@ -405,6 +405,53 @@ def last_tool():
     return str(data.get("tool_name") or "")
 
 
+# WHAT A COMMAND LINE LOSES BEFORE ITS SHELL PARSES IT — the one thing that makes a gate's whole
+# reading worthless, because the text it judges is then not the text that runs. Measured 2026-08-24
+# by having each gated shell print a string back and comparing the BYTES, over every C0 control
+# character, DEL, U+0085, U+2028 and U+2029: exactly ONE character of that class does not arrive,
+# the CARRIAGE RETURN on the `Bash` rail. PowerShell keeps all of them. A CR that is part of a CRLF
+# is not in this class of trouble: it is dropped and the LF that follows it stays the break it was,
+# so the gate's reading and the shell's agree — measured, `A<CRLF>B` arrives as `A<LF>B`.
+#
+# WHO DELETES IT IS THE SHELL'S OWN INPUT READER, not the tool — and this line used to say the
+# opposite, which hid a PLATFORM BINDING. Measured with no tool involved at all: `bash -c <line>`,
+# the line on stdin with and without `-s`, and a script FILE all print `AB`, while a CR that bash
+# BUILDS itself survives as `A<CR>B`. That was msys bash 5.2.37 on Windows, which is the only bash
+# this host has; the scaffold also installs on macOS and Linux, where a POSIX bash keeps a bare CR
+# as an ordinary character of a word. THE REFUSAL IS RIGHT ON BOTH, for two different reasons, and
+# only the first is measured here: where the CR is deleted, two words WELD (`project_mem<CR>ory/...`
+# is one canonical path to that bash and two harmless words to this reader — rc 0 through the whole
+# registered chain, rc 0 from bash, the item overwritten); where it is kept, this reader still ends
+# a statement at it and the shell does not, so the two disagree the other way round. On such a
+# platform the entry is an OVER-refusal rather than a closed weld, and the key is the TOOL because
+# that is what says which shell receives the line.
+#
+# WHY THIS IS A REFUSAL AND NOT A REPAIR. Deleting the CR here would give this reader that bash's
+# view and lose PowerShell's, and it cannot be had both ways in one text, because a weld crosses a
+# WORD boundary — the second reading would be a second tokenisation of the whole line, which is a
+# change in the gates and not in this door. A bare CR in a command line is also not a thing a person
+# writes: it is not how any editor spells a line end. So the honest answer is that the call could
+# not be inspected — the same door, one step further in, that `_kernel.payload` already refuses
+# an unreadable payload through. SHARED HERE and not kept in `_kernel`: this repository's own gates
+# borrow this reader and not that door, and inherited only half of the CR hardening while the rule
+# lived there (BUG-0161 / H69).
+EATEN_IN_FLIGHT = {"Bash": re.compile(r"\r(?!\n)")}
+
+
+def eaten_in_flight(data):
+    """How the character this call's tool deletes on the way to its shell reads, or "".
+
+    A property of the TOOL, not of the text: `EATEN_IN_FLIGHT` carries which characters those are
+    and the measurement behind them. Answers "" for every payload without a shell command, so an
+    `Edit` or a spawn passes through untouched.
+    """
+    rx = EATEN_IN_FLIGHT.get(gated_shell(data.get("tool_name")))
+    if rx is None:
+        return ""
+    match = rx.search(str((data.get("tool_input") or {}).get("command") or ""))
+    return "" if match is None else "U+%04X" % ord(match.group()[0])
+
+
 def gated_shell(tool=None):
     """The gated shell tool a command text will run under — the caller's word, else the payload's.
 
@@ -1104,7 +1151,7 @@ def join_line_continuations(text, tool=None):
     here used to claim it decided a refusal. It follows the shell: a token the shell puts back
     together must not then be cut by the break that join leaves behind. What it no longer decides
     is any verdict this repo can measure: with the continuation tool-dependent above and a line the
-    Bash tool mangles refused outright (`_kernel._EATEN_IN_FLIGHT`), the four lines that used to
+    Bash tool mangles refused outright (`_compat.EATEN_IN_FLIGHT`), the four lines that used to
     separate the two orders are rc 2 under BOTH of them, measured against a real gate process. The
     order therefore stays because it is right, not because something falls over without it — and
     the text-level property it does carry is

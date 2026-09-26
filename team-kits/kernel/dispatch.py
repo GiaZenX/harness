@@ -134,6 +134,16 @@ LADDER_KEY = "ladder"
 LEASE_RUNG_FIELD = "lease_rung"
 LEASE_EFFORT_FIELD = "lease_effort"
 LEASE_CLASS_FIELD = "lease_class"
+# ...AND WHOSE ANSWER THOSE TWO ARE, plus every installed provider's own (BUG-0308 / H221). The two
+# fields above stay the REFERENCE platform's -- the pair its spawn gate holds -- and on a project
+# installed for several providers they are not the rung a Codex lead worked on. So the task also
+# keeps the reference's name and the per-provider {rung, effort} the lease carried
+# (`PROVIDERS_KEY`), and `report.lease_distribution` counts each provider under its own name.
+# Which client RAN the order is still not known here (no client marker is measured); the rollup
+# counts what each provider was ANSWERED, and says so.
+# `tools/test_ladder.py::test_the_lease_distribution_names_the_provider_whose_rung_it_counts_bug_0308`
+LEASE_PROVIDER_FIELD = "lease_provider"
+LEASE_PROVIDERS_FIELD = "lease_by_provider"
 # The effort vocabulary, ordered low -> high (DEC-0091 (3)). One ordering, because DEC-0091 (2)
 # takes the HIGHER of two efforts and a declaration's effort or an order's ask outside this tuple
 # could not be compared -- so both are refused against it (`_valid_ladder`, `create_task`).
@@ -802,8 +812,13 @@ def create_lease(state: ProjectState, task_id: str, ttl: float = DEFAULT_LEASE_T
             lease[EFFORT_KEY] = task[LEASE_EFFORT_FIELD] = ladder[EFFORT_KEY]
             task[LEASE_CLASS_FIELD] = ladder["role_class"]
             lease[PROVIDERS_KEY] = ladders_by_provider(state, task, root, ladder)
+            task[LEASE_PROVIDER_FIELD] = ladder.get("provider")
+            task[LEASE_PROVIDERS_FIELD] = {
+                provider: {RUNG_KEY: answer[RUNG_KEY], EFFORT_KEY: answer[EFFORT_KEY]}
+                for provider, answer in lease[PROVIDERS_KEY].items()}
         else:
-            for field in (LEASE_RUNG_FIELD, LEASE_EFFORT_FIELD, LEASE_CLASS_FIELD):
+            for field in (LEASE_RUNG_FIELD, LEASE_EFFORT_FIELD, LEASE_CLASS_FIELD,
+                          LEASE_PROVIDER_FIELD, LEASE_PROVIDERS_FIELD):
                 task.pop(field, None)
         # ...AND A SECOND BUILDER UNDER THIS GOAL HAS TO HAVE BEEN MEASURED (DEC-0092 (2)), asked
         # last and before the write, so a refusal here leaves neither a lease nor a count behind;

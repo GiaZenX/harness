@@ -1,0 +1,353 @@
+check (windows-latest)	Hook + quality.py behaviour tests	﻿2026-09-05T19:02:42.3559141Z ##[group]Run python -m pytest tools/ -q -rs
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:42.3559742Z [36;1mpython -m pytest tools/ -q -rs[0m
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:42.3665255Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:42.3665633Z env:
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:42.3665801Z   PYTHONUTF8: 0
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:42.3666069Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.14.7\x64
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:42.3666510Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.14.7\x64/lib/pkgconfig
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:42.3666961Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.14.7\x64
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:42.3667354Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.14.7\x64
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:42.3667747Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.14.7\x64
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:42.3668051Z ##[endgroup]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:03:13.4338489Z ........................................................................ [  1%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:03:45.0329272Z ........................................................................ [  3%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:04:12.8430079Z ........................................................................ [  4%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:04:18.3690657Z ........................................................................ [  6%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:04:40.6619480Z ........................................................................ [  7%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:04:52.8474231Z .............ssssssssssssssss.sssssssssssssssss..s...................... [  9%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:05:28.5163006Z ................................ssss.......s............................ [ 10%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:05:37.1154422Z ........................................................................ [ 12%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:05:44.9828404Z ........................................................................ [ 13%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:06:28.0503563Z ........................................................................ [ 15%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:07:00.9899243Z ..........s............................................................. [ 16%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:07:56.0918452Z ........................................................................ [ 18%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:08:15.3289596Z ..................................................s..................... [ 19%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:08:39.1142530Z .....................................................s.................. [ 21%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:09:39.1076088Z ........................................................................ [ 22%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:11:09.5436014Z ........................................................................ [ 24%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:12:01.1441214Z ........................................................................ [ 26%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:12:49.9741403Z ............ssssssssssssss...........ss.s.s.s.ssssss.................... [ 27%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:14:32.5925973Z ........................................................................ [ 29%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:16:34.5292957Z ........................................................................ [ 30%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:17:34.8643250Z ........................................................................ [ 32%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:18:01.2640142Z ......sssssss.s......................................................... [ 33%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:18:02.2831330Z ........................................................................ [ 35%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:18:06.0019341Z ........................................................................ [ 36%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:18:11.9648008Z ........................................................................ [ 38%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:19:09.4779542Z ........................................................................ [ 39%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:19:41.1614366Z ........................................................................ [ 41%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:20:14.9146560Z ........................................................................ [ 42%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:20:55.3965322Z ........................................................................ [ 44%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:46.4019261Z ........................................................................ [ 45%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:22:32.7385129Z ........................................................................ [ 47%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:23:08.8499642Z ........................................................................ [ 49%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:23:21.8912627Z ........................................................................ [ 50%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:23:55.5342002Z ........................................................................ [ 52%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:24:25.2610936Z ........................................................................ [ 53%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:26:44.2648776Z ........................................................................ [ 55%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:26:58.0134751Z ........................................................................ [ 56%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:27:11.6194540Z ........................................................................ [ 58%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:27:22.3360368Z ........................................................................ [ 59%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:27:33.3410608Z ........................................................................ [ 61%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:27:43.7488088Z ........................................................................ [ 62%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:28:01.1798303Z ........................................................................ [ 64%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:28:02.9117734Z ........................................................................ [ 65%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:28:04.7171514Z ........................................................................ [ 67%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:28:06.5388128Z ........................................................................ [ 68%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:28:08.3266177Z ........................................................................ [ 70%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:28:19.1465169Z ........................................................................ [ 72%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:28:48.0289308Z ........................................................................ [ 73%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:29:08.1741359Z ........................................................................ [ 75%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:30:09.0637999Z ........................................................................ [ 76%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:30:40.8342723Z ........................................................................ [ 78%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:31:05.4385573Z ........................................................................ [ 79%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:31:17.8129694Z ........................................................................ [ 81%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:32:48.4325787Z .........................................................s.............. [ 82%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:37:38.7993976Z ........................................................................ [ 84%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:39:22.1310170Z ........................................................................ [ 85%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:40:00.7637551Z ........................................................................ [ 87%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:40:32.1195736Z ........................................................................ [ 88%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:43:19.3269298Z .....................................................................F.. [ 90%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:43:38.0665451Z ........................................................................ [ 91%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:44:39.5992465Z ........................................................................ [ 93%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:44:48.9581793Z ........................................................................ [ 95%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:13.4722092Z ........................................................................ [ 96%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:27.6943125Z .........................................................s.............. [ 98%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:44.2045733Z ........................................................................ [ 99%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1094190Z ................                                                         [100%]
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1095347Z ================================== FAILURES ===================================
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1097682Z ______ test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole ______
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1098108Z 
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1098389Z     def test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole():
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1099122Z         """The overview table of `docs/POST_V2_WISHLIST.md`, against the entries it summarises.
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1099697Z     
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1102062Z         THE MEASURED DRIFT: the table calls itself "Die offenen Eintr�ge auf einen Blick", and a reader
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1102915Z         who opens it to see what is still open gets an answer that is short by whatever the last rounds
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1103718Z         appended. On 2026-09-02 it was short by FIFTEEN -- H82 from TSK-0099 and everything four
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1104569Z         parallel streams wrote (H83-H95, H99) -- because appending an entry and adding a row are two
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1105417Z         acts and only the first one is obvious. Nothing could say so, which is why this exists rather
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1106043Z         than a rule that somebody remembers.
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1106406Z     
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1107514Z         HELD IN BOTH DIRECTIONS, since either half alone rots: an entry without a row is a hole missing
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1108257Z         from the overview, and a row without an entry is an overview promising a section that is gone.
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1108955Z         The subject is DERIVED from the document both times -- every `### H<n>` heading, every first
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1109587Z         table cell that is H-numbers -- so a renumbering moves the check with it.
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1110024Z         """
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1110368Z         path = os.path.join(ROOT, "docs", "POST_V2_WISHLIST.md")
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1110799Z         with io.open(path, encoding="utf-8") as handle:
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1111153Z             text = handle.read()
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1111484Z         entries = set(_HOLE_ENTRY_RX.findall(text))
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1112048Z         rows = {name.strip() for cell in _HOLE_ROW_RX.findall(text) for name in cell.split(",")}
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1112530Z >       assert len(entries) >= 90, (
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1113119Z             "only %d hole entries found � the reader stopped matching the document" % len(entries))
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1113908Z E       AssertionError: only 0 hole entries found � the reader stopped matching the document
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1114425Z E       assert 0 >= 90
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1114777Z E        +  where 0 = len(set())
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1115117Z 
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1115313Z tools\test_repo_hygiene.py:1216: AssertionError
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1115863Z ============================== warnings summary ===============================
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1116556Z tools/test_repo_hygiene.py::test_no_tracked_text_file_checks_out_with_crlf
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1118050Z   D:\a\harness\harness\tools\test_repo_hygiene.py:266: UserWarning: these files carry CRLF in canonical state, which no tool write reaches (gate 1), so the sweep below cannot ask for them -- they are repaired where they are written, in the kit: ['project_memory/.audit/hook_events.jsonl']
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1119351Z     warnings.warn(
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1119719Z 
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1119983Z -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1120667Z =========================== short test summary info ===========================
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1121729Z SKIPPED [1] tools\test_board_browser.py:21: the layout checks need a real layout engine; without Playwright they measure nothing, so they are skipped rather than passed (install: pip install playwright && playwright install chromium)
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1122945Z SKIPPED [11] tools\test_design_conformance.py:152: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1123759Z SKIPPED [1] tools\test_design_conformance.py:167: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1124781Z SKIPPED [1] tools\test_design_conformance.py:184: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1125587Z SKIPPED [1] tools\test_design_conformance.py:213: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1126409Z SKIPPED [1] tools\test_design_conformance.py:232: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1127178Z SKIPPED [1] tools\test_design_conformance.py:252: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1127962Z SKIPPED [1] tools\test_design_conformance.py:300: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1128738Z SKIPPED [1] tools\test_design_conformance.py:330: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1129510Z SKIPPED [1] tools\test_design_conformance.py:359: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1130277Z SKIPPED [1] tools\test_design_conformance.py:371: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1153577Z SKIPPED [1] tools\test_design_conformance.py:390: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1155283Z SKIPPED [1] tools\test_design_conformance.py:413: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1156694Z SKIPPED [1] tools\test_design_conformance.py:430: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1158306Z SKIPPED [4] tools\test_design_conformance.py:461: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1159405Z SKIPPED [1] tools\test_design_conformance.py:474: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1160222Z SKIPPED [1] tools\test_design_conformance.py:493: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1161003Z SKIPPED [1] tools\test_design_conformance.py:519: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1161775Z SKIPPED [1] tools\test_design_conformance.py:543: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1162528Z SKIPPED [1] tools\test_design_conformance.py:568: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1163270Z SKIPPED [1] tools\test_design_conformance.py:591: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1164039Z SKIPPED [1] tools\test_design_conformance.py:697: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1164844Z SKIPPED [1] tools\test_finance_dashboard.py:646: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1165615Z SKIPPED [2] tools\test_finance_dashboard.py:696: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1166383Z SKIPPED [1] tools\test_finance_dashboard.py:759: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1167124Z SKIPPED [1] tools\test_finance_dashboard.py:960: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1167777Z SKIPPED [1] tools\test_hooks.py:1732: POSIX init integration runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1168427Z SKIPPED [1] tools\test_hooks.py:4330: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1169091Z SKIPPED [1] tools\test_hooks.py:5710: generated POSIX hook command runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1169723Z SKIPPED [14] tools\test_hooks.py:12722: could not import 'defusedxml': No module named 'defusedxml'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1170353Z SKIPPED [2] tools\test_hooks.py:13144: POSIX scaffold integration runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1170922Z SKIPPED [1] tools\test_hooks.py:13254: POSIX scaffold integration runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1171495Z SKIPPED [1] tools\test_hooks.py:13286: POSIX scaffold integration runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1172063Z SKIPPED [1] tools\test_hooks.py:13315: POSIX scaffold integration runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1172868Z SKIPPED [1] tools\test_hooks.py:13493: POSIX scaffold integration runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1173474Z SKIPPED [1] tools\test_hooks.py:13567: POSIX installer integration runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1174045Z SKIPPED [1] tools\test_hooks.py:13600: POSIX installer integration runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1174606Z SKIPPED [1] tools\test_hooks.py:13623: POSIX installer integration runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1175165Z SKIPPED [1] tools\test_hooks.py:13642: POSIX installer integration runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1176110Z SKIPPED [1] tools\test_hooks.py:13682: POSIX installer integration runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1176762Z SKIPPED [8] tools\test_hooks.py:18120: could not import 'playwright': No module named 'playwright'
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1177677Z SKIPPED [1] tools\test_kitupdate.py:1216: POSIX installer integration runs on Unix CI
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1178879Z SKIPPED [1] tools\test_staging_cli.py:1209: this interpreter's json parser follows 6144 nesting levels without giving up, and a deeper body no longer fits the 12288-byte item budget -- so no body that reaches the parser at all can raise RecursionError here
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:48.1180221Z 1 failed, 4618 passed, 78 skipped, 1 warning in 2584.52s (0:43:04)
+check (windows-latest)	Hook + quality.py behaviour tests	2026-09-05T19:45:49.5338342Z ##[error]Process completed with exit code 1.
+check (ubuntu-latest)	Hook + quality.py behaviour tests	﻿2026-09-05T19:02:29.9734719Z ##[group]Run python -m pytest tools/ -q -rs
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:29.9735147Z [36;1mpython -m pytest tools/ -q -rs[0m
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:29.9756033Z shell: /usr/bin/bash -e {0}
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:29.9756352Z env:
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:29.9756618Z   PYTHONUTF8: 0
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:29.9756954Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.7/x64
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:29.9757384Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:29.9757834Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:29.9758247Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:29.9758639Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:29.9759038Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:29.9759385Z ##[endgroup]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:02:49.1017872Z ........................................................................ [  1%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:03:05.0430858Z ........................................................................ [  3%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:03:19.7659757Z ........................................................................ [  4%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:03:22.9031753Z ........................................................................ [  6%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:03:32.6970454Z ........................................................................ [  7%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:03:39.0253261Z .............ssssssssssssssss.sssssssssssssssss..s...................... [  9%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:04:00.3755921Z ................................ssss.......s............................ [ 10%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:04:04.7710672Z ........................................................................ [ 12%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:04:08.7995807Z ........................................................................ [ 13%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:04:34.6959009Z ........................................................................ [ 15%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:04:49.8077196Z .........s.............................................................. [ 16%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:05:20.5299419Z ........................................................................ [ 18%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:05:30.0002146Z ..................................................s.....s............... [ 19%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:05:39.4293983Z ....................................................s................... [ 21%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:06:10.2464795Z ........................................................................ [ 22%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:06:51.6058792Z ........................................................................ [ 24%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:07:13.7878112Z ........................................................................ [ 26%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:07:26.3341282Z ............ssssssssssssss.........ss..s.s.s.s.........ssss............. [ 27%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:08:17.3986119Z ........................................................................ [ 29%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:08:46.0833197Z ........................................sss............................. [ 30%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:09:16.8448808Z ........................................................................ [ 32%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:09:28.5607418Z ......sssssss.s..............s....F.s................................... [ 33%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:09:28.8273877Z ........................................................................ [ 35%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:09:30.3647858Z ...................................................................s.... [ 36%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:09:32.1752211Z ................................................s....................... [ 38%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:10:00.9530470Z ........................................................................ [ 39%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:10:18.0495866Z ........................................................................ [ 41%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:10:34.8994979Z ........................................................................ [ 42%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:10:54.2901301Z .......................s................................................ [ 44%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:11:17.8701428Z ........................................................................ [ 45%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:11:37.4244832Z ........................................................................ [ 47%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:11:54.3572878Z ........................................................................ [ 49%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:11:59.8719891Z .........................................................s.............. [ 50%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:12:26.3401424Z ........................................................................ [ 52%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:12:41.9075096Z ........................................................................ [ 53%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:14:20.2595249Z ........................................................................ [ 55%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:14:26.7805362Z ........................................................................ [ 56%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:14:33.2600028Z ........................................................................ [ 58%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:14:38.0296765Z ........................................................................ [ 59%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:14:43.0648804Z ........................................................................ [ 61%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:14:47.7187460Z ........................................................................ [ 62%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:14:56.2441973Z ........................................................................ [ 64%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:14:56.6946713Z ........................................................................ [ 65%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:14:57.1480003Z ........................................................................ [ 67%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:14:57.6008447Z ........................................................................ [ 68%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:14:58.0598864Z ........................................................................ [ 70%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:15:03.1218374Z ........................................................................ [ 72%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:15:08.1644849Z ........................................................................ [ 73%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:15:13.9340088Z ........................................................................ [ 75%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:15:28.0394582Z ..............................................ss..ss..............s..... [ 76%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:15:39.0702911Z ........................................................................ [ 78%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:15:49.9248541Z ........................................................................ [ 79%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:15:54.3710884Z ........................................................................ [ 81%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:16:14.2347222Z ...............................................s...ssss.s...ssss....s.s. [ 82%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:17:38.8378101Z .s.......s.s..ss.s.sss.................................................. [ 84%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:18:21.8584092Z ........................................................................ [ 85%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:18:40.0412326Z ........................................................................ [ 87%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:18:55.3659189Z ........................................................................ [ 88%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:20:16.4207422Z ................................s................s...................F.. [ 90%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:20:28.9105278Z ........................................................................ [ 91%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:20:58.8295815Z ........................................................................ [ 93%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:02.7719028Z ........................................................................ [ 95%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:14.1006655Z ........................................................................ [ 96%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:19.1017604Z .............................................s...........s.............. [ 98%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:25.4477776Z ............s........................................................... [ 99%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8651963Z ................                                                         [100%]
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8653304Z =================================== FAILURES ===================================
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8654439Z ______ test_gate_test_scope_says_so_when_it_cannot_place_a_target_at_all _______
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8655661Z 
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8656192Z prd_repo = PosixPath('/tmp/pytest-of-runner/pytest-0/test_gate_test_scope_says_so_w0')
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8656943Z 
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8657493Z     def test_gate_test_scope_says_so_when_it_cannot_place_a_target_at_all(prd_repo):
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8658581Z         """F8, kit half: the fail-closed branch carries its own sentence."""
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8659326Z         _scoped_repo(prd_repo)
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8660448Z         # `tests/../../tests` is NOT here since the round-3 narrowing: it lands on a place this reader
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8661686Z         # CAN find, and a place that is not this project is a selection, not an unplaceable word.
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8662918Z         for target in ("D:/other-project/tests/test_x.py", "//server/share/proj/tests", "C:tests"):
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8664062Z             result = _scope_hook(prd_repo, 'python -m pytest "%s"' % target)
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8665022Z >           assert result.returncode == 2, "%r was waved through" % target
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8666306Z E           AssertionError: 'D:/other-project/tests/test_x.py' was waved through
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8667090Z E           assert 0 == 2
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8668875Z E            +  where 0 = CompletedProcess(args=['/opt/hostedtoolcache/Python/3.14.7/x64/bin/python', '/home/runner/work/harness/harness/team-kits/dev-team/hooks/gate_test_scope.py'], returncode=0, stdout='', stderr='').returncode
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8670670Z 
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8670909Z tools/test_hooks.py:18407: AssertionError
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8671748Z ______ test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole _______
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8672406Z 
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8672840Z     def test_every_hole_has_a_row_in_the_summary_and_every_row_has_a_hole():
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8673929Z         """The overview table of `docs/POST_V2_WISHLIST.md`, against the entries it summarises.
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8674879Z     
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8676113Z         THE MEASURED DRIFT: the table calls itself "Die offenen Einträge auf einen Blick", and a reader
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8677431Z         who opens it to see what is still open gets an answer that is short by whatever the last rounds
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8678744Z         appended. On 2026-09-02 it was short by FIFTEEN -- H82 from TSK-0099 and everything four
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8680274Z         parallel streams wrote (H83-H95, H99) -- because appending an entry and adding a row are two
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8681633Z         acts and only the first one is obvious. Nothing could say so, which is why this exists rather
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8682595Z         than a rule that somebody remembers.
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8683165Z     
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8683952Z         HELD IN BOTH DIRECTIONS, since either half alone rots: an entry without a row is a hole missing
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8685189Z         from the overview, and a row without an entry is an overview promising a section that is gone.
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8686462Z         The subject is DERIVED from the document both times -- every `### H<n>` heading, every first
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8687662Z         table cell that is H-numbers -- so a renumbering moves the check with it.
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8688519Z         """
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8689088Z         path = os.path.join(ROOT, "docs", "POST_V2_WISHLIST.md")
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8689989Z         with io.open(path, encoding="utf-8") as handle:
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8690681Z             text = handle.read()
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8691325Z         entries = set(_HOLE_ENTRY_RX.findall(text))
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8692230Z         rows = {name.strip() for cell in _HOLE_ROW_RX.findall(text) for name in cell.split(",")}
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8693149Z >       assert len(entries) >= 90, (
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8694239Z             "only %d hole entries found — the reader stopped matching the document" % len(entries))
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8695707Z E       AssertionError: only 0 hole entries found — the reader stopped matching the document
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8696863Z E       assert 0 >= 90
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8697367Z E        +  where 0 = len(set())
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8697688Z 
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8697991Z tools/test_repo_hygiene.py:1216: AssertionError
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8698797Z =========================== short test summary info ============================
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8700896Z SKIPPED [1] tools/test_board_browser.py:21: the layout checks need a real layout engine; without Playwright they measure nothing, so they are skipped rather than passed (install: pip install playwright && playwright install chromium)
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8703324Z SKIPPED [11] tools/test_design_conformance.py:152: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8704254Z SKIPPED [1] tools/test_design_conformance.py:167: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8705016Z SKIPPED [1] tools/test_design_conformance.py:184: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8705805Z SKIPPED [1] tools/test_design_conformance.py:213: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8706694Z SKIPPED [1] tools/test_design_conformance.py:232: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8707445Z SKIPPED [1] tools/test_design_conformance.py:252: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8708175Z SKIPPED [1] tools/test_design_conformance.py:300: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8709027Z SKIPPED [1] tools/test_design_conformance.py:330: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8710059Z SKIPPED [1] tools/test_design_conformance.py:359: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8710899Z SKIPPED [1] tools/test_design_conformance.py:371: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8711785Z SKIPPED [1] tools/test_design_conformance.py:390: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8712674Z SKIPPED [1] tools/test_design_conformance.py:413: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8713571Z SKIPPED [1] tools/test_design_conformance.py:430: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8714474Z SKIPPED [4] tools/test_design_conformance.py:461: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8715339Z SKIPPED [1] tools/test_design_conformance.py:474: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8716316Z SKIPPED [1] tools/test_design_conformance.py:493: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8717140Z SKIPPED [1] tools/test_design_conformance.py:519: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8717932Z SKIPPED [1] tools/test_design_conformance.py:543: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8718920Z SKIPPED [1] tools/test_design_conformance.py:568: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8719899Z SKIPPED [1] tools/test_design_conformance.py:591: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8720840Z SKIPPED [1] tools/test_design_conformance.py:697: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8721825Z SKIPPED [1] tools/test_finance_dashboard.py:646: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8722629Z SKIPPED [2] tools/test_finance_dashboard.py:696: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8723534Z SKIPPED [1] tools/test_finance_dashboard.py:759: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8724339Z SKIPPED [1] tools/test_finance_dashboard.py:960: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8725272Z SKIPPED [1] tools/test_hooks.py:1710: PowerShell init integration runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8725971Z SKIPPED [1] tools/test_hooks.py:4330: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8726674Z SKIPPED [1] tools/test_hooks.py:4452: drive-letter casing is a Windows concept
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8727365Z SKIPPED [1] tools/test_hooks.py:5704: generated Windows hook command runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8728112Z SKIPPED [14] tools/test_hooks.py:12722: could not import 'defusedxml': No module named 'defusedxml'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8728805Z SKIPPED [2] tools/test_hooks.py:13122: PowerShell scaffold integration runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8729461Z SKIPPED [1] tools/test_hooks.py:13237: PowerShell scaffold integration runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8730334Z SKIPPED [1] tools/test_hooks.py:13271: PowerShell scaffold integration runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8731049Z SKIPPED [1] tools/test_hooks.py:13301: PowerShell scaffold integration runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8731790Z SKIPPED [1] tools/test_hooks.py:13330: ps1 test runs on Windows; the sh mirror is covered by the kit audit
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8732728Z SKIPPED [1] tools/test_hooks.py:13769: PowerShell installer integration runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8733501Z SKIPPED [1] tools/test_hooks.py:13792: PowerShell installer integration runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8734186Z SKIPPED [1] tools/test_hooks.py:13828: PowerShell installer integration runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8734885Z SKIPPED [1] tools/test_hooks.py:13857: PowerShell installer integration runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8735485Z SKIPPED [2] tools/test_hooks.py:15653: no PowerShell here
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8736145Z SKIPPED [1] tools/test_hooks.py:15807: sh half measured; no PowerShell here to compare the twin against
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8737027Z SKIPPED [8] tools/test_hooks.py:18120: could not import 'playwright': No module named 'playwright'
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8737838Z SKIPPED [1] tools/test_hooks.py:18352: this host cannot make a junction, so the identity half cannot be measured
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8738753Z SKIPPED [1] tools/test_hooks.py:18462: this host cannot make a junction, so this claim cannot be measured here
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8739518Z SKIPPED [1] tools/test_hooks_v2.py:1090: drive-letter case is a Windows-only path identity
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8740424Z SKIPPED [1] tools/test_hooks_v2.py:1651: the Windows command form can only be measured on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8741710Z SKIPPED [1] tools/test_hooks_v2.py:5716: an extended-length `\\?\Z:` spelling is a Windows path shape; on POSIX it is one ordinary file name inside the project, which the gate CAN place -- so there is no undecidable path here to refuse
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8742866Z SKIPPED [1] tools/test_hooks_v2.py:7531: cross-drive paths are a Windows shape
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8743759Z SKIPPED [4] tools/test_hooks_v2.py:13002: no Windows PowerShell on this host, so the .ps1 launcher this test drives cannot be run here at all
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8744611Z SKIPPED [1] tools/test_hooks_v2.py:13710: junctions are a Windows reparse point
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8745284Z SKIPPED [1] tools/test_kitupdate.py:806: the scaffold's PowerShell twin runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8745998Z SKIPPED [1] tools/test_kitupdate.py:973: the scaffold's PowerShell twin runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8746681Z SKIPPED [1] tools/test_kitupdate.py:1070: the scaffold's PowerShell twin runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8747372Z SKIPPED [1] tools/test_kitupdate.py:1088: the scaffold's PowerShell twin runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8748046Z SKIPPED [1] tools/test_kitupdate.py:1114: the scaffold's PowerShell twin runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8748735Z SKIPPED [1] tools/test_kitupdate.py:1187: the PowerShell installer runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8749397Z SKIPPED [1] tools/test_kitupdate.py:1346: the scaffold's PowerShell twin runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8750199Z SKIPPED [1] tools/test_kitupdate.py:1409: the scaffold's PowerShell twin runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8751057Z SKIPPED [1] tools/test_kitupdate.py:1457: the scaffold's PowerShell twin runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8751724Z SKIPPED [1] tools/test_kitupdate.py:1520: the scaffold's PowerShell twin runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8752366Z SKIPPED [12] tools/test_kitupdate.py:1725: the scaffold's PowerShell twin runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8753148Z SKIPPED [1] tools/test_presets.py:1004: the scaffold's PowerShell twin runs on Windows
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8754012Z SKIPPED [1] tools/test_staging_cli.py:1019: this filesystem is case-sensitive, so x.pdf opens nothing and the case-flip cannot mint the dead approval this measures
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8755503Z SKIPPED [1] tools/test_staging_cli.py:1209: this interpreter's json parser follows 6144 nesting levels without giving up, and a deeper body no longer fits the 12288-byte item budget -- so no body that reaches the parser at all can raise RecursionError here
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8756750Z SKIPPED [1] tools/test_staging_cli.py:1885: this host does not create directory junctions
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:26.8757504Z 2 failed, 4579 passed, 116 skipped in 1136.32s (0:18:56)
+check (ubuntu-latest)	Hook + quality.py behaviour tests	2026-09-05T19:21:27.0639349Z ##[error]Process completed with exit code 1.

@@ -6305,7 +6305,7 @@ def test_a_continuation_is_joined_before_a_break_is_normalised(continuation):
 
     WHAT THIS DOES *NOT* CLAIM, because measuring it said otherwise: it does not decide a verdict
     any more. With the continuation tool-dependent (`_compat._CONTINUATION_BY_TOOL`) and a Bash line
-    carrying a bare CR refused outright (`_kernel._EATEN_IN_FLIGHT`), both orders answer rc 2 on
+    carrying a bare CR refused outright (`_compat.EATEN_IN_FLIGHT`), both orders answer rc 2 on
     every line that used to separate them, measured against a real gate process. The order is the
     shell's, and this test pins the text it produces -- not a refusal that depends on it.
     """
@@ -6391,7 +6391,7 @@ def test_a_line_carrying_a_character_its_shell_never_sees_is_refused(
     survive: the CARRIAGE RETURN on the `Bash` rail. What that costs is a WELD --
     `echo poison > project_mem<BS><CR>ory/approvals/APR-0001.yaml` was rc 0 from the whole registered
     chain, rc 0 from a real bash, and the canonical item read `poison` afterwards. WHO deletes it,
-    and on which platform that holds, is `_kernel._EATEN_IN_FLIGHT`; it is the shell's own input
+    and on which platform that holds, is `_compat.EATEN_IN_FLIGHT`; it is the shell's own input
     reader rather than the tool, and this test does not restate the measurement.
 
     THREE COUNTER-ENDS, because a refusal this blunt has to earn its keep: a CRLF is NOT refused
@@ -6402,7 +6402,7 @@ def test_a_line_carrying_a_character_its_shell_never_sees_is_refused(
     report, not in a second copy here: no legitimate command line carries a bare CR, and the ones
     that do are attack forms already asserted as refused.
 
-    The rule lives at the SHARED payload door (`_kernel.payload` -> `_EATEN_IN_FLIGHT`), not in any
+    The rule lives at the SHARED payload door (`_kernel.payload` -> `_compat.EATEN_IN_FLIGHT`), not in any
     gate, so a gate added later inherits it by asking that door rather than by remembering — and
     which gate of the chain speaks is therefore the first one that asks. NOT "every blocking gate
     goes through it", which is what this said and is measured false: four of the registered shell

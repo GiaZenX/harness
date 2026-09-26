@@ -1,0 +1,4 @@
+python -B -m pytest tools/test_repo_hygiene.py::test_no_module_under_tools_shadows_one_of_the_kit_tree -q
+
+.                                                                        [100%]
+1 passed in 16.06s

@@ -1012,6 +1012,25 @@ def _pipelines(tokens):
     return out
 
 
+# THE OPTIONS OF A PREFIX WORD THIS READER KNOWS (BUG-0305 / H220), per prefix word
+# `_command_word_at` steps over -- True where the option takes the NEXT word as its value, False
+# where it takes none. An option not listed here is UNKNOWN on purpose: whether it swallows the next
+# word differs between programs and hosts, so `_the_command_word_is_unknown` reads such a stage
+# fail-closed instead of guessing. The entries are the options the lines of BUG-0304 and BUG-0305
+# carried, and nothing wider. An enumeration, so it carries a tripwire at both ends:
+# `tools/test_hooks.py::test_every_known_prefix_option_is_needed_and_is_what_the_real_program_does`
+# takes each entry out and watches its line go back to refused (which also fails for a key that is
+# no prefix word the walk steps over), and asks the real program on this host whether the option
+# really takes (or does not take) the next word.
+_PREFIX_OPTIONS = {
+    "sudo": {"-u": True},
+    "env": {"-i": False},
+    "nice": {"-n": True},
+    "exec": {"-a": True},
+    "command": {"-p": False},
+}
+
+
 def _command_word_at(stage):
     """(index, word) of the word this stage really RUNS -- the first one that is not a prefix.
 
@@ -1021,9 +1040,22 @@ def _command_word_at(stage):
     ./build.sh`, a line that writes nothing at all, came back "this line WRITES ./build.sh and RUNS
     it in the same call" from every kit. Where the operands START and which word RUNS are one fact,
     so they are one walk.
+
+    A PREFIX WORD'S OWN OPTION IS STEPPED OVER WHERE `_PREFIX_OPTIONS` KNOWS IT, value included
+    (BUG-0305 / H220): `sudo -u me cat tools/ci.sh` runs `cat`. An option that table does not know
+    stops the walk and is returned as the command word -- `_the_command_word_is_unknown` then reads
+    the stage fail-closed, because whether that option swallows the next word is not known here.
     """
+    prefix, swallow = None, False
     for index, token in enumerate(stage):
         low = str(token).lower()
+        if swallow:
+            swallow = False
+            continue  # the value of the prefix option before it
+        if prefix is not None and str(token) in _PREFIX_OPTIONS.get(prefix, {}):
+            swallow = _PREFIX_OPTIONS[prefix][str(token)]
+            continue  # an option of the prefix word before it, as `_PREFIX_OPTIONS` knows it
+        prefix = low
         if "=" in low and not low.startswith("-"):
             continue  # VAR=value prefix
         if low in ("sudo", "env", "command", "exec", "time", "nice", "!"):
@@ -1654,17 +1686,21 @@ def _the_command_word_is_unknown(stage):
     `env -i ./run.sh` were the same mechanism. `exec -a foo bash run.sh` even reopened the original
     H214 pair.
 
-    WHY NOT A LIST OF WHICH PREFIX TAKES WHICH OPTION. That is a vocabulary per program, it is
-    different on every host's coreutils, and this repository's own gate answered the same question
+    WHY NOT A COMPLETE LIST OF WHICH PREFIX TAKES WHICH OPTION. That is a vocabulary per program, it
+    is different on every host's coreutils, and this repository's own gate answered the same question
     the other way round years earlier (`_harness._executed_words`): a stage whose verb the reader
     cannot name is a stage whose OPERANDS are treated as what it may start. So an option where the
     command word belongs makes the word UNKNOWN, and the caller reads the operands fail-closed.
+    `_PREFIX_OPTIONS` is the exception and stays short on purpose: an option whose value-taking the
+    real program on the test host answers, the way `_compat.GIT_READER` knows git's (BUG-0305).
 
-    WHAT IT COSTS, and it is measured beside the attack rows: nothing on an everyday line, because
-    such a stage is then read as RUNNING its operands and the rule only refuses a name the SAME
-    LINE also WRITES -- `nice -n 5 make`, `sudo -u me ls` and `env -i bash tools/ci.sh` write
-    nothing and stay rc 0.
+    WHAT IT COSTS, measured (BUG-0305 / H220): such a stage is read as WRITING its operands as well
+    as running them, so a stage that only READS a file and a later stage that runs it is refused --
+    `sudo -E cat tools/ci.sh ; bash tools/ci.sh` is rc 2 and writes nothing, and the refusal says
+    "may WRITE", naming the option. The options of `_PREFIX_OPTIONS` never reach this function, so
+    `sudo -u me cat tools/ci.sh ; bash tools/ci.sh` is rc 0.
     `tools/test_hooks.py::test_a_prefix_words_own_option_does_not_hide_the_command_word_in_any_kit`
+    `tools/test_hooks.py::test_a_read_only_stage_behind_a_known_prefix_option_is_not_read_as_a_write`
     """
     word = _command_word_at(stage)[1]
     return bool(word) and str(word).startswith("-")
@@ -1747,8 +1783,10 @@ A PREFIX WORD'S OWN OPTION was the first rework of this rule, and it is closed a
     `sudo -u me ./run.sh`, `command -p ./run.sh` and `env -i ./run.sh` were rc 0 at every registered
     hook of the dev pilot while a real shell executed them (TSK-0150 verify round 1, F2), because
     the option stood where the command word belongs and the real program slid into the operand
-    role. `_the_command_word_is_unknown` reads that stage fail-closed -- see it for why a table of
-    which prefix takes which option would be the wrong answer.
+    role. `_command_word_at` now steps over the options `_PREFIX_OPTIONS` knows, value included, so
+    those five name their real program; an option it does not know makes the word UNKNOWN and
+    `_the_command_word_is_unknown` reads that stage fail-closed -- see it for what that costs a
+    line that only reads (BUG-0305 / H220).
 
     WHAT IS STILL OPEN IN THE ONE-CALL FORM, named with what it is bounded by: a prefix word the
     shell steps over that `_command_word_at` does not carry at all (`nohup`, `timeout`, `xargs`,
@@ -1772,7 +1810,7 @@ A PREFIX WORD'S OWN OPTION was the first rework of this rule, and it is closed a
     # file to a shell"). A redirect is its own source, one per pipeline, so `bash run.sh > run.sh`
     # still counts as two.
     # `tools/test_hooks.py::test_a_prefix_words_own_option_does_not_hide_the_command_word_in_any_kit`
-    written, run, spelling = {}, {}, {}
+    written, run, spelling, guessed = {}, {}, {}, {}
     for pipeline_index, stages in enumerate(pipelines):
         for stage_index, stage in enumerate(stages):
             if not stage:
@@ -1788,6 +1826,7 @@ A PREFIX WORD'S OWN OPTION was the first rework of this rule, and it is closed a
                         run.setdefault(name, set()).add(where)
                         written.setdefault(name, set()).add(where)
                         spelling.setdefault(name, str(token))
+                guessed[where] = _command_word_at(stage)[1]
                 continue
             if verb in _EVALUATOR_WORDS:
                 # AN EVALUATOR RUNS EVERY NAME ITS WORDS MENTION, substitution interiors included:
@@ -1840,6 +1879,20 @@ A PREFIX WORD'S OWN OPTION was the first rework of this rule, and it is closed a
                 spelling.setdefault(name, str(target))
     for name in sorted(name for name in run if name in written
                        if any(one != other for one in written[name] for other in run[name])):
+        # A WRITE THIS READER ONLY SUPPOSES is said as one (BUG-0305 / H220): when every source that
+        # writes the name is a stage read fail-closed, the sentence names the option that made it so
+        # instead of claiming a write the line may not make.
+        writers = {one for one in written[name] if any(one != other for other in run[name])}
+        if all(one in guessed for one in writers):
+            options = sorted({str(guessed[one]) for one in writers})
+            _kernel.block(
+                HOOK,
+                "this line may WRITE %s and RUNS it in the same call: %s stands where a command "
+                "word belongs, this reader does not know whether it takes the next word as its "
+                "value, so it cannot tell which word is the program and reads every operand of that "
+                "stage as written (BUG-0305/H220)." % (spelling.get(name, name), " / ".join(options)),
+                remedy="if that stage only reads, write it without the prefix option, or split the "
+                       "line in two calls -- the run is then judged against the file on disk.")
         _kernel.block(
             HOOK,
             "this line WRITES %s and RUNS it in the same call, so what it will do is not on this "

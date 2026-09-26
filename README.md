@@ -332,7 +332,7 @@ entry point asks the shipped parser rather than matching text).
 authority: today `doctor`, `validate`, `generate-index`, `verify-invariants`,
 `generate-session-brief`, `capture`,
 `request-approval`, `create-task`, `dispatch`, `ladder`, `submit-result`, `evidence`, `transition`, `update`,
-`archive`, `check-scopes`, `sweep-leases`, `sweep-requests`, `withdraw-request`, `checkpoint`, `checkpoint-status`, `set-preset`, `update-kit`, `add-filing-rule`, `apply-proposal`, `revise-document`,
+`archive`, `amend-archived-test-ref`, `check-scopes`, `sweep-leases`, `sweep-requests`, `withdraw-request`, `checkpoint`, `checkpoint-status`, `set-preset`, `update-kit`, `add-filing-rule`, `apply-proposal`, `revise-document`,
 `freeze-architecture`, `freeze-wireframe`, `freeze-design`, `freeze-report`,
 `migrate`, `migrate-holes`, `migrate-goal-classes`, `sweep-pointers`, `report-gap`, `duty-done`, `pin-kit`, `unpin-kit`, `rollback-kit`. Of the twelve
 spec II.4 asks for, one is absent under that name: `approve` is SPLIT —

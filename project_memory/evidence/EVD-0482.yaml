@@ -1,0 +1,23 @@
+id: EVD-0482
+kind: test
+related:
+- BUG-0069
+- TSK-0152
+result: pass
+summary: 'BUG-0069, LOCAL half only: the three failures of CI run 36187576523 and
+  the three tests naming BUG-0069 pass on this host (gitignore vs evidence logs, tzdata
+  in office requirements, cross-drive relpath). The bug closes on the first green
+  HOSTED run, not on this record.'
+artifact_refs:
+- staging/TSK-0152/evd-bug-0069.log
+run_command: python -B -m pytest "tools/test_repo_hygiene.py::test_no_artifact_ref_points_at_a_file_git_ignores_bug_0069"
+  "tools/test_repo_hygiene.py::test_every_artifact_ref_still_resolves_where_it_points"
+  "tools/test_office_duties.py::test_the_office_requirements_carry_the_time_zone_database_zoneinfo_reads_bug_0069"
+  "tools/test_office_duties.py::test_the_register_reads_the_business_time_zone_and_names_one_it_cannot_resolve"
+  "tools/test_radar_trigger.py::test_the_record_path_is_spelled_even_when_it_lies_on_another_drive_bug_0069"
+  "tools/test_radar_trigger.py::test_the_claim_rule_follows_the_record_per_watcher"
+  -q -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-26T16:27:14'

@@ -722,6 +722,12 @@ HOLE_LIMIT_FIELD = "limits"
 # fence, a wrapped name, a span showing a span -- was a citation nobody checked. Read off the item,
 # the question "does this name resolve" is asked of a parsed list.
 HOLE_TEST_FIELD = "regression_tests"
+# THE ARCHIVE DOOR'S AUDIT RECORD (DEC-0117 (2)): one entry per correction of a test reference in an
+# ARCHIVED item -- who, when, which field, old node, new node, why. Written by
+# `archive_door.amend_test_ref` and by nothing else; capture and update refuse a body carrying it
+# (`state._ARCHIVE_DOOR_FIELDS`), so a history of corrections cannot be typed by hand.
+# `tools/test_archive_door.py::test_the_audit_record_has_one_writer`
+TEST_REF_AMENDMENTS_FIELD = "test_ref_amendments"
 
 # WHAT THE USER ANSWERED ABOUT A GOAL NOBODY VERIFIED (DEC-0113, H59/BUG-0151). A small project
 # working on `main` alone never merges, so the one built demander of the evidence drawer
@@ -907,7 +913,8 @@ OPTIONAL_FIELDS = {
     # field is added. `HOLE_NUMBER_FIELD` is what makes a defect a hole and is kernel-set
     # (`state.capture(hole=True)`); `HOLE_LIMIT_FIELD` is owed in `ACCEPTED_EXCEPTION` alone --
     # `STATUS_DEPENDENT_FIELDS` is where that duty lives, and the only place.
-    "BUG": ("related_sr", HOLE_NUMBER_FIELD, HOLE_LIMIT_FIELD, HOLE_TEST_FIELD),
+    "BUG": ("related_sr", HOLE_NUMBER_FIELD, HOLE_LIMIT_FIELD, HOLE_TEST_FIELD,
+            TEST_REF_AMENDMENTS_FIELD),
     "PROC": ("derives_from",),
     # `design_ref` required only when the UI scope has a frozen design; `seam_scope` is the
     # DECLARED SHARE (DEC-0062 (5), stream D requirement C-4): the paths this order knowingly

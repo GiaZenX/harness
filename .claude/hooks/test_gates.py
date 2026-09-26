@@ -1513,6 +1513,46 @@ def test_gate2_exempts_only_what_its_own_definition_exempts(project, tmp_path):
         shutil.copytree(backup, live)
 
 
+def test_gate2_decides_the_exemption_on_the_frontmatter_key_whatever_the_prose_says(project):
+    """BUG-0264 / H182: no sentence about a SCHEDULE grants or refuses a spawn -- the exemption is
+    the key `harness_item: none` in the role's frontmatter, and nothing else in the file.
+
+    The structural half of the hole (DEC-0116: no reader of prose). The four enforcement-layer
+    sentences H182 measured claimed the watchers "run on a weekly schedule", and its limits say
+    those sentences decide nothing. Measured here from both ends, on two definitions this test
+    writes: one that carries the key and NO prose at all is spawned without an item, one whose
+    description and body carry exactly the four measured claims and no key is refused.
+    """
+    import _harness
+    claims = ("Two agents in this repo run on a weekly schedule and hold no item. "
+              "`none` for a schedule-driven role. If this role legitimately runs without an item "
+              "(a scheduled watcher), declare it. The weekly watchers run on a schedule and write "
+              "only into `radar/`.")
+    agents = os.path.join(project, ".claude", "agents")
+    probes = {
+        "probe-key-and-no-prose": "---\nname: probe-key-and-no-prose\n%s: %s\n---\n"
+                                  % (_harness.ITEM_KEY, _harness.ITEM_NONE),
+        "probe-prose-and-no-key": "---\nname: probe-prose-and-no-key\ndescription: >\n  %s\n---\n%s\n"
+                                  % (claims, claims),
+    }
+    try:
+        for name, text in probes.items():
+            with open(os.path.join(agents, name + ".md"), "w", encoding="utf-8",
+                      newline="\n") as handle:
+                handle.write(text)
+        rc, err = run(project, "gate_spawn_needs_item.py",
+                      spawn_payload(project, "probe-key-and-no-prose", "Weekly run."))
+        assert rc == 0, "the key alone did not exempt a definition without prose: %s" % err[:400]
+        rc, err = run(project, "gate_spawn_needs_item.py",
+                      spawn_payload(project, "probe-prose-and-no-key", "Weekly run."))
+        assert rc == 2, "schedule prose without the key exempted a spawn -- prose decided it"
+    finally:
+        for name in probes:
+            path = os.path.join(agents, name + ".md")
+            if os.path.exists(path):
+                os.remove(path)
+
+
 # -- gate 3 -------------------------------------------------------------------
 
 
@@ -2552,6 +2592,67 @@ def test_an_exit_this_gate_did_not_make_is_not_a_verdict(project, tmp_path):
                     bash_payload(work, "sed -i 's/a/b/' team-kits/kernel/state.py")):
         rc, err = run(work, "gate_lead_write_scope.py", payload)
         assert rc == 2, "a foreign exit(0) during the decision answered rc=%d %r" % (rc, err[:300])
+
+
+def test_gate1_refuses_the_lead_a_new_file_beside_the_stamper_bug_0105(project):
+    """BUG-0105 / H13: the producer of the protected area was protected as a FILE, so a NEW file
+    beside `tools/bump_kit_version.py` -- the stamper's next helper, or a module it would import --
+    was writable by the session agent (rc 0, measured on the tree of TSK-0152 before the patch).
+
+    Closed by the user patch of TSK-0152 (`project_memory/staging/TSK-0152/apply_user_patch.py`):
+    `ProtectedArea.verdict` protects the directory of every producer file as well. THE AUDIENCE
+    STAYS THE SESSION AGENT: an implementer subagent writes the same file (rc 0), because changing
+    tools is what the change circle is for.
+    """
+    relative = "tools/bump_kit_version_helper.py"
+    rc, err = run(project, "gate_lead_write_scope.py", write_payload(project, relative))
+    assert rc == 2, "the session agent wrote a new file beside the stamper (stderr: %s)" % err[:300]
+    rc, err = run(project, "gate_lead_write_scope.py",
+                  write_payload(project, relative, agent_id="sub-1",
+                                agent_type="harness-implementer"))
+    assert rc == 0, "an implementer was refused a tools file: %s" % err[:300]
+
+
+def test_gate1_refuses_the_lead_gate5s_declaration_bug_0233(project):
+    """BUG-0233 / H151: `tools/test_surface.json` is what gate 5 decides on, and it lay outside
+    gate 1's protected area -- a JSON file is no module, so `decision_inputs` never saw it. Measured
+    before the patch of TSK-0152: a session-agent `Write` of it rc 0, and `echo {} > ...` rc 0.
+
+    Closed by the same rule as H13 (the producer's directory), both write surfaces measured. The
+    counter-end is the line the session agent types every round: a pytest SELECTION over a file in
+    that directory reads it and is not refused.
+    """
+    declaration = "tools/test_surface.json"
+    rc, err = run(project, "gate_lead_write_scope.py", write_payload(project, declaration))
+    assert rc == 2, "the session agent wrote gate 5's declaration (stderr: %s)" % err[:300]
+    rc, err = run(project, "gate_lead_write_scope.py",
+                  bash_payload(project, "echo {} > " + declaration))
+    assert rc == 2, "a shell line wrote gate 5's declaration (stderr: %s)" % err[:300]
+    rc, err = run(project, "gate_lead_write_scope.py",
+                  bash_payload(project, "python -B -m pytest tools/test_hooks.py -q -k prefix"))
+    assert rc == 0, "a test selection under tools/ was refused: %s" % err[:300]
+
+
+@pytest.mark.parametrize("caller", [{}, {"agent_id": "sub-1", "agent_type": "harness-implementer"}])
+def test_gate1_refuses_a_character_the_shell_never_sees_bug_0161(project, caller):
+    """BUG-0161 / H69: this repo's gates inherited only half of the kits' CR hardening. The
+    separator half sits in the shared reader (`_compat`), the refusal of a character the Bash
+    tool's shell deletes (`_compat.EATEN_IN_FLIGHT`) sat behind the kits' payload door, which
+    `_harness` does not go through. Measured on the tree of TSK-0152 before the patch:
+    `echo poison > project_mem<CR>ory/generated/index.yaml` rc 0 at gate 1 -- two harmless words to
+    this reader, one canonical path to msys bash (H69 measured the file overwritten, 37 318 -> 7 bytes).
+
+    Closed by the user patch of TSK-0152: `_harness.payload` asks the same reader's
+    `eaten_in_flight`. Both callers, because canonical state is refused to every caller. THE
+    COUNTER-END: a CR that is part of a CRLF is a line break both readers agree on, and a line
+    that carries one is not refused for it.
+    """
+    weld = "echo poison > project_mem" + chr(13) + "ory/generated/index.yaml"
+    rc, err = run(project, "gate_lead_write_scope.py", bash_payload(project, weld) | caller)
+    assert rc == 2, "a bare CR welded a canonical path past gate 1 (%s): %s" % (caller, err[:300])
+    crlf = "echo a" + chr(13) + chr(10) + "echo b"
+    rc, err = run(project, "gate_lead_write_scope.py", bash_payload(project, crlf) | caller)
+    assert rc == 0, "a CRLF line break was refused (%s): %s" % (caller, err[:300])
 
 
 # -- the producer set is measured, and it depends on the payload (TSK-0008 B4) ------------------

@@ -32,9 +32,17 @@ limits: 'die Konformitätsbefunde von `kit_design_render.py` verweigern nichts: 
   (`DEC-0069`) („melden reicht vorerst“); sie FÄLLT beim ersten echten Fall, in dem
   ein Entwurf MIT Befunden trotzdem gebaut oder eingefroren wurde'
 regression_tests:
-- tools/test_design_conformance.py::test_a_record_is_written_even_when_the_checks_find_something_and_the_sighting_gate_still_opens
+- tools/test_design_conformance.py::test_a_draft_with_conformance_findings_is_refused_and_an_undecided_one_is_not
 status: ACCEPTED_EXCEPTION
 revision: 1
 approval_ref: null
 created: '2026-09-05T20:27:20'
 closed_at: '2026-09-05T20:27:20'
+test_ref_amendments:
+- at: '2026-09-26T19:20:16'
+  by: harness-lead
+  field: regression_tests
+  old: tools/test_design_conformance.py::test_a_record_is_written_even_when_the_checks_find_something_and_the_sighting_gate_still_opens
+  new: tools/test_design_conformance.py::test_a_draft_with_conformance_findings_is_refused_and_an_undecided_one_is_not
+  reason: renamed in 18f9c24 (bug-null 3b) when BUG-0294 made the sighting gate refuse
+    a draft with findings

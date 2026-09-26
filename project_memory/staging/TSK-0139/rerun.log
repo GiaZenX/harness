@@ -1,0 +1,31 @@
+BUG-0010 | tools/test_kernel.py::test_a_bare_transition_cannot_mint_leased | pass | EVD-0284 | 3.3s | 1 passed in 1.09s
+BUG-0014 | tools/test_repo_hygiene.py::test_a_suite_the_default_run_does_not_collect_is_named_with_its_own_run_command | pass | EVD-0285 | 2.1s | 1 passed in 0.39s
+BUG-0016 | tools/test_hooks.py::test_handover_guard_blocks_product_code_write_under_marker tools/test_hooks.py::test_install_sh_places_every_hook_it_registers | pass | EVD-0286 | 7.7s | 1 skipped in 2.22s
+BUG-0017 | tools/test_hooks.py::test_entry_restart_step_forbids_an_invented_trust_ceremony tools/test_hooks.py::test_handover_guard_blocks_the_scope_approval_askuserquestion_under_marker tools/test_report.py::test_the_headless_stop_point_is_measured_and_is_not_the_approval_gate | pass | EVD-0287 | 9.5s | 1 passed in 0.59s
+BUG-0022 | tools/test_hooks.py::test_a_change_to_something_built_walks_the_CR_route_the_constitution_names | pass | EVD-0288 | 12.0s | 1 passed in 10.24s
+BUG-0023 | tools/test_report.py::test_validate_names_a_stored_order_that_expects_nothing tools/test_state.py::test_a_work_order_that_expects_nothing_is_refused_at_both_entrances | pass | EVD-0289 | 5.0s | 1 passed in 0.60s
+BUG-0026 | tools/test_migrate.py::test_an_oversized_record_shortened_too_little_earns_a_second_deposit_not_an_overwrite | pass | EVD-0290 | 4.6s | 1 passed in 2.74s
+BUG-0027 | tools/test_migrate.py::test_the_ready_line_carries_the_flags_the_plan_was_built_with | pass | EVD-0291 | 4.7s | 1 passed in 3.06s
+BUG-0031 | tools/test_handover_marker.py::test_an_entry_file_names_the_marker_only_as_the_whole_shim | pass | EVD-0292 | 2.0s | 2 passed in 0.28s
+BUG-0034 | .claude/hooks/test_gates.py::test_gate3_refuses_a_line_that_records_history_even_with_a_verdict | pass | EVD-0293 | 26.1s | 20 passed in 24.48s
+BUG-0037 | tools/test_report.py::test_the_trust_state_exits_on_a_bundle_that_matches_the_record_again | pass | EVD-0294 | 2.7s | 1 passed in 0.97s
+BUG-0044 | tools/test_hooks.py::test_the_preset_an_entry_gate_writes_is_the_smallest_one_and_never_a_chosen_looking_value | pass | EVD-0295 | 4.0s | 1 passed in 2.25s
+BUG-0046 | tools/test_role_contracts.py::test_no_constitution_promises_that_a_specialists_voice_stays_out_of_the_users_view | pass | EVD-0296 | 2.0s | 1 passed in 0.37s
+BUG-0050 | tools/test_hooks.py::test_the_two_escape_classes_warn_and_product_questions_stay_quiet | pass | EVD-0297 | 4.4s | 6 passed in 2.67s
+BUG-0052 | tools/test_repo_hygiene.py::test_no_hook_started_by_this_suite_can_write_this_repos_audit_log | pass | EVD-0298 | 2.2s | 1 passed in 0.45s
+BUG-0053 | tools/test_hooks_v2.py::test_every_way_a_line_can_point_compose_at_a_foreign_project_is_refused tools/test_hooks_v2.py::test_ordinary_docker_work_stays_open | pass | EVD-0299 | 10.3s | 13 passed in 5.12s
+BUG-0054 | tools/test_staging_cli.py::test_an_architecture_that_hangs_off_no_root_writes_no_refs tools/test_staging_cli.py::test_freezing_the_architecture_again_devalues_the_delivery_approval | pass | EVD-0300 | 4.3s | 1 passed in 0.91s
+BUG-0057 | tools/test_report.py::test_every_provider_marker_says_whether_this_report_reads_its_registrations tools/test_report.py::test_the_spawn_veto_is_not_claimed_for_a_provider_this_report_cannot_read | pass | EVD-0301 | 4.2s | 1 passed in 0.59s
+BUG-0058 | tools/test_approvals_dispatch.py::test_a_dispatch_whose_child_ended_is_named_and_a_running_one_is_not tools/test_hooks_v2.py::test_the_turn_end_is_refused_for_a_dispatch_whose_child_stopped | pass | EVD-0302 | 6.1s | 1 passed in 2.02s
+BUG-0062 | tools/test_hooks.py::test_a_registration_names_a_window_exactly_when_its_gate_can_outlive_the_default | pass | EVD-0303 | 3.6s | 1 passed in 2.12s
+BUG-0067 | tools/test_hooks.py::test_both_seeding_scripts_carry_the_same_refusal tools/test_hooks.py::test_the_seeding_script_refuses_the_tree_that_ships_the_templates | pass | EVD-0304 | 7.3s | 1 passed in 2.55s
+BUG-0074 | tools/test_staging_cli.py::test_freezing_one_artifact_leaves_the_other_staged_files_alone | pass | EVD-0305 | 2.2s | 4 passed in 0.80s
+BUG-0075 | tools/test_role_contracts.py::test_every_role_that_owns_a_kit_document_carries_the_route_that_writes_it tools/test_role_contracts.py::test_the_document_route_is_one_text_wherever_it_stands | pass | EVD-0306 | 4.5s | 1 passed in 0.64s
+BUG-0076 | tools/test_role_contracts.py::test_the_product_designer_can_look_at_its_own_draft_and_says_what_that_costs | pass | EVD-0307 | 1.8s | 1 passed in 0.39s
+BUG-0077 | tools/test_role_contracts.py::test_no_kit_text_puts_an_artifact_into_the_scope_manifest_the_kernel_does_not_hash | pass | EVD-0308 | 2.1s | 1 passed in 0.70s
+BUG-0079 | tools/test_office_package.py::test_every_remedy_the_kernel_prints_for_a_document_write_is_a_line_the_kernel_accepts tools/test_office_package.py::test_the_gap_refusal_names_an_order_this_script_actually_walks tools/test_office_package.py::test_the_two_remedies_that_name_no_typed_flag_need_none | pass | EVD-0309 | 17.6s | 1 passed in 1.89s
+BUG-0080 | tools/test_role_contracts.py::test_every_constitution_forbids_handing_the_user_a_line_around_a_gate | pass | EVD-0310 | 1.8s | 1 passed in 0.37s
+BUG-0081 | tools/test_hooks.py::test_a_line_that_also_merges_keeps_the_delivery_demand tools/test_hooks.py::test_a_push_whose_destination_is_not_a_work_branch_keeps_the_delivery_demand tools/test_hooks.py::test_a_work_branch_push_with_no_verdict_at_all_is_still_refused tools/test_hooks.py::test_the_first_work_branch_push_is_not_refused_for_a_verdict_the_push_has_to_produce tools/test_hooks.py::test_the_kind_outstanding_at_a_work_branch_push_is_a_real_qa_kind tools/test_hooks.py::test_the_merge_still_refuses_the_verdict_a_push_may_owe tools/test_role_contracts.py::test_every_constitution_forbids_handing_the_user_a_line_around_a_gate | pass | EVD-0311 | 33.4s | 1 passed in 0.30s
+BUG-0082 | tools/test_hooks_v2.py::test_a_metacharacter_does_not_hide_a_protected_path_from_the_kit_gate | pass | EVD-0312 | 4.6s | 5 passed in 3.20s
+BUG-0087 | tools/test_repo_hygiene.py::test_no_assertion_in_the_suites_is_statically_true | pass | EVD-0313 | 2.9s | 1 passed in 1.42s
+BUG-0092 | tools/test_model_ladder.py::test_no_watch_date_in_the_tiers_table_lies_in_the_past tools/test_model_ladder.py::test_the_maintenance_header_names_the_finding_to_item_route | pass | EVD-0314 | 3.4s | 1 passed in 0.32s

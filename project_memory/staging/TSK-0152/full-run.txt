@@ -1,0 +1,271 @@
+........................................................................ [  1%]
+...........................................................F............ [  2%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+......................................F................................. [  6%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 15%]
+...............................................s........................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 19%]
+........................................................................ [ 20%]
+..................s..................................................... [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 26%]
+...........ss.s.s.s.sssss...s........................................... [ 27%]
+........................................................................ [ 29%]
+.....................................................F.................. [ 30%]
+........................................................................ [ 31%]
+..............................................s......................... [ 33%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+..............................................s......................... [ 78%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 87%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+..................                                                       [100%]
+================================== FAILURES ===================================
+____ test_no_direct_status_write_can_produce_a_status_an_approval_commits _____
+
+    def test_no_direct_status_write_can_produce_a_status_an_approval_commits():
+        """Every `x["status"] = ...` in the kernel, and what it is allowed to be.
+    
+        The kernel used to claim `transition` was its only status writer while `approvals.mint` and
+        several dispatch and state functions wrote one directly. Rather than repeat a claim, this
+        reads the running source: `_status_writes` finds every expression outside `_transition_locked`
+        that can set the key (three syntaxes, self-tested above), `_possible_statuses` BOUNDS what each
+        can produce from the kernel's own maps, and an expression nobody can bound is itself a failure
+        -- that was exactly the old mint's shape.
+    
+        So a new direct writer is not forbidden; a direct writer that could produce a status the type
+        only reaches through a user approval is, and so is one nobody can bound. WHICH statuses those
+        are is `_approval_bound_statuses` and it is a walk, not the approval targets read as a set: the
+        set reading made this check blind to every status further down the chain, which is how the
+        archive path's write set handing back `BUG VERIFIED` passed it. (That set is
+        `state.migration_writable_statuses`; the name this sentence used to carry,
+        `migration_writable_terminals`, has not existed since the same round -- a dead name in a
+        docstring is a pointer a reader cannot follow.)
+        """
+        destinations = _approval_bound_statuses()
+        kernel_dir = os.path.join(TEAM_KITS, "kernel")
+        offenders, writers = [], []
+        trees = {}
+        for name in sorted(os.listdir(kernel_dir)):
+            if name.endswith(".py"):
+                with open(os.path.join(kernel_dir, name), encoding="utf-8") as handle:
+                    trees[name] = ast.parse(handle.read())
+        # every module's own one-string constants first, so an import of one resolves one hop away
+        siblings = {name[:-3]: _module_string_constants(tree) for name, tree in trees.items()}
+        for name, tree in trees.items():
+            module_constants = _module_string_constants(
+                tree, _imported_string_constants(tree, siblings))
+            for function, value_node in _status_writes(tree, module_constants):
+                where = "%s:%s" % (name, function)
+                if where == "state.py:_transition_locked":
+                    continue
+                writers.append(where)
+                produced = _possible_statuses(value_node, module_constants)
+                if produced is None:
+                    if _refuses_the_key(tree, function):
+                        continue      # it raises on a `status` in its input before it merges anything
+                    offenders.append(
+                        "%s writes a status this reader cannot bound -- bound it (add the shape to "
+                        "`_possible_statuses`, with the kernel map it reads its values from), refuse "
+                        "the key first, or route the write through the automaton" % where)
+                    continue
+                for bounded in sorted(produced, key=str):
+                    # A PAIR says which type the value belongs to (a kernel function that takes the
+                    # item type); a bare string could be any type's, so every type carrying that
+                    # status is asked. See `_possible_statuses` for what the pairing rests on.
+                    if isinstance(bounded, tuple):
+                        owners, value = {bounded[0]}, bounded[1]
+                    else:
+                        value = bounded
+                        owners = {item_type for item_type, automaton
+                                  in backlog_types.AUTOMATA.items() if value in automaton.states}
+                    clash = owners & destinations.get(value, set())
+                    if clash:
+                        offenders.append("%s can write %r directly, which %s reaches only through an "
+                                         "edge a user approval commits" % (where, value, sorted(clash)))
+        # ...and the rule has to have teeth: with an empty `destinations` the loop above is a no-op and
+        # this test would pass over any kernel at all.
+        assert destinations, "no status of any shipped type stands behind an approval -- the check "\
+                             "above then measures nothing"
+        # A FLOOR THAT IS NOT A MAGIC NUMBER: the reader must have seen the two modules that really do
+        # write statuses. The COUNT is deliberately not asserted -- a docstring said four while the
+        # source had seven, and pinning the number here would only re-create that lie one layer down.
+        assert {where.split(":")[0] for where in writers} >= {"state.py", "dispatch.py"}, writers
+>       assert not offenders, offenders
+E       AssertionError: ['archive_door.py:amend_test_ref writes a status this reader cannot bound -- bound it (add the shape to `_possible_statuses`, with the kernel map it reads its values from), refuse the key first, or route the write through the automaton']
+E       assert not ['archive_door.py:amend_test_ref writes a status this reader cannot bound -- bound it (add the shape to `_possible_statuses`, with the kernel map it reads its values from), refuse the key first, or route the write through the automaton']
+
+tools\test_approvals_dispatch.py:3165: AssertionError
+______ test_no_kernel_writer_of_a_rendered_file_leaves_the_board_behind _______
+
+    def test_no_kernel_writer_of_a_rendered_file_leaves_the_board_behind():
+        """The board can only be as fresh as the index, so every kernel write has to regenerate it.
+    
+        Two did not, and the verifier found them by hand: `approvals.revoke` (the APR card kept saying
+        `revoked = False` -- a field the index does not even carry, so only the board could show it)
+        and the lease-expiry release in `dispatch._validate_lease_locked` (task READY on disk, LEASED
+        on the index and the board). Both are fixed; this is what keeps the pair from coming back, and
+        it derives the writers from the package instead of trusting a sentence in a docstring.
+        """
+        calls = _kernel_calls()
+        writers = {key for key, made in calls.items()
+                   if {"_write_yaml_atomic", "_write_text_atomic"} & made}
+        offenders = sorted(key for key in writers
+                           if "_regenerate_index_locked" not in calls[key]
+                           and key not in _WRITERS_THE_BOARD_DOES_NOT_RENDER)
+>       assert not offenders, (
+            "these kernel functions write a file and regenerate neither index nor board; if what they "
+            "write is not rendered, say so in _WRITERS_THE_BOARD_DOES_NOT_RENDER: %s" % offenders)
+E       AssertionError: these kernel functions write a file and regenerate neither index nor board; if what they write is not rendered, say so in _WRITERS_THE_BOARD_DOES_NOT_RENDER: [('archive_door.py', 'amend_test_ref')]
+E       assert not [('archive_door.py', 'amend_test_ref')]
+
+tools\test_board.py:784: AssertionError
+______ test_every_span_that_presents_the_command_surface_names_all_of_it ______
+
+    def test_every_span_that_presents_the_command_surface_names_all_of_it():
+        """A block that lists the entry point's subcommands is telling a role what EXISTS, and a role
+        who reads such a list and does not find a command concludes it has none.
+    
+        That is not hypothetical: on 2026-07-31 three constitutions, two PM agent definitions, the
+        README and three copies of `gate_write_scope`'s refusal all carried such a list, and six of
+        them also said in so many words that "an `ARC` is FROZEN through the promotion path (II.6a),
+        which has no command" — while `staging.freeze_architecture` was one subcommand away from
+        existing. The reader would report an infrastructure gap instead of freezing.
+    
+        WHAT COUNTS AS SUCH A SPAN is measured, not guessed. Over the whole shipped corpus the
+        distribution of "distinct subcommands named in code spans per block" is bimodal WITH A WIDE
+        A BAND WITH ONE KIND IN IT, and that kind is named rather than counted away. The overwhelming
+        majority of blocks name 0, 1 or 2 commands, a handful name every member of the surface, and the
+        threshold of 3 sits between them so a shrinking list cannot slip under it. Since
+        `revise-document` shipped (TSK-0106) one kind lands at 3 and 4: the bullet that tells a role how
+        its kit document is written names `apply-proposal`, `revise-document` and every partial writer
+        of the documents that role owns. That is a ROUTE and not an inventory, and the difference is
+        asked of the kernel instead of listed here -- every command such a block names writes INTO a kit
+        document (`layout._document_writes`), which no §0 list is true of, because a list names the
+        whole surface. The completeness of a route is a different question and it has its own measure:
+        `tools/test_role_contracts.py::test_every_role_that_owns_a_kit_document_carries_the_route_that_writes_it`
+        reads it against the constitution's ownership table, both ways.
+    
+        THE ABSOLUTE COUNTS ARE DELIBERATELY NOT WRITTEN HERE, and that is a correction: an earlier
+        version of this docstring quoted a span total and a histogram, and they were stale INSIDE the
+        round that wrote them -- the comments this very round added moved the zero bucket by fifteen.
+        A number nothing asserts drifts with every comment anyone writes. What the check needs is the
+        BAND, and the assertions below are what measure it: every presenting span complete, and enough
+        of them found to prove the reader still matches.
+    
+        The corpus is the same one its two sisters use (`_shipped_texts` split into blocks, plus the
+        AST-folded refusal texts), because an asymmetry nobody wrote down is an enumeration wearing a
+        different hat.
+        """
+        sys.path.insert(0, os.path.join(ROOT, "team-kits"))
+        from kernel import cli, layout
+        surface = set(cli.build_parser()._subparsers._group_actions[0].choices)
+        # The private aggregate and not `partial_writers`: the question here is which commands write
+        # into a kit document AT ALL, without a document to ask about, and that set exists in exactly
+        # one place.
+        document_writers = {entry["command"] for entry in layout._document_writes()}
+        assert document_writers < surface, (
+            "the document writers are no longer a part of the surface, so the exclusion below would "
+            "silence blocks this test is for: %s" % sorted(document_writers - surface))
+    
+        spans = []
+        for where, text in _shipped_texts():
+            spans += [(where, block) for block in _markdown_blocks(text)]
+        for path in _shipped_python_modules():
+            where = os.path.relpath(path, ROOT).replace(os.sep, "/")
+            spans += [(where, text) for text in _refusal_texts(path)]
+    
+        seen, offenders = 0, []
+        for where, span in spans:
+            named = {word for word in _SUBCOMMAND_SPAN_RX.findall(span) if word in surface}
+            if len(named) < _SURFACE_SPAN_MIN or named <= document_writers:
+                continue
+            seen += 1
+            missing = sorted(surface - named)
+            if missing:
+                offenders.append("%s: names %d, misses %s" % (where, len(named), ", ".join(missing)))
+>       assert not offenders, (
+            "these blocks present the entry point's surface and leave commands out of it — either "
+            "name them, or stop presenting a list and point at `--help`:\n%s" % "\n".join(offenders))
+E       AssertionError: these blocks present the entry point's surface and leave commands out of it — either name them, or stop presenting a list and point at `--help`:
+E         team-kits/dev-team/constitution/AGENTS.md: names 39, misses amend-archived-test-ref
+E         team-kits/office-team/constitution/AGENTS.md: names 39, misses amend-archived-test-ref
+E         team-kits/research-team/constitution/AGENTS.md: names 39, misses amend-archived-test-ref
+E         README.md: names 39, misses amend-archived-test-ref
+E       assert not ['team-kits/dev-team/constitution/AGENTS.md: names 39, misses amend-archived-test-ref', 'team-kits/office-team/constit...nstitution/AGENTS.md: names 39, misses amend-archived-test-ref', 'README.md: names 39, misses amend-archived-test-ref']
+
+tools\test_hooks.py:17338: AssertionError
+============================== warnings summary ===============================
+tools/test_repo_hygiene.py::test_no_tracked_text_file_checks_out_with_crlf
+  C:\Offline Repos\AgentAndSkills\tools\test_repo_hygiene.py:333: UserWarning: these files carry CRLF in canonical state, which no tool write reaches (gate 1), so the sweep below cannot ask for them -- they are repaired where they are written, in the kit: ['project_memory/.audit/hook_events.jsonl']
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+SKIPPED [1] tools\test_hooks.py:2012: POSIX init integration runs on Unix CI
+SKIPPED [1] tools\test_hooks.py:6014: generated POSIX hook command runs on Unix CI
+SKIPPED [2] tools\test_hooks.py:14023: POSIX scaffold integration runs on Unix CI
+SKIPPED [1] tools\test_hooks.py:14134: POSIX scaffold integration runs on Unix CI
+SKIPPED [1] tools\test_hooks.py:14166: POSIX scaffold integration runs on Unix CI
+SKIPPED [1] tools\test_hooks.py:14195: POSIX scaffold integration runs on Unix CI
+SKIPPED [1] tools\test_hooks.py:14374: POSIX scaffold integration runs on Unix CI
+SKIPPED [1] tools\test_hooks.py:14449: POSIX installer integration runs on Unix CI
+SKIPPED [1] tools\test_hooks.py:14482: POSIX installer integration runs on Unix CI
+SKIPPED [1] tools\test_hooks.py:14505: POSIX installer integration runs on Unix CI
+SKIPPED [1] tools\test_hooks.py:14524: POSIX installer integration runs on Unix CI
+SKIPPED [1] tools\test_hooks.py:14760: POSIX installer integration runs on Unix CI
+SKIPPED [1] tools\test_hooks.py:20308: sudo does not run non-interactively on this host (absent, or it asks for a password): 'sudo -u "$(id -un)"'
+SKIPPED [1] tools\test_kitupdate.py:1266: POSIX installer integration runs on Unix CI
+3 failed, 5184 passed, 15 skipped, 1 warning in 4789.37s (1:19:49)
+exit 1

@@ -38,10 +38,18 @@ limits: 'das Feld `class` eines Wurzelziels hat in diesem Kernel KEINE Vokabel: 
   weil eine Wertpruefung an dieser Stelle ein zweiter Leser derselben Frage waere'
 regression_tests:
 - tools/test_approvals_dispatch.py::test_a_goal_of_an_unknown_class_is_asked_for_the_architect_step
-- tools/test_approvals_dispatch.py::test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it
+- tools/test_approvals_dispatch.py::test_an_origin_that_names_no_criterion_excuses_no_architect_step
 status: VERIFIED
 revision: 1
 approval_ref: APR-0070
 created: '2026-09-05T20:28:06'
 approved_hash: a1e8c3c8d90547ec37277f30c58dd93b0576a4b79d1abbb481ee8b50b3d5bbcf
 closed_at: '2026-09-13T08:54:18'
+test_ref_amendments:
+- at: '2026-09-26T19:20:24'
+  by: harness-lead
+  field: regression_tests
+  old: tools/test_approvals_dispatch.py::test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it
+  new: tools/test_approvals_dispatch.py::test_an_origin_that_names_no_criterion_excuses_no_architect_step
+  reason: replaced in 95df503 (TSK-0150) when BUG-0303/H218 closed the remainder the
+    old test asserted

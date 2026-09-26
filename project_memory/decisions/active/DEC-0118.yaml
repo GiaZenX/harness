@@ -1,0 +1,41 @@
+id: DEC-0118
+title: 'Oberste Stufe auf Claude = Opus auf xhigh (praezisiert DEC-0114 (4)): der
+  Architektur-Schritt startet auf Opus xhigh statt high, Deckel xhigh; wird Fable
+  wieder besser, hebt EINE Zeile (provider_top) den Deckel -- die Watcher melden es'
+context: 'USER 2026-09-26 ~08:3x, relaying the synaipse PM: ''Der Architekt ist blockiert.
+  Der Sicherheitsfilter des obersten Modells laesst ihn nicht starten, und das Kit
+  erlaubt kein anderes Modell fuer ihn.'' The user read it as caused by DEC-0114 (''Du
+  hast fuer Claude Code die oberste Stufe blockiert'') and proposed ''oberste Stufe
+  ist nicht mehr fable sondern opus auf xhigh oder max''. MEASURED by the lead: synaipse-unified
+  runs kit 2026.09.13-6 (before DEC-0114): its architecture class starts on `top:
+  fable`, Fable''s safety filter refuses to start, and the spawn gate refuses the
+  pinned opus -- the block is the OLD kit; 2026.09.25-6 (rolled out 2026-09-25 22:44)
+  caps Claude at opus via `provider_top: {claude: opus}`, where the architect starts
+  on opus/HIGH and climbs to xhigh after failed runs (TSK-0151 rework F1 measurement).
+  Asked with four options, the user answered: ''xhigh und wenn fable wieder besser
+  sein sollte einfach aktualisieren oder? also unser radar watcher macht ja immer
+  wieder reports''.'
+decision: '(1) On Claude the TOP rung is opus at effort XHIGH: every class that starts
+  on `top` (the architecture step) starts at xhigh, not at the kit''s default effort;
+  the effort ceiling on Claude stays xhigh (no max). (2) Nothing else of DEC-0114
+  changes; the Codex top stays gpt-6-astra. (3) THE SWITCH BACK is one line: `provider_top`
+  in team-kits/model_tiers.yaml; lifting it is a user-approved tier proposal like
+  any other (MAINTENANCE header). (4) The claude-watcher reports, as a standing tier
+  duty, when Fable (or its successor) is positioned or measured above Opus again or
+  its start refusals stop, with the proposal to lift the cap; the definition text
+  is the user''s file -> a patch line if its current tier duty does not already say
+  so. (5) Built as a small order after order 6 (TSK-0152 is READY and frozen); synaipse
+  gets the opus top by restarting its session (update-kit at session start), the xhigh
+  start with the following kit version.'
+consequences: 'The architecture step keeps a strong start without a model that does
+  not start; cost stays bounded (no max). Rejected: max from the start (cost, latency);
+  ''so lassen'' (opus/high at the step that used to get the strongest model).'
+work:
+- PR-0012
+source: user messages 2026-09-26 (synaipse PM relay + answer); DEC-0114; staging/TSK-0151/protocol.md
+  (Rework F1 ladder answers); C:/Offline Repos/synaipse-unified/.claude/kit_version
+  (2026.09.13-6)
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-26T08:24:37'

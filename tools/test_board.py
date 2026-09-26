@@ -761,6 +761,13 @@ _WRITERS_THE_BOARD_DOES_NOT_RENDER = {
                                           "the pending file it replaces; what the board shows of "
                                           "an approval request it reads through `open_requests` "
                                           "at render time, not out of the index",
+    ("archive_door.py", "amend_test_ref"): "an ARCHIVED item, rewritten in place (DEC-0117): the "
+                                           "index lists active items only, and the board shows "
+                                           "the archive as a count per type "
+                                           "(`board.archived_counts`), which a rewrite in place "
+                                           "does not change -- measured by `tools/test_archive_"
+                                           "door.py::test_the_door_leaves_the_board_nothing_to_"
+                                           "regenerate`",
     ("presets.py", "_after_a_failed_install"): "a .claude marker file",
     ("kitupdate.py", "ensure_restart_is_forced"): "a .claude marker file",
 }

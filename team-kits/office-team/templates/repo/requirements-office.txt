@@ -3,3 +3,4 @@
 pyyaml             # project_memory YAML (hooks, proc_hash, process_doc)
 defusedxml         # e-invoice XML parsing — supplier XML is UNTRUSTED input (XXE/billion-laughs)
 pypdf              # embedded ZUGFeRD/Factur-X XML extraction from PDF invoices
+tzdata             # the IANA time zones `zoneinfo` reads business.timezone from -- Windows ships none

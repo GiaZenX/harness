@@ -1,4 +1,4 @@
-generated_at: '2026-09-26T08:00:15'
+generated_at: '2026-09-26T19:20:54'
 items:
 - id: APR-0001
   type: APR
@@ -533,6 +533,28 @@ items:
   title: Der Preis-Leser der Stufentabelle liest nicht jede Preis-Schreibweise und
     meldet einige Nicht-Preise (Rest von TSK-0151 R2-3b, nach DEC-0102 (2) neu eingereicht
     statt ein drittes Mal verbreitert)
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0310
+  type: BUG
+  title: 'Feld: ein Weg cached Bytecode in das installierte .claude/kernel -- danach
+    gilt das Buendel als veraendert, jeder Spezialisten-Start wird verweigert, und
+    die Sitzung kann den Cache nicht entfernen'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0311
+  type: BUG
+  title: 'Feld: update-kit bricht ab, wenn .claude/settings.local.json ein (leerer)
+    ORDNER statt einer Datei ist -- und die Sitzung darf ihn nicht entfernen'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0312
+  type: BUG
+  title: 'Archivtür (DEC-0117): eine Wegwerf-Testdatei außerhalb des Zustandsordners
+    wird als neuer Knoten angenommen'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -1405,6 +1427,31 @@ items:
     NUR einen Testverweis (regression_tests / Testknoten) auf einen existierenden
     Nachfolger korrigieren, protokolliert; alles andere im Archiv bleibt unantastbar,
     und der Test ''jeder genannte Test existiert'' bleibt scharf'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0118
+  type: DEC
+  title: 'Oberste Stufe auf Claude = Opus auf xhigh (praezisiert DEC-0114 (4)): der
+    Architektur-Schritt startet auf Opus xhigh statt high, Deckel xhigh; wird Fable
+    wieder besser, hebt EINE Zeile (provider_top) den Deckel -- die Watcher melden
+    es'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0119
+  type: DEC
+  title: 'Eine Freigabe ist ein VERSTAENDNIS-Abgleich, keine Arbeitserlaubnis: kein
+    ''fertig mit X, weiter mit Y -- Freigabe?''; Fehler ohne Freigabe; Aenderungswuensche
+    des Nutzers sofort anlegen (mit seinen Worten) und beginnen, gesammelt auf EINER
+    ruhigen Karte bestaetigen, spaetestens vor der Abnahme'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0120
+  type: DEC
+  title: 'H47: Gate 1 dieses Repos lehnt eine Umleitung ab, deren Ziel eine Variable
+    enthaelt -- es loest sie nicht auf (Richtung (c) der Klassenfrage aus TSK-0152)'
   status: VALID
   revision: 1
   approval_ref: null
@@ -4138,6 +4185,42 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0479
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0480
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0481
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0482
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0483
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0484
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -4249,6 +4332,31 @@ items:
   type: FR
   title: 'Token-Verbrauch je Auftrag senken: frische Agenten statt Wiederaufnahme,
     Hintergrund-Läufe statt Nachschauen, Lese-Disziplin -- gemessen vorher/nachher'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: FR-0094
+  type: FR
+  title: 'Kommentare direkt in der Design-Vorschau: Taste ''#'' oeffnet am Mauszeiger
+    ein Kommentarfeld, der Kommentar haengt an der Stelle und landet als Eingabe beim
+    Designer'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: FR-0095
+  type: FR
+  title: 'Freigabe-Karte ruhig und lesbar: ''Freigabe erbeten fuer <Art>'', darunter
+    die Liste der Eintraege (Id + deutscher Kurztitel), dazu eine vom PM formulierte
+    Erklaerung, was das bedeutet -- keine Pruefsummen, Pfade, Request-Ids und englischen
+    Feldtexte im Blickfeld'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: FR-0096
+  type: FR
+  title: 'So autonom wie moeglich freigeben: EIN Ja zum Projekt deckt alles darunter;
+    was unterwegs neu entsteht (CR, BUG, neues Ziel), sammelt der PM und fragt EINMAL
+    als Sammel-Freigabe -- nie neun Einzelfragen hintereinander'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -4392,5 +4500,11 @@ items:
   type: TSK
   title: null
   status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0152
+  type: TSK
+  title: null
+  status: READY
   revision: 1
   approval_ref: null

@@ -1,0 +1,36 @@
+id: BUG-0312
+title: 'Archivtür (DEC-0117): eine Wegwerf-Testdatei außerhalb des Zustandsordners
+  wird als neuer Knoten angenommen'
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-26 by harness-verifier (TSK-0152 verify round 2, F5; project_memory/staging/TSK-0152/verify-round-2.md):
+  amend-archived-test-ref returned rc=0 and wrote the archived item for a new node
+  in .venv/test_throw.py, .e2e-sandbox/test_throw.py (gitignored here), _scratch/test_throw.py
+  (untracked), build/test_throw.py and .claude/worktrees/x/test_throw.py. Mechanism:
+  team-kits/kernel/archive_door.py `_why_not_a_test_module` judges the module by NAME
+  and LOCATION (listed by holes.test_modules_under, inside the checkout, outside state.root),
+  not by whether the file is tracked or collected by a delivery run; only the state
+  directory is excluded as a throwaway place.'
+expected: The door accepts a new node only in a module a delivery run of this checkout
+  collects (tracked, not ignored), or the exclusion is stated as a property the door
+  reads rather than one directory.
+repro: Archive a BUG naming a renamed test; write _scratch/test_throw.py with def
+  test_far_away(); run amend-archived-test-ref <id> --old <old> --new _scratch/test_throw.py::test_far_away
+  --reason r --by b -> rc 0.
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: A new node in an untracked or ignored test module is refused by the door --
+    a test naming this bug, red against archive_door.py of TSK-0152.
+source: project_memory/staging/TSK-0152/verify-round-2.md, F5
+limits: 'Offen: die Tür beurteilt einen neuen Knoten nach Name und Lage, nicht danach,
+  ob die Datei getrackt ist oder ein Lieferlauf sie sammelt, und nimmt darum eine
+  Wegwerf-Testdatei unter .venv/, build/, _scratch/, .e2e-sandbox/ oder .claude/worktrees/
+  an. Begrenzt: die Tür öffnet nur das Testverweis-Feld eines archivierten Items,
+  jede Nutzung hinterlässt einen Prüfvermerk mit Wer, Wann, Alt, Neu und Grund (DEC-0117
+  (2)), und in diesem Repo wird der Test, der jeden genannten Test auflöst (.claude/hooks/test_gates.py),
+  rot, sobald die Wegwerfdatei verschwindet.'
+hole_number: H222
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-26T19:18:13'

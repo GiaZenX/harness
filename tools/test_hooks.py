@@ -20089,9 +20089,10 @@ def test_a_prefix_words_own_option_does_not_hide_the_command_word_in_any_kit(prd
     makes the word UNKNOWN and every operand of that stage is read as something it may start.
 
     THE EVERYDAY TWINS ARE HALF THIS TEST, one per prefix that carries an option: `nice -n 5 make`,
-    `sudo -u me ls` and `env -i bash tools/ci.sh` all have an unknown command word too, and all
-    three stay rc 0 -- because this rule refuses a name only where the SAME LINE also writes it.
-    A blanket "refuse a prefix with an option" would pass the rows above and fail these three.
+    `sudo -u me ls` and `env -i bash tools/ci.sh` stay rc 0 -- since BUG-0305 because the reader
+    knows these options (`gate_write_scope._PREFIX_OPTIONS`) and names the real program, and
+    before it because the rule refuses a name only where the SAME LINE also writes it. A blanket
+    "refuse a prefix with an option" would pass the rows above and fail these three.
 
     THE ROW THAT PROVES THE ATTRIBUTION, and it is the one a flat pair of sets loses:
     `sudo -u root tee run.sh ; bash run.sh` writes through an unknown stage and runs in another, so
@@ -20192,6 +20193,124 @@ def test_a_command_substitution_is_not_read_as_a_write_by_the_stage_around_it(pr
         refused = _write_scope_in(prd_repo, line, kit_hooks)
         assert refused.returncode == 2, (kit_hooks, line, refused.stdout, refused.stderr)
         assert "RUNS it in the same call" in refused.stderr, (line, refused.stderr[:400])
+
+
+@pytest.mark.parametrize("kit_hooks", [HOOKS, OFFICE_HOOKS, RESEARCH_HOOKS])
+def test_a_read_only_stage_behind_a_known_prefix_option_is_not_read_as_a_write(prd_repo, kit_hooks):
+    """BUG-0305 / H220: a stage that only READS a file behind `sudo -u me`, `nice -n 19` or
+    `env -i` was read as WRITING it, so running that file later on the line was refused with
+    "this line WRITES tools/ci.sh" -- a sentence about a write the line does not make.
+
+    MEASURED as real hook processes in all three kits (TSK-0150 verify round 2): the three read-only
+    lines below were rc 2. The reader stepped over the prefix word and not over its option, so the
+    option became the "command word" and the stage was read fail-closed. Now `_command_word_at`
+    steps over the options `gate_write_scope._PREFIX_OPTIONS` knows, value included, and the real
+    program (`cat`, `wc`, `grep`) is classified like any other.
+
+    THE ATTACK ROW STAYS REFUSED: `sudo -u root tee run.sh` behind the same option WRITES run.sh
+    and the line runs it -- the known option only names the program, it does not excuse it.
+
+    AN OPTION THE TABLE DOES NOT KNOW STILL MAKES THE STAGE UNKNOWN, and there the refusal remains
+    (fail-closed) but no longer claims a write as a fact: it says "may WRITE" and names the option.
+    """
+    for line in ("sudo -u me cat tools/ci.sh ; bash tools/ci.sh",
+                 "nice -n 19 wc -l tools/ci.sh ; bash tools/ci.sh",
+                 "env -i grep -n x tools/ci.sh ; bash tools/ci.sh"):
+        allowed = _write_scope_in(prd_repo, line, kit_hooks)
+        assert allowed.returncode == 0, (kit_hooks, line, allowed.stdout, allowed.stderr)
+
+    attack = ("sudo -u root tee run.sh <<'EOF'" + NL + "printf x > project_memory/b1h.yaml" + NL
+              + "EOF" + NL + " ; bash run.sh")
+    refused = _write_scope_in(prd_repo, attack, kit_hooks)
+    assert refused.returncode == 2, (kit_hooks, refused.stdout, refused.stderr)
+    assert "this line WRITES run.sh and RUNS it in the same call" in refused.stderr, refused.stderr
+
+    # every writer of the name is a stage read fail-closed -- one of them, or two with the same
+    # option (a count of distinct options is not a count of writers)
+    for line in ("sudo -E cat tools/ci.sh ; bash tools/ci.sh",
+                 "sudo -E cat tools/ci.sh ; sudo -E wc tools/ci.sh ; bash tools/ci.sh"):
+        unknown = _write_scope_in(prd_repo, line, kit_hooks)
+        assert unknown.returncode == 2, (kit_hooks, line, unknown.stdout, unknown.stderr)
+        assert "may WRITE tools/ci.sh" in unknown.stderr and "-E" in unknown.stderr, unknown.stderr
+        assert "this line WRITES" not in unknown.stderr, (line, unknown.stderr)
+    # ...and a line with a REAL write beside the supposed one still says so as a fact
+    real = _write_scope_in(prd_repo, "echo x > tools/ci.sh ; sudo -E cat tools/ci.sh ; "
+                                     "bash tools/ci.sh", kit_hooks)
+    assert real.returncode == 2 and "this line WRITES tools/ci.sh" in real.stderr, real.stderr
+
+
+def _real_bash():
+    """A POSIX bash that runs programs on THIS host, or None -- never the WSL launcher on Windows,
+    which runs another machine's programs. On Windows the bash of Git for Windows is found beside
+    `git` when PATH names the launcher first (a PowerShell host)."""
+    found = shutil.which("bash")
+    if found and "system32" not in found.lower().replace("\\", "/"):
+        return found
+    git = shutil.which("git")
+    top = os.path.dirname(git) if os.name == "nt" and git else None
+    for _level in range(3 if top else 0):
+        top = os.path.dirname(top)
+        for candidate in (os.path.join(top, "bin", "bash.exe"),
+                          os.path.join(top, "usr", "bin", "bash.exe")):
+            if os.path.isfile(candidate):
+                return candidate
+    return None
+
+
+def _prefix_option_entries():
+    """(prefix, option, takes a value) for every entry the SHIPPED table carries -- read at
+    collection, so each entry is a node of its own and a host that lacks one program skips one."""
+    gate = load_kit_module("gate_write_scope_prefix_rows", os.path.join(HOOKS, "gate_write_scope.py"))
+    rows = [(prefix, option, takes)
+            for prefix, options in sorted(getattr(gate, "_PREFIX_OPTIONS", {}).items())
+            for option, takes in sorted(options.items())]
+    # a table that is gone or empty is ONE failing node, never a silently vanished test
+    return rows or [("<no _PREFIX_OPTIONS>", "", False)]
+
+
+@pytest.mark.parametrize("prefix,option,takes", _prefix_option_entries())
+def test_every_known_prefix_option_is_needed_and_is_what_the_real_program_does(prd_repo, prefix,
+                                                                             option, takes):
+    """BUG-0305: the tripwire at both ends of `gate_write_scope._PREFIX_OPTIONS`, an enumeration.
+
+    NEEDED: the line `<prefix> <option> [value] cat tools/ci.sh ; bash tools/ci.sh` passes the
+    shipped hook as a process, and with this entry taken out of the table (in-process, against the
+    same module file) the same line is refused -- an entry that changes no verdict is dead.
+
+    TRUE: the real program on this host is asked whether the option takes the next word. A
+    value-taking option is followed by a value and then `printf ok`; a flag is followed by `printf
+    ok` directly. Had the table the value-taking wrong, the shell would start the wrong word and
+    `ok` would not be printed. A host that cannot run the program (`sudo` on Windows, or a `sudo`
+    that asks for a password) skips THIS entry's second half and says which.
+    """
+    gate = load_kit_module("gate_write_scope_prefix", os.path.join(HOOKS, "gate_write_scope.py"))
+    assert option, "gate_write_scope._PREFIX_OPTIONS carries no entry: %s" % prefix
+    value = {("sudo", "-u"): '"$(id -un)"'}.get((prefix, option), "5") if takes else ""
+    head = " ".join(word for word in (prefix, option, value) if word)
+    line = head + " cat tools/ci.sh ; bash tools/ci.sh"
+    allowed = _write_scope_in(prd_repo, line, HOOKS)
+    assert allowed.returncode == 0, (line, allowed.stderr)
+    tokens = gate._tokenise(gate.prose_removed_view(line, "Bash").replace(NL, " ; "))
+    kept = gate._PREFIX_OPTIONS
+    try:
+        gate._PREFIX_OPTIONS = dict(kept, **{prefix: {one: flag for one, flag in kept[prefix].items()
+                                                      if one != option}})
+        with pytest.raises(SystemExit):
+            gate._refuse_a_script_this_line_writes_and_runs(tokens, gate._null_sinks("Bash"))
+    finally:
+        gate._PREFIX_OPTIONS = kept
+
+    bash = _real_bash()
+    if bash is None:
+        pytest.skip("no bash on this host runs %r" % head)
+    if prefix == "sudo" and subprocess.run([bash, "-c", "sudo -n true"],
+                                           capture_output=True).returncode != 0:
+        pytest.skip("sudo does not run non-interactively on this host (absent, or it asks for a "
+                    "password): %r" % head)
+    ran = subprocess.run([bash, "-c", '%s "$(type -P printf)" ok' % head],
+                         capture_output=True, text=True, timeout=60)
+    assert ran.stdout == "ok", ("%s does not behave as the table says (takes a value: %s)"
+                                % (head, takes), ran.stdout, ran.stderr)
 
 
 def _write_scope_in(repo, command, hooks_dir):

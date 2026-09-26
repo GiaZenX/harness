@@ -1,0 +1,32 @@
+id: FR-0096
+title: 'So autonom wie moeglich freigeben: EIN Ja zum Projekt deckt alles darunter;
+  was unterwegs neu entsteht (CR, BUG, neues Ziel), sammelt der PM und fragt EINMAL
+  als Sammel-Freigabe -- nie neun Einzelfragen hintereinander'
+request_text: 'User 2026-09-26: ''Ich habe immer noch das Gefuehl, dass man sehr viel
+  auf einmal freigeben muss, obwohl ich mir das eher so autonom wuensche wie moeglich,
+  sprich: Man committet sich auf ein Projekt, man gibt alles auf einmal irgendwie
+  frei, und neue Feature Requirements, System Requirements, sowas legt er an und gibt
+  sie dann natuerlich separat frei, falls waehrend des Prozesses was festgestellt
+  wird. Aber dann wird immer noch alles auf einmal freigegeben.'' LEAD''S READING:
+  (1) a SCOPE BATCH (`request-approval scope --batch <ids>`, the same list-bound form
+  as verification/hole_exception, each entry bound to its own scope hash) so every
+  scope question of a phase is ONE card; (2) the PM''s playbook collects new CR/BUG/goal
+  scope questions and asks them together at a natural break, not one per capture;
+  (3) a DECISION for the user: does the plan approval of a goal also cover items that
+  stay INSIDE that goal''s accepted criteria (e.g. an SR or a bug fix that changes
+  no acceptance criterion), so only real scope changes ask at all? MEASURED by the
+  lead 2026-09-26 in C:/Offline Repos/synaipse-unified/project_memory/approvals (kit
+  2026.09.13-6), 2026-09-25 20:29 -> 2026-09-26 13:09: 16 minted approvals = 1 plan,
+  2 delivery, 1 kit_update, 1 routine and 11 SCOPE -- one per item: CR-0001..CR-0009,
+  BUG-0001, PR-0031; nine of them created 21:01:19-21:03:15, i.e. nine questions in
+  two minutes. The kernel''s list-bound form covers only `plan` (the open ROOT goals,
+  approvals.plan_goals), `verification` and `hole_exception` batches; a scope question
+  over CRs/BUGs/new goals has no batch form, so the PM had no way to ask once. Earlier
+  work on the card''s language: BUG-0073, BUG-0271 (both VERIFIED), FR-0090 (expiry
+  date readable, TRIAGED).'
+source: user message 2026-09-26; synaipse-unified/project_memory/approvals (16 records);
+  team-kits/kernel/approvals.py (plan_goals, content_question, PLAN_COVERED_KIND)
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-26T13:45:52'

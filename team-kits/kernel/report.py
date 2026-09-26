@@ -88,6 +88,8 @@ from .dispatch import (
     FAILED_RUNS,
     LEASE_CLASS_FIELD,
     LEASE_EFFORT_FIELD,
+    LEASE_PROVIDER_FIELD,
+    LEASE_PROVIDERS_FIELD,
     LEASE_RUNG_FIELD,
     RUNG_KEY,
 )
@@ -298,6 +300,13 @@ def lease_distribution(state: ProjectState, window: int = DISTRIBUTION_WINDOW) -
     `dispatch.count_failed_run_locked` counted -- and not the verifier's rounds, which no state
     field records.
     `tools/test_report.py::test_the_session_brief_carries_the_lease_distribution_line`
+
+    WHOSE RUNG (BUG-0308 / H221): `rungs`/`efforts` and their two means count the lease's top-level
+    answer, which is the REFERENCE platform's (`counted_provider` names it: the providers the orders
+    recorded, or "the reference platform" for orders leased before they recorded one). Every
+    provider a lease also answered for is counted under its own name in `by_provider` -- rungs,
+    efforts and runs to hand-back per rung -- so a Codex project's climbed order shows its Codex rung.
+    `tools/test_ladder.py::test_the_lease_distribution_names_the_provider_whose_rung_it_counts_bug_0308`
     """
     recent = _leased_orders(state)[:window]
     builders = {}
@@ -305,7 +314,20 @@ def lease_distribution(state: ProjectState, window: int = DISTRIBUTION_WINDOW) -
     # here and not a second block of counting.
     seen = {LEASE_RUNG_FIELD: {}, LEASE_EFFORT_FIELD: {}}
     runs = {LEASE_RUNG_FIELD: {}, LEASE_EFFORT_FIELD: {}}
+    counted, by_provider = set(), {}
     for item in recent:
+        counted.add(str(item.get(LEASE_PROVIDER_FIELD) or "the reference platform"))
+        answers = item.get(LEASE_PROVIDERS_FIELD)
+        for provider, answer in (answers.items() if isinstance(answers, dict) else ()):
+            if not isinstance(answer, dict):
+                continue
+            row = by_provider.setdefault(str(provider), {"rungs": {}, "efforts": {}, "runs": {}})
+            for key, bucket in ((RUNG_KEY, "rungs"), (EFFORT_KEY, "efforts")):
+                value = str(answer.get(key))
+                row[bucket][value] = row[bucket].get(value, 0) + 1
+            if _handed_back(item):
+                row["runs"].setdefault(str(answer.get(RUNG_KEY)), []).append(
+                    int(item.get(FAILED_RUNS) or 0) + 1)
         if item.get(LEASE_CLASS_FIELD) == BUILD_CLASS:
             root = str(item.get("product_requirement") or "?")
             builders[root] = builders.get(root, 0) + 1
@@ -320,6 +342,11 @@ def lease_distribution(state: ProjectState, window: int = DISTRIBUTION_WINDOW) -
     means = {field: {value: round(sum(counts) / len(counts), 1)
                      for value, counts in runs[field].items()}
              for field in runs}
+    providers = {provider: {"rungs": row["rungs"], "efforts": row["efforts"],
+                            "runs_to_hand_back_per_rung": {
+                                value: round(sum(counts) / len(counts), 1)
+                                for value, counts in row["runs"].items()}}
+                 for provider, row in sorted(by_provider.items())}
 
     def spelled(counted):
         return ", ".join("%s x %d" % (value, n) for value, n in sorted(counted.items()))
@@ -338,7 +365,16 @@ def lease_distribution(state: ProjectState, window: int = DISTRIBUTION_WINDOW) -
                              for n, goals in sorted(per_goal.items())) or "none",
                    spelled(seen[LEASE_RUNG_FIELD]), spelled(seen[LEASE_EFFORT_FIELD]),
                    averaged(means[LEASE_RUNG_FIELD]), averaged(means[LEASE_EFFORT_FIELD])))
+        line += "; rungs and efforts counted as answered for %s" % ", ".join(sorted(counted))
+        others = [provider for provider in providers if provider not in counted]
+        if others:
+            line += "; per provider: " + "; ".join(
+                "%s rungs %s, runs to hand-back per rung %s" % (
+                    provider, spelled(providers[provider]["rungs"]),
+                    averaged(providers[provider]["runs_to_hand_back_per_rung"]))
+                for provider in others)
     return {"window": int(window), "orders": len(recent), "goals_with_builders": len(builders),
+            "counted_provider": sorted(counted), "by_provider": providers,
             "builders_per_goal": per_goal, "rungs": seen[LEASE_RUNG_FIELD],
             "efforts": seen[LEASE_EFFORT_FIELD],
             "runs_to_hand_back_per_rung": means[LEASE_RUNG_FIELD],
@@ -378,7 +414,8 @@ def generate_session_brief(
                 # and its row says nothing rather than a default. Measured missing 2026-09-06 and
                 # filed as BUG-0249 because the stream that built the lease was forbidden this file;
                 # `tools/test_report.py::test_the_session_brief_shows_the_rung_and_effort_a_lease_wrote_on_the_task`.
-                for key in (RUNG_KEY, EFFORT_KEY, LEASE_RUNG_FIELD, LEASE_EFFORT_FIELD):
+                for key in (RUNG_KEY, EFFORT_KEY, LEASE_RUNG_FIELD, LEASE_EFFORT_FIELD,
+                            LEASE_PROVIDERS_FIELD):
                     if item.get(key):
                         row[key] = item[key]
                 tasks.append(row)

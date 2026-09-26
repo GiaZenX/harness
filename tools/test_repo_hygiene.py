@@ -2483,6 +2483,35 @@ def _inside(path, tree):
         os.path.normcase(os.path.normpath(tree)) + os.sep)
 
 
+def test_no_artifact_ref_points_at_a_file_git_ignores_bug_0069():
+    """BUG-0069, the half of hosted run 36187576523 that was red on BOTH runners: evidence records
+    whose `artifact_refs` resolve on the machine that wrote them and nowhere else, because the file
+    they name is IGNORED by git and so never reaches a checkout.
+
+    MEASURED: `test_every_artifact_ref_still_resolves_where_it_points` was green on every local run
+    and red on ubuntu-latest and windows-latest -- EVD-0091 -> staging/TSK-0131/ci-b7f282e-failed.log,
+    EVD-0095, EVD-0105.. -> staging/TSK-0138/rerun.log and more, every one a `*.log` under the state
+    tree, which the repo-wide `*.log` rule in `.gitignore` kept out of every commit. Asked of git
+    itself (`git check-ignore`, which leaves tracked files out by definition), so the local run now
+    sees what only a fresh checkout used to see.
+    """
+    _require_git()
+    resolved = sorted({os.path.relpath(full, ROOT).replace(os.sep, "/")
+                       for _holder, ref in _store_refs()
+                       for _label, full in _ref_candidates(ref) if os.path.isfile(full)})
+    assert resolved, "no artifact_ref resolved to a file -- this check has no subject"
+    # NUL-separated BYTES: a text-mode pipe on Windows turns every newline into CRLF, and git then
+    # reads each path but the last with a trailing carriage return that matches no rule
+    result = subprocess.run(["git", "check-ignore", "--stdin", "-z"], cwd=ROOT,
+                            input="\0".join(resolved).encode("utf-8"), capture_output=True,
+                            timeout=120)
+    assert result.returncode in (0, 1), result.stderr
+    ignored = [one for one in result.stdout.decode("utf-8").split("\0") if one.strip()]
+    assert not ignored, (
+        "evidence points at files git ignores, so no checkout but this one has them -- un-ignore "
+        "them in .gitignore (and commit them): %s" % ", ".join(ignored))
+
+
 def test_every_artifact_ref_still_resolves_where_it_points():
     """A moved document must not leave evidence pointing at nothing -- it has here.
 

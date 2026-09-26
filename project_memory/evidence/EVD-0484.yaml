@@ -1,0 +1,22 @@
+id: EVD-0484
+kind: review
+related:
+- TSK-0152
+result: pass
+summary: verdict for diff:2cfbbbe1a0a87bddb40ceedb1798b5c0a05c93bb3835d5bae2d453a438aee07a
+  -- verify round 1 FAIL (F1-F3) closed by rework 1; verify round 2 held all six mutations
+  and measured the one remaining fix F4 (realpath), built in rework 2 red-first (3
+  failed on abspath, 24 passed); F5 re-filed as BUG-0312/H222 (DEC-0102 (2)); full
+  run EVD-0483 (5188 passed) before the reworks, gate 5 allows one per item -> reading
+  suites run in full after rework 1 (3794 passed) and the door suites after rework
+  2; archive door applied to BUG-0221/BUG-0237 by the lead, hole test green; stamps
+  2026.09.26-5, validate clean
+artifact_refs:
+- staging/TSK-0152/verify-round-2.md
+- staging/TSK-0152/protocol.md
+run_command: python -B -m pytest .claude/hooks/test_gates.py::test_every_test_a_hole_names_is_one_that_exists
+  tools/test_archive_door.py -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-26T19:20:53'

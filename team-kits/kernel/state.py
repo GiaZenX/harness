@@ -72,6 +72,7 @@ from .backlog_types import (
     RUN_SCOPES,
     STATUS_DEPENDENT_FIELDS,
     TASK_TYPES,
+    TEST_REF_AMENDMENTS_FIELD,
     TSK_PLAN_FIELDS,
     UNVERIFIED_ANSWER_FIELD,
     UNVERIFIED_MISSING_FIELD,
@@ -127,6 +128,23 @@ _REQUEST_PATH_REMEDY = (
 def _request_path_offences(fields: dict) -> list:
     """The DEC-0113 fields this body may not carry -- see `_REQUEST_PATH_FIELDS` for why."""
     return [name for name in _REQUEST_PATH_FIELDS if name in fields]
+# THE ARCHIVE DOOR'S AUDIT RECORD, and the fourth field no body may carry: DEC-0117 (2) asks that
+# every correction of a test reference in an archived item leave a record of who, when, old, new
+# and why -- a record a caller could type on capture or update would be a history nobody made.
+# ONE DOOR, `archive_door.amend_test_ref`.
+# `tools/test_archive_door.py::test_the_audit_record_has_one_writer`
+_ARCHIVE_DOOR_FIELDS = (TEST_REF_AMENDMENTS_FIELD,)
+_ARCHIVE_DOOR_REMEDY = (
+    "this is the audit record of the archive door (DEC-0117): `amend-archived-test-ref` writes it "
+    "when it corrects a test reference in an archived item, and nothing else does. Remedy: drop "
+    "the field.")
+
+
+def _archive_door_offences(fields: dict) -> list:
+    """The DEC-0117 audit field this body may not carry -- see `_ARCHIVE_DOOR_FIELDS`."""
+    return [name for name in _ARCHIVE_DOOR_FIELDS if name in fields]
+
+
 _ROLE_JUDGED_REMEDY = (
     "these are the fail classification of a run (DEC-0107): the VERIFYING role writes them with "
     "its verdict (`python scripts/harness.py evidence --kind test --result fail --fail-class "
@@ -892,6 +910,10 @@ class ProjectState:
         if asked:
             raise StateError("capture %s carries %s -- %s"
                              % (item_type, ", ".join(asked), _REQUEST_PATH_REMEDY))
+        audited = _archive_door_offences(fields)
+        if audited:
+            raise StateError("capture %s carries %s -- %s"
+                             % (item_type, ", ".join(audited), _ARCHIVE_DOOR_REMEDY))
         provided_kernel_fields = [k for k in _KERNEL_SET if k in fields]
         if provided_kernel_fields:
             raise StateError(
@@ -1504,6 +1526,9 @@ class ProjectState:
         asked = _request_path_offences(changes)
         if asked:
             raise StateError("%s: %s -- %s" % (item_id, ", ".join(asked), _REQUEST_PATH_REMEDY))
+        audited = _archive_door_offences(changes)
+        if audited:
+            raise StateError("%s: %s -- %s" % (item_id, ", ".join(audited), _ARCHIVE_DOOR_REMEDY))
         forbidden = [k for k in changes if k in _KERNEL_SET]
         if forbidden:
             raise StateError(

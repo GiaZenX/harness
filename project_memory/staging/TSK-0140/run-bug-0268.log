@@ -1,0 +1,4 @@
+python -B -m pytest .claude/hooks/test_gates.py::test_the_gate_table_of_this_file_is_the_registration_itself -q
+
+.                                                                        [100%]
+1 passed in 11.86s

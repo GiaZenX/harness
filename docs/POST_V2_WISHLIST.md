@@ -2275,7 +2275,7 @@ antwortet auf `Get-Content README.md `<LF>Set-Content …` mit rc 1).
 
 **Wie geschlossen.**
 
-- Hälfte 1 als **Verweigerung**, nicht als Reparatur: `_kernel._EATEN_IN_FLIGHT` nennt pro Werkzeug
+- Hälfte 1 als **Verweigerung**, nicht als Reparatur: `_compat.EATEN_IN_FLIGHT` (bis TSK-0152 `_kernel._EATEN_IN_FLIGHT`) nennt pro Werkzeug
   die Zeichen, die dessen Transport löscht, und `_kernel.payload` — die eine Tür, durch die jedes
   blockierende Gate geht — verweigert eine Zeile, die eines davon trägt, mit dem Grund und einer
   Abhilfe für den Nutzer. Reparieren ginge nicht: das CR löschen hätte bash' Lesart und PowerShells
@@ -2439,7 +2439,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H135](docs/holes/H135.md) | BUG-0218 | VERIFIED | Der Zeugen-Halbteil der Überlappungsprüfung ist eine Stichprobe, keine Sprache (neu, TSK-0118, FR-0021) |
 | [H136](docs/holes/H136.md) | BUG-0219 | VERIFIED | Die Vor-Dispatch-Prüfung hat in einem Kit-Projekt keinen ausführbaren Weg (neu, TSK-0118, FR-0021) |
 | [H137](docs/holes/H137.md) | BUG-0220 | VERIFIED | Ein Haken-Docstring nennt einen Takt, den keine Verfassung mehr nennt (neu, TSK-0118, N2) |
-| [H138](docs/holes/H138.md) | BUG-0221 | ACCEPTED_EXCEPTION | Die Konformitätsbefunde des Renderers verweigern nichts: der Datensatz beantwortet eine andere Frage (neu, TSK-0119, FR-0077/FR-0078) |
+| [H138](docs/holes/H138.md) | BUG-0221 | ACCEPTED_EXCEPTION; Testverweis korrigiert 2026-09-26 (1x) | Die Konformitätsbefunde des Renderers verweigern nichts: der Datensatz beantwortet eine andere Frage (neu, TSK-0119, FR-0077/FR-0078) |
 | [H139](docs/holes/H139.md) | BUG-0222 | VERIFIED | Die BUILD-Hälfte der Standard-Härtung ist nicht gebaut, weil ihre beiden Wirtsdateien in ein fremdes Kit gespiegelt sind (neu, TSK-0119, FR-0077) |
 | [H140](docs/holes/H140.md) | BUG-0223 | ACCEPTED_EXCEPTION | Die Rangfolge-Prüfung urteilt über das, was der Entwurf DEKLARIERT, und der Kontrast schweigt über das, was er nicht ausrechnen kann (neu, TSK-0119, FR-0077/FR-0078) |
 | [H141](docs/holes/H141.md) | BUG-0224 | VERIFIED | Der Takt-Leser ist eine Aufzählung von Adverbien (neu, TSK-0118 Nacharbeit 1, N2) |
@@ -2455,7 +2455,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H152](docs/holes/H152.md) | BUG-0234 | ACCEPTED_EXCEPTION | Was eine Option dem Läufer antut, entscheidet kein Text (neu, TSK-0121; nach Prüfung 1 und 2 korrigiert) |
 | [H153](docs/holes/H153.md) | BUG-0235 | ACCEPTED_EXCEPTION | Was der Leser nicht platzieren kann, und was er gar nicht erst sieht (neu, TSK-0121; nach Prüfung 3 erweitert) |
 | [H154](docs/holes/H154.md) | BUG-0236 | VERIFIED | Die Migrationstuer schreibt einen Endzustand ohne die Evidenz, die die Kante verlangt (neu, TSK-0122) |
-| [H155](docs/holes/H155.md) | BUG-0237 | VERIFIED | Die Zielklasse ist Freitext, also haengt die SR-Pflicht an einer Ausnahmeliste (neu, TSK-0122) |
+| [H155](docs/holes/H155.md) | BUG-0237 | VERIFIED; Testverweis korrigiert 2026-09-26 (1x) | Die Zielklasse ist Freitext, also haengt die SR-Pflicht an einer Ausnahmeliste (neu, TSK-0122) |
 | [H156](docs/holes/H156.md) | BUG-0238 | VERIFIED | Die Dispatch-Verweigerung sieht nur LAUFENDE Leases (neu, TSK-0122) |
 | [H157](docs/holes/H157.md) | BUG-0239 | ACCEPTED_EXCEPTION | Kein Leser urteilt über den WORTLAUT einer Auftragszeile (neu, TSK-0123, FR-0005/FR-0010) |
 | [H158](docs/holes/H158.md) | BUG-0240 | VERIFIED | Die Rückschau hat keinen Ereignis-Auslöser; der Pflichtenmelder kennt nur die Periode (neu, TSK-0123, FR-0084) |
@@ -2522,4 +2522,5 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H219](docs/holes/H219.md) | BUG-0304 | VERIFIED | H214-Rest: die Ein-Aufruf-Form 'Datei schreiben und ausführen' bleibt offen, wenn der Läufer hinter einem Präfixwort steht, die Datei per Umleitung in den Interpreter geht oder eine Substitution sie an eval reicht |
 | H220 | BUG-0305 | OPEN | Über-Verweigerung der Schreiben-und-Ausführen-Regel: eine reine LESE-Stufe mit unbekanntem Kommandowort (`sudo -u me cat tools/ci.sh ; bash tools/ci.sh`) gilt als Schreiber, und der Satz behauptet 'this line WRITES tools/ci.sh' |
 | H221 | BUG-0308 | OPEN | Die Buchfuehrung der Sprosse kennt nur Claude: `lease_rung`/`lease_effort` am Auftrag und damit die Sprossen-Verteilung und die Runden-bis-PASS je Sprosse zaehlen auf einem Codex-Projekt die Claude-Antwort, nicht die, nach der der Codex-Lead gearbeitet hat (Rest von TSK-0151 V1) |
+| H222 | BUG-0312 | OPEN | Archivtür (DEC-0117): eine Wegwerf-Testdatei außerhalb des Zustandsordners wird als neuer Knoten angenommen |
 

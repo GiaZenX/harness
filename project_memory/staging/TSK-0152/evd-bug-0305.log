@@ -1,0 +1,5 @@
+.......s                                                                 [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tools\test_hooks.py:20308: sudo does not run non-interactively on this host (absent, or it asks for a password): 'sudo -u "$(id -un)"'
+7 passed, 1 skipped in 325.06s (0:05:25)
+exit 0

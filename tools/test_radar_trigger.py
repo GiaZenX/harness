@@ -565,6 +565,30 @@ def test_the_self_start_reader_answers_off_the_record_and_the_reports():
         "the Friday run DEC-0089 measured is no longer backed by the record and the reports")
 
 
+def test_the_record_path_is_spelled_even_when_it_lies_on_another_drive_bug_0069(tmp_path,
+                                                                                monkeypatch):
+    """BUG-0069, the Windows half of hosted run 36187576523: the runner keeps the checkout on D:
+    while pytest's temporary directory is on C:, and `description()` spelled the record with
+    `os.path.relpath`, which raises across drives -- `test_the_claim_rule_follows_the_record_per_watcher`
+    died with "path is on mount 'C:', start on mount 'D:'" there and passed on every local run.
+
+    Reproduced here the other way round: the checkout root is moved to a drive letter the record
+    does not lie on. Only Windows has drives, so elsewhere there is nothing to reproduce.
+    """
+    if os.name != "nt":
+        pytest.skip("only Windows paths carry a drive, so no cross-drive path exists on this host")
+    routine = routine_module("radar_routine_other_drive")
+    here = os.path.splitdrive(str(tmp_path))[0].upper()
+    other = "D:" if here != "D:" else "E:"
+    monkeypatch.setattr(routine, "ROOT", other + "\\checkout")
+    monkeypatch.setattr(routine, "RADAR", a_radar_dir_with(str(tmp_path), *FRIDAYS))
+    record = a_record_naming(str(tmp_path))
+    monkeypatch.setattr(routine, "ROUTINE_RECORD", record)
+    described = routine.description()
+    assert described["record"]["path"] == os.path.abspath(record).replace(os.sep, "/"), described
+    assert os.path.abspath(record).replace(os.sep, "/") in described["started_by"]["claude-watcher"]
+
+
 def test_the_claim_rule_follows_the_record_per_watcher(tmp_path, monkeypatch):
     """The invariant has a state PER WATCHER (DEC-0089) and both are walked here, not just today's.
 

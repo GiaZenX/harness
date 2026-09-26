@@ -646,9 +646,23 @@ def cloud_prompt(watcher):
     }
 
 
+def _spelled(path):
+    """`path` relative to the checkout, or absolute where no relative path exists.
+
+    `os.path.relpath` raises across Windows drives. Measured on the hosted Windows runner
+    (BUG-0069, run 36187576523): the workspace on D:, a test's record on C:, and the description
+    died with "path is on mount 'C:', start on mount 'D:'".
+    `tools/test_radar_trigger.py::test_the_record_path_is_spelled_even_when_it_lies_on_another_drive_bug_0069`
+    """
+    path, root = os.path.abspath(path), os.path.abspath(ROOT)
+    if os.path.splitdrive(path)[0].lower() == os.path.splitdrive(root)[0].lower():
+        return os.path.relpath(path, root).replace(os.sep, "/")
+    return path.replace(os.sep, "/")
+
+
 def _started_by(watcher, live):
     """One sentence per watcher: what starts its weekly runs, and who starts the rest."""
-    record = os.path.relpath(ROUTINE_RECORD, ROOT).replace(os.sep, "/")
+    record = _spelled(ROUTINE_RECORD)
     mine = {key: entry for key, entry in routine_plan().items() if entry["watcher"] == watcher}
     running = sorted(key for key in mine if live[key])
     # The silent half splits by RUNNER and not by watcher: `--run` starts the `SESSION_RUNNER` CLI,
@@ -701,7 +715,7 @@ def description():
         "mechanism": "a local app routine per watcher and runner on the maintainer's host -- a "
                      "Claude Desktop scheduled task or a Codex app Automation (DEC-0089, "
                      "DEC-0090 (4)); declared and measured by %s"
-                     % os.path.relpath(os.path.abspath(__file__), ROOT).replace(os.sep, "/"),
+                     % _spelled(__file__),
         "shape": "routine",
         "watchers": sorted(WATCHERS),
         "runners": sorted(RUNNERS),
@@ -720,7 +734,7 @@ def description():
                           recorded_path=recorded.get(key, {}).get("path"),
                           task_file_present_on_this_host=task_file_present(recorded.get(key, {})))
                      for key, entry in sorted(routine_plan().items())],
-        "record": {"path": os.path.relpath(ROUTINE_RECORD, ROOT).replace(os.sep, "/"),
+        "record": {"path": _spelled(ROUTINE_RECORD),
                    "written_by": "the lead, from a measurement: the user's statement of the "
                                  "schedule and the report timestamps that show it",
                    "shape": ROUTINE_RECORD_SHAPE},

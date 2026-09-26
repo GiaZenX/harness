@@ -1,0 +1,50 @@
+id: FR-0094
+title: 'Kommentare direkt in der Design-Vorschau: Taste ''#'' oeffnet am Mauszeiger
+  ein Kommentarfeld, der Kommentar haengt an der Stelle und landet als Eingabe beim
+  Designer'
+request_text: 'User 2026-09-26: ''Bei den Design-Vorschauen waere es cool, wenn man
+  Kommentare hinzufuegen koennte. Also z. B. einfach mit der Taste "#", dann erscheint
+  auf dem Mauszeiger ein Kommentarfeld und man kann einen Kommentar an die Stelle
+  schreiben ... das waere Gold wert.'' LEAD''S READING (not yet a design): the designer
+  stages a self-contained HTML draft (staging/<task>/DSN-nnnn.html, product-designer
+  SKILL ''VISIBLE preview''; frozen on approval as design/revisions/DSN-nnnn.rNN.html;
+  kit_design_render.py renders it). The draft itself must stay clean (it becomes the
+  visual contract), so the comment layer is NOT written into it: a kit-owned review
+  viewer (e.g. scripts/kit_design_review.py <task>) serves the draft locally and INJECTS
+  an overlay -- ''#'' outside a text field opens a box at the cursor; each comment
+  is anchored to the element under the cursor (CSS path + offset + data-view + viewport),
+  shown as a numbered pin, and saved to a record the designer must answer in the next
+  iteration (open/done per comment, the SIGHT loop reads it; nothing freezes with
+  an open comment). Open questions for the design round: where the record lives given
+  gate_write_scope (kernel capture vs staging), whether the same overlay works on
+  the BUILT app (kit_browser_checks), Codex parity, and the keyboard layout (''#''
+  is a direct key on German keyboards, Shift+3 on US). || SAME WISH IN synaipse-unified
+  (the user asked that repo''s PM the same day and pasted its answers here, 2026-09-26):
+  the user asked whether ''#'' should take a SCREENSHOT rather than change the design
+  interactively. Agreed shape there, with the user''s picks: (1) ''#'' -> comment
+  box at the cursor, click the spot; (2) a numbered pin marks it; (3) on save an automatic
+  SCREENSHOT of the visible area with the pin drawn in; (4) stored with it: the exact
+  element, page, viewport size, light/dark theme; nothing in the design is overwritten
+  (what was there and what was meant stay distinguishable); the PM turns collected
+  comments into change requests the user decides; a PREVIEW-only tool, absent from
+  the finished app. User picks: ''Pin + Screenshot'', ''Nur am Computer'' (no mobile
+  long-press), build ''direkt nach dem Umzug'' (synaipse''s own migration, before
+  its P1 acceptance). OVERLAP: synaipse is developed with this repo''s dev-team kit
+  (still 2026.07.18-3, and its masterplan excludes a kit upgrade during its integration)
+  -- one tool built twice is the risk; the lead proposes to the user where it is built
+  first. || AGREED 2026-09-26 (synaipse PM''s answer, pasted by the user): synaipse
+  builds the comment tool FIRST, standalone (one script that opens any HTML preview
+  with the comment layer, no dependency on synaipse code, comments in a documented
+  file: text, element, page, viewport, theme, screenshot path, open/done), recorded
+  there as synaipse PR-0031 with this FR as its reference. The ''no approval while
+  comments are open'' lock is explicitly EXCLUDED there and stays with the kit. CORRECTION
+  of the lead''s earlier note: synaipse-unified runs kit 2026.09.13-6 since 2026-09-25,
+  not 2026.07.18-3 (the survey read a stale file), so the kit can take the tool over
+  later and it returns to synaipse through a normal kit update. Kit half of this FR:
+  adopt the proven tool into the dev-team kit + the freeze lock on open comments.'
+source: user message 2026-09-26 ~08:10 (Desktop session); team-kits/dev-team/skills/product-designer/SKILL.md;
+  team-kits/dev-team/templates/repo/scripts/kit_design_render.py
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-26T08:02:54'

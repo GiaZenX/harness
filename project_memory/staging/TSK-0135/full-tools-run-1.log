@@ -1,0 +1,435 @@
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+......F................................................................. [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+...............s........................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 19%]
+..........................................................s............. [ 20%]
+..F.............F....................................................... [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 25%]
+...........................................ss.s.s.s.ssssss.............. [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+..................................................................s..... [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+...............................................F........................ [ 88%]
+........................................................................ [ 89%]
+.................................F.F.................................... [ 91%]
+........................................................................ [ 92%]
+............F........................................................... [ 94%]
+........................................................................ [ 95%]
+........................................F............................... [ 97%]
+........................................................................ [ 98%]
+........................................................................ [100%]
+================================== FAILURES ===================================
+___________ test_every_code_citation_resolves_in_the_file_it_names ____________
+
+    def test_every_code_citation_resolves_in_the_file_it_names():
+        """`file.py:symbol` must be a symbol that file defines — resolved, not spell-checked."""
+        text = "\n".join(_lines())
+        citations = sorted(set(_CODE_CITATION.findall(text)))
+        assert citations, "no code citation found — did the reader narrow?"
+        unresolved = []
+        for name, symbol in citations:
+            path = _resolve_file(name)
+            if path is None:
+                unresolved.append("%s:%s (no such file in this repo, or several)" % (name, symbol))
+                continue
+            if symbol not in _symbols(path):
+                unresolved.append("%s:%s (the file defines no such name)" % (name, symbol))
+>       assert not unresolved, (
+            "the plan document cites code that is not there:\n  " + "\n  ".join(unresolved))
+E       AssertionError: the plan document cites code that is not there:
+E           test_approvals_dispatch.py:test_minting_a_routine_on_a_live_root_takes_its_approval_ref (the file defines no such name)
+E       assert not ['test_approvals_dispatch.py:test_minting_a_routine_on_a_live_root_takes_its_approval_ref (the file defines no such name)']
+
+tools\test_disposition.py:284: AssertionError
+_ test_every_hook_an_entry_gate_names_is_shipped_by_every_kit_in_that_blocks_scope _
+
+    def test_every_hook_an_entry_gate_names_is_shipped_by_every_kit_in_that_blocks_scope():
+        """An entry gate does not know which kit it is about to install, so a hook name in it is a
+        claim about whatever comes out the other end.
+    
+        THE SCOPE OF THE CLAIM IS THE BLOCK'S OWN, and deriving it is what makes this checkable at all:
+        a block that names no kit speaks about every kit the registry can route to, and a block that
+        names kits speaks about those. Both readings are needed and neither alone works — the office
+        branch legitimately names `gate_filing`, which two kits do not ship, while the masterplan bullet
+        speaks to all three and may not. The block reader is `_markdown_blocks`, further down this
+        module and shared with the caveat checks: the unit a reader takes in at once is one question,
+        and a second implementation of it here would be the drift those checks were written for. A
+        coarser unit is measurably wrong for this subject — the whole of the Claude gate's step 3 is one
+        blank-line paragraph, so a paragraph reader puts the office-only branch and the all-kits
+        masterplan bullet in one scope and can no longer tell which claim is about which kit.
+    
+        Measured, and this is why the test exists: both entry gates told every project that
+        `gate_memory_complete` blocks its merges while the masterplan or the config still reads like the
+        template, in a block that names no kit — and `office-team` ships no such hook. For an office
+        project that is a consequence which does not exist, which is the "over-alarming claim" half of
+        the house rule, and it had stood through the whole V2 rewrite because nothing compared these two
+        files against the kit inventories at all.
+    
+        TWO LIMITS, named because a scope read off a substring is not a scope read off a sentence.
+        Whether the claim MADE about the hook is true is not judged — only that every kit in the
+        block's scope has the hook the claim rests on. And a block that names a kit for an unrelated
+        reason narrows its own scope by doing so: a paragraph mentioning `office-team` in passing while
+        asserting something about all three would pass here. Both are the price of a unit a reader can
+        compute; the alternative is a list of hedge words, which is the shape this repo keeps paying
+        for.
+        """
+        shipped = _shipped_hooks_by_kit()
+        every = sorted(set().union(*shipped.values()))
+        offences = []
+        seen = 0
+        for where, text in _entry_gate_texts():
+            for block in _markdown_blocks(text):
+                named_kits = {kit for kit in shipped if kit in block}
+                scope = named_kits or set(shipped)
+                for hook in every:
+                    if hook not in block:
+                        continue
+                    seen += 1
+                    absent = sorted(kit for kit in scope if hook not in shipped[kit])
+                    if absent:
+                        offences.append(
+                            "%s: `%s` is named in a block that speaks for %s, and %s ship%s no such "
+                            "hook — the block reads %r"
+                            % (where, hook, ", ".join(sorted(scope)), ", ".join(absent),
+                               "" if len(absent) > 1 else "s", block.strip()[:160]))
+        # A floor: these two files name hooks several times over, and a reader that stopped matching
+        # would make every assertion above vacuously true.
+        assert seen >= 6, "only %d hook mentions found in the entry gates" % seen
+>       assert not offences, (
+            "the global entry gates promise a hook to a kit that does not have it. A block naming no "
+            "kit speaks for every kit `registry.yaml` can route to; name the kits the hook is real "
+            "for, or state the consequence without it:\n  " + "\n  ".join(sorted(set(offences))))
+E       AssertionError: the global entry gates promise a hook to a kit that does not have it. A block naming no kit speaks for every kit `registry.yaml` can route to; name the kits the hook is real for, or state the consequence without it:
+E           user/claude/CLAUDE.md: `gate_memory_complete` is named in a block that speaks for dev-team, office-team, research-team, and office-team ships no such hook — the block reads "- **Write the light form's default into `project_memory/project_config.yaml` `preset:`** — the\n     kit's SMALLEST preset, the one with the fewest roles in its "
+E           user/codex/AGENTS.md: `gate_memory_complete` is named in a block that speaks for dev-team, office-team, research-team, and office-team ships no such hook — the block reads "3. In `project_memory/project_config.yaml`, set the confirmed `project.name` and `project.preset`\n   to the light form's default - the kit's smallest preset (fe"
+E       assert not ['user/claude/CLAUDE.md: `gate_memory_complete` is named in a block that speaks for dev-team, office-team, research-te...the confirmed `project.name` and `project.preset`\\n   to the light form\'s default - the kit\'s smallest preset (fe"']
+
+tools\test_hooks.py:6963: AssertionError
+_______ test_kit_names_a_root_item_exactly_when_the_kernel_gives_it_one _______
+
+    def test_kit_names_a_root_item_exactly_when_the_kernel_gives_it_one():
+        """`ROOT_TYPE_BY_KIT` decides which kits HAVE a leading item — and nothing held that decision.
+    
+        Its `office-team: PR` entry was dropped in this lockstep (the office constitution knows no `PR`
+        anywhere, and the entry gates were seeding a `PR-0001` no office role would ever read). The only
+        other code reader is `test_root_item_globs_are_the_kernels_root_types`, which compares
+        `set(values())` — so putting the line back leaves the whole suite green while the entry gates start
+        seeding a PR for office again. The rule has two visible consequences and this pins both, per kit
+        and per root type, so it holds for a kit or a root type nobody thought of here:
+    
+          * the SKELETON. A kit ships the storage directory of a root type exactly when that type is ITS
+            root type; a `product/active/` in a kit that is not PR-led is a shipped, documented home for
+            an item nobody seeds. Both office and research shipped one, and the state-claim sweep cannot
+            see it: `product/active/PR-0001.yaml` is a VALID `ACTIVE_DIRS` path, so what is checked there
+            is type-vs-directory, never "does this kit have that root type".
+          * the INSTRUCTION TEXT. Same iff for an id of that type — office named `PR-0001` in the very
+            README a fresh office project reads first.
+        """
+        sys.path.insert(0, os.path.join(ROOT, "team-kits"))
+        from kernel.backlog_types import ACTIVE_DIRS, ROOT_TYPE_BY_KIT
+        for kit in ("dev-team", "research-team", "office-team"):
+            own = ROOT_TYPE_BY_KIT.get(kit)
+            template_root = os.path.join(ROOT, "team-kits", kit, "templates", "project_memory")
+            shipped_dirs = {os.path.relpath(d, template_root).replace("\\", "/")
+                            for d, _sub, _files in os.walk(template_root)} - {"."}
+            for root_type in sorted(set(ROOT_TYPE_BY_KIT.values())):
+                expected = root_type == own
+                # the id shape, written as in `_assert_state_claims`: placeholder run, glob or number
+                id_rx = re.compile(r"(?<![A-Za-z0-9_])%s-(?:[nNxX]+|\*|\d+)" % root_type)
+                named = sorted(os.path.relpath(p, ROOT) for p, text in _instruction_files(kit)
+                               if id_rx.search(text))
+                assert (ACTIVE_DIRS[root_type] in shipped_dirs) is expected, (
+                    "%s %s `%s`, the home of `%s` items, but ROOT_TYPE_BY_KIT gives this kit %s. A root "
+                    "type's directory in a kit not led by it is a home for an item no entry gate seeds "
+                    "and no role owns; a missing one leaves the kit's own root item homeless."
+                    % (kit, "ships" if not expected else "does not ship", ACTIVE_DIRS[root_type],
+                       root_type, own or "no root item at all"))
+>               assert bool(named) is expected, (
+                    "%s: instruction text %s a `%s` item (%s), but ROOT_TYPE_BY_KIT gives this kit %s."
+                    % (kit, "names" if named else "never names", root_type,
+                       ", ".join(named) or "nowhere", own or "no root item at all"))
+E               AssertionError: research-team: instruction text names a `PR` item (team-kits\research-team\agents\project-auditor.md, team-kits\research-team\constitution\AGENTS.md, team-kits\research-team\skills\project-auditor\SKILL.md), but ROOT_TYPE_BY_KIT gives this kit RQ.
+E               assert True is False
+E                +  where True = bool(['team-kits\\research-team\\agents\\project-auditor.md', 'team-kits\\research-team\\constitution\\AGENTS.md', 'team-kits\\research-team\\skills\\project-auditor\\SKILL.md'])
+
+tools\test_hooks.py:7691: AssertionError
+_ test_no_text_that_describes_the_audited_role_states_the_cadence_the_code_owns _
+
+    def test_no_text_that_describes_the_audited_role_states_the_cadence_the_code_owns():
+        """N2 of the generation-2 merge, as a test rather than as a residue.
+    
+        THE SUBJECT IS DERIVED TWICE OVER: `_routine.AUDIT_ROLE` names the role whose recurring run the
+        shipped code schedules, and `_routine.audit_period_id` IS the cadence -- it answers "has it run
+        in this period" with an ISO week id. The texts held against that are the role's own definition
+        and every constitution BLOCK that names it, so a passage that starts describing the role
+        tomorrow is covered without an edit here.
+    
+        What stood before: the `description` of all three `agents/project-auditor.md` opened with
+        "weekly / event-triggered" while the body of the same file said "Your cadence stands in the
+        code and not a second time here" -- the same fact twice in ONE file, which is the mechanism
+        that sentence was written to end -- and the office constitution's role row repeated it a third
+        time. The description is the surface the ROUTER reads, so this is not cosmetic: a cadence that
+        changes in the code would leave a wrong one on the routing surface of three kits at once.
+    
+        WHAT IS NOT IN THE SUBJECT, and is a named residue rather than a silence: `hooks/_routine.py`'s
+        own module docstring still says "every kit's constitution rides that role on a weekly rhythm",
+        which no constitution does any more (`H137`). That file is a mirrored hook and was outside this
+        round's scope.
+        """
+        from test_routine_feed import routine_module
+        judged = 0
+        for kit in KITS:
+            role = routine_module(kit).AUDIT_ROLE
+            texts = [os.path.join(TEAM_KITS, kit, "agents", "%s.md" % role),
+                     os.path.join(TEAM_KITS, kit, "constitution", "AGENTS.md")]
+            for path in texts:
+                with io.open(path, encoding="utf-8") as handle:
+                    text = handle.read()
+                for block in _blocks_naming(text, role):
+                    judged += 1
+                    found = sorted({hit.group(0) for hit in _CADENCE_IN_PROSE.finditer(block)})
+>                   assert not found, (
+                        "%s states the audited role's cadence in prose (%s) while "
+                        "`_routine.audit_period_id` is what decides it:\n%s"
+                        % (os.path.relpath(path, ROOT), ", ".join(found), block[:400]))
+E                   AssertionError: team-kits\dev-team\constitution\AGENTS.md states the audited role's cadence in prose (weekly) while `_routine.audit_period_id` is what decides it:
+E                     Any role may flag tech-debt (concrete cause); the Architect owns the proposal; QA verifies; user
+E                     confirms. **Structural flags AND `project-auditor` findings MUST NOT verpuffen:** each becomes a TSK/BUG/CR
+E                     or a Decision item recording the conscious skip, in the same cycle — a flag that only lives in a report is
+E                     a defect (a real file grew +666 lines the day its split-flag was logged). The auditor's 
+E                   assert not ['weekly']
+
+tools\test_parallel_streams.py:579: AssertionError
+______________ test_every_test_pointer_this_repo_writes_resolves ______________
+
+    def test_every_test_pointer_this_repo_writes_resolves():
+        """A statement that answers for a claim by naming a test must name one that exists (SR-0008).
+    
+        A property claim becomes a test and the sentence NAMES it -- that is the whole mechanism by which
+        a claim rots visibly instead of quietly. A named test that does not exist puts the mechanism back
+        where it started, and worse: the sentence now reads as measured.
+    
+        MEASURED RED on the tree before the repair of this round: 122 node ids judged in `team-kits/`,
+        ONE unresolved -- `office-team/hooks/_duties.py` gave the session-start budget arithmetic to
+        `tools/test_hooks_v2.py`, while the test lives in `tools/test_office_duties.py`. The claim it
+        carries ("raising either turns red") was true; the file it sent a reader to was not.
+        """
+        judged, offenders = 0, []
+        for rel, text in _texts_that_answer_for_a_claim():
+            for offset, path, name in _test_citations(text):
+                judged += 1
+                defined = _defined_in(path)
+                if defined is None or name not in defined:
+                    offenders.append("%s:%d cites %s::%s -- %s"
+                                     % (rel, text[:offset].count("\n") + 1, path, name,
+                                        "no such suite file" if defined is None else "no such test"))
+>       assert not offenders, (
+            "these statements answer for a claim with a test nobody can run, so the claim reads as "
+            "measured and is not:\n  " + "\n  ".join(offenders))
+E       AssertionError: these statements answer for a claim with a test nobody can run, so the claim reads as measured and is not:
+E           team-kits/kernel/backlog_types.py:630 cites tools/test_ladder.py::test_the_order_fields_are_the_contracts_and_frozen_with_the_plan -- no such test
+E           team-kits/kernel/dispatch.py:213 cites tools/test_ladder.py::test_a_kit_less_project_places_an_order_rung_against_the_reference_vocabulary -- no such test
+E           team-kits/kernel/dispatch.py:280 cites tools/test_ladder.py::test_an_order_rung_outside_the_ladder_and_an_effort_outside_the_vocabulary_are_refused -- no such test
+E           team-kits/kernel/dispatch.py:2819 cites tools/test_ladder.py::test_an_order_rung_lifts_the_start_and_the_climb_begins_there -- no such test
+E           team-kits/kernel/dispatch.py:2820 cites tools/test_ladder.py::test_an_order_effort_lifts_the_goals_effort_and_the_kits_highest_effort_caps_it -- no such test
+E       assert not ['team-kits/kernel/backlog_types.py:630 cites tools/test_ladder.py::test_the_order_fields_are_the_contracts_and_frozen...tools/test_ladder.py::test_an_order_effort_lifts_the_goals_effort_and_the_kits_highest_effort_caps_it -- no such test']
+
+tools\test_repo_hygiene.py:1144: AssertionError
+________ test_every_hole_is_one_index_row_one_prose_file_and_one_item _________
+
+    def test_every_hole_is_one_index_row_one_prose_file_and_one_item():
+        """The hole index of `docs/POST_V2_WISHLIST.md`, its prose files, and the items -- all three ways.
+    
+        WHY THIS SUBJECT AND NOT THE OLD ONE: until the migration (TSK-0126, `migrate-holes`) a hole was
+        a `### H<n>` section of that document plus a row in a summary table, and the guard here compared
+        those two. The migration made every hole an ITEM (`BUG` with `hole_number`), moved the full text
+        to `docs/holes/H<n>.md` and replaced the table with an index of links -- so the old guard's two
+        subjects both stopped existing, it found zero entries against a floor of 90, and it was red on
+        every run from b7f282e on. Measured on that commit: 0 `### H<n>` headings, 155 index rows.
+    
+        HELD IN FOUR DIRECTIONS, since any one alone rots: a row that LINKS at a prose file which is
+        gone points into nothing, a prose file with no row is invisible in the index a reader opens, an
+        item with no row is a gap nobody sees there, and a row naming a different item than the item
+        itself claims is two answers to one question. The subjects are DERIVED each time -- the rows out
+        of the document, the files out of the directory, the numbers out of the items' own `hole_number`
+        field -- so nothing here is a list that has to be maintained.
+    
+        AN UNLINKED ROW IS NOT A FINDING, and that is the second half of this round's repair: only the
+        migration writes a prose file, so a hole captured afterwards has none and its row carries the
+        bare number (`kernel.holes._prose_link`). Measured before that repair: nine rows of this
+        document linked at files that were never written (H166-H173).
+        """
+        path = os.path.join(ROOT, "docs", "POST_V2_WISHLIST.md")
+        with io.open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        rows, linked, mislinked = {}, set(), []
+        for hit in _HOLE_ROW_RX.finditer(text):
+            link = _HOLE_LINK_RX.match(hit.group(1))
+            number = link.group(1) if link else hit.group(1)
+            rows[number] = hit.group(2)
+            if link:
+                linked.add(number)
+                if link.group(1) != link.group(2):
+                    mislinked.append(number)
+        files = {os.path.basename(name)[:-len(".md")]
+                 for name in glob.glob(os.path.join(ROOT, "docs", "holes", "H*.md"))}
+        items = _holes_in_the_store()
+        assert len(rows) >= 90, (
+            "only %d index rows found -- the reader stopped matching the document" % len(rows))
+        assert not mislinked, (
+            "these rows link at a prose file of another hole: %s" % ", ".join(sorted(mislinked)))
+        assert not sorted(linked - files, key=_hole_order), (
+            "these index rows link at a prose file that does not exist: %s"
+            % ", ".join(sorted(linked - files, key=_hole_order)))
+        assert not sorted(files - set(rows), key=_hole_order), (
+            "these prose files have no row in the index, so a reader of it never finds them: %s"
+            % ", ".join(sorted(files - set(rows), key=_hole_order)))
+        assert not sorted(files - linked, key=_hole_order), (
+            "these prose files exist while their row does not link at them: %s"
+            % ", ".join(sorted(files - linked, key=_hole_order)))
+>       assert not sorted(set(items) - set(rows), key=_hole_order), (
+            "these hole ITEMS have no row in the index: %s"
+            % ", ".join("%s (%s)" % (name, items[name]) for name in sorted(set(items) - set(rows),
+                                                                           key=_hole_order)))
+E       AssertionError: these hole ITEMS have no row in the index: H193 (BUG-0277)
+E       assert not ['H193']
+E        +  where ['H193'] = sorted(({'H1', 'H10', 'H105', 'H106', 'H107', 'H108', ...} - {'H1', 'H10', 'H105', 'H106', 'H107', 'H108', ...}), key=_hole_order)
+E        +    where {'H1', 'H10', 'H105', 'H106', 'H107', 'H108', ...} = set({'H10': 'BUG-0102', 'H13': 'BUG-0105', 'H14': 'BUG-0106', 'H15': 'BUG-0107', ...})
+E        +    and   {'H1', 'H10', 'H105', 'H106', 'H107', 'H108', ...} = set({'H1': 'BUG-0093', 'H2': 'BUG-0094', 'H3': 'BUG-0095', 'H4': 'BUG-0096', ...})
+
+tools\test_repo_hygiene.py:1275: AssertionError
+________ test_a_root_presenting_a_non_dispatching_approval_is_reported ________
+
+state = <kernel.state.ProjectState object at 0x00000250251D2630>
+
+    def test_a_root_presenting_a_non_dispatching_approval_is_reported(state):
+        """The blind spot behind the `approval_ref` move -- nothing reported it at all.
+    
+        `mint` writes `approval_ref` for every item-bound approval and the dispatch gate's root route
+        reads that one field, so minting a routine (or analysis) approval for a root that already
+        carries a valid scope approval silently stops every implementation task under it. The project
+        used to learn that at the next spawn, as a refusal -- and since a routine is time-boxed and
+        recurring by construction, it recurs at EVERY renewal, on a root long since APPROVED.
+    
+        A WARNING: the state is legal and the remedy is a user action. The counter-direction is
+        asserted in the same test, so "warn always" cannot satisfy it.
+        """
+        pr = _approved_root(state)
+        assert not [f for f in report.validate_state(state) if "presents" in f["message"]]
+        mint_via_hook(state, approvals.create_pending_request(
+            state, "routine", pr["id"],
+            manifest={"role": "project-auditor", "scope": ["project_memory/**"],
+                      "trigger": "weekly", "cadence": "weekly"},
+            approval_expires=time.time() + 3600))
+        reported = [f for f in report.validate_state(state) if "presents" in f["message"]]
+>       assert len(reported) == 1, report.validate_state(state)
+E       AssertionError: []
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+tools\test_report.py:2652: AssertionError
+______ test_no_section_of_a_pinned_instruction_file_disappears_unnoticed ______
+
+    def test_no_section_of_a_pinned_instruction_file_disappears_unnoticed():
+        """The measured hole, closed as far as a text check honestly can close it.
+    
+        Thirteen of the sixteen dev constitution sections could be deleted whole with the suite green,
+        and the lead SKILL had no pin at all. Here every section of every pinned file carries a digest
+        of its heading and body: a deletion fails on the missing key, a rename on the changed key and a
+        gutting on the digest. What it CANNOT do is tell a rule from a typo; it forces a look, and the
+        message names the registered hooks the section anchors so the look starts at the mechanism.
+    
+        Re-pin with `python tools/pin_constitution_sections.py --write --note "..."` — deliberately a
+        separate, manual step that writes one line per section into the disposition: a pin that healed
+        itself inside the test run would be a record of nothing, and the shortening will move ~50
+        sections at once, which is exactly when a silent overwrite stops being a decision.
+        """
+        changes = section_differences(_pins(), measure_sections())
+>       assert not changes, "\n  " + "\n  ".join(
+            "%s  %s %s §%r — anchors %s"
+            % (what, kit, name, key, ", ".join(hooks) or "no registered hook")
+            for what, kit, name, key, hooks in changes)
+E       AssertionError: 
+E           CHANGED  dev-team constitution/AGENTS.md §'11. Presets & models (full mechanics: PM skill "Models & escalation")' — anchors session_status
+E           CHANGED  dev-team constitution/AGENTS.md §'13. Refactoring & findings' — anchors gate_write_scope
+E           CHANGED  dev-team constitution/AGENTS.md §'5a. Your work loop — the SEQUENCE, and the duties that have no gate behind them' — anchors gate_design_sighted, gate_write_scope, guard_agent_spawn, guard_question_context
+E           CHANGED  dev-team skills/project-manager/SKILL.md §'Models & escalation (constitution §11 — full mechanics)' — anchors session_status
+E           CHANGED  dev-team skills/project-manager/SKILL.md §'Work loop (every cycle — every "capture"/"transition" below runs through the kernel\'s entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)' — anchors gate_design_sighted, gate_dispatch, gate_git, gate_write_scope
+E           CHANGED  office-team constitution/AGENTS.md §'4a. Your work loop — the SEQUENCE, and the duties that have no gate behind them' — anchors gate_write_scope, guard_agent_spawn, guard_question_context
+E           CHANGED  office-team constitution/AGENTS.md §'5. Roles (presets: `core` = records-clerk + filing-reviewer + bookkeeper; `commerce` adds' — anchors gate_filing, gate_second_reading, gate_write_scope
+E           CHANGED  office-team constitution/AGENTS.md §'7. Models & presets' — anchors gate_filing, session_status
+E           CHANGED  office-team skills/office-manager/SKILL.md §'Work loop (every cycle)' — anchors gate_proc_approved, gate_write_scope, session_status
+E           CHANGED  research-team constitution/AGENTS.md §'11. Presets & models (full mechanics: PM skill "Models & escalation")' — anchors session_status
+E           CHANGED  research-team constitution/AGENTS.md §'13. Method changes & findings' — anchors gate_write_scope
+E           CHANGED  research-team constitution/AGENTS.md §'5a. Your work loop — the SEQUENCE, and the duties that have no gate behind them' — anchors gate_write_scope, guard_agent_spawn, guard_question_context
+E           CHANGED  research-team skills/project-manager/SKILL.md §'Models & escalation (constitution §11 — full mechanics)' — anchors session_status
+E           CHANGED  research-team skills/project-manager/SKILL.md §'Work loop (every cycle — every "capture"/"transition" below runs through the kernel\'s entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)' — anchors gate_write_scope, guard_yaml_valid
+E       assert not [('CHANGED', 'dev-team', 'constitution/AGENTS.md', '11. Presets & models (full mechanics: PM skill "Models & escalatio...d the duties that have no gate behind them', ['gate_write_scope', 'guard_agent_spawn', 'guard_question_context']), ...]
+
+tools\test_shortening_net.py:1750: AssertionError
+============================== warnings summary ===============================
+tools/test_repo_hygiene.py::test_no_tracked_text_file_checks_out_with_crlf
+  C:\Offline Repos\AgentAndSkills\tools\test_repo_hygiene.py:266: UserWarning: these files carry CRLF in canonical state, which no tool write reaches (gate 1), so the sweep below cannot ask for them -- they are repaired where they are written, in the kit: ['project_memory/.audit/hook_events.jsonl']
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tools/test_disposition.py::test_every_code_citation_resolves_in_the_file_it_names
+FAILED tools/test_hooks.py::test_every_hook_an_entry_gate_names_is_shipped_by_every_kit_in_that_blocks_scope
+FAILED tools/test_hooks.py::test_kit_names_a_root_item_exactly_when_the_kernel_gives_it_one
+FAILED tools/test_parallel_streams.py::test_no_text_that_describes_the_audited_role_states_the_cadence_the_code_owns
+FAILED tools/test_repo_hygiene.py::test_every_test_pointer_this_repo_writes_resolves
+FAILED tools/test_repo_hygiene.py::test_every_hole_is_one_index_row_one_prose_file_and_one_item
+FAILED tools/test_report.py::test_a_root_presenting_a_non_dispatching_approval_is_reported
+FAILED tools/test_shortening_net.py::test_no_section_of_a_pinned_instruction_file_disappears_unnoticed
+8 failed, 4874 passed, 14 skipped, 1 warning in 2371.94s (0:39:31)
+rc=1
+2026-09-11 05:35:29

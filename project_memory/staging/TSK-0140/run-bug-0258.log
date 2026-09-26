@@ -1,0 +1,4 @@
+python -B -m pytest tools/test_repo_hygiene.py::test_every_hole_is_one_index_row_one_prose_file_and_one_item -q
+
+.                                                                        [100%]
+1 passed in 3.33s

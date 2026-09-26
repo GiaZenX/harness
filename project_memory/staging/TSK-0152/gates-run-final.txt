@@ -1,0 +1,155 @@
+........................................................................ [ 12%]
+........................................................................ [ 25%]
+........................................................................ [ 38%]
+........................................................................ [ 51%]
+........................................................................ [ 64%]
+FFFF.............................F...................................... [ 77%]
+........................................................................ [ 90%]
+........................................................                 [100%]
+================================== FAILURES ===================================
+_____ test_gate1_refuses_the_lead_a_new_file_beside_the_stamper_bug_0105 ______
+
+project = 'C:\\harness-gates-4aafh8hu\\project'
+
+    def test_gate1_refuses_the_lead_a_new_file_beside_the_stamper_bug_0105(project):
+        """BUG-0105 / H13: the producer of the protected area was protected as a FILE, so a NEW file
+        beside `tools/bump_kit_version.py` -- the stamper's next helper, or a module it would import --
+        was writable by the session agent (rc 0, measured on the tree of TSK-0152 before the patch).
+    
+        Closed by the user patch of TSK-0152 (`project_memory/staging/TSK-0152/apply_user_patch.py`):
+        `ProtectedArea.verdict` protects the directory of every producer file as well. THE AUDIENCE
+        STAYS THE SESSION AGENT: an implementer subagent writes the same file (rc 0), because changing
+        tools is what the change circle is for.
+        """
+        relative = "tools/bump_kit_version_helper.py"
+        rc, err = run(project, "gate_lead_write_scope.py", write_payload(project, relative))
+>       assert rc == 2, "the session agent wrote a new file beside the stamper (stderr: %s)" % err[:300]
+E       AssertionError: the session agent wrote a new file beside the stamper (stderr: )
+E       assert 0 == 2
+
+.claude\hooks\test_gates.py:2609: AssertionError
+___________ test_gate1_refuses_the_lead_gate5s_declaration_bug_0233 ___________
+
+project = 'C:\\harness-gates-4aafh8hu\\project'
+
+    def test_gate1_refuses_the_lead_gate5s_declaration_bug_0233(project):
+        """BUG-0233 / H151: `tools/test_surface.json` is what gate 5 decides on, and it lay outside
+        gate 1's protected area -- a JSON file is no module, so `decision_inputs` never saw it. Measured
+        before the patch of TSK-0152: a session-agent `Write` of it rc 0, and `echo {} > ...` rc 0.
+    
+        Closed by the same rule as H13 (the producer's directory), both write surfaces measured. The
+        counter-end is the line the session agent types every round: a pytest SELECTION over a file in
+        that directory reads it and is not refused.
+        """
+        declaration = "tools/test_surface.json"
+        rc, err = run(project, "gate_lead_write_scope.py", write_payload(project, declaration))
+>       assert rc == 2, "the session agent wrote gate 5's declaration (stderr: %s)" % err[:300]
+E       AssertionError: the session agent wrote gate 5's declaration (stderr: )
+E       assert 0 == 2
+
+.claude\hooks\test_gates.py:2627: AssertionError
+____ test_gate1_refuses_a_character_the_shell_never_sees_bug_0161[caller0] ____
+
+project = 'C:\\harness-gates-4aafh8hu\\project', caller = {}
+
+    @pytest.mark.parametrize("caller", [{}, {"agent_id": "sub-1", "agent_type": "harness-implementer"}])
+    def test_gate1_refuses_a_character_the_shell_never_sees_bug_0161(project, caller):
+        """BUG-0161 / H69: this repo's gates inherited only half of the kits' CR hardening. The
+        separator half sits in the shared reader (`_compat`), the refusal of a character the Bash
+        tool's shell deletes (`_compat.EATEN_IN_FLIGHT`) sat behind the kits' payload door, which
+        `_harness` does not go through. Measured on the tree of TSK-0152 before the patch:
+        `echo poison > project_mem<CR>ory/generated/index.yaml` rc 0 at gate 1 -- two harmless words to
+        this reader, one canonical path to msys bash (H69 measured the file overwritten, 37 318 -> 7 bytes).
+    
+        Closed by the user patch of TSK-0152: `_harness.payload` asks the same reader's
+        `eaten_in_flight`. Both callers, because canonical state is refused to every caller. THE
+        COUNTER-END: a CR that is part of a CRLF is a line break both readers agree on, and a line
+        that carries one is not refused for it.
+        """
+        weld = "echo poison > project_mem" + chr(13) + "ory/generated/index.yaml"
+        rc, err = run(project, "gate_lead_write_scope.py", bash_payload(project, weld) | caller)
+>       assert rc == 2, "a bare CR welded a canonical path past gate 1 (%s): %s" % (caller, err[:300])
+E       AssertionError: a bare CR welded a canonical path past gate 1 ({}): 
+E       assert 0 == 2
+
+.claude\hooks\test_gates.py:2652: AssertionError
+____ test_gate1_refuses_a_character_the_shell_never_sees_bug_0161[caller1] ____
+
+project = 'C:\\harness-gates-4aafh8hu\\project'
+caller = {'agent_id': 'sub-1', 'agent_type': 'harness-implementer'}
+
+    @pytest.mark.parametrize("caller", [{}, {"agent_id": "sub-1", "agent_type": "harness-implementer"}])
+    def test_gate1_refuses_a_character_the_shell_never_sees_bug_0161(project, caller):
+        """BUG-0161 / H69: this repo's gates inherited only half of the kits' CR hardening. The
+        separator half sits in the shared reader (`_compat`), the refusal of a character the Bash
+        tool's shell deletes (`_compat.EATEN_IN_FLIGHT`) sat behind the kits' payload door, which
+        `_harness` does not go through. Measured on the tree of TSK-0152 before the patch:
+        `echo poison > project_mem<CR>ory/generated/index.yaml` rc 0 at gate 1 -- two harmless words to
+        this reader, one canonical path to msys bash (H69 measured the file overwritten, 37 318 -> 7 bytes).
+    
+        Closed by the user patch of TSK-0152: `_harness.payload` asks the same reader's
+        `eaten_in_flight`. Both callers, because canonical state is refused to every caller. THE
+        COUNTER-END: a CR that is part of a CRLF is a line break both readers agree on, and a line
+        that carries one is not refused for it.
+        """
+        weld = "echo poison > project_mem" + chr(13) + "ory/generated/index.yaml"
+        rc, err = run(project, "gate_lead_write_scope.py", bash_payload(project, weld) | caller)
+>       assert rc == 2, "a bare CR welded a canonical path past gate 1 (%s): %s" % (caller, err[:300])
+E       AssertionError: a bare CR welded a canonical path past gate 1 ({'agent_id': 'sub-1', 'agent_type': 'harness-implementer'}): 
+E       assert 0 == 2
+
+.claude\hooks\test_gates.py:2652: AssertionError
+_______________ test_every_test_a_hole_names_is_one_that_exists _______________
+
+    def test_every_test_a_hole_names_is_one_that_exists():
+        """A hole that claims to be closed names what would notice a relapse, and the name resolves.
+    
+        READ OFF THE ITEM (`backlog_types.HOLE_TEST_FIELD`), which is the move FR-0087 (c) asked for:
+        the predecessor of this test parsed markdown code spans, and its own docstring had to name
+        three things it could not read -- a citation inside a fenced block, a module abbreviated to an
+        ellipsis, a summary row whose cell carried the column separator. A list on the item has none of
+        those readings.
+    
+        THE CORPUS IS WHERE THE TESTS LIVE, and that is not one file: a hole closes a defect anywhere
+        in this repo, and the test that would notice a reopening lives where the defect lived -- under
+        `tools/` for the kits and the kernel, here for this repo's own gates.
+    
+        Names are matched loosely on purpose, exactly as before: the items carry the abbreviations the
+        entries used, so the name is looked up EXACTLY first and only as a substring when nothing
+        answers exactly.
+        """
+        backlog_types, _state, holes = _holes()
+        assert holes, "no hole item in %s -- see the sibling test for the migration command" % STATE_ROOT
+        defined = _tests_by_module()
+        assert defined, "no test file in this repo defines a test at all"
+        named, wrong = 0, []
+        for number, item in sorted(holes.items()):
+            for span in backlog_types.field_elements(item.get(backlog_types.HOLE_TEST_FIELD)):
+                citation = _cited_test(re.sub(r"\s+", "", str(span)))
+                if citation is None:
+                    wrong.append("%s carries %r in %s, which is no test citation at all"
+                                 % (number, span, backlog_types.HOLE_TEST_FIELD))
+                    continue
+                module, cited = citation
+                stem = cited.strip("_.\u2026")
+                matching = sorted(name for name, where in defined.items()
+                                  if (name == stem or (stem not in defined and stem in name))
+                                  and (module is None or module in where))
+                named += 1
+                if len(matching) != 1:
+                    wrong.append("%s names `%s`, and %d tests answer to it in %s"
+                                 % (number, span, len(matching), module or "any test file of this repo"))
+>       assert not wrong, "\n".join(wrong)
+E       AssertionError: H138 names `tools/test_design_conformance.py::test_a_record_is_written_even_when_the_checks_find_something_and_the_sighting_gate_still_opens`, and 0 tests answer to it in test_design_conformance
+E         H155 names `tools/test_approvals_dispatch.py::test_an_empty_origin_excuses_the_step_while_the_root_criteria_measure_it`, and 0 tests answer to it in test_approvals_dispatch
+E       assert not ['H138 names `tools/test_design_conformance.py::test_a_record_is_written_even_when_the_checks_find_something_and_the_s...mpty_origin_excuses_the_step_while_the_root_criteria_measure_it`, and 0 tests answer to it in test_approvals_dispatch']
+
+.claude\hooks\test_gates.py:5154: AssertionError
+=========================== short test summary info ===========================
+FAILED .claude/hooks/test_gates.py::test_gate1_refuses_the_lead_a_new_file_beside_the_stamper_bug_0105
+FAILED .claude/hooks/test_gates.py::test_gate1_refuses_the_lead_gate5s_declaration_bug_0233
+FAILED .claude/hooks/test_gates.py::test_gate1_refuses_a_character_the_shell_never_sees_bug_0161[caller0]
+FAILED .claude/hooks/test_gates.py::test_gate1_refuses_a_character_the_shell_never_sees_bug_0161[caller1]
+FAILED .claude/hooks/test_gates.py::test_every_test_a_hole_names_is_one_that_exists
+5 failed, 555 passed in 1913.00s (0:31:52)
+exit 1
