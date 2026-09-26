@@ -1,4 +1,4 @@
-generated_at: '2026-09-26T19:24:33'
+generated_at: '2026-09-26T20:49:54'
 items:
 - id: APR-0001
   type: APR
@@ -4210,6 +4210,30 @@ items:
   revision: 1
   approval_ref: null
 - id: EVD-0485
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0486
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0487
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0488
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0489
   type: EVD
   title: null
   status: null

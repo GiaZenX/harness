@@ -227,9 +227,10 @@ wer ihn überschreibt, schaltet den Schutz ab, ohne einen geschützten Pfad anzu
 `project_memory/` außer `staging/`, für **jeden** Aufrufer, weil dort das Beweismittel liegt, mit dem
 Gate 3 urteilt.
 
-**`tools/` ist damit nicht mehr pauschal frei** — geschützt ist die Datei, aus der abgeleitet wird,
-nicht das Verzeichnis. Ein *neues* File neben ihr bleibt schreibbar; das steht als Loch in
-`docs/POST_V2_WISHLIST.md`, nicht als Schutzbehauptung hier.
+**`tools/` ist für den Sitzungsagenten geschützt**, und zwar als Ableitung: geschützt ist jede
+Datei, aus der abgeleitet wird, UND das Verzeichnis, in dem sie liegt — also auch ein *neues*
+File neben dem Stempler und die Erklärung, auf der Gate 5 entscheidet (`tools/test_surface.json`).
+Ein Umsetzer-Subagent schreibt dort weiter (H13, H151; TSK-0152).
 
 Frei ist alles, was keine dieser Eigenschaften hat — **mit gemessenen Ausnahmen, und die ersten
 beiden stehen hier, weil sie einen treffen, der nur liest.** Die erste: ein Kandidat, der einen **Vorfahren** eines

@@ -1,0 +1,18 @@
+id: EVD-0489
+kind: review
+related:
+- BUG-0105
+- BUG-0161
+- BUG-0233
+result: pass
+summary: lead measurement of user patch 3 (applied by the user outside Claude Code)
+  for diff:993a995df89d62277746eb2cd6f7541ae8ae60c1b63b1171d2d3b05142bfa671 -- --check
+  7/7 already done; the three tests naming the bugs pass (4 passed); the patch was
+  verified in a copy by TSK-0152's verifier (7/7/0/0, bound tests mutation-red)
+artifact_refs:
+- staging/TSK-0152/user-patch3-applied.txt
+run_command: python project_memory/staging/TSK-0152/apply_user_patch.py --check
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-26T20:49:54'

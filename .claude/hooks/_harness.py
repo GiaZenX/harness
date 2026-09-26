@@ -608,6 +608,16 @@ def payload():
         refuse("This tool call could not be inspected: the hook payload exceeded the "
                "%d-byte stdin bound, so the gate refused rather than waved it through.\n"
                "Remedy: split the call." % module.STDIN_LIMIT)
+    # THE KITS' SECOND DOOR, asked of the reader these gates already borrow (BUG-0161 / H69): a
+    # character the tool's shell never sees makes the line read here not the line that runs --
+    # `project_mem<CR>ory/...` is one canonical path to that shell and two words to this reader.
+    # `.claude/hooks/test_gates.py::test_gate1_refuses_a_character_the_shell_never_sees_bug_0161`
+    eaten = module.eaten_in_flight(data)
+    if eaten:
+        refuse("This tool call could not be inspected: its command line carries a character its "
+               "shell will never see (%s), so what this gate reads is not what would run.\n"
+               "Remedy: write the line without that character; a command in several steps is "
+               "spelled with a real newline or with `;`, `&&`, `||`." % eaten)
     # HERE, because the deadline depends on the payload: the registration states a timeout per
     # TOOL, and which tool this is only the payload says.
     _DEADLINE.start(here, data)
@@ -779,10 +789,10 @@ def decision_inputs(root):
     The set is therefore payload-dependent by construction, and rightly so: a `Write` payload never
     loads the shell reader, so for that call the shell reader decided nothing.
 
-    WHAT IT DOES NOT REACH, named rather than implied: files, not directories. A module that
-    `bump_kit_version.py` imports lazily inside a function this gate never calls is not loaded and
-    therefore not protected, and neither is a NEW file placed beside it. Only `tools/` as a whole
-    would cover those, and `tools/` is not derivable from anything this gate reads.
+    FILES HERE, DIRECTORIES IN `ProtectedArea.verdict`: this returns the files, and the verdict
+    protects the DIRECTORY each of them lies in as well (BUG-0105/H13), so a module
+    `bump_kit_version.py` imports lazily, or a NEW file placed beside it, is covered although it
+    was never loaded. What stays open: such a module in a directory no producer lies in.
     """
     files = set()
     for module in list(sys.modules.values()):
@@ -825,13 +835,21 @@ class ProtectedArea(object):
     """
 
     __slots__ = ("root", "kit_directories", "producer_files", "provider_tree", "state_root",
-                 "staging", "hook_directories")
+                 "staging", "hook_directories", "producer_directories")
 
     def __init__(self, root):
         self.root = root
         self.kit_directories = kit_version_directories(root)
         # AFTER the line above: `decision_inputs` reads what has been loaded
         self.producer_files = decision_inputs(root)
+        # The directory every producer lies in, the checkout itself excepted (widening to it would
+        # protect every file of the repo). A SLOT and not a local of `verdict`, because the areas
+        # ARE the slots: `_sandbox.protected_files` walks them, so the measurement watch list covers
+        # what this area protects -- held by
+        # `.claude/hooks/test_gates.py::test_the_measurement_watch_list_is_the_area_the_gate_protects`.
+        self.producer_directories = sorted(
+            directory for directory in {os.path.dirname(name) for name in self.producer_files}
+            if not (under(directory, root) and under(root, directory)))
         self.provider_tree = os.path.join(root, PROVIDER_DIR)
         self.state_root = os.path.join(root, STATE_ROOT)
         self.staging = os.path.join(root, STATE_ROOT, STAGING)
@@ -920,6 +938,21 @@ class ProtectedArea(object):
                 "this path goes into a kit's content hash -- it is versioned product, and the "
                 "protected area is read from `tools/bump_kit_version.py` plus "
                 "`kernel.hashing.kit_hash_inputs`, not from a list kept here."))
+        # A PRODUCER IS PROTECTED WITH ITS DIRECTORY (BUG-0105/H13, BUG-0233/H151), asked LAST so
+        # every narrower reason above answers first. The producer set is measured per call
+        # (`decision_inputs`); a NEW file beside the stamper -- its next helper, a module it would
+        # import, gate 5's declaration `tools/test_surface.json` -- is written where that set
+        # already points.
+        # `.claude/hooks/test_gates.py::test_gate1_refuses_the_lead_a_new_file_beside_the_stamper_bug_0105`
+        # `.claude/hooks/test_gates.py::test_gate1_refuses_the_lead_gate5s_declaration_bug_0233`
+        for directory in self.producer_directories:
+            if under(path, directory):
+                return SESSION_ONLY, (
+                    "this path lies in %s, the directory of a file gate 1 derives its protected "
+                    "area from. A NEW file there is protected too: the producer's next helper or "
+                    "data file would otherwise be written beside it unrefused (H13), and gate 5 "
+                    "decides on such a file (`tools/test_surface.json`, H151). An implementer "
+                    "subagent writes it, ordered by an item." % _shown(self.root, directory))
         return None, None
 
 

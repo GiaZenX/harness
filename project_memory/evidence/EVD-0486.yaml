@@ -1,0 +1,15 @@
+id: EVD-0486
+kind: test
+related:
+- BUG-0105
+result: pass
+summary: 'after user patch 3 (applied 2026-09-26, 7/7 sites done): the test naming
+  BUG-0105 passes'
+artifact_refs:
+- staging/TSK-0152/user-patch3-applied.txt
+run_command: python -B -m pytest .claude/hooks/test_gates.py::test_gate1_refuses_the_lead_a_new_file_beside_the_stamper_bug_0105
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-26T20:49:41'

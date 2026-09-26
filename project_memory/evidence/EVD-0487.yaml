@@ -1,0 +1,14 @@
+id: EVD-0487
+kind: test
+related:
+- BUG-0233
+result: pass
+summary: 'after user patch 3: the test naming BUG-0233 passes'
+artifact_refs:
+- staging/TSK-0152/user-patch3-applied.txt
+run_command: python -B -m pytest .claude/hooks/test_gates.py::test_gate1_refuses_the_lead_gate5s_declaration_bug_0233
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-26T20:49:42'

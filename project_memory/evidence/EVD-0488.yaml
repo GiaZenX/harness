@@ -1,0 +1,14 @@
+id: EVD-0488
+kind: test
+related:
+- BUG-0161
+result: pass
+summary: 'after user patch 3: the test naming BUG-0161 passes (both callers)'
+artifact_refs:
+- staging/TSK-0152/user-patch3-applied.txt
+run_command: python -B -m pytest .claude/hooks/test_gates.py::test_gate1_refuses_a_character_the_shell_never_sees_bug_0161
+  -q
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-26T20:49:43'
