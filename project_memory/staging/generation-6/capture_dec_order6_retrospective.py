@@ -1,0 +1,46 @@
+"""Order 6 (TSK-0152) retrospective -- review event: release (ff06903, rollout 2026-09-26 19:21). Not idempotent."""
+import json
+import os
+import subprocess
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+KERNEL = [sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory", "capture", "DEC"]
+
+BODY = {
+    "title": "Rueckschau Order 6 (TSK-0152): der Gesamtlauf kommt NACH dem PASS des Pruefers; Pfade werden "
+             "aufgeloest verglichen, nie als Text; der erste Bauer ist der teuerste Kontext -- FR-0093 wirkt gemessen",
+    "context": "MEASURED from the round log 2026-09-26 08:00 -> 19:21 (11 h 21 min incl. a usage-limit stop 08:5x-12:10) "
+               "and tools/measure_agent_tokens.py: 6 agents, 629 turns, 118.8 M input (TSK-0150 before FR-0093: 189.1 M; "
+               "TSK-0151: 160.8 M with twice the rounds). Median context per turn 107 k (before: 284 k). First builder "
+               "304 k median / 80 M input = 67 % of the order's input. Stamps: FIVE (limit kill, a self-review defect, "
+               "contract reds, rework 1, rework 2). The builder started the full run BEFORE the verifier; after rework 1 "
+               "gate 5 refused a second full run for the same item (one per item, DEC-0063 (4)) -- the reading suites were "
+               "run in full instead. Finding classes: (a) F2/F4 'inside the checkout' judged on the spelled path "
+               "(abspath) -- a junction led out: the same class as DEC-0116's 'readers of spellings', one level down; "
+               "(b) three contract reds from a new kernel command missing from existing registers (status writers, board "
+               "regeneration, command lists) -- known readers the order did not name.",
+    "decision": "(1) ORDER TEXT from now on: the builder does NOT start the full run; it delivers the reading-suite "
+                "selections, the verifier judges, and the full run runs ONCE after the last rework (by the finishing "
+                "builder or the lead) -- it matches gate 5's one-run-per-item and removes the collision. (2) A rule that "
+                "judges 'where a path lies' compares RESOLVED paths (realpath) at both ends -- stated in the order "
+                "whenever a door or gate takes a path from a caller. (3) A NEW kernel command's order names the known "
+                "registers it must join (status-writer bound, board regeneration list, command-surface listings) -- "
+                "DEC-0080 rule 1 for commands. (4) Every order's protocol is written AS YOU GO (two limit kills cost "
+                "nothing because the state was on disk). (5) NEXT FR-0093 lever, to be decided with the user when it "
+                "is ordered: the first build of a large order in checkpointed parts, each handed to a fresh agent.",
+    "consequences": "One stamp per order becomes reachable again; the verifier never waits on an 87-min run it does "
+                    "not need. Cost: the full run moves after the verdict, so a red found there costs one more short "
+                    "loop -- measured rarer than a verifier finding (orders 5, 6a, 6: 0 of 3 full runs found a defect "
+                    "the verifier had missed).",
+    "work": ["PR-0012"],
+    "source": "staging/generation-6-streams.md 2026-09-26; staging/TSK-0152/verify-round-1.md, -2.md, protocol.md; "
+              "staging/TSK-0152/fr0093-*.json; DEC-0063; DEC-0080; DEC-0116; FR-0093",
+}
+
+env = dict(os.environ, PYTHONPATH="team-kits")
+result = subprocess.run(KERNEL, cwd=ROOT, env=env, input=json.dumps(BODY),
+                        capture_output=True, text=True, encoding="utf-8")
+sys.stdout.write(result.stdout)
+sys.stderr.write(result.stderr[-1500:])
+sys.exit(result.returncode)

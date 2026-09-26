@@ -1,0 +1,16 @@
+id: EVD-0485
+kind: review
+related:
+- DEC-0121
+result: pass
+summary: 'lead check for diff:aa20329c31e3b9b9c1ac9b850a9b4de119fad908b2a92689a00c383142f2a534
+  -- state-only commit after ff06903 (no file outside project_memory changed): BUG-0264/0305/0308
+  verified, TSK-0152 cancelled, DEC-0119/0120/0121, FR-0093/0094/0095/0096 updates,
+  BUG-0310/0311, line endings, round log, handover'
+artifact_refs:
+- staging/generation-6-streams.md
+run_command: git status --short
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-26T19:24:33'

@@ -1,4 +1,4 @@
-generated_at: '2026-09-26T19:20:54'
+generated_at: '2026-09-26T19:24:33'
 items:
 - id: APR-0001
   type: APR
@@ -468,6 +468,12 @@ items:
   status: null
   revision: null
   approval_ref: null
+- id: APR-0079
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
 - id: BUG-0069
   type: BUG
   title: GitHub CI is red on every push -- the delivery suite passes locally but fails
@@ -500,32 +506,6 @@ items:
   title: Die Erklärung, auf der Gate 5 entscheidet, liegt ausserhalb seines eigenen
     Schutzbereichs (neu, TSK-0121, PR-0004 AC-1)
   status: TRIAGED
-  revision: 1
-  approval_ref: null
-- id: BUG-0264
-  type: BUG
-  title: 'Four schedule claims survive in the enforcement layer that AC-1 cleaned
-    everywhere else: .claude/hooks/gate_spawn_needs_item.py and .claude/hooks/_harness.py
-    still say the watchers ''run on a weekly schedule'', no test reads them, and the
-    reworded watcher definitions now POINT at them (new, TSK-0130, PR-0010 AC-1, DEC-0084)'
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0305
-  type: BUG
-  title: 'Über-Verweigerung der Schreiben-und-Ausführen-Regel: eine reine LESE-Stufe
-    mit unbekanntem Kommandowort (`sudo -u me cat tools/ci.sh ; bash tools/ci.sh`)
-    gilt als Schreiber, und der Satz behauptet ''this line WRITES tools/ci.sh'''
-  status: OPEN
-  revision: 1
-  approval_ref: null
-- id: BUG-0308
-  type: BUG
-  title: 'Die Buchfuehrung der Sprosse kennt nur Claude: `lease_rung`/`lease_effort`
-    am Auftrag und damit die Sprossen-Verteilung und die Runden-bis-PASS je Sprosse
-    zaehlen auf einem Codex-Projekt die Claude-Antwort, nicht die, nach der der Codex-Lead
-    gearbeitet hat (Rest von TSK-0151 V1)'
-  status: OPEN
   revision: 1
   approval_ref: null
 - id: BUG-0309
@@ -1452,6 +1432,14 @@ items:
   type: DEC
   title: 'H47: Gate 1 dieses Repos lehnt eine Umleitung ab, deren Ziel eine Variable
     enthaelt -- es loest sie nicht auf (Richtung (c) der Klassenfrage aus TSK-0152)'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0121
+  type: DEC
+  title: 'Rueckschau Order 6 (TSK-0152): der Gesamtlauf kommt NACH dem PASS des Pruefers;
+    Pfade werden aufgeloest verglichen, nie als Text; der erste Bauer ist der teuerste
+    Kontext -- FR-0093 wirkt gemessen'
   status: VALID
   revision: 1
   approval_ref: null
@@ -4221,6 +4209,12 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0485
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -4505,6 +4499,6 @@ items:
 - id: TSK-0152
   type: TSK
   title: null
-  status: READY
+  status: CANCELLED
   revision: 1
   approval_ref: null

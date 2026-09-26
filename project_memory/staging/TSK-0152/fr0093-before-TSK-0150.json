@@ -1,0 +1,40 @@
+{
+  "agents": [
+    {
+      "agent": "a52a713107822731c",
+      "session": "4c7eb015-43fb-47a6-bd9f-59ededd9d8ea",
+      "type": "harness-verifier",
+      "description": "harness-verifier Opus high",
+      "model": "opus",
+      "turns": 281,
+      "context_median": 186950,
+      "context_p90": 287201,
+      "input_total": 51568023,
+      "polling_turns": 1,
+      "polling_input": 296659,
+      "first_prompt": null
+    },
+    {
+      "agent": "a8f6b8de3e9a725e1",
+      "session": "4c7eb015-43fb-47a6-bd9f-59ededd9d8ea",
+      "type": "harness-implementer",
+      "description": "harness-implementer Opus high",
+      "model": "opus",
+      "turns": 383,
+      "context_median": 381612,
+      "context_p90": 568352,
+      "input_total": 137484112,
+      "polling_turns": 27,
+      "polling_input": 11824638,
+      "first_prompt": null
+    }
+  ],
+  "summary": {
+    "agents": 2,
+    "turns": 664,
+    "median_of_agent_medians": 284281,
+    "input_total": 189052135,
+    "polling_turns": 28,
+    "polling_share_of_input": 0.0641
+  }
+}

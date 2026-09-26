@@ -13,7 +13,19 @@ request_text: 'User 2026-09-25: ''Reduzieren der Tokens im Leerlauf -- ich habe 
   waits for its completion notice instead of sleep/tail loops; (3) reading discipline
   in every order: files > 2,000 lines and protocols are read by section, never whole.
   Acceptance: one round measured before and after (context per turn, tokens per closed
-  item) with the measuring script kept under tools/.'
+  item) with the measuring script kept under tools/. || BUILT in TSK-0151 (0a79fc5):
+  the three order lines in every kit''s lead skill + this repo''s lead role (user
+  patch 2), tools/measure_agent_tokens.py. MEASURED 2026-09-26 19:23 with that tool
+  (JSON in staging/TSK-0152/fr0093-*.json), per order, all subagents whose first prompt
+  names the order: BEFORE TSK-0150: 2 agents, 664 turns, median of agent medians 284,281
+  tokens/turn, input 189.1 M, polling 6.4 %. AFTER TSK-0151: 9 agents (3 verify rounds
+  + 4 reworks), 847 turns, median 134,164, input 160.8 M, polling 0.8 %. AFTER TSK-0152:
+  6 agents, 629 turns, median 107,344, input 118.8 M, polling 4.2 %. Reading: context
+  per turn fell by 53-62 % (fresh reworks 59-214 k median vs a resumed builder''s
+  381 k); total input fell 15 % on an order with twice the rounds and 37 % on a comparable
+  one. What still costs most: the FIRST builder of an order (TSK-0151 340 k, TSK-0152
+  304 k median; 73 M and 80 M input) -- a long single context. Next lever, not built:
+  cut the first build into checkpointed parts handed to fresh agents.'
 status: OPEN
 revision: 1
 approval_ref: null

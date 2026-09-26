@@ -1,0 +1,96 @@
+{
+  "agents": [
+    {
+      "agent": "a5f2c5020c0117ea7",
+      "session": "6a21859f-0fa5-4ec2-8925-feca4d9eceb7",
+      "type": "harness-verifier",
+      "description": "TSK-0152 verifier (fresh Opus)",
+      "model": null,
+      "turns": 110,
+      "context_median": 147817,
+      "context_p90": 202244,
+      "input_total": 15509631,
+      "polling_turns": 0,
+      "polling_input": 0,
+      "first_prompt": null
+    },
+    {
+      "agent": "a857386b0c64e869f",
+      "session": "6a21859f-0fa5-4ec2-8925-feca4d9eceb7",
+      "type": "harness-implementer",
+      "description": "TSK-0152 finish (fresh, after limit)",
+      "model": null,
+      "turns": 103,
+      "context_median": 118720,
+      "context_p90": 154944,
+      "input_total": 11688534,
+      "polling_turns": 0,
+      "polling_input": 0,
+      "first_prompt": null
+    },
+    {
+      "agent": "a8b68e86c94748ff3",
+      "session": "6a21859f-0fa5-4ec2-8925-feca4d9eceb7",
+      "type": "harness-implementer",
+      "description": "TSK-0152 rework 2: realpath (fresh)",
+      "model": null,
+      "turns": 38,
+      "context_median": 71492,
+      "context_p90": 85395,
+      "input_total": 2688321,
+      "polling_turns": 0,
+      "polling_input": 0,
+      "first_prompt": null
+    },
+    {
+      "agent": "aa577aa927402968f",
+      "session": "6a21859f-0fa5-4ec2-8925-feca4d9eceb7",
+      "type": "harness-implementer",
+      "description": "TSK-0152 rework round 1 (fresh)",
+      "model": null,
+      "turns": 54,
+      "context_median": 95968,
+      "context_p90": 114022,
+      "input_total": 4938926,
+      "polling_turns": 0,
+      "polling_input": 0,
+      "first_prompt": null
+    },
+    {
+      "agent": "ad104910efcac35ec",
+      "session": "6a21859f-0fa5-4ec2-8925-feca4d9eceb7",
+      "type": "harness-implementer",
+      "description": "TSK-0152 order 6 builder",
+      "model": null,
+      "turns": 278,
+      "context_median": 304352,
+      "context_p90": 461479,
+      "input_total": 80085945,
+      "polling_turns": 11,
+      "polling_input": 5002571,
+      "first_prompt": null
+    },
+    {
+      "agent": "aeed8608a9eba0db1",
+      "session": "6a21859f-0fa5-4ec2-8925-feca4d9eceb7",
+      "type": "harness-verifier",
+      "description": "TSK-0152 verify round 2 (narrow)",
+      "model": null,
+      "turns": 46,
+      "context_median": 85775,
+      "context_p90": 114427,
+      "input_total": 3882778,
+      "polling_turns": 0,
+      "polling_input": 0,
+      "first_prompt": null
+    }
+  ],
+  "summary": {
+    "agents": 6,
+    "turns": 629,
+    "median_of_agent_medians": 107344,
+    "input_total": 118794135,
+    "polling_turns": 11,
+    "polling_share_of_input": 0.0421
+  }
+}

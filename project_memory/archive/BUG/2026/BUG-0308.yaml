@@ -33,7 +33,9 @@ limits: 'Nur eine Statistik ist auf Codex-Projekten ungenau: welche Stufe ein Au
   bekam, zaehlt der Bericht nach der Claude-Antwort. Welche Stufe gearbeitet hat,
   steht im Kopf des Auftrags richtig; es wird nichts falsch gestartet oder abgelehnt.'
 hole_number: H221
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0079
 created: '2026-09-25T20:13:52'
+approved_hash: d4833ccd1de8b1d39b5b3deb5e8de2266f90886d25ef3a8f1e2f9393ee33a660
+closed_at: '2026-09-26T19:23:05'

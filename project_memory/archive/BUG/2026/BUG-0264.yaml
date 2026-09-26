@@ -62,7 +62,9 @@ source: harness-verifier round 1 finding B2 (project_memory/staging/TSK-0130/ver
   grep measured 2026-09-06 in C:/Offline Repos/v2-testbed/_worktrees/g5-ladders; DEC-0084;
   PR-0010 AC-1
 hole_number: H182
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0079
 created: '2026-09-06T07:41:17'
+approved_hash: dc566c23dbcb4ec19b06a8c81a992bcd93b3f65515b00f4df871b3e2fe0bd3da
+closed_at: '2026-09-26T19:22:59'

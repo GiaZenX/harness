@@ -33,7 +33,9 @@ limits: 'Eine Zeile, die eine Datei nur liest (z. B. `sudo -u me cat tools/ci.sh
   sich ohne den Vorsatz sofort ausführen; die Meldung sagt allerdings etwas Falsches
   („schreibt“).'
 hole_number: H220
-status: OPEN
+status: VERIFIED
 revision: 1
-approval_ref: null
+approval_ref: APR-0079
 created: '2026-09-13T15:24:57'
+approved_hash: 690d9ced911a3b95f1fef63bd5a4e5b4045f1443489f8fba7ecc4249edffc999
+closed_at: '2026-09-26T19:23:02'
