@@ -1,0 +1,16 @@
+id: EVD-0510
+kind: review
+related:
+- TSK-0163
+result: pass
+summary: block verifier PASS for TSK-0163/TSK-0160 (TSK-0162 on builder evidence,
+  user option A 2026-09-28) + delivery runs green (tools 5338 passed + timed-out node
+  rerun green; gates 577) for diff:61feadee06279a3db1ffd615f7fc59f5d33585b8e81806d76b8362468682963e
+artifact_refs:
+- staging/TSK-0163/verify-round-1.md
+run_command: DELIVERY_RUN=TSK-0163 python -B -m pytest tools/ -q -p no:cacheprovider
+  ; DELIVERY_RUN=TSK-0163 python -B -m pytest .claude/hooks/test_gates.py -q -p no:cacheprovider
+run_scope: full
+revision: 1
+approval_ref: null
+created: '2026-09-28T22:32:47'

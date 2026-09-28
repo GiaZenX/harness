@@ -814,7 +814,7 @@ def _dispatch_line(state, task_id, capsys):
 def test_cli_request_approval_opens_the_question_the_gate_will_pin(state, capsys):
     """Without this command the transition gate had no counterpart at all.
 
-    `create_pending_request` had no caller in the shipped tree, so no `[APR-REQ:<id>]` question
+    `create_pending_request` had no caller in the shipped tree, so no kernel-composed question
     could exist, so nothing could ever mint -- and a gated edge would refuse forever. What is
     asserted is the whole chain the gate needs: a pending request on disk, a question carrying
     that request's marker, and a question BYTE-IDENTICAL to what `build_question` rebuilds from
@@ -828,7 +828,10 @@ def test_cli_request_approval_opens_the_question_the_gate_will_pin(state, capsys
     files = sorted(os.listdir(pending))
     assert len(files) == 1, files
     request_id = files[0][:-5]
-    assert "[APR-REQ:%s]" % request_id in printed["question"]
+    # FR-0095: the card names its request by the approving label's code, never by its id
+    assert request_id not in printed["question"]
+    assert approvals.pending_request_by_code(
+        state, approvals.card_mint_codes(printed)[0])["request_id"] == request_id
     stored = approvals.pending_request(state, request_id)
     assert printed == approvals.build_question(stored)
     # the mint code lives ONLY in the approval option's label (spec II.2 / spike S2b)
@@ -962,9 +965,8 @@ def test_a_filing_correction_question_says_in_words_what_happens_to_the_document
     Both outcomes are named as what they DO, never as the manifest key that tells them apart: a
     reader must not have to notice that `destination` is empty to learn that a document is about to
     be destroyed. Everything the hash covers is in the sentence -- the document, the outcome, the
-    reason, the version, the expiry -- and the version is SHORTENED like every other digest in this
-    question (`_render_manifest_value`), because a 64-character hex string in the middle of it is
-    what made the `kit_update` question unreadable.
+    reason, the expiry, and that it binds THIS version of the document -- whose checksum stays in
+    the record since FR-0095 rather than on the card.
     """
     _document(state, "archive/1-Finanzen/2026/x.pdf")
     moved = _correction_question(state, capsys, "--document", "archive/1-Finanzen/2026/x.pdf",
@@ -985,8 +987,8 @@ def test_a_filing_correction_question_says_in_words_what_happens_to_the_document
     from kernel import hashing
     digest = hashing.document_content_hash(
         os.path.join(os.path.dirname(state.root), "inbox", "a.pdf"))
-    assert digest[:approvals.DIGEST_SHOWN] in deleted["question"]
-    assert digest not in deleted["question"], "the full digest makes the question unreadable"
+    assert digest[:8] not in deleted["question"], "a checksum on the card (FR-0095)"
+    assert "genau die jetzige Fassung dieses Dokuments" in deleted["question"]
 
 
 def test_a_document_the_kernel_cannot_hash_is_refused_where_the_clerk_types_it(state, capsys):
@@ -1194,7 +1196,7 @@ def test_the_installer_position_prints_utf8_whatever_the_console_codepage_is(sta
     question = json.loads(opened.stdout.decode("utf-8"))     # strict: mojibake fails here
     assert "für" in question["question"], question["question"]
     assert question == approvals.build_question(
-        approvals.pending_request(state, question["question"].split("[APR-REQ:")[1][:32]))
+        approvals.pending_request_by_code(state, approvals.card_mint_codes(question)[0]))
 
 
 def test_cli_capture_refuses_a_body_over_the_item_budget(state, capsys):

@@ -1703,7 +1703,7 @@ def _could_name_a_path(reading, starts):
     return starts or any(separator in str(reading) for separator in _PATH_SEPARATORS)
 
 
-def _candidates(compat_module, word, position, starts=False):
+def _candidates(compat_module, word, position, starts=False, path_position=False):
     """Every path a word could name, resolved against where the line stands.
 
     EVERY READING of the word (`readings`: `'.cl'aude/hooks/x` and `.claude/hooks/x` are one file
@@ -1731,7 +1731,13 @@ def _candidates(compat_module, word, position, starts=False):
     """
     out = []
     for reading, expandable in readings(compat_module, word):
-        unresolved = _unresolved_at(str(reading)) if _could_name_a_path(reading, starts) else None
+        unresolved = (_unresolved_at(str(reading))
+                      if path_position or _could_name_a_path(reading, starts) else None)
+        if path_position and "`" in str(reading):
+            # a backtick opens a command substitution that `_UNRESOLVED` does not list; in a
+            # path position it is refused like `$(` (DEC-0120 (1)), and nowhere else widened
+            tick = str(reading).index("`")
+            unresolved = tick if unresolved is None else min(unresolved, tick)
         parts = [(str(reading), 0)] + [(match.group(0), match.start())
                                        for match in _PATHISH.finditer(reading)]
         for found, begins in parts:
@@ -2593,7 +2599,13 @@ def written_paths(data):
         # (`WorkingDirectory.settle`).
         directory.settle(depth)
         for target in module._redirect_targets(pipeline, sinks):
-            out.extend(_candidates(compat_module, target, directory))
+            # A REDIRECT TARGET IS ALWAYS A PATH (DEC-0120, BUG-0139/H47), so a shell expansion in
+            # it is REFUSED as unplaceable rather than resolved -- `_could_name_a_path` reads only a
+            # separator or the program position as "path", and `> $F` has neither. No second copy
+            # of the kits' resolver; the cost (`echo x > $LOG` refused) is DEC-0120 (3).
+            # `.claude/hooks/test_gates.py::test_gate1_refuses_a_redirect_into_a_variable_bug_0139`
+            # `.claude/hooks/test_gates.py::test_gate1_still_passes_a_redirect_with_no_expansion_in_its_target`
+            out.extend(_candidates(compat_module, target, directory, path_position=True))
         for stage in stages(module, pipeline):
             body = stage_body(module, stage)
             verb = module._stage_verb(body)

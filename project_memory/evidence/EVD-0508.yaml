@@ -1,0 +1,20 @@
+id: EVD-0508
+kind: test
+related:
+- FR-0090
+result: pass
+summary: 'TSK-0153 stream A, worktree g7/approvals (stamped workspace copy): the expiry
+  on every time-boxed card reads ''25.09.2025, 14:30 UTC'' instead of an ISO stamp,
+  zone named because the gate rebuilds the card in another process (node test_an_expiry_reads_as_a_german_date_with_its_zone_named;
+  the calm-card node refuses an ISO time on every kind). Red on mutation M9 (red-first.log).'
+artifact_refs:
+- staging/TSK-0153/evd/final.log
+- staging/TSK-0153/evd/red-first.log
+run_command: python -B -m pytest tools/test_stream_a_approvals.py tools/test_role_contracts.py::test_a_paragraph_the_constitutions_share_is_one_text
+  tools/test_light_kit.py::test_no_approval_question_shows_an_english_enum_word_a_hash_or_a_path
+  tools/test_hooks.py::test_a_reason_the_requester_typed_cannot_write_its_own_lines_into_the_question
+  -v -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T06:31:55'

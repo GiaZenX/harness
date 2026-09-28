@@ -1,0 +1,18 @@
+id: EVD-0498
+kind: test
+related:
+- FR-0092
+result: pass
+summary: 'TSK-0154 stream B, worktree g7/dispatch: the lease composes the spawn name
+  (Role Name, Rung effort, letter A/B/C when another lease of the role is live under
+  the goal; a finished one frees its letter), the header and the dispatch command
+  carry it, and the shipped spawn gate refuses a description that is not it (payload
+  key measured). Red on base 35e929b; refusal and letter red under mutations M4/M6.'
+artifact_refs:
+- staging/TSK-0154/evd/fr-0092.log
+run_command: python -B -m pytest tools/test_stream_b_order_flow.py -k fr_0092 -v -p
+  no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:40:45'

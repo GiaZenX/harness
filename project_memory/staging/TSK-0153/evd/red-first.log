@@ -1,0 +1,26 @@
+# TSK-0153 red-first (rig: _round-scratch/TSK-0153/red/rig.py, .git-less copy, binary I/O)
+## red_run_3 (2026-09-27 06:29-06:30, fresh copy, all mutations)
+M1 batch_walk_end own-kind branch removed | RED | ['1 failed in 6.31s']
+M2 assert_apr_in_force per-item hash asked of a list | RED | ['1 failed in 7.24s']
+M3 note re-check in consumed_request removed | RED | ['1 failed in 1.77s']
+M4 gate resolves by the retired marker | RED | ['1 failed in 1.68s']
+M5 acceptance no longer waits for the change-wish card | RED | ['1 failed in 1.40s']
+M6 BATCH_LIMIT check of the scope card removed | RED | ['1 failed in 2.36s']
+M7 blockers not asked by scope_batch | RED | ['1 failed in 1.88s']
+M8 checksums shown on the card | RED | ['1 failed, 8 passed in 1.69s']
+M9 ISO expiry | RED | ['1 failed in 1.28s']
+M10 guard label copy drifts | RED | ['1 failed in 1.24s']
+M11 mint code not re-rolled on a clash | RED | ['1 failed in 1.33s']
+M12 kit block loses verification | RED | ['1 failed in 1.26s']
+M13 a per-item scope instruction left in a text | RED | ['1 failed, 2 passed in 1.35s']
+M14 request id back in the question | RED | ['1 failed in 1.31s']
+M15 per-entry list check skipped at use | RED | ['1 failed in 2.00s']
+M16 a relabelled card is no longer recognised | RED | ['1 failed in 2.29s']
+M17 gate prefix copy drifts | RED | ['1 failed in 1.23s']
+M18 card lists signed records only | RED | ['1 failed in 1.20s']
+M19 unsigned list let in beside an item | RED | ['1 failed in 1.22s']
+M20 a list key loses its label | RED | ['1 failed in 1.24s']
+CONTROL unmutated | GREEN | ['31 passed in 8.85s']
+## M21 (foreign/m21.py, workspace copy with the foreign test patch)
+M21 newline survives the fold: (1, ['1 failed in 1.99s'])
+CONTROL: (0, ['1 passed in 1.16s'])

@@ -2254,14 +2254,16 @@ def test_the_entry_point_warns_before_the_question_is_put_to_the_user(state, tmp
 
     assert cli.main(list(argv)) == 0
     unwired = capsys.readouterr()
-    assert "[APR-REQ:" in json.loads(unwired.out)["question"], "stdout is the question alone"
+    assert approvals.card_mint_codes(json.loads(unwired.out)), "stdout is the question alone"
     assert approvals.APPROVAL_HOOK in unwired.err and "approve nothing" in unwired.err
 
     _register_approval_hook(str(tmp_path), event=approvals.APPROVAL_MINT_EVENT)
     assert cli.main(list(argv)) == 0
     wired = capsys.readouterr()
-    assert "[APR-REQ:" in json.loads(wired.out)["question"]
-    assert wired.err == "", "a project that CAN mint is not warned about minting"
+    assert approvals.card_mint_codes(json.loads(wired.out))
+    # the one stderr line left names the request id for `withdraw-request` (FR-0095 took it off the
+    # card) -- no warning about minting
+    assert "approve nothing" not in wired.err and "withdraw-request" in wired.err, wired.err
 
 
 def test_a_registration_that_could_not_block_still_mints(state, tmp_path):

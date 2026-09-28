@@ -1,0 +1,23 @@
+id: EVD-0507
+kind: test
+related:
+- FR-0096
+result: pass
+summary: 'TSK-0153 stream A, worktree g7/approvals (stamped workspace copy): ''request-approval
+  scope --batch <ids>'' is one list-bound scope card over CR/BUG/new goals; refuses
+  a DONE item, a foreign kind and an eleventh id (node test_a_collected_scope_card_refuses_a_done_item_a_foreign_type_and_an_eleventh_id);
+  walks each entry across its own edge and no further (node test_a_collected_scope_card_walks_each_entry_across_its_own_edge_and_no_further);
+  each entry''s own scope hash re-checked at use (node test_the_per_entry_hash_is_rechecked_at_use);
+  only the scope kind takes an id or a list (node test_only_the_scope_kind_takes_an_id_or_a_list).
+  Red on mutations M1/M2/M6/M7/M15 (red-first.log).'
+artifact_refs:
+- staging/TSK-0153/evd/final.log
+- staging/TSK-0153/evd/red-first.log
+run_command: python -B -m pytest tools/test_stream_a_approvals.py tools/test_role_contracts.py::test_a_paragraph_the_constitutions_share_is_one_text
+  tools/test_light_kit.py::test_no_approval_question_shows_an_english_enum_word_a_hash_or_a_path
+  tools/test_hooks.py::test_a_reason_the_requester_typed_cannot_write_its_own_lines_into_the_question
+  -v -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T06:31:53'

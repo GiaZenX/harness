@@ -7948,3 +7948,44 @@ def test_an_imported_goal_keeps_the_class_its_v1_store_held(tmp_path):
             "dependencies": [],
             migrate.LEGACY_FIELD: {"legacy_id": "TSK-0017b", "legacy_type": "TSK"},
         }, imported=True)
+
+
+# -- BUG-0317: open V1 work orders ---------------------------------------------------------------
+
+def test_an_open_v1_task_is_imported_cancelled_bug_0317(tmp_path):
+    """AC-1: an open V1 task whose fields all translate is not left as an undispatchable live
+    order -- it is written, walked to CANCELLED through the automaton and archived, with the
+    reason on the item and its V1 dependency ids out of the V2 field."""
+    root = str(tmp_path / "project_memory")
+    shutil.copytree(os.path.join(ROOT, "team-kits", "dev-team", "templates", "project_memory"), root)
+    with open(os.path.join(root, "product_requirements.yaml"), "wb") as handle:
+        handle.write(b"requirements:\n  PRD-0001:\n    title: the ledger export\n"
+                     b"    class: small\n    problem: p\n    goal: g\n"
+                     b"    acceptance_criteria: [{id: AC-1, text: x}]\n    invariants: [i]\n"
+                     b"    out_of_scope: [o]\n    priority: high\n    status: APPROVED\n"
+                     b"    created: 2026-04-01\n")
+    with open(os.path.join(root, "tasks.yaml"), "wb") as handle:
+        handle.write(b"tasks:\n  TSK-0007:\n    product_requirement: PRD-0001\n"
+                     b"    root_revision: 1\n    derives_from: PRD-0001\n"
+                     b"    type: implementation\n    assigned_role: backend\n"
+                     b"    acceptance_refs: []\n    required_inputs: [the ledger]\n"
+                     b"    allowed_scope: [src/**]\n    forbidden_scope: []\n"
+                     b"    expected_outputs: [an export]\n    dependencies: [TSK-0003]\n"
+                     b"    status: TODO\n    created: 2026-04-01\n")
+    state = ProjectState(root)
+    plan = migrate.build_plan(state, {}, 2026)
+    task = next(entry for entry in plan["records"] if entry["legacy_id"] == "TSK-0007")
+    assert task["verdict"] == "translatable" and task["target"] == "active", task
+    assert cli.main(["--root", root, "migrate", "--plan", migrate.plan_digest(plan),
+                     "--archive-year", "2026"]) == 0
+    assert [name for name, _path in state.iter_active_items("TSK")] == [], \
+        "an open V1 order was left as a live V2 order"
+    archived = [yaml.safe_load(open(os.path.join(current, name), encoding="utf-8"))
+                for current, _dirs, files in os.walk(os.path.join(root, "archive"))
+                for name in files if name.startswith("TSK-")]
+    assert len(archived) == 1, archived
+    item = archived[0]
+    assert item["status"] == migrate.OPEN_ORDER_END
+    assert item["dependencies"] == []
+    assert item[migrate.LEGACY_FIELD][migrate.CANCEL_ON_IMPORT] == migrate.OPEN_ORDER_REASON
+    assert item[migrate.LEGACY_FIELD]["record"]["dependencies"] == ["TSK-0003"]

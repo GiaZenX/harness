@@ -1721,6 +1721,9 @@ class ProjectState:
         # the goals a plan covers would be refused for want of an approval that exists.
         if apr is not None and item.get("approval_ref") != apr.get("id"):
             item["approval_ref"] = apr["id"]
+        # A FAIL CLASSIFICATION OUTLIVES NO VERDICT THAT OVERRULED IT (BUG-0324): it may be written
+        # while the run is judged, so a forward move drops it -- `dispatch.run_can_be_classified`.
+        _dispatch.drop_an_overruled_classification(item, from_status, to_status)
         item["status"] = to_status
         self._write_yaml_atomic(self.active_path(item_id), item)
         # A DISPATCH LEASE IS BOUND TO THE STATUS IT SERVES. Deferred import for the same reason

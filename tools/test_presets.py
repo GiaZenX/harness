@@ -691,8 +691,8 @@ def test_the_preset_question_names_the_team_afterwards_and_what_goes(project):
     assert "danach im Team: alpha, beta" in question["question"], question["question"]
     assert "entfernt: keine" in question["question"]
     assert "roles:" not in question["question"] and "removes:" not in question["question"]
-    # the option the user clicks carries the same sentence -- it is what the mint is bound to
-    assert "danach im Team: alpha, beta" in question["options"][0]["description"]
+    # since FR-0095 the subject stands on the card's list and the options carry no subject; the
+    # card is compared character for character, so the list IS what the mint is bound to
 
     _write(str(project["repo"] / ".claude" / "team_kit_roles.txt"),
            (ROLES_MANIFEST_HEADER % (KIT, 3)) + "\nproject-manager\nalpha\nbeta\n")
@@ -709,7 +709,7 @@ def test_the_added_roles_are_not_what_a_preset_approval_binds(project):
     not carry, and that is the part a delta is computed from. Two installations that differ only
     inside the target set produce one hash and two different added sets.
 
-    THE MINT HALF, and it is here because the sentence in `_preset_target_form` claims it: an
+    THE MINT HALF, and it is here because the docstring of `approvals._preset_lines` claims it: an
     approval really minted for the first installation still applies after the second -- `set-preset`
     re-derives the manifest, the hash still matches, and the install goes through. Without this the
     docstring would name a test for something the test never ran.
@@ -758,7 +758,8 @@ def test_every_kit_constitution_describes_the_preset_question_the_kernel_builds(
     """The sentence a PM reads about that question, held against the question (DEC-0048).
 
     THE DEFECT THIS EXISTS FOR, and it is why the check is derived rather than a third careful
-    edit: two of the three constitutions were pulled down to what `_preset_target_form` renders and
+    edit: two of the three constitutions were pulled down to what the preset renderer (then
+    `_preset_target_form`, today `approvals._preset_lines`) printed and
     the office one was not -- it still promised "the question names every role added and removed",
     measured live in an office scaffold where three of five named roles were already installed and
     the question said nothing about which were new. The sweep that missed it was a line-based grep
@@ -773,7 +774,9 @@ def test_every_kit_constitution_describes_the_preset_question_the_kernel_builds(
     meets a constitution promising it does not. Whitespace in the documents is flattened first,
     because where a kit wraps its lines is not what this measures.
     """
-    form = approvals.TARGET_FORMS["preset"]
+    def form(manifest):                      # the card's lines for a preset (FR-0095)
+        return "\n".join(approvals.SUBJECT_LINES["preset"](manifest))
+
     from_alpha = presets.change_manifest(project["state"], "full")
     rendered = form(from_alpha)
     # what the renderer actually put in front of the user, as claims a sentence has to match
@@ -807,7 +810,10 @@ def test_every_kit_constitution_describes_the_preset_question_the_kernel_builds(
 
 
 def test_every_target_form_names_a_live_apr_kind(project):
-    """Both ends of the one map in `build_question` that is an enumeration.
+    """Both ends of the one map in `build_question` that is an enumeration -- `SUBJECT_LINES` since
+    FR-0095, which replaced `TARGET_FORMS`/`OPTION_FORMS`; the list-bound kinds left the map, because
+    every list now reads through one `_entry_line` (their measurement:
+    `tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card`).
 
     A form for a kind that no longer exists answers for nothing, and this map is the one place the
     builder departs from rendering the hashed manifest key by key -- a leftover entry makes that
@@ -815,7 +821,7 @@ def test_every_target_form_names_a_live_apr_kind(project):
     renders is the other end: every entry here writes a sentence a user signs, so the second
     assertion is the one that has to be edited deliberately, next to a new test like the two above.
     """
-    assert set(approvals.TARGET_FORMS) <= set(approvals.APR_KINDS)
+    assert set(approvals.SUBJECT_LINES) <= set(approvals.APR_KINDS)
     # `filing_correction` joined the map in TSK-0077 (FR-0050) and brought its measurement with it:
     # `tools/test_staging_cli.py::test_a_filing_correction_question_says_in_words_what_happens_to_
     # the_document` is what says the rendered sentence names the document, both outcomes in words,
@@ -835,34 +841,10 @@ def test_every_target_form_names_a_live_apr_kind(project):
     # _covers`, plus `tools/test_approvals_dispatch.py::test_a_revision_card_shows_every_spot_and
     # _is_never_a_count` for the half specific to it: the spots are shown in full or the request is
     # refused, never folded into a number.
-    # `plan` joined in TSK-0117 (FR-0074) and is the ONE form where a single answer authorises
-    # several items, so it is the one that may least be a summary -- which is also the sentence
-    # `H132` leans on. Its measurement arrived in the TSK-0120 merge round, where this
-    # assertion went red because the form had come without one:
-    # `tools/test_kernel.py::test_the_question_a_plan_asks_shows_every_goal_the_hash_covers`
-    # asks the manifest for every goal it hashes and requires each one's id, title and revision
-    # in the rendered sentence, and refuses a count standing in for the list.
-    # `verification` joined in TSK-0138 (PR-0012 AC-1, DEC-0100) and is the SECOND form where one
-    # answer authorises several items -- and the first that splits itself in two: the sentence names
-    # the count and the APPROVING OPTION carries the list, because the list is the compared carrier
-    # and a sentence a person has to read cannot hold twenty-odd ids with their proofs. Both halves
-    # are measured, which is what this assertion asks for:
-    # `tools/test_approvals_dispatch.py::test_the_batch_option_names_every_listed_bug_and_its_evidence`
-    # requires every listed id AND the Evidence that measured it in the option and refuses them in
-    # the sentence, and
-    # `tools/test_approvals_dispatch.py::test_only_a_kind_with_its_own_option_form_reads_differently_in_the_two_places`
-    # holds the other end for every form that has no option form of its own.
-    # `hole_exception` joined in TSK-0140 (PR-0012 AC-4) as the THIRD list-bound form and the
-    # second that splits itself in two, on the same ground: the sentence says how many gaps stay
-    # open, the approving option carries each id WITH what bounds it. Both halves are measured --
-    # `tools/test_approvals_dispatch.py::test_the_exception_option_names_every_listed_hole_and_its_bound`
-    # requires every id and its bound in the option and refuses the ids in the sentence, and
-    # `tools/test_approvals_dispatch.py::test_a_gap_without_a_bound_is_refused_from_the_exception_batch_by_name`
-    # measures what the form is allowed to be asked about at all.
-    assert set(approvals.TARGET_FORMS) == {"push", "preset", "filing_correction", "filing_rule",
-                                           "document_proposal", "document_revision",
-                                           approvals.PLAN_KIND, approvals.VERIFICATION_KIND,
-                                           approvals.HOLE_EXCEPTION_KIND}, (
+    # `plan`, `verification` and `hole_exception` had forms here until FR-0095 (TSK-0153): a list
+    # now reads one `_entry_line` per item, whatever the kind, so they need no entry.
+    assert set(approvals.SUBJECT_LINES) == {"push", "preset", "filing_correction", "filing_rule",
+                                            "document_proposal", "document_revision"}, (
         "a new readable form arrived without a measurement of what it renders")
 
 

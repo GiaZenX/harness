@@ -47,6 +47,22 @@ def answer_from_can_use_tool(tool_input: dict, question_text: str) -> str:
     return str(answers.get(question_text) or "")
 
 
+def request_id_of_card(state: ProjectState, question: dict) -> str:
+    """The request a card names, for a program that holds only the card (FR-0095).
+
+    The card carries no request id since FR-0095; what names its request is the mint code in the
+    approving option's label, resolved the way the approval hook resolves it
+    (`approvals.pending_request_by_code`). A card with no approving option, or with two, names no
+    request and is refused -- fail-closed, as the hook refuses it.
+    """
+    codes = approvals.card_mint_codes(question)
+    if len(codes) != 1:
+        raise approvals.ApprovalError(
+            "this card carries %d approving options, so it names no single request. Remedy: pass "
+            "the card the entry point printed, unchanged." % len(codes))
+    return approvals.pending_request_by_code(state, codes[0])["request_id"]
+
+
 def mint_from_can_use_tool(state: ProjectState, request_id: str, answer: str) -> dict:
     """Mint the approval for `request_id` from a program's answer, and return the APR.
 

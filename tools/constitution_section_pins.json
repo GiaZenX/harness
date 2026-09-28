@@ -53,7 +53,7 @@
         "hooks": []
       },
       "0. Authority & who you are (READ FIRST)": {
-        "digest": "8e416d7c80a3aa03",
+        "digest": "d1271ca2e4fff981",
         "hooks": [
           "gate_write_scope",
           "guard_harness_selfmod",
@@ -65,7 +65,7 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "b986d05fbbd6d137",
+        "digest": "f1e77c8a51f2cb39",
         "hooks": [
           "gate_dispatch",
           "session_status"
@@ -86,7 +86,7 @@
         "hooks": []
       },
       "15. Upkeep": {
-        "digest": "759b20a53ddd1fa4",
+        "digest": "1bbd86e0c09543a4",
         "hooks": []
       },
       "1a. Skills — one procedure per role, any number of shared references": {
@@ -134,11 +134,11 @@
         "hooks": []
       },
       "5. Phase model": {
-        "digest": "72df9c713f42e4f0",
+        "digest": "92e3d4de151f530b",
         "hooks": []
       },
       "5a. Your work loop — the SEQUENCE, and the duties that have no gate behind them": {
-        "digest": "63a5cc428b044fec",
+        "digest": "0ad36514a33bf12d",
         "hooks": [
           "gate_design_sighted",
           "gate_write_scope",
@@ -155,7 +155,7 @@
         ]
       },
       "7. Evolution: CR / BUG — explicit, never silent": {
-        "digest": "ee8afbe6068ac596",
+        "digest": "84ff23cefc627ba6",
         "hooks": []
       },
       "8. Git": {
@@ -222,13 +222,13 @@
         "hooks": []
       },
       "Before the order goes out: a smaller plan, and the five ways a line goes wrong": {
-        "digest": "4d5dee53a0245cf0",
+        "digest": "96e2daa3ce25125b",
         "hooks": [
           "gate_dispatch"
         ]
       },
       "Defects (bugs)": {
-        "digest": "1896b64030612faf",
+        "digest": "48d79dbaaff9b651",
         "hooks": []
       },
       "First start after a fresh install": {
@@ -242,7 +242,7 @@
         ]
       },
       "Kit updates (session start flags a version mismatch)": {
-        "digest": "b8f508c043da79d7",
+        "digest": "1976abcafbbc1aeb",
         "hooks": [
           "gate_write_scope",
           "session_status"
@@ -276,8 +276,12 @@
         "digest": "593082e98f54ee99",
         "hooks": []
       },
+      "What you ask the user, and when (`DEC-0119`)": {
+        "digest": "d24736b5939166ac",
+        "hooks": []
+      },
       "Work loop (every cycle — every \"capture\"/\"transition\" below runs through the kernel's entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)": {
-        "digest": "7d8c2cded75bf99e",
+        "digest": "25b109ea452719f5",
         "hooks": [
           "gate_design_sighted",
           "gate_dispatch",
@@ -328,7 +332,7 @@
         "hooks": []
       },
       "0. Authority & who you are (READ FIRST)": {
-        "digest": "9b9a9c6f925f05a9",
+        "digest": "f75e5aa1847f647e",
         "hooks": [
           "gate_write_scope",
           "guard_memory_budget"
@@ -381,14 +385,14 @@
         "hooks": []
       },
       "4. Phase model": {
-        "digest": "e1f81131215944a4",
+        "digest": "82bfb912a94bf41b",
         "hooks": [
           "gate_filing",
           "gate_proc_approved"
         ]
       },
       "4a. Your work loop — the SEQUENCE, and the duties that have no gate behind them": {
-        "digest": "212a5b6ebd2212c2",
+        "digest": "d8877862c1304fb0",
         "hooks": [
           "gate_write_scope",
           "guard_agent_spawn",
@@ -418,7 +422,7 @@
         ]
       },
       "8. Behavior": {
-        "digest": "e54480ec748cfa6d",
+        "digest": "6e194b50aafa66bb",
         "hooks": []
       },
       "9. Git & data": {
@@ -484,13 +488,13 @@
         "hooks": []
       },
       "Before the order goes out: a smaller plan, and the five ways a line goes wrong": {
-        "digest": "4d5dee53a0245cf0",
+        "digest": "96e2daa3ce25125b",
         "hooks": [
           "gate_dispatch"
         ]
       },
       "Kit updates": {
-        "digest": "5543de19b80ef1dc",
+        "digest": "5dd99db99a4353f1",
         "hooks": [
           "gate_write_scope"
         ]
@@ -519,12 +523,18 @@
         "digest": "2bbfb8a66bf8d6a4",
         "hooks": []
       },
+      "What you ask the user, and when (`DEC-0119`)": {
+        "digest": "c112dda334847ec3",
+        "hooks": [
+          "gate_proc_approved"
+        ]
+      },
       "Wishes that arrive, runs that go wrong": {
-        "digest": "ae8744617f56846f",
+        "digest": "9179b4b193c2418b",
         "hooks": []
       },
       "Work loop (every cycle)": {
-        "digest": "3d00e75925b122b3",
+        "digest": "fed1bec8e0d4fc0d",
         "hooks": [
           "gate_proc_approved",
           "gate_write_scope",
@@ -584,7 +594,7 @@
         "hooks": []
       },
       "0. Authority & who you are (READ FIRST)": {
-        "digest": "fc19de314a61d305",
+        "digest": "0700835c4166a467",
         "hooks": [
           "gate_write_scope",
           "guard_harness_selfmod",
@@ -596,7 +606,7 @@
         "hooks": []
       },
       "11. Presets & models (full mechanics: PM skill \"Models & escalation\")": {
-        "digest": "28cd7cba78f5c612",
+        "digest": "15234b13e2039726",
         "hooks": [
           "gate_dispatch",
           "session_status"
@@ -617,7 +627,7 @@
         "hooks": []
       },
       "15. Upkeep": {
-        "digest": "448ae1f038fdd0ae",
+        "digest": "f8d92034d27198d1",
         "hooks": []
       },
       "16. FZulG / BSFZ application layer": {
@@ -666,11 +676,11 @@
         "hooks": []
       },
       "5. Phase model": {
-        "digest": "9623e5c4e91b74cb",
+        "digest": "16f1a257731dda55",
         "hooks": []
       },
       "5a. Your work loop — the SEQUENCE, and the duties that have no gate behind them": {
-        "digest": "e564e612d052cfbd",
+        "digest": "6d98609f29512974",
         "hooks": [
           "gate_write_scope",
           "guard_agent_spawn",
@@ -685,7 +695,7 @@
         ]
       },
       "7. Evolution: CR / BUG — explicit, never silent": {
-        "digest": "0735cce27aeb183a",
+        "digest": "8b71518927c3262e",
         "hooks": []
       },
       "8. Git": {
@@ -749,13 +759,13 @@
         "hooks": []
       },
       "Before the order goes out: a smaller plan, and the five ways a line goes wrong": {
-        "digest": "4d5dee53a0245cf0",
+        "digest": "96e2daa3ce25125b",
         "hooks": [
           "gate_dispatch"
         ]
       },
       "Defects, changes and the inbox": {
-        "digest": "a61e0199473c44d6",
+        "digest": "f8312e57a42b2dbe",
         "hooks": []
       },
       "FZulG / BSFZ application (you own the application; the Methodologist assesses the science)": {
@@ -771,7 +781,7 @@
         "hooks": []
       },
       "Kit updates (session start flags a version mismatch)": {
-        "digest": "1373e9d7313f9f57",
+        "digest": "adffeb5f90ded3bd",
         "hooks": [
           "gate_write_scope",
           "session_status"
@@ -803,8 +813,12 @@
         "digest": "59e4fa92fedde6e8",
         "hooks": []
       },
+      "What you ask the user, and when (`DEC-0119`)": {
+        "digest": "78e8486cc90a01c3",
+        "hooks": []
+      },
       "Work loop (every cycle — every \"capture\"/\"transition\" below runs through the kernel's entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)": {
-        "digest": "04b0b3042de71a4d",
+        "digest": "6c2f6f8a0a34e1ef",
         "hooks": [
           "gate_write_scope",
           "guard_yaml_valid"

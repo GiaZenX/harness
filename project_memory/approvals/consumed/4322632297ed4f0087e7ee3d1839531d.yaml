@@ -1,0 +1,27 @@
+request_id: 4322632297ed4f0087e7ee3d1839531d
+kind: hole_exception
+item: null
+revision: null
+item_title: ''
+subject_manifest:
+  holes:
+  - item: BUG-0331
+    title: 'upkeep-Schranke, gelingende Richtung: ein Wort, das die Shell in mehrere
+      Argumente aufteilt, verschiebt die Rollenposition -- das Gate liest die eigene
+      Rolle, der Kernel eine fremde'
+    revision: 1
+    scope_hash: 58dbb86538496d078266f05a38fdcc6944e7d4913511171acad79722241702c0
+    bound: 'Offen bis Welle 1 Strom B. Begrenzt: nur Handwerks-Notizen anderer Rollen
+      betroffen, keine Projektakte und kein Code; die Notizen liegen im Git-Verla…'
+  - item: BUG-0332
+    title: 'Regel-4-Leser: kommt das Befehlswort selbst (upkeep, dispatch, ...) erst
+      aus einer Shell-Erweiterung oder einer PowerShell-Array-Uebergabe, erkennt das
+      Gate keinen reservierten Befehl und laesst durch'
+    revision: 1
+    scope_hash: e9e4ab5d55fce270b5302ade4bddcd66a9dedde806985122f42cb58fb0a1481b
+    bound: 'Offen bis Welle 1 Strom B. Begrenzt: ein Subagent braucht eine absichtlich
+      verdrehte Schreibweise; betroffen sind Kernel-Tueren (Aufraeumen, Bestelle…'
+subject_manifest_hash: 3daf8452d253057425846f28b22b981460c0c792a46e5eb3bff0d8e366c750c1
+created: '2026-09-27T22:42:39'
+expires_at_epoch: 1790628159.9827087
+mint_code: 1e5f50

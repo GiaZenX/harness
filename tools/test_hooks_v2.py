@@ -2793,7 +2793,8 @@ def test_a_running_child_is_not_swept_by_the_reconciliation(tmp_path):
     _close_the_bind_window(state, task["id"])
     assert run_dispatch(tmp_path, {"hook_event_name": "Stop",
                                    "cwd": str(tmp_path)}).returncode == 0
-    assert state.read_item(task["id"])["status"] == "LEASED"
+    # the bind starts the run (BUG-0314), so a live child's task reads IN_PROGRESS, not READY
+    assert state.read_item(task["id"])["status"] == "IN_PROGRESS"
     assert dispatch.task_for_agent(state, "child-live")["id"] == task["id"]
 
 
@@ -3748,8 +3749,11 @@ def answered(tmp_path, question, answer, echo=None):
                               "questions": [echoed]})
 
 
-def marker_of(question):
-    return re.search(r"\[APR-REQ:[0-9a-f]{32}\]", question["question"]).group(0)
+def code_of(question):
+    """The mint code of the card's approving option -- what the hook resolves a card by since
+    FR-0095 took the request id off the card (`approvals.card_mint_codes`)."""
+    (code,) = approvals.card_mint_codes(question)
+    return code
 
 
 def test_the_kernels_own_question_passes(tmp_path):
@@ -3768,14 +3772,14 @@ def test_an_unmarked_question_always_passes(tmp_path):
     assert run_approval(tmp_path, ask(tmp_path, ordinary)).returncode == 0
 
 
-@pytest.mark.parametrize("field,value", [("question", "Freigabe erbeten: darf ich? %s"),
+@pytest.mark.parametrize("field,value", [("question", "Freigabe erbeten: darf ich?"),
                                          ("header", "Bitte")])
 def test_a_reworded_approval_question_is_blocked(tmp_path, field, value):
     """The model relays the question, so if it could paraphrase it, it would control what the user
     believes they are approving. The comparison is dumb on purpose."""
     _state, _pr, _request, question = pending(tmp_path)
     tampered = dict(question)
-    tampered[field] = value % marker_of(question) if "%s" in value else value
+    tampered[field] = value
     result = run_approval(tmp_path, ask(tmp_path, tampered))
     assert result.returncode == 2
     assert "NOT the one the kernel generated" in result.stderr
@@ -3783,20 +3787,18 @@ def test_a_reworded_approval_question_is_blocked(tmp_path, field, value):
 
 
 def test_a_tampered_option_description_is_blocked_too(tmp_path):
-    """BUG-0271 AC-2 / PR-0011 AC-7: the manifest hash and the request's file path moved out of the
-    question sentence into the approving option's DESCRIPTION, so that field has to be part of what
-    the gate compares -- or the move would have taken them out of the comparison. A description
-    with one digit of the hash changed is refused, on both events.
+    """The approving option's DESCRIPTION is part of what the gate compares, on both events -- the
+    one text beside the label a user reads before clicking. Since FR-0095 it carries no checksum or
+    path (those bind from the record), so the tamper here is one word of it.
 
     RED WITHOUT the per-key option comparison in `_mismatch`: the tampered description passes.
     """
     _state, _pr, request, question = pending(tmp_path)
-    shown = request["subject_manifest_hash"][:approvals.DIGEST_SHOWN]
-    assert shown in question["options"][0]["description"], question["options"][0]
-    assert shown not in question["question"], "the hash is back in the sentence"
+    assert request["subject_manifest_hash"][:12] not in json.dumps(question), "a checksum is on the card"
     tampered = json.loads(json.dumps(question))
     tampered["options"][0]["description"] = tampered["options"][0]["description"].replace(
-        shown, shown[:-1] + ("0" if shown[-1] != "0" else "1"))
+        "verstanden", "gelesen")
+    assert tampered != question
     result = run_approval(tmp_path, ask(tmp_path, tampered))
     assert result.returncode == 2 and "option 0 description differs" in result.stderr, result.stderr
     minted = run_approval(tmp_path, answered(tmp_path, tampered, approvals.approve_label(request["mint_code"]),
@@ -3848,10 +3850,13 @@ def test_a_multiselect_approval_is_blocked(tmp_path):
 
 
 def test_an_invented_request_id_is_blocked(tmp_path):
-    """A marker naming no pending request is fail-closed, not ignored."""
+    """A mint code naming no pending request is fail-closed, not ignored (the request id left the
+    card with FR-0095; the approving label's code is what names the request now)."""
     _state, _pr, _request, question = pending(tmp_path)
-    tampered = dict(question, question=question["question"].replace(
-        marker_of(question), "[APR-REQ:" + "0" * 32 + "]"))
+    invented = "000000" if code_of(question) != "000000" else "111111"
+    tampered = dict(question, options=[dict(question["options"][0],
+                                            label=approvals.approve_label(invented))]
+                    + question["options"][1:])
     result = run_approval(tmp_path, ask(tmp_path, tampered))
     assert result.returncode == 2
     assert "no pending approval request" in result.stderr
@@ -3960,8 +3965,9 @@ def to_model(result):
 
 
 def test_the_pilots_silent_relay_now_speaks_to_the_user(tmp_path):
-    """Pilot 3's own S3 shape (BUG-0039), replayed: the question relayed in the model's words
-    carries no `[APR-REQ:]` marker, the user clicks `Freigeben [<code>]`, nothing mints.
+    """Pilot 3's own S3 shape (BUG-0039), replayed: the question relayed in the model's words, the
+    user clicks `Freigeben [<code>]`, nothing mints. (Since FR-0095 the label names the request, so
+    this relay is compared and refused as not the kernel's card -- said to the user either way.)
 
     Before this fix that path exited 0 with EMPTY stdout, EMPTY stderr and not even an audit note —
     the purest form of the silence. The protection is unchanged (no APR, item still DRAFT); what is
@@ -3978,7 +3984,7 @@ def test_the_pilots_silent_relay_now_speaks_to_the_user(tmp_path):
     assert state.read_item(pr["id"])["approval_ref"] is None
     assert state.read_item(pr["id"])["status"] == "DRAFT"
     message = to_user(result)
-    assert "keine Freigabe entstanden" in message
+    assert "keine Freigabe" in message
     assert approvals.NEXT_ASK_AGAIN in message      # the ONE next action, not a menu
     assert "gate_approval" in to_model(result)
     assert audit_notes(tmp_path), "the non-mint left no record either"
@@ -4231,9 +4237,10 @@ def _refusal_variants(tmp_path):
     variants = {}
 
     state, pr, request, question = pending(tmp_path / "unmarked")
-    plain = dict(question, question="Bitte gib das frei.")
-    variants["unmarked"] = (state, pr, answered(tmp_path / "unmarked", plain,
-                                                approvals.approve_label(request["mint_code"])))
+    # a relay in the model's own words, options included: no approving label anywhere (FR-0095)
+    plain = dict(question, question="Bitte gib das frei.",
+                 options=[{"label": "Ja", "description": "passt"}])
+    variants["unmarked"] = (state, pr, answered(tmp_path / "unmarked", plain, "Ja"))
 
     state, pr, request, question = pending(tmp_path / "reworded")
     tampered = dict(question, question="Kurz erklärt: " + question["question"])
@@ -5127,6 +5134,183 @@ def test_a_subagents_own_harness_commands_still_run(tmp_path, command):
     `grep create-task` are the two shapes a rule written on bare words gets wrong."""
     _state, _task = bound_repo(tmp_path)
     result = run_scope(tmp_path, dict(shell_payload(tmp_path, command), agent_id="child-1"))
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+# THE THIRD CLASS OF RULE 4 (BUG-0325): the `upkeep` doors. The doors are READ OFF THE KERNEL'S
+# PARSER, not listed here, so a door added to `upkeep` joins these batteries on the day it ships: a
+# door is ROLE-BOUND when the parser gives it a `role` positional, and SHARED otherwise.
+def _upkeep_doors():
+    from kernel import kitupdate
+    from kernel.cli import build_parser
+    top = build_parser()._subparsers._group_actions[0].choices[kitupdate.UPKEEP_COMMAND]
+    return {name: [action.dest for action in parser._actions if not action.option_strings]
+            for name, parser in top._subparsers._group_actions[0].choices.items()}
+
+
+_UPKEEP_SHARED_DOORS = tuple(
+    "python scripts/harness.py upkeep %s" % " ".join([name] + ["x"] * len(positionals))
+    for name, positionals in sorted(_upkeep_doors().items()) if "role" not in positionals)
+_UPKEEP_ROLE_DOORS = tuple(name for name, positionals in sorted(_upkeep_doors().items())
+                           if "role" in positionals)
+# ANOTHER role's memory, in the spellings a reader of positionals would get wrong: the first puts the
+# option's VALUE where a naive reader takes the role (`--retire` swallows the next word, argparse
+# then reads `database-engineer` as the role), the second is the module form of the same CLI.
+_UPKEEP_FOREIGN_MEMORY = tuple(
+    line % door for door in _UPKEEP_ROLE_DOORS for line in (
+        "python scripts/harness.py upkeep %s database-engineer --keep-newest 0",
+        "python scripts/harness.py upkeep %s --retire backend-developer database-engineer",
+        "python -m kernel.cli upkeep %s database-engineer --retire t0.md"))
+_UPKEEP_OWN_MEMORY = tuple(
+    "python scripts/harness.py upkeep %s backend-developer --retire t0.md" % door
+    for door in _UPKEEP_ROLE_DOORS)
+
+
+def test_the_upkeep_batteries_are_not_empty_and_match_the_gates_command_name():
+    """The derivation above cannot hand the tests below an empty battery (a parametrize over
+    nothing is green), and the gate asks for the kernel's own command name, not a copy of it."""
+    from kernel import kitupdate
+    assert len(_UPKEEP_SHARED_DOORS) >= 4 and _UPKEEP_ROLE_DOORS, _upkeep_doors()
+    for kit in KITS:
+        assert _gate_constant(kit, "_UPKEEP_COMMANDS") == {kitupdate.UPKEEP_COMMAND: ()}
+
+
+@pytest.mark.parametrize("command", _UPKEEP_SHARED_DOORS)
+def test_a_subagent_cannot_run_an_upkeep_door_on_shared_state_bug_0325(tmp_path, command):
+    """BUG-0325: every `upkeep` door but the role-bound one changes what the whole project runs on
+    -- the enforcement bundle, the kit-update backlog, a template, the git index. Measured red
+    before the bound: each exited 0 from a bound subagent's shell through `gate_write_scope`."""
+    _state, _task = bound_repo(tmp_path)
+    result = run_scope(tmp_path, dict(shell_payload(tmp_path, command), agent_id="child-1",
+                                      agent_type="backend-developer"))
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert "SHARED" in result.stderr, result.stderr
+
+
+@pytest.mark.parametrize("command", _UPKEEP_FOREIGN_MEMORY)
+def test_a_subagent_cannot_prune_another_roles_memory_bug_0325(tmp_path, command):
+    """BUG-0325: `upkeep prune-memory` deleted ANOTHER role's craft memory when a subagent ran it.
+    The role is the one the KERNEL'S PARSER reads out of the line, so the `--retire <own role>
+    <other role>` spelling -- own role where a reader of positionals looks, other role where
+    argparse looks -- is refused too."""
+    _state, _task = bound_repo(tmp_path)
+    result = run_scope(tmp_path, dict(shell_payload(tmp_path, command), agent_id="child-1",
+                                      agent_type="backend-developer"))
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert "database-engineer" in result.stderr, result.stderr
+
+
+@pytest.mark.parametrize("command", _UPKEEP_OWN_MEMORY)
+def test_a_subagent_still_prunes_its_own_memory(tmp_path, command):
+    """The false-alarm half of BUG-0325: the door exists so a role can bring ITS OWN memory back
+    under the budget (BUG-0323); refusing that would restore the dead end it closed. And the same
+    line without `agent_type` names no role to be one's own, so it is refused (fail-closed)."""
+    _state, _task = bound_repo(tmp_path)
+    own = run_scope(tmp_path, dict(shell_payload(tmp_path, command), agent_id="child-1",
+                                   agent_type="backend-developer"))
+    assert own.returncode == 0, own.stdout + own.stderr
+    anonymous = run_scope(tmp_path, dict(shell_payload(tmp_path, command), agent_id="child-1"))
+    assert anonymous.returncode == 2, anonymous.stdout + anonymous.stderr
+    # a redirection is the shell's, not the kernel's: dropped before the parse...
+    logged = run_scope(tmp_path, dict(shell_payload(tmp_path, command + " > prune.log"),
+                                      agent_id="child-1", agent_type="backend-developer"))
+    assert logged.returncode == 0, logged.stdout + logged.stderr
+    # ...except the descriptor in front of `>&`, which the lexer hands over as a word: the NAMED
+    # over-refusal of `_upkeep_refusal`'s docstring. If it turns green, move the docstring with it.
+    merged = run_scope(tmp_path, dict(shell_payload(tmp_path, command + " 2>&1"),
+                                      agent_id="child-1", agent_type="backend-developer"))
+    assert merged.returncode == 2 and "do not parse" in merged.stderr, merged.stdout + merged.stderr
+
+
+def test_an_upkeep_help_line_is_refused_and_no_parse_prints_on_the_hooks_channels(tmp_path):
+    """Two claims of `_upkeep_refusal`'s docstring, measured through the shipped hook. (a) A parse
+    that ENDS CLEANLY -- argparse answering `--help` -- is refused like any other SystemExit, the
+    subagent's real `--help` included: that is the named over-refusal of the docstring, and the
+    reason is the next test. (b) "Parsing prints nothing": without the silencing, argparse writes
+    its usage text onto the hook's own stdout (the help) and stderr (the failed parse), and this
+    goes red on both."""
+    _state, _task = bound_repo(tmp_path)
+    child = {"agent_id": "child-1", "agent_type": "backend-developer"}
+    for line in ("python scripts/harness.py upkeep --help",
+                 "python scripts/harness.py upkeep %s -h" % _UPKEEP_ROLE_DOORS[0]):
+        asked = run_scope(tmp_path, dict(shell_payload(tmp_path, line), **child))
+        assert asked.returncode == 2 and "do not parse" in asked.stderr, asked.stdout + asked.stderr
+        assert not asked.stdout.strip() and "usage:" not in asked.stderr, asked.stdout
+    broken = run_scope(tmp_path, dict(shell_payload(
+        tmp_path, "python scripts/harness.py upkeep %s backend-developer --no-such-flag"
+        % _UPKEEP_ROLE_DOORS[0]), **child))
+    assert broken.returncode == 2 and "do not parse" in broken.stderr, broken.stderr
+    assert "usage:" not in broken.stdout + broken.stderr, broken.stdout + broken.stderr
+
+
+# A `--help` THE GATE READS AND THE SHELL DOES NOT HAND OVER (TSK-0157 verify round 1, N1): behind
+# a redirection the gate does not drop, or inside a substitution. The battery is an attack list, and
+# that each entry belongs to the class is measured, not asserted:
+# `test_no_help_word_of_the_battery_reaches_the_kernel_through_a_real_shell`.
+_UPKEEP_HELP_THE_SHELL_EATS = (" <<< --help", " # --help", " <<<--help", " 0<<< --help",
+                               " << --help", " <> --help", " $(: --help)", " `: --help`",
+                               " <(echo --help)")
+_UPKEEP_FOREIGN_PRUNE = "upkeep prune-memory database-engineer --keep-newest 0"
+
+
+@pytest.mark.parametrize("suffix", _UPKEEP_HELP_THE_SHELL_EATS)
+def test_a_help_word_the_shell_does_not_hand_over_opens_no_upkeep_door_bug_0325(tmp_path, suffix):
+    """BUG-0325 reopened by TSK-0157's clean-exit pass: the gate's words said `--help`, the parser
+    said "clean exit", the gate passed -- and the kernel, which never received that word, pruned
+    ANOTHER role's craft memory. RED against that pass, except the comment and the backtick
+    spellings, which it refused on other grounds."""
+    _state, _task = bound_repo(tmp_path)
+    line = "python scripts/harness.py %s%s" % (_UPKEEP_FOREIGN_PRUNE, suffix)
+    result = run_scope(tmp_path, dict(shell_payload(tmp_path, line), agent_id="child-1",
+                                      agent_type="backend-developer"))
+    assert result.returncode == 2, line + "\n" + result.stdout + result.stderr
+
+
+def _a_posix_shell_beside_git():
+    """The bash that ships beside git on Windows (the first `bash` on PATH there can be the WSL
+    launcher, which sees another filesystem -- `.claude/hooks/test_gates.py` `_posix_shells`),
+    otherwise the first `bash` on PATH; or None. A shell that cannot start this Python leaves no
+    record, and the test below fails on that rather than passing."""
+    candidates = []
+    found = shutil.which("git")
+    if found:
+        candidates.append(os.path.join(os.path.dirname(os.path.dirname(found)), "bin", "bash.exe"))
+    candidates.append(shutil.which("bash") or "")
+    return next((one for one in candidates if one and os.path.isfile(one)), None)
+
+
+@pytest.mark.parametrize("suffix", _UPKEEP_HELP_THE_SHELL_EATS)
+def test_no_help_word_of_the_battery_reaches_the_kernel_through_a_real_shell(tmp_path, suffix):
+    """The class membership of the battery above, with a real shell as the arbiter: a stand-in
+    `scripts/harness.py` records the argv it receives, and `--help` is never in it while the door
+    and the foreign role are -- so every refusal above refuses a line the kernel WOULD run."""
+    shell = _a_posix_shell_beside_git()
+    if not shell:
+        pytest.skip("no POSIX shell on this host to arbitrate what reaches the kernel")
+    record = tmp_path / "argv.json"
+    os.makedirs(str(tmp_path / "scripts"))
+    with io.open(str(tmp_path / "scripts" / "harness.py"), "w", encoding="utf-8",
+                 newline="\n") as handle:
+        handle.write("import json, sys\nwith open(%r, 'w') as out:\n    json.dump(sys.argv[1:], out)\n"
+                     % str(record))
+    ran = subprocess.run([shell, "-c", '"$PY" scripts/harness.py %s%s'
+                          % (_UPKEEP_FOREIGN_PRUNE, suffix)],
+                         cwd=str(tmp_path), env=dict(os.environ, PY=sys.executable),
+                         capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL)
+    assert record.is_file(), "the stand-in never ran: %s" % (ran.stdout + ran.stderr)
+    with io.open(str(record), encoding="utf-8") as handle:
+        received = json.load(handle)
+    assert "--help" not in received and received[:3] == _UPKEEP_FOREIGN_PRUNE.split()[:3], received
+
+
+@pytest.mark.parametrize("identity", _SESSION_INSTANCE_SHAPES,
+                         ids=["fields-absent", "fields-null"])
+@pytest.mark.parametrize("command", _UPKEEP_SHARED_DOORS + _UPKEEP_FOREIGN_MEMORY)
+def test_the_lead_runs_every_upkeep_door(tmp_path, command, identity):
+    """The anti-lockout control of BUG-0325: the session instance keeps every door, another
+    role's memory included -- pruning one is the lead's act, which is what the bound hands back."""
+    dispatched_repo(tmp_path)
+    result = run_scope(tmp_path, dict(shell_payload(tmp_path, command), **identity))
     assert result.returncode == 0, result.stdout + result.stderr
 
 
@@ -7199,15 +7383,261 @@ def test_descending_deeper_does_not_leave_the_tree(tmp_path, command):
 
 @pytest.mark.parametrize("command", [
     "cd project_memory && cd .. && echo x > a.yaml",
-    "cd project_memory && cd /tmp && echo x > a.yaml",
+    "cd project_memory && cd <outside> && echo x > a.yaml",
     "pushd project_memory; ls; popd; echo x > /tmp/notes.txt",
 ])
 def test_actually_leaving_the_tree_clears_the_carry_over(tmp_path, command):
     """The pair that makes the rule a rule rather than "block more": unwinding past the root, an
     absolute hop and `popd` must all release it, or looking inside the state dir once would refuse
-    every later write in the command wherever it went."""
+    every later write in the command wherever it went.
+
+    The absolute hop names a directory that EXISTS for the gate: a hop to one that does not is a
+    move the shell may not perform, and the tree stays a landing (BUG-0335) -- `/tmp` was that on
+    Windows, where the gate reads it as `C:/tmp` while Git Bash mounts its own."""
     dispatched_repo(tmp_path)
+    command = command.replace("<outside>", '"%s"' % str(tmp_path.parent).replace("\\", "/"))
     assert run_scope(tmp_path, shell_payload(tmp_path, command)).returncode == 0
+
+
+# BUG-0334: one move after the line entered the enforcement layer, then a relative write of the file
+# the provider reads to learn which hooks run. Per move: (what it is, the move, does the SHELL stay
+# in `.claude` and write the file, does the GATE refuse). A shell expands a word FIRST and removes its
+# quoting AFTERWARDS, so a tilde or a pattern under quoting -- or behind a POSIX backslash -- names a
+# directory literally called that, the `cd` fails and the shell stays.
+_QUOTED_EXPANSION_LINE = "cd .claude ; %s ; echo x > settings.json"
+_QUOTED_EXPANSION_MOVES = [
+    ("a tilde the quoting keeps", 'cd "~"', True, True),
+    ("a tilde a backslash keeps", "cd \\~", True, True),
+    ("a pattern the quoting keeps", 'cd "../d*cs"', True, True),
+    ("a bracket pattern the quoting keeps", "cd '../do[c]s'", True, True),
+    ("a pattern whose metacharacter alone is quoted", 'cd ../d"?"cs', True, True),
+    # A backslash is no quoting to `ShellWord.spliced`, so only the pattern half of `index > 0` in
+    # `_walked_to` keeps these two literal -- the half no row above reached (TSK-0159 verify B2).
+    ("a pattern a backslash keeps", "cd ../d\\*cs", True, True),
+    ("a bracket pattern a backslash keeps", "cd ../do\\[c]s", True, True),
+    ("a tilde the shell expands", "cd ~", False, False),
+    ("a pattern the shell expands", "cd ../d*cs", False, False),
+    # THE PRICE, and it is over-refusal: where the quoting stood inside the word is not kept
+    # (`ShellWord.spliced` is one bit), so a word whose tilde prefix is unquoted and whose rest is
+    # quoted is not expanded either -- the shell goes home, the gate gives the position up.
+    ("a tilde the shell expands before a quoted rest", 'cd ~/"docs"', False, True),
+]
+
+
+@pytest.mark.parametrize("kit", KITS)
+def test_the_scope_gate_does_not_expand_a_tilde_or_pattern_the_quoting_keeps_bug_0334(tmp_path,
+                                                                                      kit):
+    """BUG-0334, the kits' own gate, with the session agent as caller and a real shell as arbiter.
+
+    `_walked_to` expanded the de-quoted text of a `cd` word, so `cd "~"` was followed home and
+    `cd "../d*cs"` into `docs` while bash stayed in `.claude` and overwrote `settings.json` -- rc 0,
+    and the file that decides which hooks run was poison. Pre-existing in the kit gate: the TSK-0158
+    gate diagnosis measured the HEAD of 2026-09-28 passing `cd "~"`, `cd \\~` and `cd "../d*cs"` too.
+
+    THE SHELL COLUMN IS MEASURED, not asserted from memory: every row's claim about the shell is
+    checked against git's bash with `HOME` pointed at a directory of this test, so a row that stops
+    describing the shell fails here instead of pinning a verdict nobody arbitrated. The rows the
+    shell LEAVES by keep the gate honest in the other direction -- a gate that refused every `cd`
+    after `.claude` would pass the rows whose shell stays and fail these.
+    """
+    dispatched_repo(tmp_path)
+    for directory in (".claude", "docs"):
+        os.makedirs(str(tmp_path / directory), exist_ok=True)
+    home = tmp_path / "home-of-the-arbiter"
+    os.makedirs(str(home / "docs"))
+    shell = _a_posix_shell_beside_git()
+    assert shell, "no POSIX shell on this host, so what the shell does with these lines is unmeasured"
+    target = tmp_path / ".claude" / "settings.json"
+    kept = target.read_bytes() if target.exists() else None
+    environment = dict(os.environ, HOME=str(home))
+    for name in ("OLDPWD", "CDPATH"):
+        environment.pop(name, None)
+    wrong = []
+    for what, move, shell_writes, refused in _QUOTED_EXPANSION_MOVES:
+        line = _QUOTED_EXPANSION_LINE % move
+        rc = run_scope(tmp_path, shell_payload(tmp_path, line), kit=kit).returncode
+        if rc != (2 if refused else 0):
+            wrong.append("%s: the gate answered rc %d: %s" % (what, rc, line))
+        target.write_bytes(b"a\n")
+        subprocess.run([shell, "-c", line], cwd=str(tmp_path), env=environment,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+        if (target.read_bytes() != b"a\n") != shell_writes:
+            wrong.append("%s: the row says the shell %s .claude/settings.json and %s disagrees: %s"
+                         % (what, "writes" if shell_writes else "does not write", shell, line))
+        if kept is None:
+            target.unlink()
+        else:
+            target.write_bytes(kept)
+    assert not wrong, "\n".join(wrong)
+
+
+# The same line through the PowerShell tool: (what it is, the move, where PowerShell lands relative to
+# the project -- `None` for the arbiter's home).
+_POWERSHELL_QUOTED_MOVES = [
+    ("a tilde the quoting keeps", 'Set-Location "~"', None),
+    ("a tilde path in single quotes", "Set-Location '~\\docs'", "docs-of-home"),
+    ("a pattern the quoting keeps", 'Set-Location "..\\d*cs"', "docs"),
+]
+
+
+@pytest.mark.parametrize("kit", KITS)
+def test_the_scope_gate_gives_up_a_quoted_powershell_move_the_price_of_bug_0334(tmp_path, kit):
+    """BUG-0334's price on the PowerShell tool, pinned so the docstring of `_walked_to` cannot drift.
+
+    PowerShell resolves a tilde and a wildcard in its provider, AFTER its own quote removal, so a
+    quoted `Set-Location` target MOVES it -- while `_walked_to` reads the quoted word as literal and
+    gives the position up. The gate refuses the relative write that follows, and PowerShell writes
+    somewhere else: over-refusal, the fail-closed direction. Every row checks both columns, so a
+    gate that learns PowerShell's reading goes red here, and so does a PowerShell that stops moving.
+
+    THE ARBITER'S HOME IS THIS TEST'S DIRECTORY, and that is checked before any write line runs: a
+    PowerShell that resolved `~` to the real profile would write `settings.json` into it.
+    """
+    launcher = shutil.which("powershell")
+    if os.name != "nt" or not launcher:
+        pytest.skip("PowerShell's reading can only be measured where PowerShell runs")
+    dispatched_repo(tmp_path)
+    for directory in (".claude", "docs"):
+        os.makedirs(str(tmp_path / directory), exist_ok=True)
+    home = tmp_path / "home-of-the-arbiter"
+    os.makedirs(str(home / "docs"))
+    drive, rest = os.path.splitdrive(str(home))
+    environment = dict(os.environ, HOME=str(home), USERPROFILE=str(home), HOMEDRIVE=drive,
+                       HOMEPATH=rest)
+
+    def powershell(line):
+        return subprocess.run([launcher, "-NoProfile", "-NonInteractive", "-Command", line],
+                              cwd=str(tmp_path), env=environment, capture_output=True, text=True,
+                              timeout=120)
+
+    where = powershell("Set-Location ~ ; (Get-Location).Path").stdout.strip()
+    assert os.path.normcase(os.path.realpath(where)) == os.path.normcase(os.path.realpath(str(home))), (
+        "PowerShell's ~ is %r, not this test's directory -- refusing to run write lines" % where)
+    target = tmp_path / ".claude" / "settings.json"
+    kept = target.read_bytes() if target.exists() else None
+    landing = {None: home, "docs-of-home": home / "docs", "docs": tmp_path / "docs"}
+    wrong = []
+    for what, move, lands in _POWERSHELL_QUOTED_MOVES:
+        line = _QUOTED_EXPANSION_LINE % move
+        payload = dict(shell_payload(tmp_path, line), tool_name="PowerShell")
+        rc = run_scope(tmp_path, payload, kit=kit).returncode
+        if rc != 2:
+            wrong.append("%s: the gate answered rc %d: %s" % (what, rc, line))
+        target.write_bytes(b"a\n")
+        written = landing[lands] / "settings.json"
+        powershell(line)
+        if target.read_bytes() != b"a\n" or not written.exists():
+            wrong.append("%s: PowerShell did not leave .claude for %s: %s" % (what, written, line))
+        if written.exists():
+            written.unlink()
+        if kept is None:
+            target.unlink()
+        else:
+            target.write_bytes(kept)
+    assert not wrong, "\n".join(wrong)
+
+
+# BUG-0335: a move the shell may not perform, then a relative write of a protected file. Per row:
+# (what it is, the line, the protected file the line names relatively, does the SHELL write that
+# file, does the GATE refuse). The first twelve are the TSK-0159 verifier's forms (B1).
+_FAILED_MOVES = [
+    ("a target that does not exist", "cd .claude ; cd ../nope", ".claude/settings.json", True, True),
+    ("a pattern that matches nothing", "cd .claude ; cd ../zz*", ".claude/settings.json", True, True),
+    ("a pattern that matches two", "cd .claude ; cd ../d*", ".claude/settings.json", True, True),
+    ("a target that is a file", "cd .claude ; cd ../README.md", ".claude/settings.json", True, True),
+    ("two operands", "cd .claude ; cd .. extra", ".claude/settings.json", True, True),
+    ("a quoted target that does not exist", 'cd .claude ; cd "../nope"', ".claude/settings.json",
+     True, True),
+    ("an absolute target that does not exist", "cd .claude ; cd /nope-xyz",
+     ".claude/settings.json", True, True),
+    ("popd +1", "pushd .claude ; popd +1", ".claude/settings.json", True, True),
+    ("pushd +1", "cd .claude ; pushd .. ; pushd +1", ".claude/settings.json", True, True),
+    ("cd - after a popd", "pushd docs ; pushd ../.claude ; popd ; cd -", ".claude/settings.json",
+     True, True),
+    ("pushd -n", "cd .claude ; pushd -n ..", ".claude/settings.json", True, True),
+    ("popd on an empty stack", "cd .claude ; popd", ".claude/settings.json", True, True),
+    ("a word in front of the verb that never reaches it", "cd .claude ; env cd ..",
+     ".claude/settings.json", True, True),
+    # ONE failed move and a relative move AFTER it: the shell goes on from where it stayed, so the
+    # walk has to carry both landings, not pick one (`_landings`).
+    ("a move after a failed one", "cd .github ; cd nope ; cd hooks", ".github/hooks/note.txt",
+     True, True),
+    # the counter-cases: the shell really moves and the write lands outside every protected tree
+    ("a real target", "cd .claude ; cd ../docs", ".claude/settings.json", False, False),
+    ("a directory the line creates", "mkdir fresh ; cd fresh", ".claude/settings.json", False,
+     False),
+    ("cd - after a real move", "cd docs ; cd ../data ; cd -", ".claude/settings.json", False,
+     False),
+    ("a pop onto what the line pushed", "pushd .claude ; popd", ".claude/settings.json", False,
+     False),
+    ("a redirection behind the target", "cd .claude ; cd .. &>/dev/null", ".claude/settings.json",
+     False, False),
+    ("a descriptor redirection behind a target outside", "cd docs ; cd ../data 2>/dev/null",
+     ".claude/settings.json", False, False),
+    ("the end of the options", "cd .claude ; cd -- ..", ".claude/settings.json", False, False),
+    # THE PRICES, over-refusal. Which word in front of the verb reaches the builtin is not read
+    # here, so `command cd` gives the position up although the shell moves. And the tokeniser
+    # hands `2>/dev/null` back as `2 >/dev/null`, whose `2` is a second operand the shell stays on,
+    # so leaving a protected tree that way keeps the tree as a landing.
+    ("a word in front of the verb that does reach it", "cd .claude ; command cd ..",
+     ".claude/settings.json", False, True),
+    ("a descriptor redirection behind a target out of the tree", "cd .claude ; cd .. 2>/dev/null",
+     ".claude/settings.json", False, True),
+]
+
+
+def _layout_for_failed_moves(directory):
+    for one in (".claude", os.path.join(".github", "hooks"), "docs", "data"):
+        os.makedirs(os.path.join(str(directory), one), exist_ok=True)
+    with open(os.path.join(str(directory), "README.md"), "wb") as handle:
+        handle.write(b"r\n")
+
+
+@pytest.mark.parametrize("kit", KITS)
+def test_the_walk_takes_no_move_the_shell_may_not_perform_bug_0335(tmp_path, kit):
+    """BUG-0335, the kits' own gate, the session agent as caller and git's bash as arbiter.
+
+    `_walk` took the named target of every `cd`/`pushd`/`popd` as reached, so a move that FAILS
+    left the gate outside while bash stayed in `.claude` and overwrote `settings.json` -- in a
+    scaffolded project every registered Bash hook answered rc 0 (TSK-0161, `measure_0335.py`).
+
+    THE SHELL COLUMN IS MEASURED: each row runs in a fresh copy of the same layout under git's
+    bash, and a row whose claim about the shell stops holding fails here. The gate is asked in a
+    project with that layout, so what exists at gate time is what the shell finds.
+    """
+    shell = _a_posix_shell_beside_git()
+    assert shell, "no POSIX shell on this host, so what the shell does with these lines is unmeasured"
+    dispatched_repo(tmp_path)
+    _layout_for_failed_moves(tmp_path)
+    home = tmp_path / "home-of-the-arbiter"
+    os.makedirs(str(home))
+    environment = dict(os.environ, HOME=str(home))
+    for name in ("OLDPWD", "CDPATH"):
+        environment.pop(name, None)
+    rows = list(_FAILED_MOVES)
+    if os.name == "nt":
+        # THE PRICE ON THIS HOST: a POSIX absolute word has a second, Windows reading (`/c/...` is
+        # `C:\c\...` to a Windows program, `_absolute_readings`), which does not exist, so leaving
+        # a protected tree by that spelling keeps the tree as a landing although bash moves.
+        drive, rest = os.path.splitdrive(str(tmp_path / "docs"))
+        posix = "/%s%s" % (drive.rstrip(":").lower(), rest.replace("\\", "/"))
+        rows.append(("a POSIX absolute target out of the tree", 'cd .claude ; cd "%s"' % posix,
+                     ".claude/settings.json", False, True))
+    wrong = []
+    for number, (what, moves, protected, shell_writes, refused) in enumerate(rows):
+        line = "%s ; echo x > %s" % (moves, os.path.basename(protected))
+        rc = run_scope(tmp_path, shell_payload(tmp_path, line), kit=kit).returncode
+        if rc != (2 if refused else 0):
+            wrong.append("%s: the gate answered rc %d: %s" % (what, rc, line))
+        arbiter = tmp_path / ("arbiter-%d" % number)
+        _layout_for_failed_moves(arbiter)
+        subprocess.run([shell, "-c", line], cwd=str(arbiter), env=environment,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+        if (arbiter / protected).exists() != shell_writes:
+            wrong.append("%s: the row says the shell %s %s and %s disagrees: %s"
+                         % (what, "writes" if shell_writes else "does not write", protected,
+                            shell, line))
+    assert not wrong, "\n".join(wrong)
 
 
 @pytest.mark.parametrize("command,blocked", [
@@ -7250,8 +7680,12 @@ def test_the_working_directory_is_tracked_as_a_path(tmp_path, command, blocked):
     A boolean could not tell leaving from descending. A depth counter fixed that but could not
     enter a TWO-SEGMENT tree in two steps, and read `cd project_memory/../docs` as entering. The
     working directory itself makes "are we inside a protected tree" the same question the
-    direct-naming check already asks."""
+    direct-naming check already asks.
+
+    `docs/` exists here because a move into a directory that does not is one the shell may not
+    perform, and the start stays a landing (BUG-0335)."""
     dispatched_repo(tmp_path)
+    os.makedirs(str(tmp_path / "docs"), exist_ok=True)
     assert run_scope(tmp_path, shell_payload(tmp_path, command)).returncode == (2 if blocked else 0)
 
 
@@ -10223,10 +10657,12 @@ def test_the_approval_question_names_what_gets_published(tmp_path):
     entire point of the rule: explicit approval means the user knew what they released."""
     work = git_repo(tmp_path)
     question = approve_push(work, "origin", "main", git_head(work))
-    # the form is German since BUG-0271 (PR-0011 AC-7): the branch, the remote and the head all
-    # stand in the sentence, in the user's words rather than as `remote/branch @ head`
-    assert "des Zweigs „main“ nach origin" in question["question"], question["question"]
-    assert git_head(work)[:8] in question["question"]
+    # the form is German since BUG-0271 (PR-0011 AC-7): the branch and the remote stand on the
+    # card in the user's words; the commit it binds to is a checksum and stays in the record since
+    # FR-0095 -- a moved HEAD still kills the approval (`test_the_token_is_single_use_...`)
+    assert "der Zweig „main“ wird nach „origin“ veröffentlicht" in question["question"], (
+        question["question"])
+    assert git_head(work)[:8] not in question["question"]
 
 
 def test_the_approved_push_is_allowed_and_nothing_else_is(tmp_path):
@@ -13560,9 +13996,11 @@ def test_the_trust_message_names_a_remedy_that_actually_leaves_the_state(tmp_pat
     scaffold runs does — so a project that followed the sentence literally stayed
     `hooks_trust_required` for ever, and with it every specialist spawn stayed refused.
 
-    MEASURED, not reasoned: the trigger is the one a reviewer hit in a real lifecycle run — a
-    python process that imported `.claude/kernel` without `-B` and left a `__pycache__` inside the
-    hashed bundle. Then the message this hook actually PRINTS is handed to `_perform`, which
+    MEASURED, not reasoned: the trigger is the state a reviewer hit in a real lifecycle run — a
+    `__pycache__` inside the hashed bundle. The reviewer's ROUTE to it (a python process importing
+    `.claude/kernel` without `-B`) no longer caches since BUG-0310, so the bytecode is planted
+    directly; the state is the same, and it is still what any route the kit does not own (another
+    interpreter, a copied tree) leaves. Then the message this hook actually PRINTS is handed to `_perform`, which
     carries out the steps it names. The assertion is on the state afterwards, so nothing here is
     satisfied by a word appearing in a string: with the old sentence the only executable step is a
     restart, and a restart leaves the project exactly where it was.
@@ -13584,20 +14022,9 @@ def test_the_trust_message_names_a_remedy_that_actually_leaves_the_state(tmp_pat
     _run_trust_hook(repo)
     assert _kit_state(repo)["state"] == "active"
 
-    # THE SUITE'S OWN BYTECODE SETTINGS ARE REMOVED, not inherited: `conftest` exports
-    # `PYTHONPYCACHEPREFIX` so the tests never litter a tree, and a subprocess that inherits it
-    # caches nothing wherever it runs — the trigger would then be measuring pytest's environment
-    # instead of the reported case. A role's shell has neither variable, so neither may decide
-    # anything here. (`tools/test_hooks.py` strips the same three for the same reason.)
-    plain = {k: v for k, v in os.environ.items()
-             if k not in ("PYTHONPATH", "PYTHONPYCACHEPREFIX", "PYTHONDONTWRITEBYTECODE")}
-    cached = subprocess.run(
-        [sys.executable, "-c", "import sys; sys.path.insert(0, %r); from kernel import hashing; "
-                               "assert hashing" % str(repo / ".claude")],
-        capture_output=True, text=True, cwd=str(repo), env=plain, timeout=120)
-    assert cached.returncode == 0, cached.stderr
-    assert (repo / ".claude" / "kernel" / "__pycache__").is_dir(), (
-        "the trigger did not cache anything, so this test is not measuring the reported case")
+    planted = repo / ".claude" / "kernel" / "__pycache__" / "hashing.cpython-311.pyc"
+    os.makedirs(str(planted.parent), exist_ok=True)
+    planted.write_bytes(b"\x00stray bytecode\x00")
 
     reported = _run_trust_hook(repo)
     assert _kit_state(repo)["state"] == "hooks_trust_required"

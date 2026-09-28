@@ -1,0 +1,47 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.0, pytest-9.1.1, pluggy-1.6.0 -- C:\Program Files\Python313\python.exe
+hypothesis profile 'default'
+rootdir: C:\Offline Repos\v2-testbed\_round-scratch\TSK-0153\foreign\tree
+plugins: anyio-4.14.1, dash-4.0.0, hypothesis-6.155.7, asyncio-1.4.0, base-url-2.1.0, cov-7.1.0, playwright-0.8.0, xdist-3.8.0, respx-0.23.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 37 items
+
+tools/test_stream_a_approvals.py::test_every_kind_has_a_card_sample PASSED [  2%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[acceptance] PASSED [  5%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[analysis] PASSED [  8%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[delivery] PASSED [ 10%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[document_proposal] PASSED [ 13%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[document_revision] PASSED [ 16%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[filing_correction] PASSED [ 18%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[filing_rule] PASSED [ 21%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[hole_exception] PASSED [ 24%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[kit_update] PASSED [ 27%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[plan] PASSED [ 29%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[preset] PASSED [ 32%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[push] PASSED [ 35%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[routine] PASSED [ 37%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[scope] PASSED [ 40%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[verification] PASSED [ 43%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[scope --batch] PASSED [ 45%]
+tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card[hole_exception --batch] PASSED [ 48%]
+tools/test_stream_a_approvals.py::test_an_unsigned_item_record_reads_as_a_list_line PASSED [ 51%]
+tools/test_stream_a_approvals.py::test_every_key_a_formless_line_builder_writes_has_a_label PASSED [ 54%]
+tools/test_stream_a_approvals.py::test_an_expiry_reads_as_a_german_date_with_its_zone_named PASSED [ 56%]
+tools/test_stream_a_approvals.py::test_the_assistants_note_is_signed_and_a_rewritten_note_grants_nothing PASSED [ 59%]
+tools/test_stream_a_approvals.py::test_a_card_is_found_by_its_mint_code_and_an_answered_one_says_so PASSED [ 62%]
+tools/test_stream_a_approvals.py::test_every_reader_of_the_approve_label_spells_it_as_the_kernel_writes_it PASSED [ 64%]
+tools/test_stream_a_approvals.py::test_the_gate_mints_only_from_the_approving_option_of_the_calm_card PASSED [ 67%]
+tools/test_stream_a_approvals.py::test_a_collected_scope_card_refuses_a_done_item_a_foreign_type_and_an_eleventh_id PASSED [ 70%]
+tools/test_stream_a_approvals.py::test_a_collected_scope_card_walks_each_entry_across_its_own_edge_and_no_further PASSED [ 72%]
+tools/test_stream_a_approvals.py::test_the_per_entry_hash_is_rechecked_at_use PASSED [ 75%]
+tools/test_stream_a_approvals.py::test_an_acceptance_is_not_asked_while_a_change_wish_of_the_goal_is_unconfirmed PASSED [ 78%]
+tools/test_stream_a_approvals.py::test_only_the_scope_kind_takes_an_id_or_a_list PASSED [ 81%]
+tools/test_stream_a_approvals.py::test_the_approval_kinds_a_lead_is_told_to_request_are_the_decided_ones[dev-team] PASSED [ 83%]
+tools/test_stream_a_approvals.py::test_the_approval_kinds_a_lead_is_told_to_request_are_the_decided_ones[office-team] PASSED [ 86%]
+tools/test_stream_a_approvals.py::test_the_approval_kinds_a_lead_is_told_to_request_are_the_decided_ones[research-team] PASSED [ 89%]
+tools/test_stream_a_approvals.py::test_a_program_holding_only_the_card_finds_its_request PASSED [ 91%]
+tools/test_role_contracts.py::test_a_paragraph_the_constitutions_share_is_one_text PASSED [ 94%]
+tools/test_light_kit.py::test_no_approval_question_shows_an_english_enum_word_a_hash_or_a_path PASSED [ 97%]
+tools/test_hooks.py::test_a_reason_the_requester_typed_cannot_write_its_own_lines_into_the_question PASSED [100%]
+
+============================= 37 passed in 11.25s =============================

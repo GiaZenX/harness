@@ -5,9 +5,11 @@ Approval-provenance gate — the two-phase protocol of spec II.2 ("Beweisbare Fr
 A manual `approved_by: user` proves nothing, so an approval only exists if the platform itself
 wrote the answer to a question the KERNEL composed. Two events:
 
-  PreToolUse(AskUserQuestion)   a question carrying the marker `[APR-REQ:<id>]` must match the
-                               kernel-generated question EXACTLY — text, header, multiSelect and
-                               every option label and description. Mismatch blocks.
+  PreToolUse(AskUserQuestion)   a question with an approving option `Freigeben [<code>]` must
+                               match the kernel-generated question EXACTLY — text, header,
+                               multiSelect and every option label and description. Mismatch
+                               blocks. The code names the request (FR-0095 took the request id
+                               out of the text the user reads).
   PostToolUse(AskUserQuestion) reads the answer the platform recorded and mints the APR, but only
                                for the verbatim approval label with THIS request's mint code.
 
@@ -16,9 +18,9 @@ paraphrase it, it would control what the user believes they are approving. The c
 therefore dumb on purpose — no normalisation, no tolerance. The kernel wrote it; the model may
 only pass it through.
 
-MARKERLESS QUESTIONS ALWAYS PASS and never mint (spec II.2/2). That asymmetry is the design: a
-model that invents an approval-looking question achieves nothing, because only the marked,
-byte-identical path can reach `mint`, and everything downstream is fail-closed.
+A QUESTION WITHOUT AN APPROVING LABEL ALWAYS PASSES and never mints (spec II.2/2). That asymmetry
+is the design: a model that invents an approval-looking question achieves nothing, because only the
+labelled, byte-identical path can reach `mint`, and everything downstream is fail-closed.
 
 WHAT THE MINT CODE DOES, and does not: `Freigeben [7f3a2c]` carries per-request entropy that
 exists ONLY in the option label — never in the question text — so casual free text ("ok", "ja",
@@ -40,7 +42,7 @@ WHAT TRIGGERS THAT MESSAGE IS THE STATE, NOT A SPELLING, and the first cut of th
 wrong in a way worth recording: it asked whether the ANSWER looked like the kernel's approval
 label, so a relay that reworded the options ("Ja, freigeben" / "Nein") walked the pilot's hole
 again, unannounced. The trigger is now `approvals.open_requests` — this project is waiting on an
-approval AND the question that was answered was not that request's (no marker, therefore not it).
+approval AND the question that was answered was not that request's (no approving label, therefore not it).
 It says nothing at all in a project with no request outstanding, and it covers every rewording FOR
 AS LONG AS THE REQUEST IS ANSWERABLE: `open_requests` drops one whose TTL has run out, so past that
 clock a reworded relay is silent again — measured, and named in
@@ -69,9 +71,16 @@ import re  # noqa: E402
 
 HOOK = "gate_approval"
 TOOL = "AskUserQuestion"
-# request ids are uuid4().hex — 32 lowercase hex chars. Anchored and ASCII so a near-miss marker
-# is a mismatch rather than a loose partial match.
-MARKER_RX = re.compile(r"\[APR-REQ:([0-9a-f]{32})\]", re.ASCII)
+# THE APPROVING LABEL, `approvals.approve_label` as a pattern: what an approval question is
+# recognised BY and what names its request (the mint code). A stdlib copy, because this hook
+# decides before it loads the kernel; held equal to the kernel's by
+# `tools/test_stream_a_approvals.py::test_every_reader_of_the_approve_label_spells_it_as_the_kernel_writes_it`.
+# Anchored and ASCII so a near-miss label is no approval question rather than a loose match.
+APPROVE_LABEL_RX = re.compile(r"\AFreigeben \[([0-9a-f]{6})\]\Z", re.ASCII)
+# ...AND THE CARD'S FIRST LINE (`approvals.CARD_PREFIX`), pinned by the same test: a question that
+# opens like the kernel's card but lost its approving label is a relabelled card, and it is refused
+# before the user sees it rather than shown and left unable to mint.
+CARD_PREFIX = "Freigabe erbeten für "
 
 
 def _questions(data):
@@ -83,13 +92,24 @@ def _questions(data):
         return []
     if not isinstance(raw, list):
         _kernel.block(HOOK, "tool_input.questions is a %s, not a list — this call could not be "
-                            "inspected for an approval marker, so it is refused rather than "
+                            "inspected for an approving option, so it is refused rather than "
                             "waved through (spec II.4 fail-closed)." % type(raw).__name__)
     return raw
 
 
-def _markers(text):
-    return MARKER_RX.findall(str(text or ""))
+def _dressed_as_a_card(question):
+    """Does this question open like the kernel's approval card?"""
+    return isinstance(question, dict) and str(question.get("question") or "").startswith(CARD_PREFIX)
+
+
+def _codes(question):
+    """The mint codes of this question's approving options, sorted -- [] for any other question."""
+    options = question.get("options") if isinstance(question, dict) else None
+    return sorted({match.group(1)
+                   for option in (options if isinstance(options, list) else [])
+                   if isinstance(option, dict)
+                   for match in [APPROVE_LABEL_RX.match(str(option.get("label") or ""))]
+                   if match})
 
 
 def _mismatch(built, asked):
@@ -140,7 +160,7 @@ def handle_pre_tool_use(data):
         sys.exit(0)
     questions = _questions(data)
     marked = [(index, q) for index, q in enumerate(questions)
-              if isinstance(q, dict) and _markers(q.get("question"))]
+              if _codes(q) or _dressed_as_a_card(q)]
     if not marked:
         sys.exit(0)  # ordinary questions are none of this gate's business
     if len(questions) > 1:
@@ -152,19 +172,29 @@ def handle_pre_tool_use(data):
             % (len(questions) - 1),
             remedy="ask the approval on its own, then ask the rest.")
     index, question = marked[0]
-    ids = _markers(question.get("question"))
-    if len(set(ids)) != 1:
-        _kernel.block(HOOK, "the question carries %d approval markers (%s) — refused, because "
+    codes = _codes(question)
+    if len(codes) > 1:
+        _kernel.block(HOOK, "the question carries %d approving options (%s) — refused, because "
                             "which request is being approved would be ambiguous."
-                      % (len(ids), ", ".join(sorted(set(ids)))),
-                      remedy="one approval marker per question.")
-    request_id = ids[0]
+                      % (len(codes), ", ".join(codes)),
+                      remedy="one approving option per question.")
     state = _kernel.open_state(_kernel.find_repo_root(data.get("cwd")))
     approvals = _kernel.kernel_module("approvals")
-    try:
-        request = approvals.pending_request(state, request_id)
-    except approvals.ApprovalError as exc:
-        _kernel.block(HOOK, "approval question refused.\n%s" % exc)
+    if not codes:
+        # A CARD WITHOUT ITS APPROVING LABEL: found by its exact text, so the refusal below can name
+        # the label as what differs -- or refused as a card no open request has.
+        request = approvals.pending_request_by_text(state, str(question.get("question") or ""))
+        if request is None:
+            _kernel.block(HOOK, "this question opens like an approval card but carries no approving "
+                                "option, and no open request has this card.",
+                          remedy="relay the entry point's approval question verbatim, or ask your "
+                                 "question without dressing it as an approval.")
+    else:
+        try:
+            request = approvals.pending_request_by_code(state, codes[0])
+        except approvals.ApprovalError as exc:
+            _kernel.block(HOOK, "approval question refused.\n%s" % exc)
+    request_id = request["request_id"]
     difference = _mismatch(approvals.build_question(request), question)
     if difference is not None:
         _kernel.block(
@@ -200,7 +230,7 @@ def _echoed(result, answered_text):
     is a non-blocking error, so otherwise the one event that moves state would be the one event
     that verified nothing.
 
-    Matched by ANSWERED TEXT, never by the marker: with a marker match, a call carrying
+    Matched by ANSWERED TEXT, never by the mint code: with a match by code, a call carrying
     `[pristine, tampered]` and an answer keyed on the TAMPERED text verified the pristine copy and
     minted anyway — the model would have controlled what the user read while a decoy passed the
     check. The answers key is the full, untruncated question text on this platform, so it is a
@@ -270,15 +300,25 @@ def handle_post_tool_use(data):
     # The kernel is loaded for an ordinary question too, which it used not to be: the trigger below
     # is a question about this project's STATE, and the cost is one import on an event that only
     # ever follows a human click.
-    marked = [(text, answer) for text, answer in answers.items() if _markers(text)]
+    # AN ANSWERED QUESTION IS AN APPROVAL QUESTION when the platform's echo of it carries an
+    # approving option, or -- with no echo to read -- when the answer IS an approving label. The
+    # echo comes first because it is what the user saw; the answer alone is the fallback that
+    # keeps a typed or relayed label from passing as an ordinary question.
+    marked = []
+    for text, answer in answers.items():
+        codes = _codes(_echoed(result, text))
+        if not codes:
+            typed = APPROVE_LABEL_RX.match(str(answer))
+            codes = [typed.group(1)] if typed else []
+        if codes:
+            marked.append((text, answer, codes))
     if not marked:
-        # THE PILOT'S OWN SHAPE (BUG-0039): the relayed question carried no marker at all, so this
-        # exit was reached with no note, no stderr and no state change — the purest form of the
-        # silence.
+        # THE PILOT'S OWN SHAPE (BUG-0039): the relayed question carried no approving option, so
+        # this exit was reached with no note, no stderr and no state change — the purest form of
+        # the silence.
         # WHAT DECIDES IS THE STATE: an approval this project is waiting on, answered past. Every
-        # question the kernel generates carries its marker, so arriving here already proves the
-        # answered question was not the open request's — whatever words the relay used, and whether
-        # the model reworded the options or only dropped the marker (neither is measurable here).
+        # question the kernel generates carries its approving label, so arriving here already
+        # proves the answered question was not the open request's — whatever words the relay used.
         # A project with nothing outstanding says nothing at all, which is what keeps an ordinary
         # question traceless.
         outstanding = approvals.open_requests(state)
@@ -294,20 +334,19 @@ def handle_post_tool_use(data):
     # question per approval. More than one marked answer here means the pair did not go through
     # that gate, so nothing is minted.
     if len(marked) > 1:
-        _report("%d answered questions carry approval markers — minting nothing, because an "
+        _report("%d answered questions carry approving options — minting nothing, because an "
                 "approval is one deliberate decision (spec II.2)." % len(marked),
                 user_text="Es wurde keine Freigabe erteilt: es standen mehrere Freigabe-Fragen "
                           "gleichzeitig zur Wahl, und eine Freigabe muss allein stehen. "
                           + approvals.NEXT_ASK_AGAIN)
-    text, answer = marked[0]
-    ids = set(_markers(text))
-    if len(ids) != 1:
-        _report("the answered question carries %d approval markers — not minting, because which "
-                "request was approved would be ambiguous." % len(ids),
+    text, answer, codes = marked[0]
+    if len(codes) != 1:
+        _report("the answered question carries %d approving options — not minting, because which "
+                "request was approved would be ambiguous." % len(codes),
                 user_text="Es wurde keine Freigabe erteilt: die Frage bezog sich auf mehrere "
                           "Freigaben auf einmal, und es wäre nicht eindeutig, welche du erteilt "
                           "hast. " + approvals.NEXT_ASK_AGAIN)
-    request_id = ids.pop()
+    request_id = "with mint code %s" % codes[0]
     # Re-run the exact-match on the PLATFORM's echo of what was asked. PreToolUse is where this
     # gets PREVENTED, but this event is the one that MOVES STATE, and a gate that mints on the
     # strength of a sibling event having run is a gate that trusts a process it never saw — so it
@@ -315,10 +354,11 @@ def handle_post_tool_use(data):
     # against, which is a refusal rather than a shrug (and on a provider that does not echo, that
     # correctly forces approval_provenance to `unverified` instead of quietly claiming it).
     try:
-        request = approvals.pending_request(state, request_id)
+        request = approvals.pending_request_by_code(state, codes[0])
     except approvals.ApprovalError as exc:
         _report("no approval was created for request %s.\n%s" % (request_id, exc),
                 _user_text_of(approvals, exc))
+    request_id = request["request_id"]
     # THE ONE ANSWER THAT NEEDS NO NOTICE, decided against THIS request's own options rather than
     # against the shape of what was typed: a user who picked `Ändern` or `Ablehnen` on the kernel's
     # question got the outcome she chose. Everything else that fails to mint — free text, the label

@@ -1,0 +1,28 @@
+id: EVD-0506
+kind: test
+related:
+- FR-0095
+result: pass
+summary: 'TSK-0153 stream A, worktree g7/approvals (stamped workspace copy): the calm
+  card for every APR kind plus scope --batch and hole_exception --batch -- header
+  ''Freigabe erbeten fuer <Art>'', one list line per item/field, the PM note inside
+  the hash, no request id/path/checksum/ISO time on the card (node test_every_kind_reads_as_a_calm_card);
+  the note re-checked at use (node test_the_assistants_note_is_signed_and_a_rewritten_note_grants_nothing);
+  gate_approval mints only from the approving option, found by its mint code (nodes
+  test_the_gate_mints_only_from_the_approving_option_of_the_calm_card, test_a_card_is_found_by_its_mint_code_and_an_answered_one_says_so,
+  test_every_reader_of_the_approve_label_spells_it_as_the_kernel_writes_it); unsigned
+  list records and list keys read in German (nodes test_an_unsigned_item_record_reads_as_a_list_line,
+  test_every_key_a_formless_line_builder_writes_has_a_label); SDK door (node test_a_program_holding_only_the_card_finds_its_request).
+  Red on mutations M3/M4/M8/M10/M11/M14/M16-M20 and M21 (red-first.log).'
+artifact_refs:
+- staging/TSK-0153/evd/final.log
+- staging/TSK-0153/evd/red-first.log
+- staging/TSK-0153/evd/reading-suites.log
+run_command: python -B -m pytest tools/test_stream_a_approvals.py tools/test_role_contracts.py::test_a_paragraph_the_constitutions_share_is_one_text
+  tools/test_light_kit.py::test_no_approval_question_shows_an_english_enum_word_a_hash_or_a_path
+  tools/test_hooks.py::test_a_reason_the_requester_typed_cannot_write_its_own_lines_into_the_question
+  -v -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T06:31:35'

@@ -230,6 +230,77 @@ def create_task(state: ProjectState, fields: dict) -> dict:
     return state.capture("TSK", task_fields)
 
 
+def _open_orders_of_class(state: ProjectState, roles: dict, root_id: str, role_class: str,
+                          but: str) -> list:
+    """The OPEN orders under `root_id` whose role is of `role_class` in `roles` (the declaration's
+    role -> class map), except `but` -- open being the reading `scopes.open_orders` uses (not
+    terminal)."""
+    from .backlog_types import is_terminal
+
+    found = []
+    for stem, path in state.iter_active_items(ORDER_TYPE):
+        try:
+            item = state._read_yaml(path)
+        except Exception:  # noqa: BLE001 -- an unreadable order is the validator's finding
+            continue
+        if (not isinstance(item, dict) or str(item.get("id") or stem) == but
+                or str(item.get("product_requirement") or "") != root_id
+                or is_terminal(ORDER_TYPE, str(item.get("status") or ""))):
+            continue
+        if roles.get(str(item.get("assigned_role") or "")) == role_class:
+            found.append(item)
+    return sorted(found, key=lambda item: str(item.get("id")))
+
+
+def order_cut_facts(state: ProjectState, task: dict) -> list:
+    """FACT LINES about the cut a new order makes -- never a refusal (BUG-0318, DEC-0087/0088).
+
+    MEASURED IN THE FIELD (synaipse, 2026-09-26): after a migration the PM re-created 96 orders in
+    nine minutes -- 36 backend, 14 ui, 11 QA review orders, one QA review per technical requirement
+    -- and ran them one at a time; every small change of the user got its own builder AND its own
+    QA order. The PM skill's step 7 says the opposite, as prose, and nothing in the kit said it at
+    the moment the PM decides. So `create-task` says it, and says only what the STATE shows:
+      * a second OPEN order of the same judging-or-building class under the same goal -- DEC-0087
+        (1)/(2): one builder per goal with the whole goal, a second only on measured-disjoint file
+        sets; DEC-0088 (b): one verifier round at the goal;
+      * a QA order whose origin is a change under the goal whose build orders carry ONE expected
+        output in all -- DEC-0088 (d): a small change gets no separate verifier.
+    Which class is which is the kit's declaration (`BUILD_CLASS`, `QA_CLASS`), so a kit-less project
+    gets no line: it names no classes.
+    `tools/test_stream_b_order_flow.py::test_create_task_says_the_cut_it_makes_and_refuses_nothing_bug_0318`
+    """
+    found = _readable_declaration(state)
+    roles = found.ladder["roles"] if found is not None else {}
+    role_class = roles.get(str(task.get("assigned_role") or ""))
+    if role_class not in (BUILD_CLASS, QA_CLASS):
+        return []
+    root_id = str(task.get("product_requirement") or "")
+    lines = []
+    beside = _open_orders_of_class(state, roles, root_id, role_class, str(task.get("id")))
+    if beside:
+        lines.append(
+            "%s is open %s order #%d under %s, beside %s -- DEC-0087 (1)/(2): ONE builder per goal "
+            "with the whole goal, a second only on file sets `check-scopes` measured disjoint; "
+            "DEC-0088 (b): ONE verifier round at the goal, not one per slice. Nothing was refused: "
+            "if this is a slice of work an open order already carries, give it to that order."
+            % (task.get("id"), role_class, len(beside) + 1, root_id,
+               ", ".join(str(item.get("id")) for item in beside)))
+    if role_class == QA_CLASS:
+        origins = {str(one) for one in field_elements(task.get("derives_from"))} - {root_id}
+        builds = [item for item in _open_orders_of_class(state, roles, root_id, BUILD_CLASS,
+                                                         str(task.get("id")))
+                  if origins & {str(one) for one in field_elements(item.get("derives_from"))}]
+        outputs = sum(len(field_elements(item.get("expected_outputs"))) for item in builds)
+        if builds and outputs == 1:
+            lines.append(
+                "%s is a QA order for %s, a change whose build order %s carries ONE expected output "
+                "-- DEC-0088 (d): a small change under an existing goal gets NO separate verifier; "
+                "its red-first test and the goal's final round cover it (DEC-0087 (3)). Nothing was "
+                "refused." % (task.get("id"), ", ".join(sorted(origins)),
+                              ", ".join(str(item.get("id")) for item in builds)))
+    return lines
+
+
 def order_tiers(task: dict) -> tuple:
     """(rung, effort) the PM asked for on this order -- each a string or None (DEC-0091 (1))."""
     rung = task.get(RUNG_KEY)
@@ -574,9 +645,10 @@ def _assert_no_running_lease_owns_the_same_file_locked(state: ProjectState, task
     subtracted by `scopes.overlaps` before the verdict, and a declaration that leaves one order
     owning nothing of its own is not subtracted at all -- both rules live there, once.
 
-    ONLY AGAINST LEASES THAT ARE STILL RUNNING, and the reason is what a lease IS: an expired one
-    grants nothing, and `sweep_expired_leases` is what removes it. Comparing against a lease whose
-    TTL has run out would refuse work on the strength of a claim nobody holds.
+    ONLY AGAINST LEASES THAT ARE STILL RUNNING (`running_leases`, which says the one exception),
+    and the reason is what a lease IS: an expired one grants nothing, and `sweep_expired_leases` is
+    what removes it. Comparing against a lease whose TTL has run out would refuse work on the
+    strength of a claim nobody holds.
 
     IT COSTS NOTHING WHEN NOTHING ELSE RUNS: the whole check -- the gate import, the `git ls-files`
     of `scopes.tracked_files` -- sits behind the early return below, so the ordinary single-stream
@@ -627,12 +699,16 @@ def running_leases(state: ProjectState, except_task: str = None) -> list:
 
     One reading for the two rules that ask it (`_assert_no_running_lease_owns_the_same_file_locked`
     and `_assert_a_second_builder_was_measured_locked`), so "running" cannot mean two things; an
-    expired lease grants nothing and `sweep_expired_leases` is what removes it.
+    expired lease grants nothing and `sweep_expired_leases` is what removes it -- EXCEPT the one a
+    WAITING child holds, which the sweep keeps because that child resumes and writes through it
+    (`_held_by_a_waiting_child_locked`, BUG-0326), so it still counts as held here.
+    `tools/test_stream_b_order_flow.py::test_a_waiting_childs_kept_lease_still_owns_its_files_bug_0326`
     """
     now = time.time()
     return [lease for lease in _iter_leases(state)
-            if float(lease.get("created_epoch") or 0) + float(lease.get("ttl") or 0) > now
-            and str(lease["task_id"]) != except_task]
+            if str(lease["task_id"]) != except_task
+            and (float(lease.get("created_epoch") or 0) + float(lease.get("ttl") or 0) > now
+                 or _held_by_a_waiting_child_locked(state, str(lease["task_id"])))]
 
 
 def concurrent_builders(state: ProjectState, task: dict, root: dict, ladder: dict) -> list:
@@ -716,15 +792,31 @@ def _assert_a_second_builder_was_measured_locked(state: ProjectState, task: dict
 
 def create_lease(state: ProjectState, task_id: str, ttl: float = DEFAULT_LEASE_TTL,
                  worktree: str = None) -> dict:
-    """READY -> LEASED with a nonce lease. Validates root approval + revision."""
+    """READY -> LEASED with a nonce lease. Validates root approval + revision.
+
+    AND THE RE-LEASE (BUG-0314): a task whose run had started (a lease-bearing status past the
+    minted one) and whose lease is gone is leased again WHERE IT STANDS -- status, `started` stamp,
+    failed-run count and staged work kept -- when its child's end is recorded; `_relet_refusal_locked`
+    says why not otherwise. Measured in the field (synaipse TSK-0358): the expired lease left
+    IN_PROGRESS, `dispatch` refused "not READY", IN_PROGRESS -> READY is no edge, and the lead had to
+    retype a specialist's envelope by hand. The READY back-edge was the rejected way: it would
+    erase that a run happened, and the failed-run count reads exactly that (`count_failed_run_locked`).
+    `tools/test_stream_b_order_flow.py::test_an_expired_lease_of_a_started_run_is_leased_again_where_it_stands_bug_0314`
+    """
     with state.lock:
         task = state.read_item(task_id)
-        if task.get("status") != "READY":
+        status = task.get("status")
+        relet = status in LEASE_BEARING_STATUSES and status != LEASE_MINTED_STATUS
+        if status != "READY" and not relet:
             raise DispatchError(
                 "%s is %s, not READY -- no lease (spec II.4). Remedy: bring the "
                 "task to READY via its lifecycle first."
                 % (task_id, task.get("status"))
             )
+        if relet and not os.path.exists(_lease_path(state, task_id)):
+            refusal = _relet_refusal_locked(state, task)
+            if refusal:
+                raise DispatchError("%s is %s and holds no lease. %s" % (task_id, status, refusal))
         root = state.read_item(task["product_requirement"])
         _assert_dispatch_authorised_locked(state, task, root)
         _assert_the_architect_step_happened_locked(state, task, root)
@@ -744,6 +836,10 @@ def create_lease(state: ProjectState, task_id: str, ttl: float = DEFAULT_LEASE_T
         _assert_dependencies_met_locked(state, task)
         _assert_no_running_lease_owns_the_same_file_locked(state, task_id)
         lease_path = _lease_path(state, task_id)
+        if os.path.exists(lease_path) and _held_by_a_waiting_child_locked(state, task_id):
+            # the sentence below would send the lead to a sweep that keeps this lease (BUG-0326)
+            raise DispatchError("a lease for %s is held by its waiting child. %s"
+                                % (task_id, _relet_refusal_locked(state, task)))
         if os.path.exists(lease_path):
             # THE WAIT IS NAMED, and so is the command that ends it. This said "wait for the lease
             # to resolve or time out" and nothing else -- no duration, no command -- so a role that
@@ -805,7 +901,10 @@ def create_lease(state: ProjectState, task_id: str, ttl: float = DEFAULT_LEASE_T
         # The failed run is counted first, on the task this lease is for, so a retry climbs
         # (DEC-0034 rule 2). A refusal out of `ladder_for_order` leaves the count unwritten: the
         # task is written once, below, and only when the lease is.
-        ladder = ladder_for_order(state, task, root, count_failed_run_locked(task))
+        # A RE-LEASE COUNTS NOTHING: its run did not fail, it is still going, and consuming its
+        # `started` stamp here would book it as a failed run at the next lease.
+        ladder = ladder_for_order(state, task, root, int(task.get(FAILED_RUNS) or 0) if relet
+                                  else count_failed_run_locked(task))
         lease[LADDER_KEY] = ladder
         if RUNG_KEY in ladder:
             lease[RUNG_KEY] = task[LEASE_RUNG_FIELD] = ladder[RUNG_KEY]
@@ -827,17 +926,90 @@ def create_lease(state: ProjectState, task_id: str, ttl: float = DEFAULT_LEASE_T
         covered = _assert_a_second_builder_was_measured_locked(state, task, root, ladder)
         if covered:
             lease[MEASURED_DISJOINT_KEY] = covered
+        if relet:
+            lease[RELET_KEY] = status
+        if RUNG_KEY in ladder:
+            lease[SPAWN_LETTER_KEY], lease[SPAWN_NAME_KEY] = _spawn_name_locked(
+                state, task, ladder[RUNG_KEY], ladder[EFFORT_KEY])
         state._write_yaml_atomic(lease_path, lease)
-        task["status"] = LEASE_MINTED_STATUS
         task["leased_at"] = _now_iso()
-        # A NEW LEASE IS A NEW DISPATCH, so what the PREVIOUS run's child did stops being evidence
-        # about this task here. Left standing, the records would report a retry as idle before its
-        # child has even been asked for -- see `idle_dispatches` and `CHILD_ENDED`.
-        task.pop(CHILD_ENDED, None)
-        task.pop(IDLE_REPORTED, None)
+        if not relet:
+            task["status"] = LEASE_MINTED_STATUS
+            # A NEW LEASE IS A NEW DISPATCH, so what the PREVIOUS run's child did stops being
+            # evidence about this task here. Left standing, the records would report a retry as
+            # idle before its child has even been asked for -- see `idle_dispatches` and
+            # `CHILD_ENDED`. A RE-LEASE keeps them until its new child binds
+            # (`_start_the_run_locked`): the recorded end is what admitted it, and a re-lease whose
+            # spawn never comes must stay re-leasable. The WAIT goes with the end: left standing
+            # after the FAILED way out and its retry, it made the sweep keep this new lease as a
+            # waiting child's, with no child behind it (TSK-0157 verify round 1, N2).
+            # `tools/test_stream_b_order_flow.py::test_a_new_lease_after_the_failed_way_out_is_a_new_dispatch_bug_0326`
+            task.pop(CHILD_ENDED, None)
+            task.pop(CHILD_WAITING, None)
+            task.pop(IDLE_REPORTED, None)
         state._write_yaml_atomic(state.active_path(task_id), task)
         state._regenerate_index_locked()
         return lease
+
+
+# THE NAME A STARTED AGENT CARRIES (FR-0092): the Agent call's `description` is what the provider's
+# background-task panel shows, and until this the lead wrote it freely ("Bug-Null order 1: batch
+# mint + re-runs (Opus)" names the order, not the role, and the effort not at all). The lease
+# already knows role, rung and effort (DEC-0091), so the lease composes the string, the header and
+# the `dispatch` command hand it over, and `validate_dispatch` compares the spawn's description with
+# it character for character. MEASURED that the payload carries it: PreToolUse(Agent) `tool_input`
+# has `description` (staging/TSK-0154/protocol.md, payload rig).
+# `tools/test_stream_b_order_flow.py::test_the_spawn_carries_the_name_the_lease_composed_fr_0092`
+SPAWN_NAME_KEY = "spawn_name"
+SPAWN_LETTER_KEY = "spawn_letter"
+SPAWN_NAME_SEPARATOR = " · "
+SPAWN_LETTERS = tuple(chr(code) for code in range(ord("A"), ord("Z") + 1))
+
+
+def _spawn_name_locked(state: ProjectState, task: dict, rung: str, effort: str) -> tuple:
+    """(letter, name) for a lease about to be minted -- '<Role Name> · <Rung> <effort>', plus
+    ' · <letter>' when another LIVE lease of the same role stands under the same goal (FR-0092).
+
+    THE LETTER is the first one no other live lease of that role under that goal holds, so two
+    leases get A and B, a third C, and a finished one (its lease gone or expired) frees its letter.
+    Every lease HOLDS a letter, the one minted alone included (A), so the second never takes the
+    first one's; the NAME shows it only where there is more than one. The caller holds the lock.
+    "Live" is read by the TTL alone, so the expired lease a WAITING child still holds (BUG-0326)
+    frees its letter too, and the next lease of that role repeats its name -- hole H226 (BUG-0329)."""
+    role = str(task.get("assigned_role") or "")
+    taken = []
+    for lease in _iter_leases(state):
+        if str(lease.get("task_id")) == str(task.get("id")) or _expired(lease):
+            continue
+        try:
+            other = state.read_item(str(lease["task_id"]))
+        except StateError:
+            continue
+        if (str(other.get("assigned_role") or "") == role and str(other.get("product_requirement"))
+                == str(task.get("product_requirement"))):
+            taken.append(str(lease.get(SPAWN_LETTER_KEY) or SPAWN_LETTERS[0]))
+    letter = next((one for one in SPAWN_LETTERS if one not in taken), SPAWN_LETTERS[-1])
+    name = SPAWN_NAME_SEPARATOR.join(
+        [" ".join(part.capitalize() for part in role.split("-")),
+         "%s %s" % (str(rung).capitalize(), effort)] + ([letter] if taken else []))
+    return letter, name
+
+
+def spawn_name_refusal(lease: dict, description):
+    """None, or the sentence that refuses a spawn whose `description` is not the lease's name.
+
+    A payload WITHOUT a description (None) is not refused: the provider always sends one on an
+    Agent call (measured), so None is a caller that holds no spawn payload -- the same standing
+    `NOT_A_SPAWN` gives the model check. A lease minted before the rule carries no name and is not
+    held to one."""
+    wanted = lease.get(SPAWN_NAME_KEY)
+    if not wanted or description is None or str(description) == str(wanted):
+        return None
+    return ("the spawn's description is %r but the lease for %s names this agent %r -- dispatch "
+            "blocked (FR-0092: the name the task panel shows carries role, rung and effort, so "
+            "who is running on what can be read at a glance). Remedy: pass `description: %s` on "
+            "the Agent call exactly as the `dispatch` command printed it (it stands in the header "
+            "as `%s`)." % (str(description), lease.get("task_id"), wanted, wanted, SPAWN_NAME_KEY))
 
 
 def checkpoint_verdict(state: ProjectState, task_id: str, _locked: bool = False):
@@ -1004,6 +1176,10 @@ def dispatch_header(lease: dict) -> str:
     # top can lie above them. Same standing: shown, not parsed.
     if lease.get(PROVIDERS_KEY):
         body[PROVIDERS_KEY] = lease[PROVIDERS_KEY]
+    # ...AND THE NAME THE SPAWN CARRIES (FR-0092), where the lead copies from. Shown, not parsed:
+    # what `validate_dispatch` compares the description with is the LEASE's copy.
+    if lease.get(SPAWN_NAME_KEY):
+        body[SPAWN_NAME_KEY] = lease[SPAWN_NAME_KEY]
     return HEADER_PREFIX + json.dumps(body, sort_keys=True)
 
 
@@ -1045,6 +1221,11 @@ def _validate_lease_locked(state: ProjectState, header: dict) -> dict:
             "lease nonce mismatch for %s -- stale or foreign header. "
             "Remedy: create a fresh lease." % header["task_id"]
         )
+    if _expired(lease) and _held_by_a_waiting_child_locked(state, header["task_id"]):
+        raise DispatchError(
+            "lease for %s expired (ttl %ss), and it stays: %s"
+            % (header["task_id"], lease["ttl"],
+               _relet_refusal_locked(state, state.read_item(header["task_id"]))))
     if _expired(lease):
         # THE ONE RELEASE SITE THAT DID NOT REGENERATE, of the four this function has siblings in
         # (`reconcile_unstarted_dispatches`, `spawn_outcome`, `sweep_expired_leases` all do). The
@@ -1052,11 +1233,26 @@ def _validate_lease_locked(state: ProjectState, header: dict) -> dict:
         # it -- kept saying LEASED for a task nobody holds any more (TSK-0071 verifier finding B2).
         # Only on the EXPIRY branch, which already writes the item; a validation that passes stays
         # a pure read.
-        _release_lease_locked(state, header["task_id"], to_ready=True)
+        reset = _release_lease_locked(state, header["task_id"], to_ready=True)
         state._regenerate_index_locked()
+        if reset:
+            raise DispatchError(
+                "lease for %s expired (ttl %ss) -- task returned to READY. "
+                "Remedy: create a fresh lease." % (header["task_id"], lease["ttl"])
+            )
+        # WHAT REALLY HAPPENED, and it is not "returned to READY" (BUG-0314, field: synaipse
+        # TSK-0358): `_release_lease_locked` resets only the minted status, so a task whose run had
+        # started keeps it -- and this sentence used to say READY while `dispatch` then refused
+        # "IN_PROGRESS, not READY". The way on is the re-lease `create_lease` offers, or its refusal.
+        task = state.read_item(header["task_id"])
         raise DispatchError(
-            "lease for %s expired (ttl %ss) -- task returned to READY. "
-            "Remedy: create a fresh lease." % (header["task_id"], lease["ttl"])
+            "lease for %s expired (ttl %ss) and is gone, but the task stays %s -- its run had "
+            "started, and a child may outlive its lease. %s"
+            % (header["task_id"], lease["ttl"], task.get("status"),
+               _relet_refusal_locked(state, task)
+               or "Its child's end is recorded, so the order can be leased again where it "
+                  "stands: `python scripts/harness.py dispatch %s` keeps it %s and keeps what the "
+                  "run staged." % (header["task_id"], task.get("status")))
         )
     if header["root_revision"] != lease["root_revision"]:
         raise DispatchError(
@@ -1213,7 +1409,8 @@ def spawn_model_refusal(lease: dict, requested):
 
 def validate_dispatch(state: ProjectState, header: dict, subagent_type: str,
                       claim: bool = False, prompt_id: str = None,
-                      session_id: str = None, spawn_model=NOT_A_SPAWN) -> dict:
+                      session_id: str = None, spawn_model=NOT_A_SPAWN,
+                      spawn_description=None) -> dict:
     """The full gate-layer-2 check (spec II.4), re-run at SPAWN time.
 
     `create_lease` checked the same ground when the lease was made, but that was
@@ -1253,7 +1450,7 @@ def validate_dispatch(state: ProjectState, header: dict, subagent_type: str,
                     "would spawn under a spent claim." % spent
                 )
         task = state.read_item(task_id)
-        if task.get("status") != "LEASED":
+        if task.get("status") != (lease.get(RELET_KEY) or LEASE_MINTED_STATUS):
             raise DispatchError(
                 "%s is %s but holds a lease -- inconsistent state, dispatch "
                 "blocked (fail-closed). Remedy: `python scripts/harness.py doctor` shows the "
@@ -1362,6 +1559,10 @@ def validate_dispatch(state: ProjectState, header: dict, subagent_type: str,
             refusal = spawn_model_refusal(lease, spawn_model)
             if refusal:
                 raise DispatchError(refusal)
+        # ...AND THE NAME, for the same reason and at the same point (FR-0092): before the claim.
+        refusal = spawn_name_refusal(lease, spawn_description)
+        if refusal:
+            raise DispatchError(refusal)
         if claim:
             lease["dispatched_at"] = _now_iso()
             _open_bind_window(lease, prompt_id, session_id)
@@ -1472,7 +1673,7 @@ def clear_awaiting_bind(state: ProjectState, task_id: str) -> None:
 
 
 def bind_agent_by_role(state: ProjectState, agent_id: str, agent_type: str,
-                       prompt_id: str = None) -> dict:
+                       prompt_id: str = None, session_id: str = None) -> dict:
     """SubagentStart: claim the one lease awaiting a child of this role.
 
     Returns the bound lease, or raises AmbiguousBinding when the window holds
@@ -1480,6 +1681,13 @@ def bind_agent_by_role(state: ProjectState, agent_id: str, agent_type: str,
     guessed: binding the wrong agent_id would attribute one specialist's writes
     to another specialist's allowed_scope, which is worse than a visible
     refusal -- it would be a silent hole in gate layer 3 (spec II.4).
+
+    THE BIND IS WHERE THE RUN STARTS (BUG-0314): a child exists from this moment, so the task
+    moves to IN_PROGRESS here (`_start_the_run_locked`) and no longer waits for the spawn's
+    PostToolUse -- which for a FOREGROUND spawn fires only after the child has finished, so a
+    self-path child could never book itself (field: synaipse TSK-0437), and a lease that expired
+    in between put finished, committed work back to READY.
+    `tools/test_stream_b_order_flow.py::test_a_foreground_self_path_child_books_its_own_result_bug_0314`
     """
     if not agent_id:
         # consuming the window for a payload with no agent_id would leave the
@@ -1525,7 +1733,32 @@ def bind_agent_by_role(state: ProjectState, agent_id: str, agent_type: str,
         lease.pop("awaiting_bind_until", None)
         lease.pop("awaiting_bind_prompt", None)
         state._write_yaml_atomic(_lease_path(state, lease["task_id"]), lease)
+        _start_the_run_locked(state, str(lease["task_id"]), session_id)
         return lease
+
+
+def _start_the_run_locked(state: ProjectState, task_id: str, session_id: str = None) -> dict:
+    """LEASED -> IN_PROGRESS with the run's `started` stamp and the asking session -- ONE writer
+    for the two moments a run is known to have started: the child's bind (SubagentStart) and the
+    spawn's PostToolUse (`spawn_outcome`), whichever arrives first. Idempotent past LEASED. A
+    re-leased IN_PROGRESS dispatch (`create_lease`, BUG-0314) gets a new child here, so what the
+    previous child's records said stops being about this one. The caller holds the lock; this
+    regenerates the index for what it writes (a task is a board card)."""
+    task = state.read_item(task_id)
+    changed = False
+    if task.get("status") == LEASE_MINTED_STATUS:
+        task["status"] = "IN_PROGRESS"
+        task["started"] = _now_iso()
+        if session_id:
+            task[DISPATCHING_SESSION] = str(session_id)
+        changed = True
+    for stale in (CHILD_ENDED, CHILD_WAITING):
+        if task.pop(stale, None) is not None:
+            changed = True
+    if changed:
+        state._write_yaml_atomic(state.active_path(task_id), task)
+        state._regenerate_index_locked()
+    return task
 
 
 def bind_agent(state: ProjectState, task_id: str, agent_id: str) -> dict:
@@ -1571,12 +1804,10 @@ def spawn_outcome(state: ProjectState, task_id: str, ok: bool, session_id: str =
     with state.lock:
         task = state.read_item(task_id)
         if ok:
-            if task.get("status") == "LEASED":
-                task["status"] = "IN_PROGRESS"
-                task["started"] = _now_iso()
-                if session_id:
-                    task[DISPATCHING_SESSION] = str(session_id)
-                state._write_yaml_atomic(state.active_path(task_id), task)
+            # Only a run still LEASED is started here: when the child's bind already started it
+            # (`bind_agent_by_role`, BUG-0314), the records its child wrote since must stand.
+            if task.get("status") == LEASE_MINTED_STATUS:
+                task = _start_the_run_locked(state, task_id, session_id)
         else:
             _release_lease_locked(state, task_id, to_ready=True)
             task = state.read_item(task_id)
@@ -1595,6 +1826,9 @@ def sweep_expired_leases(state: ProjectState):
     the next sweep: the "IN_PROGRESS with no live agent behind them" dead end of BUG-0042, wearing a
     sentence that said the opposite. Every caller has to carry both halves; what to DO about the
     second one is a question only a new session can answer (`sweep_orphaned_dispatches`).
+
+    A LEASE HELD BY A WAITING CHILD IS IN NEITHER LIST: it is not released at all
+    (`_held_by_a_waiting_child_locked`, BUG-0326) -- `waiting_leases` names it.
     """
     to_ready, lease_only = [], []
     with state.lock:
@@ -1609,7 +1843,7 @@ def sweep_expired_leases(state: ProjectState):
                 lease = _read_lease(state, task_id)
             except DispatchError:
                 continue
-            if _expired(lease):
+            if _expired(lease) and not _held_by_a_waiting_child_locked(state, task_id):
                 reset = _release_lease_locked(state, task_id, to_ready=True)
                 (to_ready if reset else lease_only).append(task_id)
         if to_ready or lease_only:
@@ -1655,6 +1889,86 @@ LEASE_MINTED_STATUS = "LEASED"
 # quietly stop describing the lifecycle. It is ALSO the set a bare transition may not enter without
 # a live lease (DEC-0038): a lease-served status can only be reached honestly through the lease.
 LEASE_BEARING_STATUSES = (LEASE_MINTED_STATUS, "IN_PROGRESS")
+
+# The status a RE-LEASE was minted into (BUG-0314, `create_lease`): absent on every ordinary lease,
+# which serves `LEASE_MINTED_STATUS`. `validate_dispatch` reads it for the status the task must
+# stand in at the spawn, so a re-lease is not "IN_PROGRESS but holds a lease -- inconsistent".
+RELET_KEY = "relet"
+
+
+def _relet_refusal_locked(state: ProjectState, task: dict):
+    """None, or why this started run may NOT be leased again where it stands (BUG-0314).
+
+    ONE POSITIVE RECORD ADMITS IT: the end of its child (`CHILD_ENDED`). Everything else refuses,
+    because a second child beside a first one that is still going is the second builder of
+    BUG-0313 -- a child WAITING on its own background run (`CHILD_WAITING`) resumes by itself, and
+    a child with no recorded end may simply have outlived its lease (`LEASE_MINTED_STATUS`). The
+    way out that needs no record stays the automaton's: FAILED and the user's approved retry.
+    """
+    task_id = task.get("id")
+    target = _way_out_status(task)
+    if task.get(CHILD_WAITING):
+        # THE WAY OUT IS NAMED HERE TOO (BUG-0326): a waiting child that never resumes -- its
+        # session ended, it was stopped -- left this sentence saying "wait" forever.
+        return ("Its child ended its turn WAITING on its own background run (%s) and resumes when "
+                "that run completes -- a second child now would be a second builder on the same "
+                "files (BUG-0313). Remedy: wait for its result; `python scripts/harness.py "
+                "checkpoint-status %s` shows what it has staged. If that child will not come back "
+                "(its session ended, it was stopped), take the order to %s (`python "
+                "scripts/harness.py transition %s %s`), which drops its lease -- its retry is the "
+                "user's approved one."
+                % (task[CHILD_WAITING], task_id, target, task_id, target))
+    if not task.get(CHILD_ENDED):
+        return ("No record says its child stopped, and a child may outlive its lease, so a new "
+                "lease could put a second child on the same files. Remedy: read what the run left "
+                "(`python scripts/harness.py checkpoint-status %s`); book a handed-back envelope "
+                "(`python scripts/harness.py submit-result --task-id %s --from <NAME>`), or, when "
+                "the run is over for good, take it to %s (`python scripts/harness.py transition %s "
+                "%s`) -- its retry is the user's approved one."
+                % (task_id, task_id, target, task_id, target))
+    return None
+
+
+def _way_out_status(task: dict) -> str:
+    """The status a run nobody will finish is taken to by hand: the automaton's no-progress edge
+    from where the task stands (`no_progress_status`), FAILED where there is none. One answer for
+    every sentence that names that way out -- the sweep's line named a fixed FAILED, which is no
+    edge from LEASED.
+    `tools/test_stream_b_order_flow.py::test_the_sweep_names_each_waiting_tasks_own_way_out_bug_0326`
+    """
+    return no_progress_status(str(task.get("status"))) or FAILED_STATUS
+
+
+def _held_by_a_waiting_child_locked(state: ProjectState, task_id: str) -> bool:
+    """Does this task's child WAIT on its own background run (`CHILD_WAITING`)? The caller holds
+    the lock. An EXPIRY does not release such a lease (BUG-0326): the child resumes by itself, and
+    its resume, its writes and its end all find their task through this lease (`task_for_agent`,
+    `record_child_resume`, `record_child_end`) -- a sweep that dropped it stranded the task in
+    "waiting" for good. What releases it is what releases any lease: a transition off the
+    lease-bearing statuses -- the lead's transition to `_way_out_status` that every refusal meeting
+    such a child names, or a later session's `sweep_orphaned_dispatches` -- or the resumed child's own
+    booking. It holds only WHILE the child waits: the resume clears the mark and renews no TTL, so
+    the next sweep releases a resumed child's lease -- hole H225 (BUG-0328).
+    `tools/test_stream_b_order_flow.py::test_a_swept_lease_of_a_waiting_child_does_not_strand_its_task_bug_0326`
+    """
+    try:
+        return bool(state.read_item(task_id).get(CHILD_WAITING))
+    except StateError:
+        return False
+
+
+def waiting_leases(state: ProjectState) -> list:
+    """[(task_id, what its child waits on, the status its way out takes it to)] for every lease a
+    waiting child holds, sorted -- the leases `sweep_expired_leases` keeps past their expiry, so the
+    sweep can NAME them and the transition that drops each (`_way_out_status`)."""
+    held = []
+    with state.lock:
+        for lease in _iter_leases(state):
+            task_id = str(lease["task_id"])
+            if _held_by_a_waiting_child_locked(state, task_id):
+                task = state.read_item(task_id)
+                held.append((task_id, str(task.get(CHILD_WAITING)), _way_out_status(task)))
+    return sorted(held)
 
 
 def lease_in_force(state: ProjectState, task_id: str) -> bool:
@@ -1902,6 +2216,106 @@ CHILD_ENDED = "child_ended"
 # what is stored here holds prose and no references, so it stays a scalar.
 IDLE_REPORTED = "idle_reported"
 
+# A CHILD THAT ENDED ITS TURN TO WAIT ON ITS OWN BACKGROUND RUN IS NOT A CHILD THAT STOPPED
+# (BUG-0313). Measured in the field (synaipse TSK-0448): the child started its red run in the
+# background and ended its turn; `record_child_end` wrote CHILD_ENDED, the lead's turn end was
+# refused with FAILED as the offered status, the lead booked it -- and the child resumed on its
+# completion notice and delivered while a second builder ran on the same files. Measured on the
+# provider (staging/TSK-0154/protocol.md, payload rig): the child's SubagentStop carries
+# `background_tasks`, a SESSION-wide list in which a still-running shell is `{type: shell, status:
+# running, command: ...}` and names no owner; on completion SubagentStart fires AGAIN for the same
+# agent_id. So the commands a bound child starts in the background are remembered on its LEASE
+# (`record_background_start`, from the child's own PreToolUse), a stop is a WAIT while the stop's
+# own list still runs one of them, and a SubagentStart of an agent already bound is a resume
+# (`record_child_resume`).
+# WHAT THIS DOES NOT SEE, named: attribution is by the command TEXT, so another agent running the
+# very same command in the background makes the child's real end read as a wait (and then nobody
+# resumes it, and its lease stays until the order leaves IN_PROGRESS -- `_held_by_a_waiting_child_
+# locked`, BUG-0326); a child that ends while its own background SERVER keeps running reads as waiting
+# until that server ends; and a provider that sends no `background_tasks` reads every such stop as
+# an end, as before BUG-0313 -- which is why the kits' order line tells a specialist there to run
+# long commands in the foreground.
+# `tools/test_stream_b_order_flow.py::test_a_child_waiting_on_its_own_background_run_is_not_reported_stopped_bug_0313`
+BACKGROUND_RUNS_KEY = "background_runs"
+CHILD_WAITING = "child_waiting"
+# The measured spelling of one entry of the provider's list: which field names the command, and the
+# status an entry carries while it runs. Read as the provider wrote them (payload rig run 2).
+PROVIDER_TASK_COMMAND = "command"
+PROVIDER_TASK_STATUS = "status"
+PROVIDER_TASK_RUNNING = "running"
+
+
+def record_background_start(state: ProjectState, agent_id: str, command: str):
+    """The bound child `agent_id` started `command` in the background -- remember it on its lease.
+
+    Returns the task id, or None when no lease binds that agent (a helper the harness never
+    dispatched, or the session instance itself). The lease and not the task, because this is a
+    private record of the running dispatch and not a field of the order -- and a new lease starts
+    with none, for the reason `create_lease` drops CHILD_ENDED.
+    """
+    command = str(command or "")
+    if not agent_id or not command:
+        return None
+    with state.lock:
+        for lease in _iter_leases(state):
+            if str(lease.get("agent_id") or "") != str(agent_id):
+                continue
+            # {command: when it was first started} -- a MAPPING, asked by membership only: the
+            # commands are looked up, never walked (a list here would be an element-wise read of a
+            # lease key, the shape `backlog_types.REFERENCE_LIST_FIELDS` exists to hold)
+            started = lease.get(BACKGROUND_RUNS_KEY)
+            if not isinstance(started, dict):
+                started = {}
+            if command not in started:
+                started[command] = _now_iso()
+                lease[BACKGROUND_RUNS_KEY] = started
+                state._write_yaml_atomic(_lease_path(state, str(lease["task_id"])), lease)
+                # the lease is no card, but the kernel's writer rule is "every write regenerates
+                # unless registered", and a background start is rare enough to pay it:
+                # `tools/test_board.py::test_no_kernel_writer_of_a_rendered_file_leaves_the_board_behind`
+                state._regenerate_index_locked()
+            return str(lease["task_id"])
+    return None
+
+
+def runs_still_going(lease: dict, background_tasks) -> list:
+    """The commands of THIS lease's child that the provider's list still shows running.
+
+    Attribution is by the exact command the child itself started (`BACKGROUND_RUNS_KEY`), because a
+    list entry names no owner. Anything that is not a list of mappings answers "none" -- a provider
+    that sends no list reads exactly as before this rule, i.e. as a stop.
+    """
+    started = (lease or {}).get(BACKGROUND_RUNS_KEY)
+    if not isinstance(started, dict) or not started or not isinstance(background_tasks, list):
+        return []
+    return sorted({str(entry.get(PROVIDER_TASK_COMMAND)) for entry in background_tasks
+                   if isinstance(entry, dict)
+                   and str(entry.get(PROVIDER_TASK_STATUS)) == PROVIDER_TASK_RUNNING
+                   and str(entry.get(PROVIDER_TASK_COMMAND)) in started})
+
+
+def record_child_resume(state: ProjectState, agent_id: str):
+    """A SubagentStart for an agent ALREADY bound: its child is running again. Returns the task id,
+    or None when no lease binds that agent (then it is a new child, and binding is the caller's
+    next question). Drops the recorded end and wait -- what they said is no longer true."""
+    if not agent_id:
+        return None
+    with state.lock:
+        for lease in _iter_leases(state):
+            if str(lease.get("agent_id") or "") != str(agent_id):
+                continue
+            task_id = str(lease["task_id"])
+            try:
+                task = state.read_item(task_id)
+            except StateError:
+                return None
+            ended, waiting = task.pop(CHILD_ENDED, None), task.pop(CHILD_WAITING, None)
+            if ended is not None or waiting is not None:
+                state._write_yaml_atomic(state.active_path(task_id), task)
+                state._regenerate_index_locked()
+            return task_id
+    return None
+
 
 def _lease_bearing_dispatches_locked(state: ProjectState):
     """(task_id, task, lease) for every lease whose task still stands in a lease-bearing status.
@@ -1944,9 +2358,11 @@ def _dispatches_a_stop_could_belong_to(state: ProjectState):
             yield task_id, task, lease
 
 
-def record_child_end(state: ProjectState, agent_id: str = None, agent_type: str = None):
-    """Record that a dispatch's child has STOPPED; returns the task id, or None when this stop
-    belongs to no dispatch this kernel can name.
+def record_child_end(state: ProjectState, agent_id: str = None, agent_type: str = None,
+                     background_tasks=None):
+    """Record that a dispatch's child has STOPPED -- or, while the stop's own `background_tasks`
+    still runs a command that child started, that it is WAITING (BUG-0313, see `CHILD_WAITING`).
+    Returns the task id, or None when this stop belongs to no dispatch this kernel can name.
 
     WHY IT IS WRITTEN DOWN AT ALL: the end of a child is an EVENT, and the party that has to know
     about it -- the lead, at the end of one of its own later turns -- is not the party the event is
@@ -2002,8 +2418,13 @@ def record_child_end(state: ProjectState, agent_id: str = None, agent_type: str 
             candidates = []
         if not candidates:
             return None
-        task_id, task, _lease = candidates[0]
-        task[CHILD_ENDED] = _now_iso()
+        task_id, task, lease = candidates[0]
+        going = runs_still_going(lease, background_tasks)
+        if going:
+            task[CHILD_WAITING] = "%s on %s" % (_now_iso(), "; ".join(going))
+        else:
+            task.pop(CHILD_WAITING, None)
+            task[CHILD_ENDED] = _now_iso()
         state._write_yaml_atomic(state.active_path(task_id), task)
         state._regenerate_index_locked()      # see `mark_idle_reported` -- a task is a board card
         return task_id
@@ -2057,7 +2478,9 @@ def idle_dispatches(state: ProjectState) -> list:
 
     WHAT A FINDING IS -- a POSITIVE record, never the absence of one, and the difference is the
     whole correction this function has behind it:
-      * its child's end is recorded (`CHILD_ENDED`, written at that child's SubagentStop), or
+      * its child's end is recorded (`CHILD_ENDED`, written at that child's SubagentStop -- a stop
+        that WAITS on the child's own background run records `CHILD_WAITING` instead and is no
+        finding, BUG-0313), or
       * NOTHING WAS EVER BOUND to it and its dispatch window has run out: the lease is still there,
         it names no `agent_id`, and its TTL has passed. Nobody was ever tracking a run on it.
     A task in a lease-bearing status that matches neither is silent here.
@@ -2175,6 +2598,18 @@ def release_lease_for_status_locked(state: ProjectState, task_id: str, status: s
         return False
     _remove_lease(state, task_id)
     return True
+
+
+def run_is_booked(state: ProjectState, task_id: str) -> bool:
+    """Has this task's run already been BOOKED -- an envelope stored and the task past the statuses a
+    lease serves? The positive record `submit_result` leaves. Asked by the spawn's PostToolUse,
+    which for a foreground spawn arrives after a self-path child booked itself (BUG-0314): the
+    lease is gone then by design, and "the header does not check out" would be a false report."""
+    try:
+        status = state.read_item(task_id).get("status")
+    except StateError:
+        return False
+    return status not in LEASE_BEARING_STATUSES and os.path.exists(_envelope_path(state, task_id))
 
 
 def submit_result(state: ProjectState, envelope: dict) -> dict:
@@ -2693,25 +3128,88 @@ def architect_step_owed(state: ProjectState, task: dict, root: dict) -> bool:
         return False        # DEC-0074/DEC-0079: the kit ships no home for the step, so no duty
     if str(root.get("class") or "") in SR_EXEMPT_CLASSES:
         return False
+    # THE ARCHITECT'S OWN ORDER IS THE STEP (BUG-0322, synaipse TSK-0444): asking it for an accepted
+    # requirement refused the one order that derives it, and the PM re-rooted the order under an
+    # exempt goal to get past. Which order that is, is the kit's own declaration: the class that
+    # starts on the top rung -- the definition DEC-0118 (1) gives "the architecture step" --
+    # `starts_on_the_top`.
+    if starts_on_the_top(state, task.get("assigned_role")):
+        return False
     for origin in field_elements(task.get("derives_from")):
         origin = str(origin)
         if origin == str(root.get("id")):
             continue
         if _origin_brings_its_own_criteria(state, origin):
             return False
-    from .report import origin_root_conflict
+    return not architect_step_examined(state, root)[0]
+
+
+def architect_step_examined(state: ProjectState, root: dict):
+    """(the accepted requirements that count for `root`, [(id, why it does not count)]).
+
+    A REQUIREMENT COUNTS FOR EVERY GOAL IT DERIVES FROM (BUG-0322, synaipse TSK-0445): it hangs from
+    the goal on at least ONE path (`report._hangs_from`). Until then it had to belong to this goal
+    and to no other (`origin_root_conflict`, the rule for a TASK's origin, where an ambiguous origin
+    decides which criteria the order is measured against); for the architect step that turned four
+    accepted requirements with a second parent (a change request under other goals) into "the
+    architect never ran" -- and the refusal named none of them. The second list is what the refusal
+    prints: every requirement that reaches this goal and why it did not count.
+    `tools/test_stream_b_order_flow.py::test_an_accepted_requirement_with_a_second_parent_counts_for_its_goal_bug_0322`
+    """
+    from .report import _hangs_from
 
     accepted = _accepted_requirement_status()
+    counted, not_counted = [], []
     for stem, path in state.iter_active_items(ARCHITECT_STEP_TYPE):
         try:
             item = state._read_yaml(path)
-        except Exception:  # noqa: BLE001 -- an unreadable item is the validator's finding
+        except Exception:  # noqa: BLE001 -- an unreadable item counts for nothing and is named
+            not_counted.append((stem, "it could not be read"))
             continue
-        if not isinstance(item, dict) or item.get("status") != accepted:
+        if not isinstance(item, dict):
+            not_counted.append((stem, "it is not a mapping"))
             continue
-        if not origin_root_conflict(state, str(item.get("id") or stem), root["id"]):
-            return False
-    return True
+        item_id = str(item.get("id") or stem)
+        if not _hangs_from(state, item_id, str(root["id"]), set()):
+            continue                     # another goal's requirement: not examined for this one
+        if item.get("status") != accepted:
+            not_counted.append((item_id, "status %s, not %s" % (item.get("status"), accepted)))
+            continue
+        counted.append(item_id)
+    return counted, not_counted
+
+
+def starts_on_the_top(state: ProjectState, role) -> bool:
+    """Does `role`'s class start on the kit's TOP rung? -- DEC-0118 (1)'s "the architecture step".
+
+    Read off the kit's own declaration (`ladder_declaration`): the class the role is listed under,
+    and whether that class's start (a bare rung or a band's `default`) is `CLASS_TOP`. False where
+    no declaration can be read: a kit-less project names no classes, and then nothing is exempt.
+    WHAT ELSE STARTS ON THE TOP, said rather than implied: the office kit's planning class -- its
+    top is opus by its own declaration and it ships no architect step, so neither use of this
+    (`architect_step_owed`, the effort start in `ladder_for_order`) changes anything there.
+    """
+    found = _readable_declaration(state)
+    return found is not None and _declared_start_is_top(found.ladder, role)
+
+
+def _readable_declaration(state: ProjectState):
+    """`ladder_declaration`, or None where it REFUSES (a record present but unreadable, a kit the
+    store does not hold). For the readers that only ask a question of it -- an exemption, a fact
+    line -- and must not turn the ladder's own refusal into theirs: the lease asks the declaration
+    itself and refuses there, with its reason:
+    `tools/test_ladder.py::test_a_record_that_is_present_but_unreadable_is_refused_not_ignored`"""
+    try:
+        return ladder_declaration(state)
+    except DispatchError:
+        return None
+
+
+def _declared_start_is_top(ladder: dict, role) -> bool:
+    """The one reading of "this role's class starts on `top`" over a validated declaration -- asked
+    by the architect-step exemption and by the start effort of DEC-0118 alike."""
+    role_class = ladder["roles"].get(str(role or ""))
+    return role_class is not None and ladder["classes"].get(role_class) == CLASS_TOP
 
 
 def _assert_the_architect_step_happened_locked(state: ProjectState, task: dict, root: dict) -> None:
@@ -2735,9 +3233,9 @@ def _assert_the_architect_step_happened_locked(state: ProjectState, task: dict, 
     why the exemption rather than the duty is the closed set.
 
     WHAT COUNTS AS THE STEP HAVING HAPPENED: an `SR` in the accepted status of its own automaton
-    that hangs from this root, read through the same reference walk the validator uses
-    (`report.origin_root_conflict` over `backlog_types.PARENT_FIELDS`) -- a second spelling of
-    "hangs from" would refuse what `validate` calls fine.
+    that hangs from this root on at least one path -- `architect_step_examined` says why that is
+    `report._hangs_from` (the walk that binds Evidence to a root) and no longer the strict
+    one-root reading a task's origin gets (BUG-0322).
     """
     if not architect_step_owed(state, task, root):
         return
@@ -2758,13 +3256,22 @@ def _assert_the_architect_step_happened_locked(state: ProjectState, task: dict, 
             "whether this kit has that item type at all is exactly what could not be read."
             % (task["id"], root["id"], unreadable, presets_staging_root()))
     accepted = _accepted_requirement_status()
+    # WHAT WAS EXAMINED, named (BUG-0322): "none hangs from that goal" read as "the architect never
+    # ran" where four requirements existed and did not count for a reason nobody was shown.
+    _counted, not_counted = architect_step_examined(state, root)
+    examined = ("; the %s(s) examined for %s and why each did not count: %s"
+                % (ARCHITECT_STEP_TYPE, root["id"],
+                   ", ".join("%s (%s)" % (item_id, why) for item_id, why in not_counted))
+                if not_counted else
+                "; no %s hangs from %s at all" % (ARCHITECT_STEP_TYPE, root["id"]))
     raise DispatchError(
         "%s hangs from %s (class %r), and no %s in status %s hangs from that goal -- the architect "
         "step has not happened, so this work order would be built against a goal nobody designed "
-        "(FR-0085). Remedy: have the architect derive the technical requirement -- `python "
-        "scripts/harness.py capture %s` with `derives_from: %s`, then `transition <id> %s` -- or, "
-        "if this goal really needs none, capture it in a class the duty does not ask (%s)."
-        % (task["id"], root["id"], root.get("class"), ARCHITECT_STEP_TYPE, accepted,
+        "(FR-0085)%s. Remedy: have the architect derive the technical requirement -- its own order "
+        "is not asked this (BUG-0322) -- `python scripts/harness.py capture %s` with "
+        "`derives_from: %s`, then `transition <id> %s`; or, if this goal really needs none, capture "
+        "it in a class the duty does not ask (%s)."
+        % (task["id"], root["id"], root.get("class"), ARCHITECT_STEP_TYPE, accepted, examined,
            ARCHITECT_STEP_TYPE, root["id"], accepted, ", ".join(sorted(SR_EXEMPT_CLASSES)))
     )
 
@@ -3198,9 +3705,10 @@ def fail_class_refusal(state: ProjectState, role, related, result, fail_class):
         except Exception as exc:  # noqa: BLE001 -- an unreadable order is refused, not guessed at
             return ("%s could not be read, so whether its run failed cannot be decided: %s"
                     % (order_id, exc))
-        if str(order.get("status")) != FAILED_STATUS:
-            return ("%s is %s, and a fail classification is about a run that ended in %s "
-                    "(DEC-0107). Remedy: classify the order once its run has failed."
+        if not run_can_be_classified(order.get("status")):
+            return ("%s is %s, and a fail classification is about a run that ended in %s or is "
+                    "being judged on the way there (DEC-0107, BUG-0324). Remedy: classify the "
+                    "order while its run is being judged or once it has failed."
                     % (order_id, order.get("status"), FAILED_STATUS))
         if str(role) == str(order.get("assigned_role") or ""):
             return ("%s is the role %s was dispatched to, so it would be classifying the run it is "
@@ -3275,11 +3783,12 @@ def record_fail_class(state: ProjectState, related, fail_class, role) -> list:
             # write the order may have moved. A stamp on an order that is no longer FAILED would be
             # consumed by the NEXT run instead of the judged one, and the direction of that error
             # is the unsafe one: a cheaper model on a retry nobody classified.
-            if str(order.get("status")) != FAILED_STATUS:
+            if not run_can_be_classified(order.get("status")):
                 raise DispatchError(
-                    "%s is %s and no longer %s -- the classification was judged against the failed "
-                    "run and the order has moved since, so nothing was stamped (DEC-0107). Remedy: "
-                    "record the classification while the run it is about is %s."
+                    "%s is %s and no longer %s or being judged on the way there -- the "
+                    "classification was judged against that run and the order has moved since, so "
+                    "nothing was stamped (DEC-0107). Remedy: record the classification while the "
+                    "run it is about is being judged or is %s."
                     % (order_id, order.get("status"), FAILED_STATUS, FAILED_STATUS))
             orders.append((order_id, order))
         for order_id, order in orders:
@@ -3295,6 +3804,37 @@ def record_fail_class(state: ProjectState, related, fail_class, role) -> list:
             stamped.append(order_id)
         state._regenerate_index_locked()
     return stamped
+
+
+def run_can_be_classified(status) -> bool:
+    """May a fail classification be written on an order standing in `status`? (DEC-0107, BUG-0324)
+
+    THE WINDOW THE PROCESS REALLY HAS, derived from the automaton: FAILED itself, or any status the
+    TSK automaton leads into FAILED from -- a run that is being judged. Until BUG-0324 only FAILED
+    was accepted, and measured in the field (synaipse TSK-0454) that window does not exist for the
+    one role allowed to write it: while the run is judged the order is not FAILED yet, and once it
+    is, the verifier's own lease is gone and `gate_dispatch` can no longer attribute the line.
+    A stamp written early is bounded two ways: it is consumed with the run it judges
+    (`count_failed_run_locked`), and a verdict that moves the order FORWARD instead drops it
+    (`drop_an_overruled_classification`).
+    `tools/test_stream_b_order_flow.py::test_the_verifier_classifies_the_run_it_judges_and_the_climb_skips_it_bug_0324`
+    """
+    status = str(status or "")
+    return status == FAILED_STATUS or (status, FAILED_STATUS) in AUTOMATA[ORDER_TYPE].allowed
+
+
+def drop_an_overruled_classification(item: dict, from_status: str, to_status: str) -> None:
+    """A work order that moves FORWARD along its chain passed the step its fail classification was
+    about, so the stamp stops being about anything (BUG-0324) -- dropped in place, before the
+    caller (`state._transition_locked`) writes the item. Only for an order and only for the chain
+    successor: the back-edge into FAILED is exactly the run the stamp judges."""
+    if item.get(FAIL_CLASS_FIELD) is None or not _is_order(str(item.get("id") or "")):
+        return
+    chain = AUTOMATA[ORDER_TYPE].chain
+    if (from_status in chain and to_status in chain
+            and chain.index(to_status) == chain.index(from_status) + 1):
+        item.pop(FAIL_CLASS_FIELD, None)
+        item.pop(FAIL_CLASS_BY_FIELD, None)
 
 
 def _is_order(item_id: str) -> bool:
@@ -3518,6 +4058,7 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
     top = str(exception.get(CLASS_TOP, ladder[CLASS_TOP]))
     provider, above_cap, models = provider_tiers(found.tiers_dir, provider)
     top_why = top
+    capped = top in above_cap                 # read again for the start effort (DEC-0118) below
     if top in above_cap:
         below = [rung for rung in rungs[:rungs.index(top)] if rung not in above_cap]
         if not below:
@@ -3636,6 +4177,21 @@ def ladder_for_order(state: ProjectState, task: dict, root: dict, failed_runs: i
     ceiling = max(ladder[EFFORT_KEY].values(), key=EFFORT_LEVELS.index)
     if EFFORT_KEY in exception:
         ceiling = str(exception[EFFORT_KEY])
+    # THE TOP RUNG A PROVIDER CAPS IS THAT PROVIDER'S TOP AT THE KIT'S HIGHEST EFFORT (DEC-0118 (1)):
+    # a class that starts on `top` -- the architecture step -- where the tier table's
+    # `PROVIDER_TOP_KEY` lowered that top (Claude: fable -> opus, DEC-0114 (4)) starts at the
+    # ceiling of the kit's own pair instead of its default, and the ceiling stays what it was (no
+    # `max`). BOTH HALVES OF THE SWITCH ARE THE CAP: lift `provider_top` (DEC-0118 (3)) and the class
+    # starts on the uncapped top at the default effort again, with no line here to edit; a provider
+    # that runs the top uncapped (Codex) never met the condition. A role whose exception fixes the
+    # effort keeps it -- that is floor and ceiling at once (DEC-0047).
+    # `tools/test_stream_b_order_flow.py::test_the_architecture_step_starts_at_xhigh_on_claude_and_at_the_default_on_codex_dec_0118`
+    if (capped and RUNG_KEY not in exception and EFFORT_KEY not in exception
+            and _declared_start_is_top(ladder, role)
+            and EFFORT_LEVELS.index(ceiling) > EFFORT_LEVELS.index(effort)):
+        effort, effort_why = ceiling, (
+            "%s, raised to the kit's highest effort %s because the class starts on the top rung and "
+            "%s caps that top at %s (DEC-0118)" % (effort_why, ceiling, provider, top))
     if order_effort is not None and EFFORT_LEVELS.index(order_effort) > EFFORT_LEVELS.index(effort):
         if EFFORT_LEVELS.index(order_effort) > EFFORT_LEVELS.index(ceiling):
             effort, effort_why = ceiling, (
@@ -3812,7 +4368,9 @@ def reflection_checkpoint(state: ProjectState, task: dict, root: dict, lease: di
            else ", with no band below it",
            ladder.get("pin"), ladder.get("role_class"), ladder.get(CLASS_TOP),
            order.get(RUNG_KEY) or "nothing", order.get(EFFORT_KEY) or "nothing",
-           ladder.get("escalation") or "no escalation answer on this lease"),
+           ladder.get("escalation") or "no escalation answer on this lease")
+        # THE NAME THE TASK PANEL SHOWS (FR-0092 (2)), where the PM reads before the next spawn.
+        + ("; the agent's name is %r" % lease[SPAWN_NAME_KEY] if lease.get(SPAWN_NAME_KEY) else ""),
         "(d) %s" % report.lease_distribution(state)["line"],
         CHECKPOINT_QUESTION,
     ]

@@ -147,13 +147,17 @@ def test_scope_approval_happy_path(state):
     assert not os.path.exists(os.path.join(state.root, "approvals", "pending", apr["request_id"] + ".yaml"))
 
 
-def test_question_is_deterministic_and_marked(state):
+def test_question_is_deterministic_and_found_by_its_mint_code(state):
     pr = state.capture("PR", dict(PR_FIELDS))
     request = approvals.create_pending_request(state, "scope", pr["id"])
     q1 = approvals.build_question(request)
     q2 = approvals.build_question(request)
     assert q1 == q2
-    assert "[APR-REQ:%s]" % request["request_id"] in q1["question"]
+    # FR-0095: the request id left the read text; the card names its request through the code
+    assert request["request_id"] not in q1["question"]
+    assert approvals.card_mint_codes(q1) == (request["mint_code"],)
+    assert approvals.pending_request_by_code(
+        state, request["mint_code"])["request_id"] == request["request_id"]
     assert q1["options"][0]["label"] == approvals.approve_label(request["mint_code"])
     assert [o["label"] for o in q1["options"][1:]] == ["Ändern", "Ablehnen"]
     assert len(request["mint_code"]) == 6  # per-request entropy (S2b)
@@ -993,11 +997,11 @@ def test_the_routine_kind_is_walkable_on_the_command_surface_a_role_actually_typ
                      "--role", "project-auditor", "--scope", "project_memory/**",
                      "--trigger", "weekly + after kit update", "--cadence", "weekly",
                      "--expires-in-days", "7"]) == 0
-    question = json.loads(capsys.readouterr().out)["question"]
-    found = re.search(r"APR-REQ:([A-Za-z0-9_.:-]+)", question)
-    assert found, question
+    question = json.loads(capsys.readouterr().out)
+    codes = approvals.card_mint_codes(question)
+    assert len(codes) == 1, question
 
-    request = approvals.pending_request(state, found.group(1))
+    request = approvals.pending_request_by_code(state, codes[0])
     assert request["kind"] == approvals.ROUTINE_KIND, request
     assert request["subject_manifest"]["role"] == "project-auditor"
 
@@ -1255,7 +1259,7 @@ def test_the_routine_question_names_everything_the_route_binds_to(state):
     assert set(request["subject_manifest"]) == set(
         approvals.ROUTINE_MANIFEST_FIELDS) | {approvals.EXPIRY_FIELD}
     assert "%s: %s" % (approvals.MANIFEST_LABELS[approvals.EXPIRY_FIELD], time.strftime(
-        "%Y-%m-%dT%H:%M:%SZ",
+        "%d.%m.%Y, %H:%M UTC",
         time.gmtime(request["subject_manifest"][approvals.EXPIRY_FIELD]))) in question["question"]
     exposed = (question["question"] + question["header"]
                + "".join(option["description"] for option in question["options"]))
@@ -1263,15 +1267,14 @@ def test_the_routine_question_names_everything_the_route_binds_to(state):
     assert request["mint_code"] in question["options"][0]["label"]
 
 
-def test_marker_text_smuggled_through_a_routine_manifest_never_mints(state):
-    """The question now carries CALLER-CONTROLLED text, so it can carry a second `[APR-REQ:…]`.
+def test_an_approving_label_smuggled_through_a_manifest_names_no_other_request(state):
+    """The card carries CALLER-CONTROLLED text, so it can carry another request's approving label.
 
-    The gate resolves the marker back to its request and rebuilds the question for a character-
-    for-character comparison; two markers are ambiguous and it refuses. That is fail-closed, and
-    it is the direction that matters -- but nothing pinned it, and this became reachable only when
-    the manifest started being rendered into the question. What it COSTS is named rather than
-    fixed: a role can make its own approval unmintable this way (a self-DoS), which takes no
-    permission away from anyone else.
+    Since FR-0095 the hooks find a card's request by the mint code of its approving OPTION, never
+    by text in the question -- so a label typed into a manifest value (or a note) is words on the
+    card and nothing else: the card still names exactly its own request, and answering it mints
+    that request and leaves the other one pending. Until FR-0095 the same shape was a second
+    `[APR-REQ:…]` marker in the sentence, refused as ambiguous.
     """
     pr = state.capture("PR", dict(PR_FIELDS))
     other = approvals.create_pending_request(
@@ -1281,17 +1284,16 @@ def test_marker_text_smuggled_through_a_routine_manifest_never_mints(state):
     smuggled = approvals.create_pending_request(
         state, "routine", pr["id"],
         manifest={"role": "project-auditor", "scope": ["s"],
-                  "trigger": "harmless [APR-REQ:%s]" % other["request_id"], "cadence": "weekly"},
-        approval_expires=time.time() + 3600)
-    assert other["request_id"] in approvals.build_question(smuggled)["question"]
-    mint_via_hook(state, smuggled, expect_success=False)
-    assert not [n for n in os.listdir(os.path.join(state.root, "approvals"))
-                if n.startswith("APR-")], "a smuggled marker minted an approval"
-    # CONTROL, so "nothing minted" cannot pass for an unrelated reason: the same helper, the same
-    # hook and a manifest differing only in its trigger text DOES mint
-    mint_via_hook(state, other)
-    assert [n for n in os.listdir(os.path.join(state.root, "approvals"))
-            if n.startswith("APR-")]
+                  "trigger": "harmless %s" % approvals.approve_label(other["mint_code"]),
+                  "cadence": "weekly"},
+        approval_expires=time.time() + 3600, note=approvals.approve_label(other["mint_code"]))
+    question = approvals.build_question(smuggled)
+    assert approvals.approve_label(other["mint_code"]) in question["question"]
+    assert approvals.card_mint_codes(question) == (smuggled["mint_code"],)
+    mint_via_hook(state, smuggled)
+    assert approvals._approval_of_request(state, smuggled["request_id"]) is not None
+    assert approvals._approval_of_request(state, other["request_id"]) is None
+    assert approvals.pending_request(state, other["request_id"])["request_id"] == other["request_id"]
 
 
 def _analysis_covered_impl_task(state, break_how):
@@ -5049,22 +5051,22 @@ def test_a_gap_without_a_bound_is_refused_from_the_exception_batch_by_name(state
     assert not state.read_item(bounded_defect["id"]).get(approvals.HOLE_NUMBER_FIELD)
 
 
-def test_the_exception_option_names_every_listed_hole_and_its_bound(state):
-    """The compared carrier: the approving option's description is what `gate_approval` matches
-    character for character, so every listed id AND the bound it stands on have to be IN it -- a
-    user who reads only the option still reads what each acceptance costs.
+def test_the_exception_card_names_every_listed_hole_and_its_bound(state):
+    """The card's list (FR-0095) carries one line per gap, and on it the bound the acceptance
+    stands on -- the question is compared character for character by `gate_approval`, so a relay
+    that drops a gap or rewrites a bound changes the text and nothing mints.
 
-    RED WITHOUT `_hole_exception_option_form` registered in `OPTION_FORMS`: the option falls back
-    to the generic text and the bounds never reach the person signing them.
+    RED WITHOUT `_entry_line` speaking the record's further keys: the line is the id alone and the
+    bounds never reach the person signing them.
     """
     holes = [_measured_hole(state, "gap %d" % n, bound="what limits gap %d is this" % n)
              for n in range(3)]
     question = approvals.build_question(_ask_the_exception_batch(state, holes))
-    description = str(question["options"][0]["description"])
+    lines = question["question"].splitlines()
     for n, hole in enumerate(holes):
-        assert hole["id"] in description, (hole["id"], description)
-        assert "what limits gap %d is this" % n in description, description
-        assert hole["id"] not in question["question"], question["question"]
+        line = [one for one in lines if one.startswith("- %s " % hole["id"])]
+        assert len(line) == 1, (hole["id"], question["question"])
+        assert "what limits gap %d is this" % n in line[0], line
 
 
 def test_a_batch_kind_given_a_positional_id_is_sent_to_the_flag_with_that_id_in_hand(capsys):
@@ -5322,59 +5324,49 @@ def test_a_batch_longer_than_the_limit_is_refused_at_the_builder():
         approvals.verification_subject_manifest([])
 
 
-def test_the_batch_option_names_every_listed_bug_and_its_evidence(state):
-    """PR-0012 AC-1: the SENTENCE names the count, the APPROVING OPTION carries the list -- and the
-    option is the text `gate_approval` compares character for character.
+def test_the_verification_card_names_every_listed_bug_and_its_evidence(state):
+    """PR-0012 AC-1 / DEC-0100 (2), on the calm card (FR-0095): one line per defect, each with the
+    Evidence that measured it, in the question `gate_approval` compares character for character.
 
-    RED WITHOUT `OPTION_FORMS` in `build_question`: the option repeats the sentence, so the ids and
-    their proofs stand in no compared text at all and a relay could drop half the batch unnoticed.
+    RED WITHOUT `_entry_line` speaking the record's evidence key: the ids stand on the card without
+    their proof and the user signs a bare list.
     """
     bugs = [_repaired_bug(state), _repaired_bug(state, "another defect")]
     request = _ask_the_batch(state, bugs)
     question = approvals.build_question(request)
-    approving = question["options"][0]["description"]
+    lines = question["question"].splitlines()
     for record in request["subject_manifest"]["bugs"]:
-        assert record[approvals.GOAL_ITEM_FIELD] in approving, approving
-        assert record[approvals.LISTED_EVIDENCE_FIELD] in approving, approving
-        assert record[approvals.GOAL_ITEM_FIELD] not in question["question"], question["question"]
-    assert str(len(bugs)) in question["question"]
+        line = [one for one in lines if one.startswith("- %s" % record[approvals.GOAL_ITEM_FIELD])]
+        assert len(line) == 1, question["question"]
+        assert record[approvals.LISTED_EVIDENCE_FIELD] in line[0], line
 
 
 def test_only_a_kind_with_its_own_option_form_reads_differently_in_the_two_places():
-    """Both ends of `OPTION_FORMS`: a kind with an entry says MORE in the option than in the
-    sentence, and a kind without one says the same in both -- which is what keeps the table from
-    silently rewriting a question nobody decided to change.
+    """SINCE FR-0095 NO KIND HAS ONE: the subject stands in the card's list, and the approving
+    option says the same short sentence for every kind. The name is kept because archived Evidence
+    (EVD-0234) names this node; the property it measures now is that no kind's options carry its
+    subject -- a list record, an item, a manifest value -- so the one text a user must read is the
+    question and nothing hides in an option description.
 
-    RED WITHOUT the `option_form is not None` guard in `build_question`: every kind's option is
-    rebuilt from a form, the older questions change text and every live pending request dies.
+    RED WITHOUT the fixed option descriptions in `build_question`: an option that re-renders the
+    subject shows the id here.
     """
-    assert set(approvals.OPTION_FORMS) <= set(approvals.APR_KINDS)
-    # ONE RECORD, UNDER EVERY KEY A LIST-BOUND BUILDER USES, so a second batch kind is measured by
-    # this test on the day it arrives instead of reading as "the form renders nothing": the entry
-    # is the same signed-item record either way (`listed_items` is what makes it one), and the key
-    # is the builder's own manifest parameter. `manifest_parameters` is the reader.
     from kernel.cli import manifest_parameters
-    entry = {approvals.GOAL_ITEM_FIELD: "BUG-0009", "revision": 1,
+    entry = {approvals.GOAL_ITEM_FIELD: "BUG-0009", "title": "a defect", "revision": 1,
              approvals.GOAL_SCOPE_HASH_FIELD: "0" * 64,
              approvals.LISTED_EVIDENCE_FIELD: "EVD-0009",
              approvals.LISTED_BOUND_FIELD: "what bounds it today"}
-    manifest = {key: [entry]
-                for kind in approvals.OPTION_FORMS
-                for key in manifest_parameters(approvals.LINE_MANIFEST_BUILDERS[kind])}
-    assert len(manifest) == len(approvals.OPTION_FORMS), (
-        "two option-form kinds share a manifest key, so this probe can no longer tell them apart")
-    for kind, form in approvals.OPTION_FORMS.items():
-        assert kind in approvals.TARGET_FORMS, (
-            "%s renders an option form but no sentence form" % kind)
-        assert "BUG-0009" in form(manifest)
-        assert "BUG-0009" not in approvals.TARGET_FORMS[kind](manifest)
-    for kind in set(approvals.TARGET_FORMS) - set(approvals.OPTION_FORMS):
+    descriptions = set()
+    for kind, builder in sorted(approvals.LINE_MANIFEST_BUILDERS.items()):
+        manifest = {key: [entry] for key in manifest_parameters(builder)}
         request = {"request_id": "ab" * 16, "kind": kind, "item": None, "revision": None,
-                   "item_title": "", "mint_code": "c0ffee", "subject_manifest": {},
+                   "item_title": "", "mint_code": "c0ffee", "subject_manifest": manifest,
                    "subject_manifest_hash": "de" * 32}
         question = approvals.build_question(request)
-        target = approvals.TARGET_FORMS[kind]({})
-        assert target in question["question"] and target in question["options"][0]["description"]
+        for option in question["options"]:
+            assert "BUG-0009" not in option["description"], (kind, option)
+        descriptions.add(tuple(option["description"] for option in question["options"]))
+    assert len(descriptions) == 1, descriptions
 
 
 def test_only_a_list_kind_paired_with_a_type_closes_what_it_lists():
@@ -5570,7 +5562,7 @@ def test_the_batch_flag_belongs_to_the_kinds_whose_resolver_reads_it():
     from kernel import cli
 
     assert cli.kinds_reading_argument(cli.BATCH_ARGUMENT) == frozenset(
-        {approvals.VERIFICATION_KIND, approvals.HOLE_EXCEPTION_KIND})
+        {approvals.VERIFICATION_KIND, approvals.HOLE_EXCEPTION_KIND, approvals.PLAN_COVERED_KIND})
     assert cli.kinds_reading_argument("no-such-argument") == frozenset()
 
 

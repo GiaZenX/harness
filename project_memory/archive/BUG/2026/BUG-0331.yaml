@@ -1,0 +1,42 @@
+id: BUG-0331
+title: 'upkeep-Schranke, gelingende Richtung: ein Wort, das die Shell in mehrere Argumente
+  aufteilt, verschiebt die Rollenposition -- das Gate liest die eigene Rolle, der
+  Kernel eine fremde'
+related_pr: PR-0012
+observed: 'MECHANISM: team-kits/{dev,office,research}-team/hooks/gate_write_scope.py
+  `_upkeep_refusal` parses the gate''s word list with the kernel''s parser; when that
+  parse SUCCEEDS and names the caller''s own role, the gate passes -- but the shell
+  may expand one gate word into several argv words (bash expansions, PowerShell array
+  arguments), so the kernel''s parser reads ANOTHER role. Same class as TSK-0157''s
+  N1 (gate words != shell argv), the adding direction; present since the bound was
+  built in TSK-0156, not new with rework 2. MEASURED CHAIN (TSK-0158 verify round
+  1, finding A; rig C:/Offline Repos/v2-testbed/_round-scratch/TSK-0158-verify/):
+  bound backend-developer subagent, real dev-kit gate process rc 0, then a real shell
+  with a stand-in scripts/harness.py whose argv the kernel''s build_parser() reads:
+  role=database-engineer -- four bash spellings and two PowerShell spellings, each
+  gate rc 0. A subagent can prune ANOTHER role''s craft memory (BUG-0325 in the other
+  direction). The spellings stay in the rig, not here. Wrapper forms (function, xargs,
+  bash -c, eval) are the separately named limit L43. VERDICT: open; not closable by
+  another command-line reading (the lead''s decision for this merge); the closing
+  belongs to wave 1 stream B of plan V2.5 (kernel write log + after-check instead
+  of command-line guessing).'
+expected: A subagent cannot make the kernel prune another role's memory by any spelling;
+  enforced where the kernel acts (write log / caller identity), not by reading the
+  command line.
+repro: See the verifier's rig under _round-scratch/TSK-0158-verify/ (test_zz_verify_0158.py).
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: the six measured spellings no longer reach another role's memory -- a test
+    naming this bug, red on 2026.09.27-8
+source: TSK-0158 verify round 1 (staging/TSK-0158/verify-round-1.md, finding A)
+limits: 'Offen bis Welle 1 Strom B. Begrenzt: nur Handwerks-Notizen anderer Rollen
+  betroffen, keine Projektakte und kein Code; die Notizen liegen im Git-Verlauf und
+  sind wiederherstellbar.'
+hole_number: H227
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0081
+created: '2026-09-27T21:07:59'
+approved_hash: 8870a72177c0a7f473b220d0f92a4547e4dfa9386e7c8cbe463a7a154f883e1b
+closed_at: '2026-09-27T22:42:50'

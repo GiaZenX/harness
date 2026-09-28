@@ -1,0 +1,17 @@
+id: EVD-0495
+kind: test
+related:
+- BUG-0321
+result: pass
+summary: 'TSK-0154 stream B, worktree g7/dispatch: the reader is report.contradicted_confirmations;
+  a type whose confirming edge demands evidence is now checked on the confirmation
+  question, so a later passing selection supersedes an older failing one (no contradiction),
+  and a later failing selection contradicts again. Red on base 35e929b.'
+artifact_refs:
+- staging/TSK-0154/evd/bug-0321.log
+run_command: python -B -m pytest tools/test_stream_b_order_flow.py -k bug_0321 -v
+  -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:40:29'

@@ -819,52 +819,33 @@ def test_a_list_bound_question_reads_in_the_right_numerus_and_names_the_same_sub
 
     from kernel import approvals
 
-    listed = {approvals.VERIFICATION_KIND: ("bugs", lambda n: [
-                  {approvals.GOAL_ITEM_FIELD: "BUG-%04d" % (n + 1), "evidence": "EVD-0001"}]),
-              approvals.HOLE_EXCEPTION_KIND: ("holes", lambda n: [
-                  {approvals.GOAL_ITEM_FIELD: "BUG-%04d" % (n + 1),
-                   approvals.LISTED_BOUND_FIELD: "was stattdessen begrenzt"}])}
-    assert set(listed) == set(approvals.OPTION_FORMS), (
-        "a list-bound kind with no row here is a sentence nothing measures: %s"
-        % (set(listed) ^ set(approvals.OPTION_FORMS)))
+    # SINCE FR-0095 THE CARD LISTS, IT DOES NOT COUNT: every entry is a line of its own, so the
+    # numerus defect has no sentence left to live in -- and no digit may stand on the card except
+    # inside the ids. The subject is the LIST even with an item beside it (the second half of the
+    # defect). Measured over every list-bound builder, with one entry and with two.
+    from kernel.cli import manifest_parameters
 
-    for kind, (key, record) in sorted(listed.items()):
+    list_kinds = [kind for kind, builder in approvals.LINE_MANIFEST_BUILDERS.items()
+                  if manifest_parameters(builder) and all(
+                      key in ("goals", "bugs", "holes", "items")
+                      for key in manifest_parameters(builder))]
+    assert set(list_kinds) == {approvals.PLAN_KIND, approvals.VERIFICATION_KIND,
+                               approvals.HOLE_EXCEPTION_KIND, approvals.PLAN_COVERED_KIND}
+    for kind in sorted(list_kinds):
+        key = manifest_parameters(approvals.LINE_MANIFEST_BUILDERS[kind])[0]
         for count in (1, 2):
-            entries = [row for n in range(count) for row in record(n)]
-            # THE ITEM IS SET ON PURPOSE, and the revision is not: a list-bound request carries no
-            # revision of its own, and the item is here to prove the kind's form wins over it.
+            entries = [{approvals.GOAL_ITEM_FIELD: "BUG-%04d" % (n + 1), "title": "Kasse",
+                        "revision": 1, approvals.GOAL_SCOPE_HASH_FIELD: "ab" * 32}
+                       for n in range(count)]
             request = {"request_id": "ab" * 16, "kind": kind, "item": "PR-0001",
                        "item_title": "Kasse mit Bon", "revision": None, "mint_code": "c0ffee",
                        "subject_manifest": {key: entries}, "subject_manifest_hash": "de" * 32}
-            question = approvals.build_question(request)
-            sentence = question["question"]
-            approving = question["options"][0]["description"]
-
+            sentence = approvals.build_question(request)["question"]
             assert "PR-0001" not in sentence, (kind, count, sentence)
-            for text in (sentence, approving):
-                if count == 1:
-                    assert not re.search(r"\d", text.split("[APR-REQ")[0].replace("PR-0001", "")
-                                         .replace("BUG-0001", "").replace("EVD-0001", "")), (
-                        "the singular form still carries a digit: %r" % text)
-                else:
-                    assert re.search(r"(?<!\d)%d(?!\d)" % count, text), (kind, count, text)
-            for entry in entries:
-                assert entry[approvals.GOAL_ITEM_FIELD] in approving, (kind, approving)
-            # ...and the card's subject is a NOUN PHRASE, because the option reads "Erteilt die
-            # Freigabe ... FÜR <this>: <list>": a main clause there is ungrammatical German, which
-            # is what "für 2 Lücken bleiben offen: ..." was (round 2, R4).
-            #
-            # WHAT IS ASSERTED IS THE SHIPPED FORM ITSELF, both numbers, and the reason is round 3:
-            # the first attempt matched a four-verb list behind a digit, and TWO mutations that put
-            # the original defect straight back -- the singular as a main clause ("eine Lücke
-            # bleibt offen") and the plural with a fifth verb ("%d Lücken stehen offen") -- stayed
-            # GREEN. A list of verbs cannot carry this claim; the sentence a non-developer reads is
-            # the artefact under test, so the test holds the sentence. A rewording is then a red
-            # test, which for a text the user signs is the right cost.
-            # The LAST `für` before the colon: one kind's own LABEL carries a `für` of its own
-            # ("Ausnahme für eine bekannte Lücke"), so the first one is the wrong split.
-            subject = approving.split(":", 1)[0].rsplit(" für ", 1)[1]
-            assert subject == _card_subject(kind, count), (kind, count, subject)
+            lines = sentence.split("\n\n")[1].split("\n")
+            assert lines == ["- BUG-%04d „Kasse“" % (n + 1) for n in range(count)], (kind, lines)
+            assert not re.search(r"\d", sentence.replace("BUG-0001", "").replace("BUG-0002", "")), (
+                "a digit on a list card: %r" % sentence)
 
     # ...and a kind whose subject IS an item still names it
     plain = approvals.build_question({"request_id": "ab" * 16, "kind": "scope", "item": "PR-0001",
@@ -889,8 +870,7 @@ def test_no_approval_question_shows_an_english_enum_word_a_hash_or_a_path():
 
     from kernel import approvals
 
-    marker = re.compile(r" \[APR-REQ:[0-9a-f]{32}\]$")
-    hexes = re.compile(r"(?<![0-9a-f])[0-9a-f]{12,}")
+    hexes = re.compile(r"(?<![0-9a-f])[0-9a-f]{8,}")
     for kind in approvals.APR_KINDS:
         request = {"request_id": "ab" * 16, "kind": kind, "item": None, "revision": None,
                    "item_title": "", "mint_code": "c0ffee", "subject_manifest": {}}
@@ -906,28 +886,26 @@ def test_no_approval_question_shows_an_english_enum_word_a_hash_or_a_path():
             request["subject_manifest"][approvals.EXPIRY_FIELD] = 1_800_000_000.0
         request["subject_manifest_hash"] = "deadbeef" * 8
         question = approvals.build_question(request)
-        sentence = question["question"]
-        assert marker.search(sentence), sentence
-        body = marker.sub("", sentence)
-        assert body.startswith("Freigabe erbeten: %s für " % approvals.KIND_LABELS[kind]), body
+        body = question["question"]
+        # FR-0095: no request marker, no checksum, and no path the KERNEL writes -- the card binds
+        # from the record. A path a real card shows is a value of its manifest (a scope's globs,
+        # the proposal file a document card sends the reader to); the placeholders carry none, so
+        # any separator on this card was put there by the renderer.
+        assert "APR-REQ" not in body and request["request_id"] not in body, body
+        assert not [word for word in body.split() if "/" in word or "\\" in word], (kind, body)
+        assert body.startswith("Freigabe erbeten für %s\n\n" % approvals.KIND_LABELS[kind]), body
         for enum_word in approvals.APR_KINDS:
             assert not re.search(r"(?<![\w-])%s(?![\w-])" % re.escape(enum_word), body), (kind, enum_word, body)
         assert "approvals/pending" not in body and "sha256" not in body, body
-        for run in hexes.finditer(body):
-            assert body[:run.start()].endswith("Prüfsumme "), (kind, run.group(0), body)
-        # ...and the item stands in the sentence for every kind whose SUBJECT is that item. A kind
-        # with its own `TARGET_FORMS` entry has a subject of its own -- a list, a manifest -- and
-        # since BUG-0271's second half the form wins over an item standing beside it, because the
-        # approving option binds that subject and the two texts have to be about one thing.
-        if request["item"] and kind not in approvals.TARGET_FORMS:
-            assert "„Kasse mit Bon“ (PR-0001)" in body and "(Revision 2)" in body, body
+        assert not hexes.search(body), (kind, body)
+        if request["item"] and not approvals._signed_records(request["subject_manifest"]):
+            assert "- PR-0001 „Kasse mit Bon“" in body, body
         for field in request["subject_manifest"]:
-            if builder is None or kind not in approvals.TARGET_FORMS:
+            if approvals.MANIFEST_LABELS.get(field, field) == field:
                 assert "%s:" % field not in body, (kind, field, body)
-        approving = question["options"][0]["description"]
-        assert request["subject_manifest_hash"][:approvals.DIGEST_SHOWN] in approving
-        assert "approvals/pending/%s.yaml" % request["request_id"] in approving
-        assert approvals.KIND_LABELS[kind] in approving
+        for option in question["options"]:
+            assert request["subject_manifest_hash"][:8] not in option["description"]
+            assert "approvals/pending" not in option["description"]
 
 
 def test_the_auditor_runs_on_the_routine_route_from_the_command_line_without_a_writable_scope(tmp_path):
@@ -964,11 +942,11 @@ def test_the_auditor_runs_on_the_routine_route_from_the_command_line_without_a_w
     assert asked.returncode == 0, asked.stdout + asked.stderr
     question = json.loads(asked.stdout)
     sentence = question["question"]
-    assert sentence.startswith("Freigabe erbeten: %s für „Kasse mit Bon“ (%s)"
+    assert sentence.startswith("Freigabe erbeten für %s\n\n- %s „Kasse mit Bon“"
                                % (approvals.KIND_LABELS["routine"], pr["id"])), sentence
     assert "Rolle: project-auditor" in sentence and "gültig bis: " in sentence, sentence
-    request_id = sentence.rsplit("[APR-REQ:", 1)[1].rstrip("]")
-    request = approvals.pending_request(state, request_id)
+    (code,) = approvals.card_mint_codes(question)
+    request = approvals.pending_request_by_code(state, code)
     mint_via_hook(state, request)
     routine = sorted(name for name in os.listdir(os.path.join(state.root, "approvals"))
                      if name.startswith("APR-"))[-1][:-5]
@@ -1021,20 +999,25 @@ def test_no_spawn_or_lease_surface_carries_a_free_text_justification_field(store
     What is held: the keys the shipped spawn gate reads off the tool input, the keys `parse_header`
     decides on, the parameters of `create_lease` / `validate_dispatch`, the REQUIRED options of
     `create-task` (every one a contract field) and the TSK contract's required fields.
+
+    DEC-0122 re-decided the set once: the spawn's visible NAME (`description` on the tool input,
+    `spawn_description` on `validate_dispatch`) joined it -- a value the kernel derives and the gate
+    compares character for character, not a reasoning field (FR-0092).
     """
     import inspect
 
     from kernel.cli import build_parser
 
     assert _tool_input_keys_the_gate_reads(os.path.join(DEV_HOOKS, "gate_dispatch.py")) == {
-        "prompt", "subagent_type", "model"}
+        "prompt", "subagent_type", "model", "description"}
     store.kit("kit")
     state, pr = store.project("p", "kit", {"backend-developer": "sonnet"})
     lease = dispatch.create_lease(state, store.order(state, pr)["id"])
     assert set(dispatch.parse_header(dispatch.dispatch_header(lease))) == {"task_id", "root_revision", "lease"}
     assert list(inspect.signature(dispatch.create_lease).parameters) == ["state", "task_id", "ttl", "worktree"]
     assert list(inspect.signature(dispatch.validate_dispatch).parameters) == [
-        "state", "header", "subagent_type", "claim", "prompt_id", "session_id", "spawn_model"]
+        "state", "header", "subagent_type", "claim", "prompt_id", "session_id", "spawn_model",
+        "spawn_description"]
     parser = build_parser()._subparsers._group_actions[0].choices["create-task"]
     # a required option feeds a contract field under its dest (`acceptance_refs`) or under its own
     # spelling (`--type` -> `type`, dest `task_type`); one of the two has to be the field

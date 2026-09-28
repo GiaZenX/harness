@@ -1,0 +1,46 @@
+00:57:03     15s rc=0 tools/test_stream_a_approvals.py | 32 passed in 12.74s
+00:59:23    140s rc=0 tools/test_approvals_dispatch.py | 236 passed in 137.79s (0:02:17)
+00:59:29      5s rc=0 tools/test_role_contracts.py | 37 passed in 3.38s
+01:00:39     70s rc=1 tools/test_light_kit.py | 1 failed, 26 passed in 68.21s (0:01:08)
+01:01:57     78s rc=0 tools/test_presets.py | 34 passed in 75.52s (0:01:15)
+01:02:43     46s rc=0 tools/test_staging_cli.py | 99 passed in 43.69s
+01:03:28     45s rc=0 tools/test_report.py | 141 passed in 42.88s
+01:04:38     71s rc=0 tools/test_office_package.py | 75 passed in 68.18s (0:01:08)
+01:05:16     38s rc=0 tools/test_kernel.py | 136 passed in 35.51s
+01:07:17    121s rc=0 tools/test_research_chain.py | 10 passed in 119.03s (0:01:59)
+01:10:44    207s rc=0 tools/test_reference_skills.py | 18 passed in 204.73s (0:03:24)
+01:11:23     39s rc=0 tools/test_pointer_sweep.py | 8 passed in 36.91s
+01:11:51     28s rc=0 tools/test_context_budget.py | 41 passed, 1 skipped in 25.31s
+01:12:23     32s rc=0 tools/test_shortening_net.py | 36 passed in 30.06s
+01:25:23    779s rc=0 tools/test_kitupdate.py | 87 passed, 1 skipped in 777.00s (0:12:57)
+01:44:54   1171s rc=0 tools/test_hooks_v2.py | 2171 passed in 1168.11s (0:19:28)
+02:15:18   1824s rc=1 tools/test_hooks.py | 1 failed, 1086 passed, 14 skipped in 1821.63s (0:30:21)
+DONE 02:15:18
+=== FINISH RUN 04:18:36 (approvals.py unsigned records + list labels, test_hooks patch, restamp -2) ===
+04:18:56     12s rc=0 tools/test_stream_a_approvals.py | 34 passed in 10.12s
+04:20:13     78s rc=0 tools/test_light_kit.py | 27 passed in 75.64s (0:01:15)
+04:20:16      3s rc=0 tools/test_schemas.py | 30 passed in 0.44s
+04:20:36     20s rc=0 tools/test_e2e.py | 20 passed in 17.44s
+04:20:46     10s rc=0 tools/test_routine_feed.py | 32 passed in 7.61s
+04:21:19     34s rc=0 tools/test_close_measured_pass.py | 12 passed in 31.71s
+04:21:24      5s rc=0 tools/test_backlog_types.py | 58 passed in 2.26s
+04:21:58     34s rc=0 tools/test_board.py | 77 passed in 31.57s
+04:22:11     13s rc=0 tools/test_board_browser.py | 5 passed in 10.32s
+04:22:25     14s rc=0 tools/test_state.py | 67 passed in 11.59s
+04:22:28      4s rc=0 tools/test_kit_neutrality.py | 7 passed in 1.09s
+04:22:33      5s rc=0 tools/test_role_contracts.py | 37 passed in 2.70s
+04:23:01     28s rc=0 tools/test_context_budget.py | 41 passed, 1 skipped in 25.93s
+04:23:33     32s rc=0 tools/test_shortening_net.py | 36 passed in 29.51s
+04:24:10     37s rc=0 tools/test_kernel.py | 136 passed in 34.15s
+04:24:48     38s rc=0 tools/test_staging_cli.py | 99 passed in 35.62s
+04:25:33     45s rc=0 tools/test_report.py | 141 passed in 42.86s
+04:26:51     79s rc=0 tools/test_presets.py | 34 passed in 76.52s (0:01:16)
+04:28:02     71s rc=0 tools/test_office_package.py | 75 passed in 68.76s (0:01:08)
+04:29:10     68s rc=1 tools/test_migrate.py | 3 failed, 45 passed, 98 errors in 65.80s (0:01:05)
+04:31:24    134s rc=0 tools/test_research_chain.py | 10 passed in 131.35s (0:02:11)
+05:10:27   2343s rc=4294967295 .claude/hooks/test_gates.py | ..................................F...
+05:12:52    145s rc=0 tools/test_approvals_dispatch.py | 236 passed in 142.70s (0:02:22)
+05:27:45    893s rc=0 tools/test_kitupdate.py | 87 passed, 1 skipped in 890.78s (0:14:50)
+05:48:15   1230s rc=0 tools/test_hooks_v2.py | 2171 passed in 1227.31s (0:20:27)
+06:20:37   1942s rc=0 tools/test_hooks.py | 1087 passed, 14 skipped in 1939.43s (0:32:19)
+DONE 06:20:37

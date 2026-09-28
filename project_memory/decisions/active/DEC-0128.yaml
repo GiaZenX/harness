@@ -1,0 +1,28 @@
+id: DEC-0128
+title: 'Stufen: Opus und Fable auf ZWEI Stufen -- Giga = Opus xhigh, Tera = Fable,
+  selten und nur mit gemessenem Vorteil (teuer); Haiku bleibt fuer Code gesperrt,
+  Haiku 5.5 wird fuer eine Nicht-Code-Routineklasse (Recherche-Zusammenfassung, Berichte)
+  gemessen, sobald es erscheint'
+context: 'User 2026-09-28: ''wuerde Opus und Fable auf zwei verschiedene Stufen setzen.
+  Und Fable ist sehr teuer deshalb eher vermeiden und nicht haeufig nutzen. Nur wenn
+  es wirklich einen Vorteil bietet. Haiku 5.5 wird hoffe ich mal richtig gut fuer
+  Recherche oder fuer Routine-Aufgaben, Zusammenfassung von Berichten oder so. Das
+  momentane ist so schlecht ohne Reasoning und halluziniert mega.'''
+decision: '(1) Giga = Opus (xhigh) -- the planning class (DEC-0127). (2) Tera = Fable:
+  used only for a named step where a MEASURED advantage over Giga exists (benchmark
+  of that class), never as a default; the PM states the measured reason on the order.
+  (3) Haiku: never for code (unchanged). A read-only routine class below Kilo (summaries
+  of reports, research digests, routine lookups) is opened for Haiku 5.5 only after
+  it passes a measurement on such tasks with a hallucination check against the sources;
+  the current Haiku stays excluded. (4) The class-to-model table is data maintained
+  by measurement (DEC-0126).'
+consequences: Stream C builds Tera as an explicit, rarely used class with a measured-reason
+  requirement; the measurement harness gets a hallucination check for the routine
+  class.
+work:
+- PR-0012
+source: user message 2026-09-28; DEC-0114; DEC-0118; DEC-0126; DEC-0127
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-28T21:50:17'

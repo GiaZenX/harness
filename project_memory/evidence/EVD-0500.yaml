@@ -1,0 +1,19 @@
+id: EVD-0500
+kind: test
+related:
+- BUG-0311
+result: pass
+summary: 'TSK-0155 stream C, worktree g7/field (stamped mirror): a re-run of the real
+  installer over an EMPTY directory at .claude/settings.local.json removes it and
+  completes; over a non-empty one it refuses with a Remedy line and leaves the content
+  -- both scaffold twins (node test_update_over_a_directory_where_a_file_belongs_bug_0311[powershell|bash]).
+  Red with the preflight clear disabled.'
+artifact_refs:
+- staging/TSK-0155/evd/final.log
+- staging/TSK-0155/evd/red-first.log
+run_command: python -B -m pytest tools/test_stream_c_field.py tools/test_migrate.py::test_an_open_v1_task_is_imported_cancelled_bug_0317
+  -v -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:57:54'

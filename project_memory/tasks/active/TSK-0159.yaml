@@ -1,0 +1,67 @@
+id: TSK-0159
+product_requirement: PR-0012
+derives_from: BUG-0334
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-1
+allowed_scope:
+- team-kits/**
+- tools/**
+- docs/**
+- README.md
+- CLAUDE.md
+- ladder.yaml
+- .claude/hooks/test_gates.py
+- .codex/agents/**
+- install.ps1
+- install.sh
+- .gitattributes
+- user/**
+forbidden_scope:
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- .claude/agents/**
+- project_memory/**
+- radar/**
+required_inputs:
+- 'CONTINUES the order-7 merge (TSK-0156 -> 0157 -> 0158, all uncommitted in the main
+  tree, stamp 2026.09.27-9, user patch 4 applied in .claude/hooks/_harness.py). The
+  tools/ delivery run was GREEN (5310 passed, 2026-09-27 23:20); the gate suite had
+  3 red, two fixed by the lead (hole limits + index), the third is BUG-0334: read
+  it, the diagnosis (project_memory/staging/TSK-0156/protocol.md section ''Gate tilde
+  diagnosis'' (from line ~390)) and the proposed fix project_memory/staging/TSK-0158/walk-quoting-fix.diff.
+  BUILD: (1) apply that fix to team-kits/dev-team/hooks/gate_write_scope.py `_walked_to`
+  and mirror x3 byte-identically (in `_walk`, a reading is not tilde/glob-expanded
+  when the word carries quoting (ShellWord.spliced) or is not the first reading ->
+  None = position unknown = refuse); (2) the TWO missing tests, each naming BUG-0334,
+  red first against the current tree in a copy: gate 1''s quoted-glob half in .claude/hooks/test_gates.py,
+  and the kit gate''s cases (tilde, glob, backslash; the `cd .claude ; cd "~" ; echo
+  x > settings.json` chain with the lead as caller) in tools/test_hooks_v2.py; (3)
+  the docstring names both tests and the over-refusal price (`cd ~/"My Dir"`); (4)
+  ONE stamp; (5) reading suites as their own selections, each with a time budget:
+  test_gates.py nodes test_gate1_refuses_a_line_exactly_where_the_shell_would_write,
+  the bug_0139 pair, test_gate1_comes_back_out_of_a_group_it_walked_into, your new
+  node; tools/test_stream_c_field.py -k bug_0323; tools/test_hooks.py -k "directory
+  or walk or cd or pushd or popd or position or tilde" (the diagnosis saw 3 copy-only
+  failures there -- run it in the MAIN tree read-only or explain); tools/test_hooks_v2.py
+  -k "walk or cd or tilde or position"; validate + ruff. Protocol section ''Rework
+  3'' in project_memory/staging/TSK-0156/protocol.md as you go. Any hole you file
+  with `capture --hole` carries `limits` at once (the gate suite demands it). No full
+  run, no commit, no push, no BUG transitions.'
+expected_outputs:
+- 'rework 3: BUG-0334 fixed x3 with its two naming tests red-first; the 16 cells green;
+  reading suites green with clock times; one stamp; validate + ruff clean; the full
+  run NOT started'
+dependencies:
+- TSK-0153
+- TSK-0154
+- TSK-0155
+rung: opus
+effort: high
+root_revision: 1
+status: CANCELLED
+revision: 1
+approval_ref: null
+created: '2026-09-28T12:35:08'

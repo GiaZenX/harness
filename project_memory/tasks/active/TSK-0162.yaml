@@ -1,0 +1,58 @@
+id: TSK-0162
+product_requirement: PR-0012
+derives_from: BUG-0335
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-1
+allowed_scope:
+- team-kits/**
+- tools/**
+- docs/**
+- .claude/hooks/test_gates.py
+forbidden_scope:
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- .claude/agents/**
+- project_memory/**
+- radar/**
+- team-kits/kernel/integrate*.py
+- team-kits/dev-team/hooks/gate_git.py
+required_inputs:
+- 'CONTINUES TSK-0161 (CANCELLED; order 7 + reworks 1-4 uncommitted in the main tree,
+  stamp 2026.09.28-2). CLOSE BUG-0335 (H229) in team-kits/*/hooks/gate_write_scope.py,
+  mirrored x3, with the definition this repo''s gate 1 already has (H29/H30 in .claude/hooks/_harness.py
+  -- READ it, do not edit it): a directory move the shell may not perform does not
+  give a known position. Concretely (verifier''s minimal fix, project_memory/staging/TSK-0159/verify-round-1.md
+  B1): in `_walked_to` add the ''stays'' reading (cwd) as a candidate whenever the
+  target is no existing directory at gate time; in `_walk` read an operand list that
+  is not exactly one target, and -n / +N / -N, as ''stays or unknown''; popd on an
+  empty stack gets cwd as a candidate. The protected reading wins, so the direction
+  is refusing; `mkdir x ; cd x` must stay rc 0 (the ''stays'' candidate there is harmless)
+  -- measure it. TEST naming BUG-0335 in tools/test_hooks_v2.py over the verifier''s
+  eleven forms (lead as caller, bash as arbiter; C:/Offline Repos/v2-testbed/_round-scratch/TSK-0159-verify/out2.txt)
+  plus counter-cases (a real existing target, `mkdir x ; cd x`, `cd -` after a real
+  move), red first against the current tree, and the real-project chain (chain.py
+  / _round-scratch/TSK-0161/measure_0335.py) showing gate_write_scope rc 2. The docstrings
+  of `_walk`/`_walked_to` stop calling BUG-0335 open. Reading suites by CALLERS of
+  `_walk` / `_walked_to` (grep), each with a time budget: at least tools/test_hooks_v2.py
+  -k "bug_0334 or bug_0335 or walk or cd or tilde or position", tools/test_hooks.py
+  -k "directory or walk or cd or pushd or popd or position or tilde", tools/test_stream_c_field.py
+  -k bug_0323, tools/test_repo_hygiene.py -k pointer, the gate-1 nodes in .claude/hooks/test_gates.py
+  that borrow the kit walk (test_gate1_refuses_a_line_exactly_where_the_shell_would_write,
+  test_gate1_comes_back_out_of_a_group_it_walked_into, the bug_0334 node). ONE stamp;
+  validate + ruff. Protocol section ''Rework 5'' in project_memory/staging/TSK-0156/protocol.md
+  as you go. No full run, no commit, no push, no BUG transitions.'
+expected_outputs:
+- 'rework 5: BUG-0335 closed x3 with its naming test red-first (eleven forms + chain)
+  and counter-cases green; reading suites by callers green with clock times; one stamp;
+  validate + ruff clean; the full run NOT started'
+dependencies: []
+rung: opus
+effort: high
+root_revision: 1
+status: READY
+revision: 1
+approval_ref: null
+created: '2026-09-28T15:35:07'

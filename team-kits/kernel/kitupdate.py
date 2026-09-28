@@ -41,14 +41,18 @@ stops_the_session`).
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 
 from . import approvals, presets, references, trays
-from .hashing import BundleSourceMissing, hook_bundle_hash, kit_hash, modified_bundle_files
+from .hashing import (BUNDLE_SUBTREES, BundleSourceMissing, hook_bundle_hash, kit_hash,
+                      modified_bundle_files, prune_transient, strangers_in_the_bundle,
+                      transient_entries)
 from .state import ProjectState, StateError
 
 # The APR kind that authorises this operation, and the command that consumes it. One name, three
@@ -701,12 +705,18 @@ def _bundle_reading(root: str, kit_dir: str) -> str:
     measured = hook_bundle_hash(claude)
     if measured is None:
         return "unreadable"
+    recorded = _recorded_bundle_hash(claude)
+    return "recorded" if recorded and recorded == measured else "neither"
+
+
+def _recorded_bundle_hash(claude: str):
+    """The bundle hash `.claude/kit_state.json` vouches for, or None when there is none to read."""
     try:
         with open(os.path.join(claude, "kit_state.json"), encoding="utf-8-sig") as handle:
             recorded = (json.load(handle) or {}).get("hook_bundle_hash")
-    except (OSError, ValueError):
-        recorded = None
-    return "recorded" if recorded and recorded == measured else "neither"
+    except (OSError, ValueError, AttributeError):
+        return None
+    return str(recorded) if recorded else None
 
 
 def _installed_state(root: str, kit_dir: str) -> dict:
@@ -1337,6 +1347,11 @@ def preflight_cli(argv) -> int:
                 "scripts/harness.py migrate --dry-run` is worked through\n")
         assert_the_stock_may_be_written_over(answer)
         assert_not_pinned(root, kit, staged)
+        # LAST, because it is the one step here that may change something: every refusal above
+        # still leaves the project exactly as it was.
+        for cleared in clear_directories_where_files_belong(root):
+            sys.stdout.write("  [preflight] removed the EMPTY directory %s -- a file belongs "
+                             "there, and an empty directory carries nothing\n" % cleared)
     except StateError as refused:
         sys.stderr.write("%s\n" % refused)
         return 1
@@ -1348,3 +1363,481 @@ def preflight_cli(argv) -> int:
             % (root, type(exc).__name__, exc))
         return 1
     return 0
+
+
+# -- a directory where the installer expects a file (BUG-0311) ------------------------------------
+
+# THE FILES THE INSTALLER PARSES OUT OF THE PROJECT before it writes anything -- as opposed to the
+# files it only overwrites, which its own copy step owns. Measured in the field: an EMPTY directory
+# at `.claude/settings.local.json` (origin unknown; a container bind mount of a missing file makes
+# exactly that shape) aborted the update with "Invalid settings.local.json", and the session may
+# not remove anything under `.claude`.
+PARSED_PROJECT_FILES = (os.path.join(".claude", "settings.local.json"),)
+
+
+def clear_directories_where_files_belong(root: str) -> list:
+    """Remove an EMPTY directory standing where the installer parses a file; refuse a full one.
+
+    Empty: it carries nothing, so removing it loses nothing and the install continues. Not empty:
+    what is inside is somebody's, and deciding about it is not the installer's -- refused with the
+    step the user takes. `os.rmdir` is the test and the act at once: it removes only an empty
+    directory, so no race can turn this into a recursive delete. A LINK is never followed or
+    removed here; the twins' reparse-point check refuses it before this runs.
+    `tools/test_stream_c_field.py::test_update_over_a_directory_where_a_file_belongs_bug_0311`
+    """
+    cleared = []
+    for relative in PARSED_PROJECT_FILES:
+        path = os.path.join(root, relative)
+        if os.path.islink(path) or not os.path.isdir(path):
+            continue
+        try:
+            os.rmdir(path)
+        except OSError:
+            try:
+                held = sorted(os.listdir(path))
+            except OSError:
+                held = ["(could not be listed)"]
+            raise StateError(
+                "%s is a DIRECTORY holding %d entr%s (%s), where the installer expects the file "
+                "of that name -- refused, nothing was changed: what is inside belongs to somebody, "
+                "and this installer does not decide about it. Remedy: from a shell OUTSIDE this "
+                "session, move what the directory holds somewhere else, remove the directory, and "
+                "run the update again."
+                % (relative.replace(os.sep, "/"), len(held), "y" if len(held) == 1 else "ies",
+                   ", ".join(held[:5]) + (", ..." if len(held) > 5 else ""))) from None
+        cleared.append(relative.replace(os.sep, "/"))
+    return cleared
+
+
+# -- the doors an installed project's session may use (BUG-0310, BUG-0319, BUG-0323) -------------
+#
+# ALL THREE ONLY DELETE, UNTRACK OR COPY THE KIT'S OWN BYTES, and that is why a session may walk
+# them: `gate_write_scope` refuses a session every write-capable command line that names `.claude`,
+# and each chore below was measured as a dead end behind exactly that refusal. None of them can
+# put bytes into the enforcement layer that the kit did not ship -- the cache prune removes
+# leftovers only (`hashing.is_transient`), the adopt copies the kit template of the release this
+# project runs, and the memory prune deletes.
+#
+# WHICH SESSION: the lead's. A SUBAGENT gets only `prune-memory` on its own role -- the others change
+# what the whole project runs on, and another role's memory is not its to delete (BUG-0325). The
+# kernel cannot tell who calls, so that bound lives in `gate_write_scope` rule 4:
+# `tools/test_hooks_v2.py::test_a_subagent_cannot_run_an_upkeep_door_on_shared_state_bug_0325`.
+#
+# ONE COMMAND WITH FIVE ACTIONS rather than five commands, and the reason is measured: every
+# constitution presents the whole command surface and loads at every session start, and its size
+# is budgeted (`tools/validate.py`, the lead instruction package) -- three separate names pushed all
+# three kits over that budget in this round.
+UPKEEP_COMMAND = "upkeep"
+PRUNE_CACHES = "prune-caches"
+RESOLVE_PENDING = "resolve-pending"
+ADOPT_TEMPLATE = "adopt-template"
+UNTRACK_IGNORED = "untrack-ignored"
+PRUNE_MEMORY = "prune-memory"
+
+
+def _inside(path: str, base: str) -> bool:
+    """Is `path` at or under `base`, both RESOLVED (DEC-0121 (2)) -- never judged on spelling."""
+    real, real_base = os.path.realpath(path), os.path.realpath(base)
+    try:
+        return os.path.commonpath([os.path.normcase(real), os.path.normcase(real_base)]) \
+            == os.path.normcase(real_base)
+    except ValueError:
+        return False                   # another drive
+
+
+def prune_bundle_caches(root: str) -> dict:
+    """Remove the tool leftovers under `.claude/hooks` and `.claude/kernel`, then re-measure.
+
+    THE RECOVERY BUG-0310 ASKED FOR: a cache a foreign importer left in the bundle moved the hash,
+    and every spawn was refused until somebody deleted it from outside the session. Deleting a
+    cache never adds code, so the session may do it -- and nothing else: a planted `.py` is not a
+    leftover (`hashing.is_transient`), stays where it is, and the re-measurement then still
+    differs, which the answer says (`matches` False). What was measured is the answer; a caller
+    that prints "trusted again" off anything but `matches` would be claiming a comparison.
+
+    Returns {"removed", "matches", "measured", "recorded", "left"} where `left` names the files
+    that still separate the bundle from the kit's own (strangers and modified files), read against
+    the staged kit when it is on this machine and empty when it is not.
+    """
+    claude = os.path.join(root, ".claude")
+    roots = []
+    for subtree in BUNDLE_SUBTREES:
+        base = os.path.join(claude, subtree)
+        if os.path.exists(base) and not _inside(base, claude):
+            raise StateError(
+                "%s resolves OUTSIDE this project's .claude (%s) -- refused, nothing was removed: "
+                "a prune through a link would delete somebody else's files. Remedy: report it; a "
+                "linked enforcement subtree is a finding of its own."
+                % (os.path.join(".claude", subtree).replace(os.sep, "/"), os.path.realpath(base)))
+        roots.append(base)
+    removed = [subtree + "/" + one for subtree, base in zip(BUNDLE_SUBTREES, roots)
+               for one in transient_entries(base)]
+    prune_transient(*roots)
+    measured, recorded = hook_bundle_hash(claude), _recorded_bundle_hash(claude)
+    left = []
+    if not (measured and recorded and measured == recorded):
+        try:
+            directory = presets.kit_dir(presets.installation(root)["kit"])
+            kernel = os.path.join(os.path.dirname(directory), "kernel")
+            left = sorted(set(modified_bundle_files(os.path.join(directory, "hooks"), kernel,
+                                                    claude))
+                          | set(strangers_in_the_bundle(claude, os.path.join(directory, "hooks"),
+                                                        kernel)))
+        except (StateError, BundleSourceMissing, OSError):
+            left = []
+    return {"removed": removed, "measured": measured, "recorded": recorded,
+            "matches": bool(measured and recorded and measured == recorded), "left": left}
+
+
+# -- the kit-update merge backlog (BUG-0319) ------------------------------------------------------
+
+# WHAT THE LIST'S HEADER SAYS, in one place -- both installer twins used to carry this sentence and
+# the PowerShell one wrote it with a byte-order mark. `repo_templates_cli` is now the one writer.
+PENDING_HEADER = (
+    "# Repo templates this project customised that the KIT CHANGED in %s %s (line-ending style "
+    "ignored) -- the PM works each through the normal loop: merge the wanted kit fix (`python "
+    "scripts/harness.py upkeep adopt-template <path>` takes the kit's template as it is), or record a "
+    "conscious skip as a decision item; then `python scripts/harness.py upkeep resolve-pending` "
+    "removes this file. session_status reminds every session until it is gone. Only "
+    "PROJECT-CUSTOMISABLE templates appear here; the scripts the KIT owns (repo_kit_owned.txt) "
+    "are refreshed by the installer on every run and never land on this list (BUG-0068).")
+
+# WHERE THE INSTALLER RECORDS WHAT IT SHIPPED, and the key this module adds to that record: the
+# line-ending-blind hash of every repo template as the kit shipped it THIS time. The next install
+# compares the kit's new template against it -- which is the only way to tell "the KIT changed this
+# template" from "the project changed it", the difference the list used to miss (BUG-0319).
+REPO_FILES_RECORD = os.path.join(".claude", "kit_repo_files.json")
+TEMPLATE_HASHES = "template_hashes"
+
+
+def _normalised_hash(path: str):
+    """sha256 of a file with every CR dropped -- `_same_but_for_line_endings`' comparison as a hash."""
+    try:
+        with open(path, "rb") as handle:
+            return hashlib.sha256(handle.read().replace(b"\r", b"")).hexdigest()
+    except Exception:          # noqa: BLE001 -- unreadable is its own answer, never "equal"
+        return None
+
+
+def _write_bytes(path: str, text: str) -> None:
+    """UTF-8, no byte-order mark, LF -- the one encoding this module writes a record in."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as handle:
+        handle.write(text.encode("utf-8"))
+
+
+def _recorded_template_hashes(root: str) -> dict:
+    try:
+        with open(os.path.join(root, REPO_FILES_RECORD), encoding="utf-8-sig") as handle:
+            recorded = json.load(handle).get(TEMPLATE_HASHES) or {}
+    except Exception:          # noqa: BLE001 -- no record is "nothing known", the listing direction
+        return {}
+    return {str(key): str(value) for key, value in recorded.items()} \
+        if isinstance(recorded, dict) else {}
+
+
+def _pending_text(kit: str, version: str, entries) -> str:
+    return (PENDING_HEADER % (kit, version) + "\n"
+            + "".join("- %s\n" % entry for entry in entries))
+
+
+def repo_templates_cli(argv) -> int:
+    """`<repo> <kit-dir> <same-version 0|1> --shipped <rel>... --kept <rel>...` -- the installer's
+    record of its repo templates, and the pending list, written ONCE for both twins.
+
+    THE LIST NOW NAMES WHAT THE KIT CHANGED (BUG-0319). A template the twins kept because the
+    project's copy differs from the kit's is decided here against what the kit shipped LAST time
+    (`TEMPLATE_HASHES`):
+
+      * still outstanding on the list already there        -> stays (a re-run does not drop work);
+      * the kit's template is the one it shipped last time  -> NOT listed: the project customised
+                                                               it and the kit did not move;
+      * the project's copy is what the kit shipped last time-> the kit's new template is COPIED
+                                                               over it: nobody customised it;
+      * otherwise (the kit changed it, or nothing recorded)-> listed.
+
+    Measured in the field before this: seven templates listed after an update whose pre/post kit
+    diff was empty, and the list written with a byte-order mark. A project installed before the
+    record carried hashes has none to compare with, so its first update lists as before -- the
+    listing direction, named rather than guessed around.
+    `tools/test_stream_c_field.py::test_an_update_that_changed_no_template_lists_nothing_bug_0319`
+    """
+    try:
+        repo, kit_dir, same = argv[0], argv[1], argv[2] == "1"
+        rest = list(argv[3:])
+        shipped, kept, bucket = [], [], None
+        for word in rest:
+            if word in ("--shipped", "--kept"):
+                bucket = shipped if word == "--shipped" else kept
+            elif bucket is not None:
+                bucket.append(word.replace("\\", "/"))
+        templates = os.path.join(kit_dir, "templates", "repo")
+        previous = _recorded_template_hashes(repo)
+        listing = os.path.join(repo, PENDING_TEMPLATES)
+        hashes = {rel: _normalised_hash(os.path.join(templates, *rel.split("/")))
+                  for rel in shipped}
+        # the list already here, held against the kit's NEW template: what the PM has not merged
+        # yet stays, whatever the kit did since. An unreadable list keeps every kept entry.
+        earlier = pending_entries(listing)
+        still = set(kept) if earlier is None else {
+            rel for rel in earlier
+            if rel in hashes and hashes[rel] != _normalised_hash(
+                os.path.join(repo, *rel.split("/")))}
+        pending = []
+        for rel in kept:
+            new, last = hashes.get(rel), previous.get(rel)
+            ours = _normalised_hash(os.path.join(repo, *rel.split("/")))
+            if rel in still or not new or not last or (new != last and ours != last):
+                sys.stdout.write("  [kept] repo: %s (differs from the kit template - review/merge "
+                                 "manually)\n" % rel)
+                pending.append(rel)
+            elif new == last:
+                sys.stdout.write("  [kept] repo: %s (customised here; the kit did not change "
+                                 "it, so nothing to merge)\n" % rel)
+            elif ours == last:
+                shutil.copyfile(os.path.join(templates, *rel.split("/")),
+                                os.path.join(repo, *rel.split("/")))
+                sys.stdout.write("  [ok] repo: %s (unchanged here since the last install -> "
+                                 "updated to the kit's)\n" % rel)
+        record = {"kit": os.path.basename(os.path.normpath(kit_dir)),
+                  "repo_files": sorted(shipped),
+                  TEMPLATE_HASHES: {rel: value for rel, value in sorted(hashes.items()) if value}}
+        _write_bytes(os.path.join(repo, REPO_FILES_RECORD), json.dumps(record, indent=2) + "\n")
+        sys.stdout.write("  [ok] .claude/kit_repo_files.json (%d file(s) this kit places in the "
+                         "project)\n" % len(shipped))
+        counter = os.path.join(repo, PENDING_PREFIX + "state")
+        if pending:
+            stamp = _stamp(os.path.join(kit_dir, STAGED_VERSION_FILE))
+            _write_bytes(listing, _pending_text(record["kit"], stamp.get("version") or "?",
+                                                sorted(pending)))
+            # a fresh REAL update restarts the nag counter; a same-version re-run must not
+            if not same and os.path.isfile(counter):
+                os.remove(counter)
+            sys.stdout.write("  [!] %d diverged repo file(s) -> .claude/kit_update_pending.repo "
+                             "(merge or consciously skip, then `python scripts/harness.py "
+                             "upkeep resolve-pending`)\n" % len(pending))
+        elif os.path.isfile(listing):
+            os.remove(listing)
+    except Exception as exc:                                 # noqa: BLE001 -- the twins check rc
+        sys.stderr.write("could not record the repo templates (%s: %s)\n"
+                         % (type(exc).__name__, exc))
+        return 1
+    return 0
+
+
+def _repo_pending(root: str) -> dict:
+    """The repo list, re-validated and READ -- or a refusal; no door acts on an unread list."""
+    found = outstanding_pending(root).get("repo")
+    if found is None:
+        raise StateError("there is no %s here -- nothing is pending."
+                         % PENDING_TEMPLATES.replace(os.sep, "/"))
+    if not found["read"]:
+        raise StateError(
+            "%s exists and could NOT be read, so what it still asks for is unknown -- refused; "
+            "an unread list is never resolved or rewritten (`pending_entries`). Remedy: report it "
+            "and name the file; a permission denial or a cloud placeholder looks like this."
+            % PENDING_TEMPLATES.replace(os.sep, "/"))
+    return found
+
+
+def _rewrite_pending(root: str, remaining) -> None:
+    listing = os.path.join(root, PENDING_TEMPLATES)
+    if not remaining:
+        os.remove(listing)
+        return
+    with open(listing, "rb") as handle:
+        header = [line for line in handle.read().decode("utf-8-sig", "replace").splitlines()
+                  if line.strip() and not line.strip().startswith("- ")]
+    _write_bytes(listing, "".join(line + "\n" for line in header)
+                 + "".join("- %s\n" % entry for entry in remaining))
+
+
+def resolve_pending(root: str) -> dict:
+    """Remove the merge backlog the PM has worked through -- and say what it still named.
+
+    The header and the session notice both said "then DELETE this file", and the session may not
+    (it lives under `.claude`). What the list still names after re-validation is printed, so a
+    conscious skip is on record in the output and not only in somebody's head.
+    """
+    lists = outstanding_pending(root)
+    if not lists:
+        raise StateError("there is no %s* list here -- nothing is pending."
+                         % PENDING_PREFIX.replace(os.sep, "/"))
+    unread = sorted(suffix for suffix, found in lists.items() if not found["read"])
+    if unread:
+        raise StateError(
+            "%s exists and could NOT be read, so what it still asks for is unknown -- refused, "
+            "nothing was removed; an unread list is never resolved (`pending_entries`). Remedy: "
+            "report it and name the file; a permission denial or a cloud placeholder looks like "
+            "this." % ", ".join(PENDING_PREFIX.replace(os.sep, "/") + one for one in unread))
+    for suffix in lists:
+        os.remove(os.path.join(root, PENDING_PREFIX + suffix))
+    counter = os.path.join(root, PENDING_PREFIX + "state")
+    if os.path.isfile(counter):
+        os.remove(counter)
+    return {"outstanding": [entry for found in lists.values() for entry in found["entries"]],
+            "checked": all(found["checked"] for found in lists.values())}
+
+
+def adopt_template(root: str, entry: str) -> dict:
+    """Copy the kit's template for ONE listed path over the project's copy.
+
+    Only a path the list NAMES, only the repo list, and only from a staging that IS the release
+    this project runs -- either the template hashes to what that install recorded, or the staged
+    stamp equals the installed one. A newer staging holds a template nobody reviewed for this
+    project, so it is refused rather than slipped in. Both ends are compared RESOLVED.
+    """
+    found = _repo_pending(root)
+    wanted = entry.replace("\\", "/").strip("/")
+    parts = [part for part in wanted.split("/") if part]
+    if not parts or ".." in parts or wanted not in found["entries"]:
+        raise StateError(
+            "%r is not an outstanding entry of %s (%s) -- refused. Remedy: name the path exactly "
+            "as the list does." % (entry, PENDING_TEMPLATES.replace(os.sep, "/"),
+                                   ", ".join(found["entries"]) or "nothing outstanding"))
+    kit = presets.installation(root)["kit"]
+    directory = presets.kit_dir(kit)
+    templates = os.path.join(directory, "templates", "repo")
+    source = os.path.join(templates, *parts)
+    target = os.path.join(root, *parts)
+    if not (os.path.isfile(source) and _inside(source, templates) and _inside(target, root)):
+        raise StateError("the template or the target for %r does not resolve inside its own tree "
+                         "-- refused, nothing was copied." % wanted)
+    recorded = _recorded_template_hashes(root).get(wanted)
+    same_release = _stamp(os.path.join(directory, STAGED_VERSION_FILE)) == _stamp(
+        os.path.join(root, INSTALLED_VERSION_FILE))
+    if not (same_release or (recorded and recorded == _normalised_hash(source))):
+        raise StateError(
+            "the staged '%s' kit is not the release this project runs, so its template for %s is "
+            "not the one this list was written against -- refused, nothing was copied. Remedy: "
+            "update the kit first (`python scripts/harness.py %s`), then adopt."
+            % (kit, wanted, COMMAND))
+    shutil.copyfile(source, target)
+    remaining = (outstanding_pending(root).get("repo") or {}).get("entries") or []
+    _rewrite_pending(root, remaining)
+    return {"adopted": wanted, "remaining": list(remaining)}
+
+
+def untrack_kit_ignored(root: str) -> list:
+    """`git rm --cached` every tracked file that BOTH this project's ignore rules and the kit's
+    `.gitignore` template ignore -- the files stay on disk; only the index forgets them.
+
+    Both, because each alone is too wide: the project's rules may ignore a file the user
+    force-added on purpose, and the kit's template names paths this project may not ignore at all.
+    What the kit now ignores and the project agreed to ignore is the chore the update left.
+    """
+    kit = presets.installation(root)["kit"]
+    ignore = os.path.join(presets.kit_dir(kit), "templates", "repo", ".gitignore")
+    if not os.path.isfile(ignore):
+        raise StateError("the '%s' kit ships no .gitignore template, so there is nothing it "
+                         "ignores to untrack." % kit)
+
+    def ignored(*options):
+        result = subprocess.run(["git", "ls-files", "-z", "-c", "-i"] + list(options), cwd=root,
+                                capture_output=True, timeout=120)
+        if result.returncode != 0:
+            raise StateError("git could not list the tracked files here (exit %d): %s"
+                             % (result.returncode,
+                                result.stderr.decode("utf-8", "replace").strip()[:300]))
+        return {one.decode("utf-8", "replace") for one in result.stdout.split(b"\0") if one}
+
+    try:
+        paths = sorted(ignored("--exclude-standard") & ignored("--exclude-from=" + ignore))
+    except OSError as exc:
+        raise StateError("git is not available here (%s) -- nothing was untracked." % exc) \
+            from None
+    for start in range(0, len(paths), 100):
+        result = subprocess.run(["git", "rm", "--cached", "-q", "--"] + paths[start:start + 100],
+                                cwd=root, capture_output=True, timeout=120)
+        if result.returncode != 0:
+            raise StateError("git rm --cached refused (exit %d): %s -- %d path(s) were untracked "
+                             "before it." % (result.returncode, result.stderr.decode(
+                                 "utf-8", "replace").strip()[:300], start))
+    return paths
+
+
+# -- a role memory over its budget (BUG-0323) -----------------------------------------------------
+
+# The index file of a role's memory, by the stem the kit hook polices it under
+# (`guard_memory_budget.INDEX_STEMS`) -- held together with it by
+# `tools/test_stream_c_field.py::test_the_prune_door_reads_the_index_the_kit_hook_polices_bug_0323`.
+MEMORY_INDEX_STEM = "memory"
+_LINK_TARGET_RX = re.compile(r"\]\(\s*<?([^)>\s]+)>?\s*\)")
+
+
+def prune_memory(root: str, role: str, retire=None, keep_newest=None) -> dict:
+    """Delete topic files of ONE role's memory, and the index lines that point at them.
+
+    THE DOOR BUG-0323 FOUND MISSING: a memory that grew past its budget before the guard existed
+    could not be brought back under it from any session -- the shell is shut on `.claude` and no
+    tool deletes. Deleting is the safe direction (it adds no instruction a role would load), so
+    this door only deletes: named topics (`retire`) or all but the `keep_newest` most recently
+    changed ones. The index is never retired, and the index lines it drops are exactly those
+    whose markdown link points at a local file that is not there (after the retirement) -- the
+    retired topics and the field's dangling lines alike. A name that is not a topic of that role
+    refuses the whole call before anything is removed. Links are neither followed nor deleted.
+    """
+    if (retire is None) == (keep_newest is None):
+        raise StateError("name the topics to retire (--retire, repeatable) OR how many of the "
+                         "newest to keep (--keep-newest N) -- exactly one of the two.")
+    if not role or role in (".", "..") or any(sep in role for sep in ("/", "\\", ":")):
+        raise StateError("%r is not a role name -- one path segment, as in .claude/agents/." % role)
+    base = os.path.join(root, MEMORY_DIR)
+    role_dir = os.path.join(base, role)
+    if not os.path.isdir(role_dir) or os.path.islink(role_dir) or not _inside(role_dir, base):
+        raise StateError("there is no memory directory for %r under %s."
+                         % (role, MEMORY_DIR.replace(os.sep, "/")))
+    index, topics = [], {}
+    for current, dirs, files in os.walk(role_dir):
+        dirs[:] = [name for name in dirs if not os.path.islink(os.path.join(current, name))]
+        for name in files:
+            path = os.path.join(current, name)
+            if os.path.islink(path):
+                continue
+            relative = os.path.relpath(path, role_dir).replace(os.sep, "/")
+            stem = name.rsplit(".", 1)[0].lower() if "." in name else name.lower()
+            if current == role_dir and stem == MEMORY_INDEX_STEM:
+                index.append(path)
+            else:
+                topics[relative] = path
+    if keep_newest is not None:
+        if keep_newest < 0:
+            raise StateError("--keep-newest takes a count of 0 or more.")
+        ordered = sorted(topics, key=lambda rel: os.path.getmtime(topics[rel]), reverse=True)
+        chosen = ordered[keep_newest:]
+    else:
+        folded = {os.path.normcase(rel): rel for rel in topics}
+        chosen, unknown = [], []
+        for name in retire:
+            key = os.path.normcase(str(name).replace("\\", "/").strip("/"))
+            (chosen if key in folded else unknown).append(folded.get(key, name))
+        if unknown:
+            raise StateError("not a topic of %s's memory (the index is never one): %s -- refused, "
+                             "nothing was removed." % (role, ", ".join(unknown)))
+    for rel in chosen:
+        os.remove(topics[rel])
+
+    def dangling(target):
+        # a LOCAL link (no scheme, no anchor) whose file is not in the role's memory any more --
+        # the retired ones and the ones that never existed alike; a pointer to nothing
+        local = target[2:] if target.startswith("./") else target
+        if "://" in local or local.startswith(("#", "/", "\\")) or ":" in local:
+            return False
+        path = os.path.join(role_dir, *local.replace("\\", "/").split("/"))
+        return not (os.path.isfile(path) and _inside(path, role_dir))
+
+    dropped = 0
+    for path in index:
+        # BYTES in and out: a line is decoded only to be READ, and what is written back is the
+        # bytes of the lines that stay -- a byte this reader cannot decode is not rewritten
+        with open(path, "rb") as handle:
+            lines = handle.read().splitlines(True)
+        kept = [line for line in lines
+                if not any(dangling(target) for target in
+                           _LINK_TARGET_RX.findall(line.decode("utf-8", "replace")))]
+        dropped += len(lines) - len(kept)
+        if len(kept) != len(lines):
+            with open(path, "wb") as handle:
+                handle.write(b"".join(kept))
+    return {"retired": sorted(chosen), "remaining": len(topics) - len(chosen),
+            "index_lines_dropped": dropped}

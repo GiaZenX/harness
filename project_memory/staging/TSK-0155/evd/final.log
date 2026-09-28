@@ -1,0 +1,24 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.0, pytest-9.1.1, pluggy-1.6.0 -- C:\Program Files\Python313\python.exe
+hypothesis profile 'default'
+rootdir: C:\Offline Repos\v2-testbed\_round-scratch\TSK-0155\tree
+plugins: anyio-4.14.1, dash-4.0.0, hypothesis-6.155.7, asyncio-1.4.0, base-url-2.1.0, cov-7.1.0, playwright-0.8.0, xdist-3.8.0, respx-0.23.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 13 items
+
+tools/test_stream_c_field.py::test_importing_the_installed_kernel_without_b_writes_no_bytecode_bug_0310 PASSED [  7%]
+tools/test_stream_c_field.py::test_a_session_prunes_bundle_caches_and_the_spawn_check_trusts_again_bug_0310 PASSED [ 15%]
+tools/test_stream_c_field.py::test_update_over_a_directory_where_a_file_belongs_bug_0311[powershell] PASSED [ 23%]
+tools/test_stream_c_field.py::test_update_over_a_directory_where_a_file_belongs_bug_0311[bash] PASSED [ 30%]
+tools/test_stream_c_field.py::test_an_autocrlf_clone_keeps_the_trusted_bundle_hash_bug_0316 PASSED [ 38%]
+tools/test_stream_c_field.py::test_reading_git_attributes_of_a_protected_path_is_not_a_write_bug_0316 PASSED [ 46%]
+tools/test_stream_c_field.py::test_an_update_that_changed_no_template_lists_nothing_bug_0319 PASSED [ 53%]
+tools/test_stream_c_field.py::test_the_merge_backlog_has_doors_a_session_can_walk_bug_0319 PASSED [ 61%]
+tools/test_stream_c_field.py::test_a_test_stack_named_by_the_convention_is_cleanable_bug_0320 PASSED [ 69%]
+tools/test_stream_c_field.py::test_a_shell_write_after_an_absolute_cd_into_craft_memory_is_refused_bug_0323 PASSED [ 76%]
+tools/test_stream_c_field.py::test_an_over_budget_memory_can_be_brought_back_under_it_bug_0323 PASSED [ 84%]
+tools/test_stream_c_field.py::test_the_prune_door_reads_the_index_the_kit_hook_polices_bug_0323 PASSED [ 92%]
+tools/test_migrate.py::test_an_open_v1_task_is_imported_cancelled_bug_0317 PASSED [100%]
+
+======================= 13 passed in 213.92s (0:03:33) ========================
+exit 0

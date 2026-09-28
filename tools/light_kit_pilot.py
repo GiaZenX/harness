@@ -227,8 +227,9 @@ def pilot(kit, out, store, env):
     if asked["rc"] == 0:
         question = json.loads(asked["out"])
         audit["question"] = question["question"]
-        request_id = question["question"].rsplit("[APR-REQ:", 1)[1].rstrip("]")
-        conftest.mint_via_hook(state, approvals.pending_request(state, request_id))
+        # FR-0095: the card names its request by the approving label's mint code
+        (code,) = approvals.card_mint_codes(question)
+        conftest.mint_via_hook(state, approvals.pending_request_by_code(state, code))
         audit["root_approval_ref_after_mint"] = state.read_item(root_id).get("approval_ref")
         created = entry("create-task", "--product-requirement", root_id, "--derives-from", root_id,
                         "--type", "analysis", "--assigned-role", AUDIT_ROLE, "--acceptance-ref", "AC-1",

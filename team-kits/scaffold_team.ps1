@@ -827,9 +827,9 @@ if (Test-Path $repoTplSrc) {
         # drifts LF->CRLF, and comparing raw bytes then read EVERY script as "differs" and sent it to
         # the pending list though its content was the kit's own (BUG-0068).
         } elseif ((Get-NormalizedSha256 $dst) -ne (Get-NormalizedSha256 $_.FullName)) {
-            # copy-if-absent keeps the project's version — but say so, or a kit fix (e.g. quality.py)
-            # silently never reaches existing projects while the update reads as "applied".
-            Write-Host "  [kept] repo: $rel (differs from the kit template - review/merge manually)" -ForegroundColor Yellow
+            # copy-if-absent keeps the project's version -- WHETHER that is a merge task is decided
+            # (and said) by `kernel.kitupdate.repo_templates_cli` below, against what the kit
+            # shipped last time (BUG-0319).
             $keptList += ($rel -replace '\\', '/')
         }
     }
@@ -842,32 +842,29 @@ if (Test-Path $repoTplSrc) {
 # print the same and mean the opposite things, and the reassuring one would be the wrong default.
 # WRITTEN BY THE INTERPRETER, in both twins, and that is not tidiness: `ConvertTo-Json` on Windows
 # PowerShell 5.1 unwraps a one-element array into a scalar and writes a BOM, so the two twins would
-# hand a reader two different documents for the same installation. The source below is BYTE-
-# IDENTICAL with the .sh twin's and carries neither a double quote nor a backslash, because this
-# call passes it to a native executable: the first cut reached `python` as
-# `open(sys.argv[1], w, encoding=utf-8, newline=\n)` and died on a SyntaxError -- measured, and
-# walked past with exit code 0, which is why the status is checked here.
-$repoFilesWriter = @'
-import json, sys
-record = json.dumps({'kit': sys.argv[2], 'repo_files': sorted(sys.argv[3:])}, indent=2) + chr(10)
-open(sys.argv[1], 'wb').write(record.encode('utf-8'))
+# hand a reader two different documents for the same installation. ONE KERNEL FUNCTION writes it
+# for both twins now -- `kernel.kitupdate.repo_templates_cli` -- and the pending list with it
+# (BUG-0319): which kept template the KIT changed is decided there against the hashes the record
+# carries from last time, the list is written without a byte-order mark (this twin's
+# `Set-Content -Encoding utf8` wrote one), and the nag counter survives a same-version re-run. The
+# source below carries neither a double quote nor a backslash, because this call passes it to a
+# native executable: an earlier cut reached `python` as `open(sys.argv[1], w, encoding=utf-8,
+# newline=\n)` and died on a SyntaxError -- walked past with exit code 0, which is why the status
+# is checked here.
+$repoTemplatesSource = @'
+import sys
+from kernel import kitupdate
+sys.exit(kitupdate.repo_templates_cli(sys.argv[1:]))
 '@
-& $providerPython.Source -c $repoFilesWriter (Join-Path $repo ".claude\kit_repo_files.json") $Team @($shippedList)
-if ($LASTEXITCODE -ne 0) { throw "Could not write .claude/kit_repo_files.json (exit $LASTEXITCODE)" }
-Write-Host "  [ok] .claude/kit_repo_files.json ($($shippedList.Count) file(s) this kit places in the project)" -ForegroundColor Green
-$pendFile = Join-Path $repo ".claude\kit_update_pending.repo"
-$stateFile = Join-Path $repo ".claude\kit_update_pending.state"
-if ($keptList.Count -gt 0) {
-    $lines = @("# Repo templates this project customised that ALSO changed in kit $Team $((Get-Content (Join-Path $kit 'VERSION') -TotalCount 1 -ErrorAction SilentlyContinue)) (line-ending style ignored) -- the PM works each through the normal loop: merge the wanted kit fix, or record a conscious skip as a decision item (decisions/active/), then DELETE this file. session_status reminds every session until it is gone. Only PROJECT-CUSTOMISABLE templates appear here; the scripts the KIT owns (listed in the installer's repo_kit_owned.txt, each with the reason it is there -- the enforcement layer, the entry point, the money reader) are refreshed by the installer on every run and never land on this list, so nothing here needs a route a session forbids (BUG-0068).")
-    $lines += ($keptList | ForEach-Object { "- $_" })
-    Set-Content -Path $pendFile -Value $lines -Encoding utf8
-    # fresh REAL update -> fresh nag counter; a same-version re-run must NOT reset the
-    # escalation (audit: "updating again just to be safe" kept the backlog forever young)
-    if ((Test-Path $stateFile) -and -not $script:SameVersion) { Remove-Item $stateFile -Force }
-    Write-Host "  [!] $($keptList.Count) diverged repo file(s) -> .claude/kit_update_pending.repo (merge or consciously skip, then delete it)" -ForegroundColor Yellow
-} elseif (Test-Path $pendFile) {
-    Remove-Item $pendFile -Force
+$previousPythonPath = $env:PYTHONPATH
+$env:PYTHONPATH = $PSScriptRoot
+try {
+    & $providerPython.Source -B -c $repoTemplatesSource $repo $kit $(if ($script:SameVersion) { "1" } else { "0" }) --shipped @($shippedList) --kept @($keptList)
+    $code = $LASTEXITCODE
+} finally {
+    $env:PYTHONPATH = $previousPythonPath
 }
+if ($code -ne 0) { throw "Could not write .claude/kit_repo_files.json / the pending list (exit $code)" }
 
 # BUG-0016 handover marker (DEC-0032): set it LAST, when the install has otherwise succeeded, so
 # the global ~/.claude/hooks/handover_guard.py refuses product-code writes and further derivation

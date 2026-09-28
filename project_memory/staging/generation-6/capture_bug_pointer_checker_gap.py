@@ -1,0 +1,37 @@
+"""TSK-0158 finish (2026-09-27 20:4x): a dead test pointer hidden by the pointer checker's code-span pairing.
+Not idempotent. Goes to wave 2 stream F (tests)."""
+import json
+import os
+import subprocess
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+KERNEL = [sys.executable, "-B", "-m", "kernel.cli", "--root", "project_memory", "capture", "BUG"]
+
+BODY = {
+    "title": "Der Zeiger-Pruefer uebersieht tote Testzeiger in Dateien, deren Code selbst Backticks enthaelt "
+             "(holes.py:216 zeigt auf einen Test, der in test_kernel.py steht)",
+    "related_pr": "PR-0012",
+    "observed": "MEASURED by the TSK-0158 finisher 2026-09-27 20:4x: team-kits/kernel/holes.py:216 names "
+                "tools/test_migrate_holes.py::test_a_citation_that_names_no_test_stops_the_run_before_it_writes, "
+                "the test lives in tools/test_kernel.py:1273; test_repo_hygiene stays green because backticks in "
+                "holes.py's CODE (lines 95, 96, 175) shift _CODE_SPAN_RX's pairing so the span at :216 starts at "
+                "the pointer's closing backtick (measured by applying test_repo_hygiene._test_citations to the file).",
+    "expected": "The pointer checker reads comment/docstring text per line or per token (tokenize), not a whole-file "
+                "backtick pairing, so a code backtick cannot hide a pointer; holes.py:216 corrected.",
+    "repro": "python -c over test_repo_hygiene._test_citations on team-kits/kernel/holes.py -- the :216 pointer is "
+             "not among the citations.",
+    "severity": "low",
+    "acceptance_criteria": [
+        {"id": "AC-1", "text": "a test naming this bug: a file with a code backtick before a dead pointer is reported "
+                               "(red on the current checker); holes.py:216 resolves"},
+    ],
+    "source": "TSK-0158 finisher report; project_memory/staging/TSK-0156/protocol.md 'Rework 2 finish'",
+    "limits": "Nur Doku-Verweise betroffen; kein Schutz haengt daran. Geplant fuer Welle 2 Strom F (Tests).",
+}
+
+env = dict(os.environ, PYTHONPATH="team-kits")
+r = subprocess.run(KERNEL, cwd=ROOT, env=env, input=json.dumps(BODY), capture_output=True, text=True, encoding="utf-8")
+sys.stdout.write(r.stdout)
+sys.stderr.write(r.stderr[-1500:])
+sys.exit(r.returncode)

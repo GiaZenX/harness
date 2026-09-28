@@ -1,0 +1,40 @@
+id: BUG-0329
+title: 'Die behaltene Lease eines wartenden Kindes gibt ihren Spawn-Buchstaben frei:
+  ein zweiter Auftrag derselben Rolle unter demselben Ziel bekommt denselben Buchstaben
+  und denselben sichtbaren Namen (FR-0092, TSK-0158)'
+related_pr: PR-0012
+observed: 'MECHANISM: team-kits/kernel/dispatch.py `_spawn_name_locked` counts a lease
+  as LIVE by its TTL alone (`_expired`), while since BUG-0326 the sweep keeps the
+  expired lease of a WAITING child and `running_leases` counts it as held. So the
+  letter of a kept waiting lease is free again for the next lease of the same role
+  under the same goal. MEASURED CHAIN (TSK-0158, on a copy of the fixed tree, kernel
+  CLI as a process): a goal with three build orders of one role (backend-developer),
+  `check-scopes` run; `dispatch TSK-0001` rc 0 -> ''Backend Developer · Sonnet high'',
+  letter A; its child bound, a background run started, its stop WAITING; lease expired,
+  `sweep-leases` keeps it; `dispatch TSK-0002` rc 0 -> letter ''A'', name ''Backend
+  Developer · Sonnet high'' -- the waiting child''s name exactly; `running_leases`
+  = [TSK-0001, TSK-0002]. The spawn gate compares a spawn with its OWN lease''s name,
+  so nothing is mis-bound; what breaks is FR-0092''s promise that two live agents
+  of one role under one goal can be told apart in the task panel. VERDICT: real, low;
+  not fixed in TSK-0158 (the lead''s order: measure and name); the fix shape is to
+  read ''live'' in `_spawn_name_locked` the way `running_leases` reads it.'
+expected: 'A lease the sweep keeps for a waiting child keeps its letter: the next
+  lease of that role under that goal gets another one, and both names show their letters.'
+repro: tools/test_stream_b_order_flow.py `_cut_project` with three build orders of
+  ROLE, check-scopes, dispatch TSK-0001, bind + record_background_start + record_child_end(background_tasks
+  running), expire the lease, sweep-leases, dispatch TSK-0002 -> its lease carries
+  spawn_letter 'A' and the same spawn_name as TSK-0001's.
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: 'the chain above gives TSK-0002 a letter other than TSK-0001''s: a test naming
+    this bug, red before the fix in a copy outside the repo'
+source: 'project_memory/staging/TSK-0157/verify-round-1.md (Not measured: _spawn_name_locked);
+  project_memory/staging/TSK-0156/protocol.md (Rework 2, 19:49)'
+hole_number: H226
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-27T19:51:01'
+limits: Nur ein doppelter Anzeigename zweier Agenten; Leases, Auftrag und Dateibesitz
+  bleiben getrennt (running_leases zaehlt beide).

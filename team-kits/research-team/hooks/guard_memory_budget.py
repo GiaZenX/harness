@@ -417,7 +417,9 @@ def _check_ids(rel, budget, text):
             "it as true." % (rel, ", ".join(found[:5])),
             remedy="put the fact on the item it belongs to — the kernel captures items, and "
                    "`python scripts/harness.py --help` lists the surface — and keep in memory only "
-                   "the generalisable lesson, with no id in it.")
+                   "the generalisable lesson, with no id in it. A file that ALREADY holds ids is "
+                   "repaired by one Write of the whole file without any of them: this rule reads "
+                   "the result, and shrinking passes the size rule.")
 
 
 def _check_count(path, rel, budget, root):
@@ -438,7 +440,9 @@ def _check_count(path, rel, budget, root):
             "%s already has %d craft topics; the budget is %d (spec II.5). Adding another is how "
             "a memory becomes an archive nobody reads."
             % (role, len(topics), budget["max_per_role"]),
-            remedy="retire or merge a topic first — the role's memory directory lists them.")
+            remedy="retire or merge a topic first — the role's memory directory lists them, and "
+                   "`python scripts/harness.py upkeep prune-memory %s` retires topics (deleting "
+                   "only; its `--help` names the two ways to choose which)." % role)
 
 
 def main():

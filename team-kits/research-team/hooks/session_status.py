@@ -479,8 +479,10 @@ def main():
                 "KIT MERGE BACKLOG (%s) — the kit VERSION is already current; do NOT run the "
                 "scaffold again because of these (it cannot resolve them). %d "
                 "project file(s) still diverge from the kit templates (%s%s) — diff each against "
-                "the kit template, merge the kit's fixes via the owning role (or record a "
-                "conscious skip as a decision item), then DELETE the pending file(s).%s Name "
+                "the kit template, merge the kit's fixes via the owning role (`python "
+                "scripts/harness.py upkeep adopt-template <path>` takes a repo template as the kit "
+                "ships it) or record a conscious skip as a decision item, then remove the list "
+                "with `python scripts/harness.py upkeep resolve-pending`.%s Name "
                 "this backlog in the FIRST paragraph of your reply to the user.%s"
                 % ("+".join(pend_files), len(pend_lines), "; ".join(pend_lines[:5]),
                    " …" if len(pend_lines) > 5 else "", checked, urgency)

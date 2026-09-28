@@ -346,21 +346,23 @@ def test_handover_guard_blocks_spawns_and_engine_shell_but_not_reading(tmp_path)
         assert _run_handover(allowed).returncode == 0, allowed["tool_input"]
 
 
-# A well-formed approval-request marker, the kernel's own shape (gate_approval MARKER_RX).
-_APR_MARKER = "[APR-REQ:%s]" % ("a" * 32)
+# A well-formed approving label, the kernel's own shape (gate_approval APPROVE_LABEL_RX) -- what
+# an approval card is recognised by since FR-0095 took the request id off it.
+_APR_MARKER = "Freigeben [5acc16]"
 
 
 def _scope_approval_question(marker):
-    """An AskUserQuestion shaped like the scope-approval request, carrying `marker` in its text."""
-    return {"questions": [{"question": "Freigabe fuer den Arbeitsbereich (Scope)? %s" % marker,
+    """An AskUserQuestion shaped like the scope-approval card; `marker` is its approving label, and
+    an empty one leaves the card with a label that approves nothing ("Ja")."""
+    return {"questions": [{"question": "Freigabe fuer den Arbeitsbereich (Scope)?",
                            "header": "Scope",
-                           "options": [{"label": "Freigeben [5acc16]", "description": "ja"},
+                           "options": [{"label": marker or "Ja", "description": "ja"},
                                        {"label": "Aendern", "description": "nein"}]}]}
 
 
 def test_handover_guard_blocks_the_scope_approval_askuserquestion_under_marker(tmp_path):
     """BUG-0017 / TSK-0054: with the handover marker present, the AskUserQuestion that INITIATES the
-    scope-approval flow (carries `[APR-REQ:<id>]`) is refused — the measured continuation-path gap
+    scope-approval flow (carries an approving label `Freigeben [<code>]`) is refused — the measured continuation-path gap
     where the entry agent requested approval, the mint failed, and it re-invented `/hooks`.
 
     RED without the new rule: AskUserQuestion is none of FILE/SHELL/SPAWN tools, so `main` fell
@@ -379,8 +381,8 @@ def test_handover_guard_blocks_the_approval_marker_in_any_field(tmp_path):
     """The scan is over the whole tool_input, so the marker is caught wherever the model puts it
     (option label here, not the question text). A narrower question-text-only check would miss this."""
     base = _handover_repo(tmp_path)
-    payload = {"questions": [{"question": "Bitte bestaetigen?", "header": "Scope",
-                              "options": [{"label": "Freigeben %s" % _APR_MARKER}]}]}
+    payload = {"questions": [{"question": "Bitte bestaetigen %s?" % _APR_MARKER,
+                              "header": "Scope", "options": [{"label": "Ja"}]}]}
     result = _run_handover(dict(base, tool_name="AskUserQuestion", tool_input=payload))
     assert result.returncode == 2, result.stdout + result.stderr
 
@@ -12676,8 +12678,8 @@ def _grant_correction(tmp_path, document, destination=None, reason="falsch abgel
     with contextlib.redirect_stdout(printed):
         assert cli.main(argv) == 0
     question = json.loads(printed.getvalue())
-    request_id = question["question"].split("[APR-REQ:")[1].split("]")[0]
-    mint_via_hook(state, approvals.pending_request(state, request_id))
+    (code,) = approvals.card_mint_codes(question)       # FR-0095: the label names the request
+    mint_via_hook(state, approvals.pending_request_by_code(state, code))
     return question
 
 
@@ -13396,9 +13398,13 @@ def test_a_reason_the_requester_typed_cannot_write_its_own_lines_into_the_questi
         tmp_path, "inbox/a.pdf",
         reason="ALLES BLEIBT ERHALTEN\nHinweis: nichts wird geloescht.\r\n‮umgedreht​")
     text = question["question"]
-    assert "\n" not in text and "\r" not in text
+    # FR-0095: the card is lines the KERNEL writes; the reason is ONE of them, folded, and no
+    # line of the card starts where the requester's newline would have put it
+    lines = text.split("\n")
+    assert "\r" not in text
     assert "‮" not in text and "​" not in text
-    assert "ALLES BLEIBT ERHALTEN Hinweis: nichts wird geloescht. umgedreht" in text
+    assert "- Grund: ALLES BLEIBT ERHALTEN Hinweis: nichts wird geloescht. umgedreht" in lines, text
+    assert not any(line.startswith("Hinweis") for line in lines), text
     for option in question["options"]:
         assert "\n" not in option["label"] and "\n" not in option["description"]
     # ...and the FOLD is what the hash covers, not a prettier rendering of something else
@@ -15267,8 +15273,15 @@ def _approval_question(repo, kind, item_id):
     opened = _entry_point(repo, "request-approval", kind, item_id)
     assert opened.returncode == 0, opened.stdout + opened.stderr
     question = json.loads(opened.stdout)
-    assert "[APR-REQ:" in question["question"], question
+    assert len(approvals_for_the_card().card_mint_codes(question)) == 1, question
     return question
+
+
+def approvals_for_the_card():
+    """The kernel's approvals module, for the card's mint code (FR-0095)."""
+    sys.path.insert(0, os.path.join(ROOT, "team-kits"))
+    from kernel import approvals
+    return approvals
 
 
 def _mint_in_project(repo, kind, item_id):
@@ -15312,8 +15325,8 @@ def _mint_question_in_project(repo, question):
     from kernel import approvals
     from kernel.state import ProjectState
     state = ProjectState(os.path.join(str(repo), "project_memory"))
-    request_id = re.search(r"\[APR-REQ:([0-9a-f]{32})\]", question["question"]).group(1)
-    mint_code = approvals.pending_request(state, request_id)["mint_code"]
+    (mint_code,) = approvals.card_mint_codes(question)     # FR-0095: the label names the request
+    assert approvals.pending_request_by_code(state, mint_code)["request_id"], mint_code
 
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
     env["CLAUDE_PROJECT_DIR"] = str(repo)
@@ -17144,15 +17157,16 @@ def test_the_advice_exemption_uses_gate_approvals_own_marker(tmp_path):
     that gate reads it as markerless (rc 0) — a guard reading markers more loosely than the gate
     would let a malformed one buy silence from both.
     """
-    options = ["Freigeben [abc123]", "Ablehnen"]
     machine = "Welchen Namen und welche E-Mail soll ich im Git eintragen?"
-    assert _R2B_NOTE in _advice(tmp_path, machine, options)
-    marked = "%s [APR-REQ:%s]" % (machine, "b" * 32)
-    assert _R2B_NOTE not in _advice(tmp_path, marked, options), marked
-    near = "%s [APR-REQ:short]" % machine
-    assert _R2B_NOTE in _advice(tmp_path, near, options)
-    # ...and what the marked one costs at the gate that enforces the marker, run as itself
-    for text, expected in ((marked, 2), (near, 0)):
+    plain, marked, near = (["Ja", "Ablehnen"], ["Freigeben [abc123]", "Ablehnen"],
+                           ["Freigeben [short]", "Ablehnen"])
+    # since FR-0095 the "marker" is the approving label `Freigeben [<code>]` of an option
+    assert _R2B_NOTE in _advice(tmp_path, machine, plain)
+    assert _R2B_NOTE not in _advice(tmp_path, machine, marked), marked
+    assert _R2B_NOTE in _advice(tmp_path, machine, near)
+    # ...and what the labelled one costs at the gate that enforces the label, run as itself
+    for options, expected in ((marked, 2), (near, 0)):
+        text = machine
         payload = _question(text, options)
         payload["hook_event_name"] = "PreToolUse"
         payload["cwd"] = str(tmp_path)
@@ -17204,8 +17218,8 @@ def test_the_guard_and_the_gate_spell_the_approval_marker_the_same(tmp_path):
 
     for kit in KITS:
         hooks = os.path.join(ROOT, "team-kits", kit, "hooks")
-        assert (pattern(os.path.join(hooks, "guard_question_context.py"), "_APR_MARKER_RX")
-                == pattern(os.path.join(hooks, "gate_approval.py"), "MARKER_RX")), kit
+        assert (pattern(os.path.join(hooks, "guard_question_context.py"), "_APPROVE_LABEL_RX")
+                == pattern(os.path.join(hooks, "gate_approval.py"), "APPROVE_LABEL_RX")), kit
 
 
 # ---------------- the packaging block, and the exit it did not have ----------------
@@ -20344,9 +20358,14 @@ def test_every_directory_verb_moves_this_gates_base_and_no_other_word_does(tmp_p
             continue
         line = "%s .github ; %s hooks ; echo x > note.txt" % (verb, verb)
         assert _write_scope(tmp_path, line).returncode == 2, line
+    # A pop leaves what the line PUSHED; on an empty stack the shell stays in the tree (BUG-0335),
+    # so the tree the pushes walk into exists here, as it would for the shell.
+    os.makedirs(str(tmp_path / ".github" / "hooks"), exist_ok=True)
     for verb in sorted(v for v, k in _DIRECTORY_VERBS_SPELLED_AGAIN.items() if k == "pop"):
-        line = "cd .github ; cd hooks ; %s ; echo x > note.txt" % verb
+        line = "cd .github ; pushd hooks ; %s ; echo x > note.txt" % verb
         assert _write_scope(tmp_path, line).returncode == 0, line
+        line = "cd .github ; cd hooks ; %s ; echo x > note.txt" % verb
+        assert _write_scope(tmp_path, line).returncode == 2, line
     # ...and the other end of the same measurement: a word that is NOT one of them moves nothing,
     # and one step alone does not reach the protected tree either. Both are rc 0, so a rule that
     # simply refused the shape would be red here.

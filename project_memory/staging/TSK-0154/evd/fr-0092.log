@@ -1,0 +1,14 @@
+# FR-0092 -- run 2026-09-27T00:39:44 in C:\Offline Repos\v2-testbed\_worktrees\g7-dispatch (branch g7/dispatch, staged tree)
+# python -B -m pytest tools/test_stream_b_order_flow.py -k fr_0092 -v -p no:cacheprovider
+# rc 0
+============================= test session starts =============================
+platform win32 -- Python 3.13.0, pytest-9.1.1, pluggy-1.6.0 -- C:\Program Files\Python313\python.exe
+hypothesis profile 'default'
+rootdir: C:\Offline Repos\v2-testbed\_worktrees\g7-dispatch
+plugins: anyio-4.14.1, dash-4.0.0, hypothesis-6.155.7, asyncio-1.4.0, base-url-2.1.0, cov-7.1.0, playwright-0.8.0, xdist-3.8.0, respx-0.23.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 17 items / 16 deselected / 1 selected
+
+tools/test_stream_b_order_flow.py::test_the_spawn_carries_the_name_the_lease_composed_fr_0092 PASSED [100%]
+
+====================== 1 passed, 16 deselected in 5.89s =======================

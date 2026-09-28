@@ -1,0 +1,17 @@
+id: EVD-0493
+kind: test
+related:
+- BUG-0315
+result: pass
+summary: 'TSK-0154 stream B, worktree g7/dispatch: approval_mint_is_wired reads True
+  for the SHIPPED dev-team settings.json + hooks (the _gate.py launcher form: its
+  argument is looked for beside the launcher), False when that sibling is missing;
+  the launcher''s sibling rule is run. Red on base 35e929b.'
+artifact_refs:
+- staging/TSK-0154/evd/bug-0315.log
+run_command: python -B -m pytest tools/test_stream_b_order_flow.py -k bug_0315 -v
+  -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:40:17'

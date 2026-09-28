@@ -389,12 +389,12 @@ def test_an_expired_kit_update_approval_authorises_nothing(project, monkeypatch)
 
 
 def test_the_question_the_user_sees_names_both_releases_and_no_full_hash(project, capsys):
-    """What the user judges is "this kit, from here to there" -- and the digests are shortened.
+    """What the user judges is "this kit, from here to there" -- and no digest stands on the card.
 
     Both halves are the same rule: the hash covers the outcome, and the question has to be
-    READABLE by the person who has to judge it (BUG-0041's finding). The two content hashes are
-    128 of ~180 characters in full, so `approvals._render_manifest_value` renders any digest the
-    way the sentence around it already renders one -- twelve characters and an ellipsis.
+    READABLE by the person who has to judge it (BUG-0041's finding). The two content hashes were
+    128 of ~180 characters in full; since FR-0095 a checksum binds from the record and is left off
+    the card (`approvals._is_digest`).
     """
     state = project["state"]
     assert cli.main(["--root", state.root, "request-approval", kitupdate.KIND]) == 0
@@ -402,7 +402,7 @@ def test_the_question_the_user_sees_names_both_releases_and_no_full_hash(project
     assert OLD in question and NEW in question and KIT in question
     manifest = kitupdate.change_manifest(state)
     assert manifest["to_content"] not in question, "the full staged content hash is in the question"
-    assert manifest["to_content"][:approvals.DIGEST_SHOWN] in question
+    assert manifest["to_content"][:8] not in question, "a checksum on the card (FR-0095)"
 
 
 @pytest.mark.parametrize("flag", ["--kit", "--to-version", "--from-content"])

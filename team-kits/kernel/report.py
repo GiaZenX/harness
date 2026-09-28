@@ -78,6 +78,7 @@ from .backlog_types import (
     GOAL_CLASS_FIELD,
     goal_classes_without,
     is_inbox_type,
+    is_terminal,
     required_fields_of,
     parse_id,
     single_value_offences,
@@ -381,6 +382,84 @@ def lease_distribution(state: ProjectState, window: int = DISTRIBUTION_WINDOW) -
             "runs_to_hand_back_per_effort": means[LEASE_EFFORT_FIELD], "line": line}
 
 
+# HOW MANY GOALS AND PAIRS THE CUT LINE SPELLS OUT: the brief has a byte budget
+# (`kernel/schemas/session_brief.yaml` max_serialized_bytes) and a store with many goals would
+# otherwise spell every pair of them -- 13 goals are 78 pairs. The per-goal counts stay whole in
+# `orders_per_goal`; the line names the largest goals and the first pairs and counts the rest.
+_BRIEF_CUT_SHOWN = 5
+
+
+def order_cut(state: ProjectState) -> dict:
+    """The CUT as the brief shows it (BUG-0318): open orders per goal by class, the verifier share,
+    and the goals whose next build orders `check-scopes` measured disjoint -- parallel candidates.
+
+    WHY IN THE BRIEF: the field habit this reads (synaipse, 2026-09-26: 96 orders, one QA review per
+    requirement, strictly serial leases) was invisible where the user and the PM meet the state;
+    `lease_distribution` counts an order only once a lease has answered on it, so a backlog cut
+    into slivers showed nothing until each sliver had been dispatched. Read off the open orders and the kit's declaration (which role is
+    which class); a kit-less project shows its counts under `unclassed`.
+
+    PARALLEL CANDIDATES ARE ASKED, NOT COMPUTED: a pair of goals is named only where
+    `scopes.covering_record` finds a record that measured their next build orders -- the lowest
+    open id per goal -- disjoint as they stand now, the same answer the second build lease is
+    admitted on (DEC-0087 (2)). One order per goal bounds the reading to goals x goals.
+    `tools/test_stream_b_order_flow.py::test_the_brief_shows_the_cut_and_the_parallel_candidates_bug_0318`
+    """
+    from . import dispatch as _dispatch, scopes
+
+    found = _dispatch._readable_declaration(state)
+    roles = found.ladder["roles"] if found is not None else {}
+    per_goal, next_build = {}, {}
+    for item_type, stem, item, _path, exc in _iter_active(state):
+        if item_type != _dispatch.ORDER_TYPE or exc or not isinstance(item, dict):
+            continue
+        if is_terminal(item_type, str(item.get("status") or "")):
+            continue
+        goal = str(item.get("product_requirement") or "?")
+        role_class = roles.get(str(item.get("assigned_role") or "")) or "unclassed"
+        counts = per_goal.setdefault(goal, {})
+        counts[role_class] = counts.get(role_class, 0) + 1
+        if role_class == BUILD_CLASS:
+            order_id = str(item.get("id") or stem)
+            next_build[goal] = min(next_build.get(goal, order_id), order_id)
+    total = sum(sum(counts.values()) for counts in per_goal.values())
+    judging = sum(counts.get(_dispatch.QA_CLASS, 0) for counts in per_goal.values())
+    goals = sorted(next_build)
+    # Only orders some record names at all can be covered, and the records are read ONCE for that
+    # filter: `covering_record` reads the store per pair, and this runs at every brief.
+    recorded = set()
+    for record in scopes.records(state) if len(goals) > 1 else ():
+        recorded |= set(record.get("orders") or {})
+    paired = [goal for goal in goals if next_build[goal] in recorded]
+    candidates = []
+    for index, first in enumerate(paired):
+        for second in paired[index + 1:]:
+            record = scopes.covering_record(state, next_build[first], next_build[second])
+            if record is not None:
+                candidates.append("%s (%s) || %s (%s), measured disjoint by %s" % (
+                    first, next_build[first], second, next_build[second],
+                    os.path.basename(record["path"])))
+    largest = sorted(per_goal.items(), key=lambda row: (-sum(row[1].values()), row[0]))
+    line = ("open orders per goal: %s%s; verifier share %d/%d (DEC-0088: ONE verifier round per "
+            "goal, none for a small change)"
+            % ("; ".join("%s %s" % (goal, ", ".join("%s %d" % pair for pair in sorted(counts.items())))
+                         for goal, counts in largest[:_BRIEF_CUT_SHOWN]) or "none",
+               "; ... and %d more goal(s)" % (len(largest) - _BRIEF_CUT_SHOWN)
+               if len(largest) > _BRIEF_CUT_SHOWN else "",
+               judging, total))
+    candidates = candidates[:_BRIEF_CUT_SHOWN] + (
+        ["... and %d more pair(s)" % (len(candidates) - _BRIEF_CUT_SHOWN)]
+        if len(candidates) > _BRIEF_CUT_SHOWN else [])
+    if candidates:
+        line += "; parallel build candidates: " + "; ".join(candidates)
+    elif len(goals) > 1:
+        line += ("; %d goals have open build orders and no check-scopes record measured two of "
+                 "them disjoint -- `check-scopes` is how two goals get two builders (DEC-0087 (2))"
+                 % len(goals))
+    return {"orders_per_goal": per_goal, "verifier_share": [judging, total],
+            "parallel_candidates": candidates, "cut_line": line}
+
+
 def generate_session_brief(
     state: ProjectState, kit: str, kit_version: str, enforcement_mode: str
 ) -> str:
@@ -479,7 +558,10 @@ def generate_session_brief(
             # THE DISTRIBUTION LINE (DEC-0092 (4)): the same last-N reading the spawn gate's
             # checkpoint shows the PM, here where the USER meets the brief, so a habit --
             # always one builder, always the top rung -- is a line and not a search.
-            "lease_distribution": lease_distribution(state),
+            # ...AND THE CUT BESIDE IT (BUG-0318, `order_cut`): the habit a lease count cannot show
+            # before the slivers have run. Inside this key because the brief's schema is strict at
+            # the top and holds this one as an open mapping.
+            "lease_distribution": dict(lease_distribution(state), **order_cut(state)),
             "budget_status": {
                 "validator_errors": sum(1 for f in findings if f["severity"] == "error"),
                 "validator_warnings": sum(1 for f in findings if f["severity"] == "warning"),
@@ -2265,10 +2347,24 @@ def contradicted_confirmations(state: ProjectState, active_items: dict = None) -
             confirmed[item_id] = item_type
     if not confirmed:
         return {}
-    by_subject = qa_verdicts_by_subject(state)
-    closed = closed_by_delivery(state, by_subject)
+    # THE QUESTION THE CONFIRMATION WAS JUDGED ON (BUG-0321). A type whose confirming edge demands
+    # an Evidence (`CONFIRMING_EVIDENCE`) walked it on `CONFIRMATION_QUESTION` (`state._assert_confirmed`),
+    # where a passing SELECTION is a verdict -- so a later passing regression run supersedes an older
+    # failing one. Read on the delivery question instead, the passing selection was dropped and the
+    # older fail stayed "current": a VERIFIED bug read as contradicted (synaipse: BUG-0001 VERIFIED vs
+    # EVD-0025 while EVD-0028 passed), cleared only by archiving. Every other type keeps the delivery
+    # reading, which is the one nothing but policy confirms it on.
+    # `tools/test_stream_b_order_flow.py::test_a_later_passing_selection_supersedes_an_older_failing_one_bug_0321`
+    def judged_on(item_type):
+        return CONFIRMATION_QUESTION if CONFIRMING_EVIDENCE.get(item_type) else DELIVERY_QUESTION
+
+    readings = {}
+    for question in sorted({judged_on(item_type) for item_type in confirmed.values()}):
+        by_subject = qa_verdicts_by_subject(state, question)
+        readings[question] = (by_subject, closed_by_delivery(state, by_subject))
     contradicted = {}
     for item_id in sorted(confirmed):
+        by_subject, closed = readings[judged_on(confirmed[item_id])]
         verdicts = by_subject.get(item_id)
         if not verdicts or item_id in closed:
             continue
@@ -2283,7 +2379,7 @@ def _check_confirmations_agree_with_the_verdicts(state: ProjectState, active_ite
     return [
         _finding(
             "error", item_id,
-            "%s while the current delivery verdict(s) %s say the work did NOT hold -- the status "
+            "%s while the current verdict(s) %s say the work did NOT hold -- the status "
             "claims a confirmation the records contradict"
             % (active_items[item_id][1].get("status"), ", ".join(failing)),
             "decide which of the two is true and make the store say it: record the re-run that "
@@ -3881,13 +3977,25 @@ def _invoked_script_words(command: str) -> list:
     the previous version of this function collected findings for exactly as long as it enumerated
     shapes instead of stating what "runs" means.
     """
-    words, names = [], []
+    return [word for word, _launcher in _invoked_script_words_and_launchers(command)]
 
-    def remember(raw):
+
+def _invoked_script_words_and_launchers(command: str) -> list:
+    """[(word, launcher word or None)] -- `_invoked_script_words` with WHO RUNS each word.
+
+    None for a word an interpreter runs; the launcher's own word for a `.py` handed to an already
+    invoked `.py` as its argument. The difference decides where the file is looked for
+    (`_runs_no_file`, BUG-0315): an interpreter resolves its script against the working directory,
+    a launcher resolves its argument the way the launcher does.
+    """
+    words, names, launchers = [], [], []
+
+    def remember(raw, launcher=None):
         base = _script_basename(raw)
         if base and base not in names:
             names.append(base)
             words.append(_script_word(raw))
+            launchers.append(launcher)
 
     for match in re.finditer(
             r"(?:^|[;&|(]|\bsh\s+-c\s+[\"']?)\s*[\"']?"
@@ -3911,11 +4019,13 @@ def _invoked_script_words(command: str) -> list:
             first = _script_basename(_first_alternative(match.groups()[:3]))
             second = _first_alternative(match.groups()[3:])
             if first in names and _script_basename(second) not in names:
-                remember(second)
+                # `A.py B.py C.py`: A hands BOTH arguments on, so C's launcher is A, not B
+                index = names.index(first)
+                remember(second, launchers[index] or words[index])
                 grew = True
         if not grew:
             break
-    return words
+    return list(zip(words, launchers))
 
 
 # THE ONE VARIABLE this reader can resolve without a shell, named ONCE and spelled by derivation:
@@ -3937,14 +4047,25 @@ def _runs_no_file(command: str, repo_root: str, name: str) -> bool:
     the one this module's own docstrings call as wrong as the alarming one.
 
     `tools/test_report.py::test_a_quoted_path_with_a_space_runs_and_a_named_missing_file_does_not`
+
+    A LAUNCHER'S ARGUMENT IS LOOKED FOR WHERE THE LAUNCHER LOOKS (BUG-0315): the kits' `_gate.py`
+    runs its argument as a SIBLING of itself, by base name (`_run_one`), and until this line the
+    argument was resolved against the repo root -- `repo_root/gate_approval.py`, absent -- so every
+    plan question of a project registered through the launcher warned "will approve nothing" while
+    the mint was wired (field: synaipse, request-approval plan PR-0018..0030). The sibling rule is
+    the shipped launcher's own and is pinned against it by
+    `tools/test_stream_b_order_flow.py::test_the_launcher_form_of_the_approval_hook_counts_as_wired_bug_0315`.
     """
     located = []
-    for word in _invoked_script_words(command):
+    for word, launcher in _invoked_script_words_and_launchers(command):
         if _script_basename(word) != name:
             continue
-        resolved = _PROJECT_DIR_RX.sub(repo_root.replace("\\", "/"), word)
+        place = launcher if launcher is not None else word
+        resolved = _PROJECT_DIR_RX.sub(repo_root.replace("\\", "/"), place)
         if "$" in resolved or "%" in resolved or "~" in resolved:
             continue                       # a shell's state decides this one, and we are not it
+        if launcher is not None:
+            resolved = os.path.join(os.path.dirname(resolved), _script_basename(word))
         located.append(os.path.isfile(os.path.join(repo_root, resolved)))
     return bool(located) and not any(located)
 

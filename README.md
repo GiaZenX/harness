@@ -334,11 +334,15 @@ authority: today `doctor`, `validate`, `generate-index`, `verify-invariants`,
 `request-approval`, `create-task`, `dispatch`, `ladder`, `submit-result`, `evidence`, `transition`, `update`,
 `archive`, `amend-archived-test-ref`, `check-scopes`, `sweep-leases`, `sweep-requests`, `withdraw-request`, `checkpoint`, `checkpoint-status`, `set-preset`, `update-kit`, `add-filing-rule`, `apply-proposal`, `revise-document`,
 `freeze-architecture`, `freeze-wireframe`, `freeze-design`, `freeze-report`,
-`migrate`, `migrate-holes`, `migrate-goal-classes`, `sweep-pointers`, `report-gap`, `duty-done`, `pin-kit`, `unpin-kit`, `rollback-kit`. Of the twelve
+`migrate`, `migrate-holes`, `migrate-goal-classes`, `sweep-pointers`, `report-gap`, `duty-done`, `pin-kit`, `unpin-kit`, `rollback-kit`, `upkeep`, `integrate`. Of the twelve
 spec II.4 asks for, one is absent under that name: `approve` is SPLIT —
 `request-approval <kind> <ITEM-ID>` opens the kernel-generated question (phase 1), and the USER mints it
 by ANSWERING, which is the whole of why the approval is provable; no command mints, and the mint also
-walks the status transition it commits. Kit DOCUMENTS under `project_memory/` (the master data,
+walks the status transition it commits. Since order 7 (`DEC-0119`, `FR-0095`, `FR-0096`) the question is
+a calm card -- "Freigabe erbeten für <Art>", the list of what is approved, and the lead's own `--note`,
+signed with it -- that carries no request id, path or checksum (the hook finds the request by the
+mint code in the approving option), and `request-approval scope --batch <ids>` puts the change wishes
+and new goals of a stretch of work on ONE card instead of one question per item. Kit DOCUMENTS under `project_memory/` (the master data,
 the filing plan's neighbours, `project_config.yaml` beyond the one `set-preset` field) gained a
 route in TSK-0092: a role stages the document as it should stand, and `apply-proposal` writes it
 after a user-minted approval, refusing any removal, change or lost comment. Correcting or removing
@@ -519,9 +523,11 @@ opens by double-click.
   `team-kits/<kit>/ladder.yaml` -- rungs, top rung, effort pair, role classes, named exceptions --
   and `kernel.dispatch.ladder_for_order` derives at every `dispatch` the RUNG (the role's pin, its
   class, the order's failed runs -- DEC-0034 rules 1-5, endpoints per kit DEC-0047) and the EFFORT
-  (the goal's `class`) -- and on a failed run the EFFORT climbs before the RUNG, by the two
+  (the goal's `class`; the architecture step, where a provider caps the top rung, at the kit's
+  highest effort -- DEC-0118) -- and on a failed run the EFFORT climbs before the RUNG, by the two
   thresholds each declaration carries (DEC-0096) -- writes both on the lease, the header and the task item, derives again at
-  the spawn and refuses a spawn that names no `model` for a climbed order or the wrong one
+  the spawn and refuses a spawn that names no `model` for a climbed order or the wrong one, and one
+  whose `description` is not the name the lease composed from role, rung and effort (FR-0092)
   (`python scripts/harness.py ladder <TSK-ID>` shows the answer). A kit without a declaration is
   refused at dispatch; the kernel carries no default.
 - **Reasoning effort:** each role also carries an `effort:` (`low|medium|high|xhigh|max`), set per repo via an

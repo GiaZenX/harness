@@ -1,0 +1,58 @@
+id: TSK-0160
+product_requirement: PR-0012
+derives_from: BUG-0333
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-1
+allowed_scope:
+- team-kits/kernel/**
+- team-kits/dev-team/hooks/gate_git.py
+- team-kits/dev-team/skills/**
+- tools/test_integrate*.py
+- tools/test_bug0333*.py
+- docs/**
+forbidden_scope:
+- .claude/**
+- project_memory/**
+- radar/**
+- team-kits/*/hooks/gate_write_scope.py
+- team-kits/*/VERSION
+- tools/bump_kit_version.py
+required_inputs:
+- 'FAST-TRACK STREAM for BUG-0333, base commit 35e929b. WORK IN YOUR WORKTREE C:/Offline
+  Repos/v2-testbed/_worktrees/g7-integrate on branch g7/integrate (the lead creates
+  it). Order 7''s merge is being finished at the same time UNCOMMITTED in the main
+  tree (rework 3 in team-kits/*/hooks/gate_write_scope.py, .claude/hooks/test_gates.py,
+  tools/test_hooks_v2.py); the lead merges your branch after order 7''s commit --
+  so do NOT stamp (no bump_kit_version; say in the protocol which files a stamp would
+  cover) and keep kernel/cli.py and report.py hunks small and self-contained (order
+  7 changed both). READ: project_memory/bugs/active/BUG-0333.yaml, project_memory/staging/BUG-0333/forensics-2026-09-28.md,
+  and DEC-0125 (the design -- build exactly that, not the forensics'' target-reading
+  proposal). BUILD: the kernel door `integrate <GOAL>` (team-kits/kernel/, registered
+  in kernel/cli.py and in every register a new command joins -- DEC-0121 (3): grep
+  the registers the last new command joined), the gate_git refusal naming it (dev-team
+  only; gate_git is not in the other kits -- check), the two-sentence text in the
+  dev-team PM skill and parallel-streams skill. TESTS naming BUG-0333, red first in
+  a copy under C:/Offline Repos/v2-testbed/_round-scratch/BUG-0333/: a goal with two
+  work branches reaches one united branch through `integrate` in a real git repo (tmp),
+  a conflict stops cleanly, a branch of ANOTHER goal is never pulled in, the delivery
+  merge into the base still needs the full verdict, and gate_git''s refusal names
+  the door. Reading suites of every predicate you change as their own selections,
+  found by their CALLERS (grep), not by keywords in test names; each run with a time
+  budget. Protocol as you go in project_memory/staging/BUG-0333/protocol.md (write
+  it BEFORE long runs). Any hole you file carries `limits` at once. Commit in your
+  worktree is not possible (this repo''s gate 3 measures the main tree) -- leave your
+  work uncommitted there. No push, no full run, no BUG transitions.'
+expected_outputs:
+- '`integrate <GOAL>` in the kernel + registers, gate_git''s refusal naming it, the
+  two skill sentences, the BUG-0333 tests red-first, reading suites green with clock
+  times, protocol with the file list a stamp would cover; NOT stamped, NOT merged'
+dependencies: []
+rung: opus
+effort: high
+root_revision: 1
+status: READY
+revision: 1
+approval_ref: null
+created: '2026-09-28T12:47:47'

@@ -56,6 +56,11 @@ knobs that live there).
    **Foreign Docker projects are off-limits:** never stop/restart/remove containers or volumes
    whose compose project is not THIS repo's without explicit user OK — a real OOM hunt stopped a
    NEIGHBOR project's production database.
+   **A test's OWN stack is named `<this repo's project name>-test-<anything>`** (e.g. `docker
+   compose -p synaipse-unified-test-tsk0431 up`): `gate_shell_hygiene` recognises that shape as
+   this repo's, so the stack and its volumes can be taken down again from the session. The name it
+   derives from is the folder name or `COMPOSE_PROJECT_NAME` in `.env`; any other name (a bare
+   `qa-tsk0431`) is foreign to the gate, and its leftovers wait for the user (BUG-0320).
 4. Support the PM's git workflow (branch hygiene, hooks, status checks) — but **never push, merge, or
    deploy on your own initiative**. The PM is the executor, only on user OK.
 5. **Field-proven pipeline patterns** (upstreamed from live projects — apply when the shape fits):

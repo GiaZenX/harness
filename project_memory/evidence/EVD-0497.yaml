@@ -1,0 +1,18 @@
+id: EVD-0497
+kind: test
+related:
+- BUG-0324
+result: pass
+summary: 'TSK-0154 stream B, worktree g7/dispatch: the bound verifier classifies the
+  run it judges (order SUBMITTED) as mechanical through the shipped gate_dispatch
+  hook and the kernel evidence command; the retry lease does not climb; a verdict
+  that moves the order forward drops the stamp. Red on base 35e929b; the drop red
+  under mutation M1.'
+artifact_refs:
+- staging/TSK-0154/evd/bug-0324.log
+run_command: python -B -m pytest tools/test_stream_b_order_flow.py -k bug_0324 -v
+  -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:40:43'

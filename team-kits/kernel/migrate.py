@@ -250,6 +250,22 @@ _DATE_RE = re.compile(r"\b(%s)-\d{2}-\d{2}\b" % _YEAR_RE.pattern, re.ASCII)
 # exactly the shape a run record needs.
 RECEIPT_TYPE = "DEC"
 
+# AN OPEN V1 WORK ORDER IS IMPORTED AS A RECORD, NOT AS AN ORDER (BUG-0317). Measured on the
+# synaipse field copy: all 66 imported open tasks were undispatchable -- `dependencies` still named
+# V1 task ids (by then pointing at unrelated V2 tasks), `assigned_role` carried V1 role words, and
+# `acceptance_refs` was empty -- and `derives_from` freezes after DRAFT, so each needed a cancel, an
+# archive and a re-capture by hand. Mapping them would be three guesses about another vocabulary;
+# the orders a V2 lead cuts are the light form's anyway. So the run writes each one, walks it to
+# its cancelled terminal through the automaton and archives it, with the reason on the item and the
+# V1 record verbatim beside it. `tools/test_migrate.py::test_an_open_v1_task_is_imported_cancelled_bug_0317`
+OPEN_ORDER_TYPE = "TSK"
+OPEN_ORDER_END = "CANCELLED"
+CANCEL_ON_IMPORT = "cancelled_on_import"
+OPEN_ORDER_REASON = (
+    "an open V1 work order is not imported as a live one: V1 dependencies name V1 task ids and "
+    "V1 role words are not this kit's role names (BUG-0317). Cancelled on import; the lead cuts "
+    "the V2 orders from the V1 record kept under legacy_fields.record.")
+
 _DOCUMENT_SUFFIXES = (".yaml", ".yml")
 
 # WHAT MARKS A FILE AS THIS COMMAND'S OWN DEPOSIT COPY (DEC-0024). A file name, not a directory
@@ -1250,6 +1266,11 @@ def _with_legacy(fields: dict, entry: dict, record: dict) -> dict:
         # without it, which is why this is composed here and not there: the writer must not be
         # able to invent a reason for a record it never read.
         body[LEGACY_FIELD]["unresolved"] = entry["reason"]
+    if entry.get(CANCEL_ON_IMPORT):
+        # the V1 dependency ids name V1 records; carried into a V2 field they would name
+        # whatever V2 item happens to hold that number. The V1 value stays in the record copy.
+        body[LEGACY_FIELD][CANCEL_ON_IMPORT] = entry[CANCEL_ON_IMPORT]
+        body["dependencies"] = []
     body[IMPORT_MARK] = True
     return body
 
@@ -1694,6 +1715,8 @@ def build_plan(state: ProjectState, field_map: dict = None, archive_year=None) -
                     records.append(entry)
                     continue
                 entry["archive_year_from"] = source_of_year
+            if v2_type == OPEN_ORDER_TYPE and entry["target"] == "active":
+                entry[CANCEL_ON_IMPORT] = OPEN_ORDER_REASON
             for (map_type, map_field), source_field in field_map.items():
                 if map_type == v2_type and source_field in record:
                     carried_values.setdefault(
@@ -2442,6 +2465,11 @@ def render(plan: dict, state: ProjectState = None) -> str:
                    archive_location(entry["v2_type"], entry["archive_year"]),
                    entry["mapped_status"], entry["legacy_status"],
                    entry["archive_year_from"]))
+        elif entry.get(CANCEL_ON_IMPORT):
+            lines.append(
+                "  %-18s %s -> a %s written, CANCELLED and archived in the same run (V1 %r) -- %s"
+                % (entry["source"], entry["legacy_id"], entry["v2_type"], entry["legacy_status"],
+                   entry[CANCEL_ON_IMPORT]))
         else:
             lines.append(
                 "  %-18s %s -> a new %s item at its initial status (V1 %r would mean %s; that "
@@ -2782,15 +2810,18 @@ def _receipt_fields(plan: dict, created: list, digest: str, interrupted: str = N
     unresolved = [item_id for entry, item_id in created if entry.get("unresolved_fields")]
     archived = [item_id for entry, item_id in created
                 if entry.get("target") == "archive" and not entry.get("unresolved_fields")]
+    cancelled = [item_id for entry, item_id in created if entry.get(CANCEL_ON_IMPORT)]
     head = ("imported %d V1 record(s) -- %d into active/ at their V2 initial status, %d finished "
-            "in V1 straight into archive/<TYPE>/<year>/ at their mapped status (SR-0004/DEC-0004) "
-            "and %d into the same archive at their INITIAL status because no answer could fill "
-            "their required fields (DEC-0009; each says which under `%s.unresolved`). Every "
+            "in V1 straight into archive/<TYPE>/<year>/ at their mapped status (SR-0004/DEC-0004), "
+            "%d into the same archive at their INITIAL status because no answer could fill "
+            "their required fields (DEC-0009; each says which under `%s.unresolved`) and %d open "
+            "V1 work order(s) written, CANCELLED and archived (each says why under `%s.%s`). Every "
             "archived item names its own gaps under `%s.missing_required_fields`, and every "
             "imported item carries `%s: true`, `approval_ref: null` and its whole V1 record "
             "under `%s`"
-            % (len(created), len(created) - len(archived) - len(unresolved), len(archived),
-               len(unresolved), LEGACY_FIELD, LEGACY_FIELD, IMPORT_MARK, LEGACY_FIELD))
+            % (len(created), len(created) - len(archived) - len(unresolved) - len(cancelled),
+               len(archived), len(unresolved), LEGACY_FIELD, len(cancelled), LEGACY_FIELD,
+               CANCEL_ON_IMPORT, LEGACY_FIELD, IMPORT_MARK, LEGACY_FIELD))
     flags = ("field mapping supplied on the command line: %s"
              % (", ".join("%s=%s" % pair for pair in sorted(plan["field_map"].items())) or "none"))
     # NO "above" AND NO PATH IN HERE: this sentence survives into shapes where the per-source
@@ -2959,6 +2990,10 @@ def execute(state: ProjectState, plan: dict, digest: str) -> dict:
                     entry["archive_year"])
             else:
                 item = state.capture(entry["v2_type"], body, imported=True)
+                if entry.get(CANCEL_ON_IMPORT):
+                    # through the automaton and the ordinary archive door, never a status write
+                    state.transition(item["id"], OPEN_ORDER_END)
+                    state.archive(item["id"])
             resolved[entry["legacy_id"]] = item["id"]
             created.append((entry, item["id"]))
         # INSIDE THE SAME BLOCK AS THE WRITES, because it can refuse too (a document it cannot read

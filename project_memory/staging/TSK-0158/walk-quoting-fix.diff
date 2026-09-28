@@ -1,0 +1,42 @@
+--- a/team-kits/dev-team/hooks/gate_write_scope.py
++++ b/team-kits/dev-team/hooks/gate_write_scope.py
+@@ -1723,13 +1723,28 @@
+     and reading it as an ordinary directory name armed nothing for the write that followed. A
+     reading that cannot be placed at all makes the whole word unknown unless another reading
+     already lands in a protected tree.
++
++    A TILDE OR A PATTERN UNDER QUOTING IS NOT EXPANDED HERE, because a shell expands a word FIRST
++    and removes its quoting AFTERWARDS, and the readings are the result of the second step
++    (H31, which the placing of absolute targets reopened -- `cd "~"` and `cd "d*cs"` leave bash
++    where it stood while this walk answered the home directory and `docs`). Where the quoting stood
++    is not kept: `spliced` says only that the word carries some, and every reading after the first
++    is the word with the backslash -- POSIX quoting -- taken out. So such a reading names a place
++    nobody on the line states, the refusing direction; its price (`cd ~/"My Dir"` expands in a
++    shell) is over-refusal. Only the first reading of an unquoted word is expanded.
++    `.claude/hooks/test_gates.py::test_gate1_refuses_a_line_exactly_where_the_shell_would_write`
+     """
+     candidates = []
+-    for reading in _readings(word):
++    quoted = bool(getattr(word, "spliced", False))
++    for index, reading in enumerate(_readings(word)):
+         text = _resolve(str(reading), assignments).replace("\\", "/")
+         if "$" in text or "`" in text:
+             candidates.append(None)
+             continue
++        unexpandable = quoted or index > 0
++        if unexpandable and text.startswith("~"):
++            candidates.append(None)
++            continue
+         absolute = _absolute_readings(text, root)
+         if absolute is not None:
+             candidates.extend([_position(one, root) for one in absolute] or [None])
+@@ -1739,6 +1754,9 @@
+             continue
+         base = os.path.join(os.path.realpath(root), cwd.replace("/", os.sep))
+         expanded = _glob_readings(text, base)
++        if unexpandable and expanded:
++            candidates.append(None)
++            continue
+         for one in (expanded or (text,)):
+             candidates.append(_position(os.path.normpath(os.path.join(base, one)), root))
+     protected = [one for one in candidates if one is not None

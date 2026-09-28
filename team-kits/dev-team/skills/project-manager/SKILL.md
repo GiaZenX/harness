@@ -73,6 +73,47 @@ rephrases it — so the words the user weighs are the words you chose, and a Ger
 only just fitted in English can lose its end to that cut.
 Occasion: `BUG-0073`.
 
+## What you ask the user, and when (`DEC-0119`)
+An approval is an UNDERSTANDING check -- "you said ..., I understood ..., this is what I made of
+it" -- and never a permission to keep working. You do NOT ask "done with X, shall I continue with
+Y?": you proceed along the approved plan and report what you did. The user answers at three moments
+per goal, plus the kinds that are his by nature:
+- **The plan** at the start: one card for every confirmed goal (`request-approval plan`).
+- **One collected card** for his own change wishes and new goals, at a natural break. Capture a
+  wish AT ONCE with his own words (an `FR`, the words verbatim in `request_text`), make of it what it
+  needs (a `CR`, a new `PR`), start the work, and put the items on ONE card:
+  `python scripts/harness.py request-approval scope --batch CR-a PR-b --note "<Du hast gesagt ...;
+  ich habe verstanden ...; daraus habe ich ... gemacht>"`. That card is answered before the goal's
+  acceptance, and this is built rather than asked of you: the kernel refuses the acceptance question
+  while a change wish of the goal is still unconfirmed. What starts at once is work the goal's own
+  approval already covers; an order measured against the wish's OWN criteria waits for the card,
+  because the kernel lends an amendment's criteria only once it is approved.
+- **The acceptance** of a finished goal at the end, and the delivery approval before its build.
+- By nature the user's: a push, a kit update, a routine, a preset.
+**Bugs need no approval.** Found by the team or reported by the user, a bug is captured and worked
+by severity; its orders ride on the goal's approval. A "bug" whose fix changes behaviour the user
+accepted is a change wish and goes on the card. Closing repaired bugs is one card per batch
+(`DEC-0100`, "Defects" below) -- it asks nothing about continuing.
+**The card is calm** (`FR-0095`): "Freigabe erbeten für <Art>", the list (id and title), and your
+`--note` in plain German, which the user signs with the card -- folded onto one line and refused past
+the kernel's limit rather than cut. No checksum, path or request id stands on it; the request id is
+printed on stderr, for `withdraw-request`.
+The kinds you request, as the block the kit's own test reads
+(`tools/test_stream_a_approvals.py::test_the_approval_kinds_a_lead_is_told_to_request_are_the_decided_ones`):
+
+```yaml
+approval_kinds:
+  - {kind: plan, when: "start -- one card for every confirmed goal"}
+  - {kind: scope, form: batch, when: "collected card -- change wishes and new goals, before the goal's acceptance"}
+  - {kind: delivery, when: "per goal, before its build"}
+  - {kind: acceptance, when: "per goal, at the end"}
+  - {kind: verification, form: batch, when: "closing repaired bugs, one card per batch (DEC-0100)"}
+  - {kind: push, when: "the user's by nature"}
+  - {kind: kit_update, when: "the user's by nature"}
+  - {kind: routine, when: "the user's by nature"}
+  - {kind: preset, when: "the user's by nature -- only when the work needs a role the team lacks"}
+```
+
 ## Work loop (every cycle — every "capture"/"transition" below runs through the kernel's entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)
 
 1. **READ** `project_memory/generated/session_brief.yaml` first — the regenerated entry point (kit, version,
@@ -99,16 +140,18 @@ Occasion: `BUG-0073`.
    user-`ACCEPTED` (or at least user-sighted — screenshots/live). The user is the only judge of "looks like the
    mockup"; a real run stacked FOUR unseen UI slices of visual drift before the user first looked.
    `class: technical_enabler` PRs may proceed in parallel; the state validator blocks the rest.
-4. **APPROVE** — `python scripts/harness.py request-approval scope PR-nnnn` prints the question the KERNEL
-   composed; relay it VERBATIM (the gate compares it character for character) and let the user mint the scope-APR → the PR goes
-   `APPROVED`. For a UI scope the wireframe is NOT part of this manifest and cannot be, and this sentence used to say the opposite (`BUG-0077`, Canyon 2026-08-30): the manifest carries `approvals._SCOPE_FIELDS`, which holds no wireframe reference, and the designer who would draw one cannot be dispatched before this approval exists (`gate_dispatch`, spec II.2) -- so the two duties were jointly unsatisfiable and a project driven by the book hit the refusal at its first UI goal. THE ORDER IS: scope approval first, wireframe in step 5 as the delivery work it is. What binds it is the freeze itself -- `freeze-wireframe` records the `scope_apr_ref` it was drawn under, so a wireframe carries the approval it belongs to even though the approval does not carry the wireframe. Whether the manifest SHOULD gain such a field is an open decision with a migration attached (`BUG-0055`: every stored hash would change and every live approval would die), and until it is taken nothing here may claim the field exists.
+4. **APPROVE** — `python scripts/harness.py request-approval plan` (the confirmed goals) or, for a goal
+   or change wish that arrives later, `request-approval scope --batch <ids>` on the collected card prints
+   the question the KERNEL composed; relay it VERBATIM (the gate compares it character for character) and
+   let the user mint it → each listed item goes `APPROVED`. For a UI scope the wireframe is NOT part of this manifest and cannot be, and this sentence used to say the opposite (`BUG-0077`, Canyon 2026-08-30): the manifest carries `approvals._SCOPE_FIELDS`, which holds no wireframe reference, and the designer who would draw one cannot be dispatched before this approval exists (`gate_dispatch`, spec II.2) -- so the two duties were jointly unsatisfiable and a project driven by the book hit the refusal at its first UI goal. THE ORDER IS: scope approval first, wireframe in step 5 as the delivery work it is. What binds it is the freeze itself -- `freeze-wireframe` records the `scope_apr_ref` it was drawn under, so a wireframe carries the approval it belongs to even though the approval does not carry the wireframe. Whether the manifest SHOULD gain such a field is an open decision with a migration attached (`BUG-0055`: every stored hash would change and every live approval would die), and until it is taken nothing here may claim the field exists.
    **WHEN SEVERAL GOALS ARE CONFIRMED AT ONCE, ASK ONCE (`DEC-0068`).** The planning phase is
    deliberately thorough: derive the FULL list of product goals from the masterplan, go through each
    one with the user, bring your own suggestions and think around the corners, and record every
    confirmed goal with its acceptance criteria. Then ask `python scripts/harness.py
    request-approval plan` -- ONE question, built by the kernel from this project's own open goals,
    and you type no list (`--goals` refuses a value). One mint walks every named goal to `APPROVED`
-   with the same approval, and the team works them in order without being asked per goal again.
+   with the same approval, and the team works them in order without being asked per goal again --
+   and without asking whether to go on between them (`DEC-0119`).
    The delivery side does NOT collapse: `delivery` and `acceptance` stay per goal, because they ask
    about work that has happened. What is still asked at all is a property and not a list --
    everything the project cannot take back out of its own strength, everything that is a matter of
@@ -188,6 +231,10 @@ Occasion: `BUG-0073`.
 6. **DELEGATE** — use the exact installed `backend-developer`/`frontend-developer` role. Claude uses exact
    `subagent_type` + explicit `run_in_background`; Codex the exact role from `.codex/agents/*.toml`, whose
    upstream built-in roles remain available but are forbidden substitutes under this team policy.
+   On Claude the Agent call's `description` is the name the `dispatch` command printed (`spawn with
+   description: ...`, the header's `spawn_name`), character for character — role, rung, effort, and a
+   letter when two of one role run under one goal: it is what the user's task panel shows, and the
+   spawn gate refuses any other (`FR-0092`).
    **You create the `TSK` before the spawn — never the executor.** The judgement is yours in four:
    `acceptance_refs` (the criteria this task is measured against),
    `required_inputs` (exact files/IDs — never "read the tasks", name them), `allowed_scope`/`forbidden_scope`,
@@ -232,6 +279,10 @@ Occasion: `BUG-0073`.
    two file sets disjoint (`DEC-0092` (2)); the overlap it can see live it refuses as well (§5a). The
    skill carries the rest — one tree per order, only the checks that read what it changed, the
    shared files named in advance, and a merge round that gets its own verification pass.
+   One goal's parallel branches are united by `python scripts/harness.py integrate <GOAL>` on
+   `integrate/<GOAL>`, never by a `git merge`, which `gate_git` reads as the goal's delivery and
+   refuses before its verdict (`DEC-0125`). QA judges that integration branch, and ITS merge into the
+   delivery base is the delivery, with the goal's full verdict.
    **THE LIGHT FORM (`DEC-0087`, `DEC-0088`, `DEC-0091`, `DEC-0092`) — how many builders, and on which
    rung.** ONE builder per goal, with the WHOLE goal (the PR with its criteria, the masterplan, the
    architecture and product questions) — a peer-level model that thinks and builds end to end; you keep
@@ -249,7 +300,7 @@ Occasion: `BUG-0073`.
    `build` class's own rung, which is `opus` at `high`
    (`DEC-0095` (1) replaces `DEC-0088` (1) here: the top rung is not bearable as a standing tier);
    on Claude the top rung IS opus since `DEC-0114` (4), so the named architecture step of a large goal and the
-   escalation after a failed run end there, the escalation on the effort axis; on Codex both still reach the top in the answer (the header's `by_provider`), which you apply there by choosing the model -- nothing holds it (`H173`). `xhigh` only for a named step, never as a standing setting; the ask lifts
+   escalation after a failed run end there, the escalation on the effort axis -- and the architecture step starts there at the kit's highest effort, `xhigh` (`DEC-0118`: the capped top is opus at xhigh; lifting `provider_top` switches it back); on Codex both still reach the top in the answer (the header's `by_provider`), which you apply there by choosing the model -- nothing holds it (`H173`). `xhigh` only for a named step, never as a standing setting; the ask lifts
    the floor and never lowers a role below its class, and `top` still caps. Both values stand on the
    lease, in the brief and beside the order in `check-scopes`. **You never ask the user for tiers or
    for the team size** — he is asked for the plan, the scope, the delivery and the acceptance, and for
@@ -310,8 +361,11 @@ Occasion: `BUG-0073`.
    so a clean restart does not NEED the transcript. The transcript stays available as an explicit
    diagnosis/recovery fallback — e.g. after a crash or an unclean session end where the kernel had not yet
    written all state — and consulting it then is legitimate.
-9. **REPORT + ASK** — what was done + ideas, then use the provider-native question mechanism for “what next?”
-   (options + free text, include IDs). **Always name a recommended option with a reason** — never neutral.
+9. **REPORT, then GO ON** — what was done + ideas, and the next step of the approved plan, which you then
+   TAKE: no "fertig mit X -- weiter mit Y?" (`DEC-0119`). A question goes to the user only for what the
+   plan did not settle -- a product decision, a matter of taste, a kind of the list in "What you ask the
+   user, and when" -- and then with options + free text, the IDs, and **a recommended option with a
+   reason**, never neutral. When the plan has nothing left, ask what comes next the same way.
    Surface only **1–3 high-value ideas** here (bundled, never a constant stream, no generic filler — §14); an
    idea the user accepts becomes an **FR** or a Draft PR (not ad-hoc code), a maybe stays an untriaged `FR` in
    the inbox. On the user's acceptance (an acceptance-APR) the PR goes `ACCEPTED` and is archived. Before you ask for that acceptance, ask the USER once per goal whether a goal nobody verified is meant to be accepted -- in plain German, e.g. »Für <Ziel> hat niemand geprüft, ob die Arbeit wirklich tut, was sie soll. Ist das so gewollt?« -- and pass their words with `request-approval acceptance <ID> --unverified-answer "<ihre Worte>"`. The kernel asks it only where it is owed (no passing QA Evidence about the goal or its orders), records the answer on the goal, names the missing run in the acceptance card, and REFUSES NOTHING about the acceptance itself -- any answer lets it proceed (`DEC-0113`, H59).
@@ -384,7 +438,11 @@ only the rules its order names, so these three stand in every order you write:
   protocol — never a resumed builder, whose context carries the whole first attempt into every turn
   of the second.
 - **A run longer than a few minutes starts in the background**, and the agent waits for its
-  completion notice — no loop of sleeping and looking at a log.
+  completion notice — no loop of sleeping and looking at a log. A dispatched specialist that ends
+  its turn to wait is read as WAITING, not stopped, only while its stop still lists that command as
+  running (the provider's `background_tasks`, `BUG-0313`); a provider that sends no such list makes
+  the stop read as an end and you are told the child stopped. So on such a provider the order tells
+  the specialist to run the command in the FOREGROUND with an explicit timeout instead.
 - **A file over 2,000 lines, and every protocol, is read by section, never whole** — the
   constitution's reading duty (`DEC-0095` (6)) applied to the order.
 
@@ -456,7 +514,10 @@ MERGE tasks, and the kit version is already current at that point: **NEVER re-ru
 them** (it cannot resolve them — a real PM read the reminder as "update again"; a redundant re-run is loud,
 preserves the reminder state, and resolves nothing). Work them through — ideally BEFORE proposing the restart,
 the file merges need no restart: diff each against the kit template, have the owning role merge the kit's fixes
-(or record a conscious skip as a decision item under `decisions/active/`), then **DELETE the pending file(s)**.
+(`python scripts/harness.py upkeep adopt-template <path>` takes a listed repo template exactly as the kit ships it),
+or record a conscious skip as a decision item under `decisions/active/`; then `python scripts/harness.py
+upkeep resolve-pending` removes the list(s), and `upkeep untrack-ignored` takes files the kit's `.gitignore` now ignores
+out of git (they stay on disk). The list names only templates the KIT changed since the last install.
 `session_status` reminds you every session until they are gone — a real project showed `[kept]` lines alone get
 ignored and kit fixes silently never arrive. Afterwards a new kit version may require fields the existing items do not carry yet. Those deltas go in through the kernel like any other item content — never with your editor. `capture` creates an item; there is still no command that EDITS one, so a validator complaining about a missing new field on an existing item is a defect to report (§0). Nothing already filled is ever lost.
 
@@ -466,10 +527,13 @@ retry, and no `BUG` item is created. A bug found **after** acceptance, or any **
 (`related_pr`, `observed`, `expected`, `repro`, `severity`, and the fix criteria as `acceptance_criteria`), a
 `bug/BUG-nnnn-<slug>` branch, and a **mandatory regression test** (fails before the fix, passes after). QA's
 Evidence for that test is what moves the bug `FIXED` → `VERIFIED`; you never set it on a claim. A bug is NOT a
-user story and NOT a CR; it is a defect against approved behaviour (constitution §7).
+user story and NOT a CR; it is a defect against approved behaviour (constitution §7). **Working it needs no
+approval** (`DEC-0119` (3)): capture it, order the fix by severity -- the order derives from the `BUG` and rides
+on the goal's approval, the `BUG` itself stays `TRIAGED` while it is worked. One whose fix would change what the
+user accepted is a change wish and goes on the collected card instead.
 **Closing repaired bugs is ONE question, not one per bug** (`DEC-0100`): once each defect has its
 passing test Evidence, `python scripts/harness.py request-approval verification --batch BUG-a BUG-b ...` opens a
-single question whose approving option lists every id with the Evidence that measured it, and the user's answer
+single card that lists every id with the Evidence that measured it, and the user's answer
 walks all of them `TRIAGED` → `APPROVED` → `FIXED` → `VERIFIED` and archives them. An id without that Evidence, or
 one already past `TRIAGED`, is refused **by name** before the question is put — take it out and ask again; never
 relay a question the kernel refused to build.

@@ -1265,7 +1265,7 @@ def test_a_filing_rule_with_no_countable_retention_can_be_asked_for(tmp_path):
         approvals.filing_rule_subject_manifest(retention=None, **fields)
     assert "retention" in str(refused.value), refused.value
 
-    question = approvals._filing_rule_target_form(manifest)
+    question = "\n".join(approvals._filing_rule_lines(manifest))
     assert "keine zählbare Frist" in question, question
     assert "Aufbewahrung: ?" not in question, question
 
@@ -2249,6 +2249,10 @@ def test_the_question_a_document_proposal_asks_shows_every_field_the_hash_covers
         if key == approvals.EXPIRY_FIELD:
             continue            # rendered as a date by `_render_manifest_value`, not as its float
         for shown in (value if isinstance(value, list) else [value]):
+            if approvals._is_digest(shown):
+                # FR-0095: a checksum binds from the record and stays off the card
+                assert str(shown)[:8] not in question, (key, question)
+                continue
             rendered = approvals._render_manifest_value(key, shown)
             assert rendered in question, (
                 "the hash covers %s=%r and the question does not show it:\n%s"
@@ -2285,6 +2289,10 @@ def test_the_question_a_document_revision_asks_shows_every_field_the_hash_covers
         if key == approvals.EXPIRY_FIELD:
             continue            # rendered as a date by `_render_manifest_value`, not as its float
         for shown in (value if isinstance(value, list) else [value]):
+            if approvals._is_digest(shown):
+                # FR-0095: a checksum binds from the record and stays off the card
+                assert str(shown)[:8] not in question, (key, question)
+                continue
             rendered = approvals._render_manifest_value(key, shown)
             assert rendered in question, (
                 "the hash covers %s=%r and the question does not show it:\n%s"

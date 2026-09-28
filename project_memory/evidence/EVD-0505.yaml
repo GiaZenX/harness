@@ -1,0 +1,22 @@
+id: EVD-0505
+kind: test
+related:
+- BUG-0323
+result: pass
+summary: 'TSK-0155 stream C, worktree g7/field (stamped mirror): both field lines
+  (absolute cd into .claude/agent-memory/<role> as C:/... and /c/..., then >> MEMORY.md)
+  rc 2 at the installed write gate, ordinary work after an absolute cd rc 0, a write
+  after ''cd -'' rc 2 (node test_a_shell_write_after_an_absolute_cd_into_craft_memory_is_refused_bug_0323);
+  ''upkeep prune-memory --keep-newest 19'' brings 103 topics under budget, drops dangling
+  index lines, a new topic passes again (node test_an_over_budget_memory_can_be_brought_back_under_it_bug_0323);
+  index tripwire (node test_the_prune_door_reads_the_index_the_kit_hook_polices_bug_0323).
+  Red on base gate / door mutations.'
+artifact_refs:
+- staging/TSK-0155/evd/final.log
+- staging/TSK-0155/evd/red-first.log
+run_command: python -B -m pytest tools/test_stream_c_field.py tools/test_migrate.py::test_an_open_v1_task_is_imported_cancelled_bug_0317
+  -v -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:58:15'

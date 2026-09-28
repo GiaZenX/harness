@@ -51,7 +51,7 @@ import time
 
 from . import (approvals, archive_door, board, checkpoints, dispatch, documents, duties, filing,
                gaplog,
-               hashing, holes, kitupdate, migrate, plan_diagram, presets, report, scopes,
+               hashing, holes, integrate, kitupdate, migrate, plan_diagram, presets, report, scopes,
                staging)
 from .backlog_types import (
     AREA_FIELD,
@@ -396,6 +396,19 @@ def _hole_exception_holes(state: ProjectState, args) -> list:
     return approvals.hole_exception_batch(state, getattr(args, BATCH_ARGUMENT, None) or [])
 
 
+def _scope_batch_items(state: ProjectState, args) -> list:
+    """The entries of a collected scope card (FR-0096) -- the IDS are typed, each entry's SCOPE
+    CONTENT is read and hashed per item (`approvals.scope_batch`), for `_verification_bugs`' reason."""
+    return approvals.scope_batch(state, getattr(args, BATCH_ARGUMENT, None) or [])
+
+
+# THE ONE KIND A LINE MAY ASK ABOUT ONE ITEM OR OVER A LIST (FR-0096). A decision, not a derivation:
+# `hole_exception` is item-derived and list-bound as well, and PR-0012 AC-4 retired its single form
+# on this surface; the single `scope` form stays because the kernel's own transition remedy
+# (`approvals.assert_transition_approved`) and the kits' `gate_git` / `gate_proc_approved` name it.
+# Both ends: `tools/test_stream_a_approvals.py::test_only_the_scope_kind_takes_an_id_or_a_list`.
+EITHER_FORM_KINDS = frozenset({approvals.PLAN_COVERED_KIND})
+
 # THE COMMAND-LINE ARGUMENT A BATCH KIND NAMES ITS ITEMS ON. Spelled once: the parser adds it, the
 # resolver above reads it, and `kinds_reading_argument` derives WHICH kinds may carry it.
 BATCH_ARGUMENT = "batch"
@@ -409,6 +422,9 @@ LINE_MANIFEST_RESOLVERS = {
              BATCH_ARGUMENT),
     "holes": (_hole_exception_holes,
               "read from the ids on --batch and, per id, the sentence that says what bounds it",
+              BATCH_ARGUMENT),
+    "items": (_scope_batch_items,
+              "read from the ids on --batch and, per id, its own scope content",
               BATCH_ARGUMENT),
     "content": (_document_content, "hashed from the document named on this line"),
     "head": (_worktree_head, "read from the worktree this state directory sits in"),
@@ -798,7 +814,7 @@ def build_parser() -> argparse.ArgumentParser:
     submit.add_argument("--scope-touched", action="append", dest="scope_touched", metavar="PATH")
     submit.add_argument("--followup", action="append", dest="followups")
     # PHASE 1 OF THE APPROVAL PROTOCOL, and the reason it has to be on this surface: without it
-    # `create_pending_request` had NO caller in the shipped tree, so no `[APR-REQ:<id>]` question
+    # `create_pending_request` had NO caller in the shipped tree, so no kernel-composed question
     # could exist, so `gate_approval` blocked every AskUserQuestion that looked like one, so no
     # APR could ever be minted -- and since `transition` now demands an APR on the edges an
     # approval commits, a root item could never leave DRAFT in a real project. The sperre had no
@@ -830,10 +846,12 @@ def build_parser() -> argparse.ArgumentParser:
     request.add_argument("kind", choices=sorted(set(approvals.item_derived_kinds())
                                                 | set(approvals.line_manifest_kinds())))
     request.add_argument("item_id", metavar="ITEM_ID", nargs="?",
-                         help="the item to approve -- required for %s, and refused for %s, whose "
-                              "subject is the flags below rather than an item"
+                         help="the item to approve -- required for %s (unless --batch names a "
+                              "list), and refused for %s, whose subject is the flags below rather "
+                              "than an item"
                               % ("/".join(sorted(approvals.item_derived_kinds())),
-                                 "/".join(approvals.line_manifest_kinds())))
+                                 "/".join(sorted(set(approvals.line_manifest_kinds())
+                                                 - set(approvals.item_derived_kinds())))))
     for line_kind, builder in sorted(approvals.LINE_MANIFEST_BUILDERS.items()):
         for name in manifest_parameters(builder):
             flag = "--" + name.replace("_", "-")
@@ -860,6 +878,13 @@ def build_parser() -> argparse.ArgumentParser:
     # the project -- the words the user said when asked, once per goal, before the acceptance
     # question goes out. Refused for every other kind by the branch below, because a kind that
     # cannot be accepted has no such question.
+    # THE ASSISTANT'S OWN WORDS ON THE CARD (FR-0095, DEC-0119 (6)): what the PM explains the
+    # request means -- for a collected scope card "you said ..., I understood ..., I made these items
+    # of it". Signed with the card (`approvals.NOTE_FIELD`), accepted for every kind.
+    request.add_argument("--note", default=None, metavar="TEXT",
+                         help="your explanation for the user, shown on the card as yours and "
+                              "signed with it; at most %d characters, refused rather than cut"
+                              % approvals.NOTE_LIMIT)
     request.add_argument("--unverified-answer", default=None, metavar="TEXT",
                          help="what the user answered when asked whether accepting this goal "
                               "without any verification run is intended (DEC-0113); for "
@@ -873,8 +898,8 @@ def build_parser() -> argparse.ArgumentParser:
     # kinds it is accepted for are derived from the resolver that reads it, and it is refused for
     # every other kind by name.
     request.add_argument("--" + BATCH_ARGUMENT, nargs="+", metavar="ITEM_ID", default=None,
-                         help="the items one question closes -- for %s (at most %d per question); "
-                              "refused for every other kind"
+                         help="the items one question covers -- for %s (at most %d per "
+                              "question); refused for every other kind"
                               % ("/".join(sorted(kinds_reading_argument(BATCH_ARGUMENT)))
                                  or "no kind on this build", approvals.BATCH_LIMIT))
     # The lease + header, in one command, because they are one moment: spec II.4 orders
@@ -1034,6 +1059,41 @@ def build_parser() -> argparse.ArgumentParser:
         "rollback-kit",
         help="PRINTS which previous bundle could be replayed here and the installer line that does "
              "it; installs nothing itself")
+    # THE CHORES A SESSION COULD NOT DO BEHIND `gate_write_scope` (BUG-0310, BUG-0319, BUG-0323),
+    # each a door that only deletes, untracks or copies the kit's own bytes -- `kernel.kitupdate`
+    # carries the argument beside the code, and why they are one command.
+    upkeep = sub.add_parser(
+        kitupdate.UPKEEP_COMMAND,
+        help="installation upkeep a session may do itself: prune caches from the enforcement "
+             "bundle, work the kit-update merge backlog, prune a role memory over its budget")
+    actions = upkeep.add_subparsers(dest="upkeep_action", required=True)
+    actions.add_parser(
+        kitupdate.PRUNE_CACHES,
+        help="delete tool leftovers (bytecode, linter caches) from the installed enforcement "
+             "bundle and re-measure it against the hash this project trusts")
+    actions.add_parser(
+        kitupdate.RESOLVE_PENDING,
+        help="remove the kit-update pending list(s) once they are worked through; prints what "
+             "they still named")
+    adopt = actions.add_parser(
+        kitupdate.ADOPT_TEMPLATE,
+        help="copy the kit's template for ONE path the pending list names over the project's copy")
+    adopt.add_argument("path", help="the listed path, spelled as the list spells it")
+    actions.add_parser(
+        kitupdate.UNTRACK_IGNORED,
+        help="`git rm --cached` the tracked files the kit's .gitignore and this project's both "
+             "ignore (they stay on disk)")
+    memory = actions.add_parser(
+        kitupdate.PRUNE_MEMORY,
+        help="delete topic files of ONE role's craft memory (never its index) and the index "
+             "lines that then point at no file -- the way back under the memory budget")
+    memory.add_argument("role", help="the role, as its file is named under .claude/agents/")
+    chosen = memory.add_mutually_exclusive_group(required=True)
+    chosen.add_argument("--retire", action="append", metavar="TOPIC",
+                        help="a topic file to delete, relative to the role's memory directory "
+                             "(repeatable)")
+    chosen.add_argument("--keep-newest", type=int, metavar="N",
+                        help="keep the N most recently changed topics and delete the rest")
     # THE THIRD DEAD END OF THE SAME FAMILY (FR-0049 step 5). An office project meeting a document
     # class its Aktenplan does not know could not file it -- correctly -- and could not grow the
     # plan either: `filing_plan.yaml` is a kit document, so no tool write reaches it and, until
@@ -1146,6 +1206,16 @@ def build_parser() -> argparse.ArgumentParser:
     door.add_argument("--by", required=True, help="who corrects it (a role or a person)")
     door.add_argument("--field", default=archive_door.TEST_REFERENCE_FIELD,
                       help="the test-reference field (default %(default)s)")
+    # THE INTEGRATION DOOR (DEC-0125, BUG-0333): one goal's work branches united on its own
+    # branch, never on the delivery base -- every refusal is `kernel.integrate`'s.
+    uniting = sub.add_parser(
+        integrate.COMMAND,
+        help="unite every work branch named after GOAL on %sGOAL, in a worktree of its own; "
+             "the delivery base is never written (DEC-0125)" % integrate.BRANCH_PREFIX)
+    uniting.add_argument("goal", metavar="GOAL")
+    uniting.add_argument("--base", default=None, metavar="BRANCH",
+                         help="the delivery base a NEW integration branch starts from (default: "
+                              "the branch the project's checkout stands on)")
     # THE PRE-DISPATCH CHECK OF THE CUT (DEC-0062 (1)/(2), stream D requirement C-1). On the
     # kernel's own surface and not as a repo script, for the reason `kernel.scopes` gives: from a
     # skill directory there is no executable route at all (`gate_write_scope` refuses it, measured
@@ -1277,6 +1347,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--apply", action="store_true",
         help="write the mapped values through the edit path; without it the state is untouched")
     return parser
+
+
+def _say_the_cut(state, task) -> None:
+    """The cut facts of a new work order, on STDERR and after its id -- facts, never a refusal, so
+    the exit code and stdout stay what a script reads (BUG-0318, `dispatch.order_cut_facts`)."""
+    for line in dispatch.order_cut_facts(state, task):
+        sys.stderr.write("[cut] %s\n" % line)
 
 
 def _submitted_envelope(state, args) -> dict:
@@ -1493,6 +1570,58 @@ def _pin_utf8() -> None:
 # The three routes to the pin and the rollback, in one name so the dispatch cannot grow a fourth
 # spelling the parser does not carry. Their subparsers above argue why they print rather than act.
 KIT_PIN_ROUTES = ("pin-kit", "unpin-kit", "rollback-kit")
+
+
+def _upkeep(state: ProjectState, args) -> int:
+    """The surface of `kitupdate`'s upkeep doors -- printing only, the acts are there.
+
+    Exit 1 where the measured answer is NOT what the caller came for (the bundle still differs
+    after the prune), so a script cannot read a printed line as success.
+    """
+    root = presets.repo_root(state)
+    action = args.upkeep_action
+    if action == kitupdate.PRUNE_CACHES:
+        result = kitupdate.prune_bundle_caches(root)
+        print("removed %d tool leftover(s) from the enforcement bundle%s"
+              % (len(result["removed"]), (": " + ", ".join(result["removed"][:20])
+                                          + (" ..." if len(result["removed"]) > 20 else ""))
+                 if result["removed"] else ""))
+        if result["matches"]:
+            print("bundle: MATCHES the hash this project trusts -- the spawn gate measures it on "
+                  "every spawn, so specialists start again; the next session start records it")
+            return 0
+        print("bundle: still NOT the one this project trusts (measured %s, recorded %s)%s -- "
+              "something other than a cache changed, and nothing else was removed. Review "
+              "`.claude/hooks` and `.claude/kernel`, then the user runs the scaffold once."
+              % (str(result["measured"])[:12], str(result["recorded"])[:12],
+                 "; differing from the staged kit: " + ", ".join(result["left"][:10])
+                 if result["left"] else ""))
+        return 1
+    if action == kitupdate.ADOPT_TEMPLATE:
+        done = kitupdate.adopt_template(root, args.path)
+        print("adopted the kit's template for %s; still pending: %s"
+              % (done["adopted"], ", ".join(done["remaining"]) or "nothing (list removed)"))
+        return 0
+    if action == kitupdate.RESOLVE_PENDING:
+        done = kitupdate.resolve_pending(root)
+        print("removed the pending list(s)%s"
+              % ("; they still named, as a conscious skip: %s%s"
+                 % (", ".join(done["outstanding"]),
+                    "" if done["checked"] else " (not all re-checked)")
+                 if done["outstanding"] else "; nothing in them was outstanding"))
+        return 0
+    if action == kitupdate.UNTRACK_IGNORED:
+        paths = kitupdate.untrack_kit_ignored(root)
+        print("untracked %d file(s) the kit's .gitignore and this project's both ignore (they "
+              "stay on disk; `git add -f <path>` tracks one again)%s"
+              % (len(paths), (": " + ", ".join(paths[:20]) + (" ..." if len(paths) > 20 else ""))
+                 if paths else ""))
+        return 0
+    done = kitupdate.prune_memory(root, args.role, retire=args.retire,
+                                  keep_newest=args.keep_newest)
+    print("%s: retired %d topic(s), %d remain; %d index line(s) that pointed at no file dropped"
+          % (args.role, len(done["retired"]), done["remaining"], done["index_lines_dropped"]))
+    return 0
 
 
 def _kit_pin_route(state: ProjectState, command: str) -> int:
@@ -1867,6 +1996,8 @@ def main(argv=None) -> int:
                     "[similar] %s was captured all the same -- nothing here was refused. If one "
                     "of the above is the same requirement, retire this one and extend that.\n"
                     % item["id"])
+            if args.item_type == dispatch.ORDER_TYPE:
+                _say_the_cut(state, item)
             return 0
         if args.command == "create-task":
             if bool(args.allowed_scope) == bool(args.read_only):
@@ -1892,6 +2023,7 @@ def main(argv=None) -> int:
                    if getattr(args, key)},
             })
             print("%s %s (%s)" % (task["id"], task["status"], task["assigned_role"]))
+            _say_the_cut(state, task)
             return 0
         if args.command == CHECK_SCOPES_COMMAND:
             # THE EXIT CODE IS THE ANSWER, which is why the lines are printed and then returned
@@ -1918,6 +2050,15 @@ def main(argv=None) -> int:
                     "is asked before an ACCEPTANCE and before nothing else; a %s approval has no "
                     "such question. Remedy: drop the flag." % args.kind)
             batched = kinds_reading_argument(BATCH_ARGUMENT)
+            # THE KIND THAT TAKES EITHER FORM (`EITHER_FORM_KINDS`, FR-0096): an id asks about one
+            # item and --batch about a list -- both at once is refused below.
+            either = batched & EITHER_FORM_KINDS
+            listed = bool(getattr(args, BATCH_ARGUMENT, None))
+            if args.kind in either and listed and args.item_id:
+                raise UsageError(
+                    "a %s approval is asked about ONE item or over a LIST, not both. Remedy: put "
+                    "%s on --%s with the others, or drop --%s." % (args.kind, args.item_id,
+                                                                  BATCH_ARGUMENT, BATCH_ARGUMENT))
             if getattr(args, BATCH_ARGUMENT, None) and args.kind not in batched:
                 raise UsageError(
                     "a %s approval is not asked over a list of items, so --%s is refused for it "
@@ -1927,13 +2068,13 @@ def main(argv=None) -> int:
             # `hole_exception` took a positional id until PR-0012 AC-4, so a role with the older
             # habit types one -- and asked in the other order it met "and none was named" while it
             # HAD named one, with a remedy that dropped the id it gave. Measured 2026-09-12.
-            if args.kind in batched and args.item_id:
+            if args.kind in batched - either and args.item_id:
                 raise UsageError(
                     "a %s approval is asked over a LIST, so the id goes on --%s rather than on its "
                     "own. Remedy: `%s request-approval %s --%s %s` (up to %d per question)."
                     % (args.kind, BATCH_ARGUMENT, INVOCATION, args.kind, BATCH_ARGUMENT,
                        args.item_id, approvals.BATCH_LIMIT))
-            if args.kind in batched and not getattr(args, BATCH_ARGUMENT, None):
+            if args.kind in batched - either and not listed:
                 # THE VERB IS NEUTRAL because the two batch kinds do opposite things: `verification`
                 # closes what it lists, `hole_exception` ACCEPTS that it stays open and closes
                 # nothing. A sentence saying "closes" is false for half the kinds it is printed for.
@@ -1942,15 +2083,17 @@ def main(argv=None) -> int:
                     "`%s request-approval %s --%s <ITEM_ID> <ITEM_ID> ...` (at most %d per "
                     "question)."
                     % (args.kind, INVOCATION, args.kind, BATCH_ARGUMENT, approvals.BATCH_LIMIT))
-            if builder is None:
+            if builder is None or (args.kind in either and not listed):
                 if not args.item_id:
                     raise UsageError(
                         "a %s approval is bound to an ITEM and none was named. Remedy: `%s "
-                        "request-approval %s <ITEM_ID>`."
-                        % (args.kind, INVOCATION, args.kind))
+                        "request-approval %s <ITEM_ID>`%s."
+                        % (args.kind, INVOCATION, args.kind,
+                           ", or a list: `--%s <ITEM_ID> <ITEM_ID> ...`" % BATCH_ARGUMENT
+                           if args.kind in either else ""))
                 pending = approvals.create_pending_request(
                     state, args.kind, args.item_id,
-                    unverified_answer=args.unverified_answer)
+                    unverified_answer=args.unverified_answer, note=args.note)
             elif args.kind == approvals.ROUTINE_KIND:
                 # THE ONE LINE KIND THAT HANGS FROM AN ITEM (`approvals.ROUTINE_KIND`): the flags
                 # build what the run is bound to, the root is what the dispatcher reads the
@@ -1972,7 +2115,8 @@ def main(argv=None) -> int:
                 pending = approvals.create_pending_request(
                     state, args.kind, args.item_id,
                     manifest=_line_manifest(state, args.kind, builder, args),
-                    approval_expires=time.time() + float(args.expires_in_days) * 86400.0)
+                    approval_expires=time.time() + float(args.expires_in_days) * 86400.0,
+                    note=args.note)
             else:
                 if args.item_id:
                     # A BATCHED KIND NEVER REACHES HERE -- it is answered above, where the id can
@@ -1992,13 +2136,17 @@ def main(argv=None) -> int:
                 pending = approvals.create_pending_request(
                     state, args.kind,
                     manifest=_line_manifest(state, args.kind, builder, args),
-                    approval_expires=expires)
+                    approval_expires=expires, note=args.note)
             # ONLY the question object on stdout, and as JSON, because it has to be relayed
             # VERBATIM: `gate_approval` compares the asked question against `build_question`
             # field by field, so anything printed beside it is something a role might paste in.
-            # The request id travels inside the text as `[APR-REQ:<id>]`; that marker is what the
-            # gate resolves back to this request.
+            # The request is found again by the mint code in the approving label
+            # (`approvals.pending_request_by_code`); its id left the card with FR-0095 and is
+            # named on stderr, where the role that may have to take the question back reads it.
             print(json.dumps(approvals.build_question(pending), indent=2, ensure_ascii=False))
+            sys.stderr.write("approval request %s is open; to take the question back: `%s "
+                             "withdraw-request %s --reason <why>`\n"
+                             % (pending["request_id"], INVOCATION, pending["request_id"]))
             # ...AND, ON STDERR, WHETHER THE ANSWER HAS A READER. Same rule as the `dispatch`
             # branch below: stdout carries only what must be relayed verbatim. Without this the
             # only surface that says the answer goes nowhere is the transition refusal, which
@@ -2029,6 +2177,9 @@ def main(argv=None) -> int:
             # ...AND THE LADDER ANSWER, on the same channel for the same reason (DEC-0077 (5)):
             # the header above already carries rung and effort; this line carries the WHY.
             sys.stderr.write(dispatch.ladder_line(lease) + "\n")
+            # ...AND THE NAME THE SPAWN CARRIES (FR-0092): the Agent call's `description`, exactly.
+            if lease.get(dispatch.SPAWN_NAME_KEY):
+                sys.stderr.write("spawn with description: %s\n" % lease[dispatch.SPAWN_NAME_KEY])
             return 0
         if args.command == "ladder":
             task = state.read_item(args.task_id)
@@ -2178,6 +2329,8 @@ def main(argv=None) -> int:
                   "handover guard installed, further work-engine commands and product writes "
                   "as well." % result["marker"])
             return 0
+        if args.command == kitupdate.UPKEEP_COMMAND:
+            return _upkeep(state, args)
         if args.command == "archive":
             print(state.archive(args.item_id))
             return 0
@@ -2198,6 +2351,18 @@ def main(argv=None) -> int:
                     print("the item is corrected, the hole index is NOT: %s -- run `%s "
                           "migrate-holes --reindex`" % (exc, INVOCATION))
                     return 1
+            return 0
+        if args.command == integrate.COMMAND:
+            united = integrate.integrate(state, args.goal, base=args.base)
+            print("%s %s at %s (worktree %s, base %s)" % (
+                united["branch"], "created" if united["created"] else "reused",
+                united["tip"][:12], united["worktree"], united["base"]))
+            for name, tip in united["merged"]:
+                print("  united %s (%s)" % (name, tip[:12]))
+            for name, why in sorted(united["skipped"].items()):
+                print("  skipped %s: %s" % (name, why))
+            print("Only committed work is united. QA judges this branch; its merge into the "
+                  "delivery base is a delivery and needs the goal's full verdict.")
             return 0
         if args.command == "sweep-leases":
             # BOTH ways a lease comes back, because the remedy line that sends a role here does
@@ -2226,6 +2391,15 @@ def main(argv=None) -> int:
             print("still leased: %s" % (", ".join(
                 "%s (%d s left)" % (task_id, int(left))
                 for task_id, left in dispatch.live_leases(state)) or "-"))
+            # A LEASE THE SWEEP KEPT, and why (BUG-0326): the line above lists only unexpired
+            # leases, so without this one a kept expired lease would be named nowhere. Each entry
+            # names its OWN way out -- the refusals' status, not a fixed one.
+            print("held by a child WAITING on its own background run, not released "
+                  "(it resumes by itself; if it will not, the transition named drops the "
+                  "lease): %s" % (", ".join(
+                      "%s (%s; `%s transition %s %s`)" % (task_id, waiting, INVOCATION, task_id,
+                                                         way_out)
+                      for task_id, waiting, way_out in dispatch.waiting_leases(state)) or "-"))
             # A LEASED task with no lease is not a lease the sweep releases -- it is the untrue
             # bookkeeping DEC-0038 makes unreachable by a bare transition. Where old state or a
             # removed lease still shows it, the sweep REPORTS it (BUG-0010 AC-3) rather than

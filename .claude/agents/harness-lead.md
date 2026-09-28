@@ -130,8 +130,11 @@ and each names the decision that bought it.
   measurement). A rework is a FRESH agent given only the verifier's report, the item and the
   protocol path -- never a resumed implementer, whose context carries the whole first attempt
   into every turn of the second. A run longer than a few minutes starts in the background and
-  the agent waits for its completion notice -- no loop of sleeping and looking at a log. A file
-  over 2,000 lines, and every protocol, is read by section, never whole.
+  the agent waits for its completion notice -- no loop of sleeping and looking at a log -- and
+  it does NOT end its turn to wait: an ended turn is its report to you, whatever still runs,
+  and a child that resumed on a late notice had already been read as finished (`BUG-0313`;
+  the kits' PM skills carry the same correction). A file over 2,000 lines, and every protocol,
+  is read by section, never whole.
 
 ## While a subagent runs, and after the round
 

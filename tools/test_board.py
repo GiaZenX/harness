@@ -735,7 +735,8 @@ _WRITERS_THE_BOARD_DOES_NOT_RENDER = {
     ("checkpoints.py", "record"): "tasks/checkpoints/ -- no ACTIVE_DIRS home, so no card",
     ("dispatch.py", "mark_awaiting_bind"): "the lease file, which is not an item",
     ("dispatch.py", "clear_awaiting_bind"): "the lease file",
-    ("dispatch.py", "bind_agent_by_role"): "the lease file",
+    ("dispatch.py", "bind_agent_by_role"): "the lease file; the TASK it starts (BUG-0314) is "
+                                           "written by `_start_the_run_locked`, which regenerates",
     ("dispatch.py", "bind_agent"): "the lease file",
     ("dispatch.py", "validate_dispatch"): "the lease file (the claim)",
     ("scopes.py", "write_record"): "tasks/scope-checks/ -- the record of one check-scopes run "

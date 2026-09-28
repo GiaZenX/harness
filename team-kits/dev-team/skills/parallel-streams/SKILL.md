@@ -138,6 +138,11 @@ only be seen on the united tree, and only by somebody looking. So the merge gets
 pass, its own verification pass and its own record — and it is where the seam table above is
 applied, the stamp is made, and the full run happens.
 
+Orders under ONE goal are united by `python scripts/harness.py integrate <GOAL>` on
+`integrate/<GOAL>`, never by a `git merge`, which `gate_git` reads as the goal's delivery and refuses
+before its verdict (`DEC-0125`). QA judges that integration branch, and ITS merge into the delivery
+base is the delivery, with the goal's full verdict.
+
 ## 7. What this procedure does NOT give you
 
 Said here so nobody reads more into it than is built:
@@ -146,6 +151,10 @@ Said here so nobody reads more into it than is built:
 * **No isolation for the state directory.** The kernel writes the project's items in one place; an
   order proposes into its own staging area and the lead books the result. Two orders capturing
   items at the same time are two writers on one store.
-* **No knowledge of a second tree anywhere in the kernel.** A lease names a task, not a checkout,
-  so nothing can tell you which tree an order is working in — you carry that yourself, in the
-  order and in the record.
+* **No check that a lease's tree is the one the order works in.** Every lease records a checkout
+  (`python scripts/harness.py dispatch <TSK> --worktree <path>`; left out, the tree the state
+  directory lives in), and the kernel checks only that the directory exists
+  (`kernel/dispatch.py`, `_lease_worktree`) — not that it is a checkout of this project, and not
+  that the specialist really works there. So name the real tree at dispatch: a lease left on the
+  default names the main checkout while the order works in its own. The one tree the kernel makes
+  itself is a goal's integration worktree (`integrate`, above).

@@ -1,0 +1,28 @@
+id: BUG-0337
+title: 'Git-Verlauf ohne Merge: rebase, cherry-pick und merge-tree/commit-tree sieht
+  die Liefer-Regel nicht -- eine Umgehung der Pruef-Pflicht vor der Lieferung'
+related_pr: PR-0012
+observed: 'READ/OBSERVED in synaipse forensics (BUG-0333, sections 3 and 5): the dev-kit''s
+  gate_git fires on git push/merge only (_compat.py ~:2235); rebase and cherry-pick
+  move commits into a branch without it, and the synaipse QA role built a composite
+  state with `git merge-tree --write-tree` + `git commit-tree` (agent transcript line
+  124) the rule never saw. The PM refused rebase/cherry-pick as a bypass. VERDICT:
+  open; belongs to the integration stream of wave 1 (integration branch + verdict
+  on the united tree), and to stream B''s after-check where history moves.'
+expected: Moving commits into a delivery branch by any git route meets the same verdict
+  requirement as merge.
+repro: 'In an installed dev-kit project: `git cherry-pick <sha>` onto the integration
+  branch with a failing goal verdict -> no refusal.'
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: rebase/cherry-pick onto a delivery branch meet the delivery verdict rule --
+    a test naming this bug, red on 2026.09.27-9
+source: project_memory/staging/BUG-0333/forensics-2026-09-28.md
+limits: 'Offen bis Welle 1. Begrenzt: im Feld nicht benutzt fuer die Lieferung; Push
+  braucht weiter die Freigabe des Nutzers.'
+hole_number: H230
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-28T19:14:48'

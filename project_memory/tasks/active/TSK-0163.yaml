@@ -1,0 +1,55 @@
+id: TSK-0163
+product_requirement: PR-0012
+derives_from: BUG-0333
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-1
+allowed_scope:
+- team-kits/**
+- tools/**
+- docs/**
+- README.md
+- .claude/hooks/test_gates.py
+forbidden_scope:
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- .claude/agents/**
+- project_memory/**
+- radar/**
+required_inputs:
+- 'MERGE the BUG-0333 stream into the MAIN tree C:/Offline Repos/AgentAndSkills. The
+  main tree holds order 7''s merge + reworks 1-5 UNCOMMITTED (stamp 2026.09.28-3;
+  latest: BUG-0335 closed in the kit gate, protocol staging/TSK-0156/protocol.md ''Rework
+  5''). The stream''s work is UNCOMMITTED in the worktree C:/Offline Repos/v2-testbed/_worktrees/g7-integrate
+  (branch g7/integrate, base 35e929b; two new files only `git add -N`): read its protocol
+  project_memory/staging/BUG-0333/protocol.md by section, especially ''what a stamp
+  would cover'' and the merge-simulation notes. Bring its full diff against 35e929b
+  (tracked + the two new files) into the main tree with git merge-file per file, hunk
+  by hunk; the declared seams: team-kits/kernel/cli.py, the three constitution/AGENTS.md,
+  README.md (order 7 put `upkeep` on the same register lines -- keep BOTH `upkeep`
+  and `integrate`), dev/research gate_git.py and parallel-streams/SKILL.md, dev project-manager/SKILL.md.
+  Name every conflict and its resolution in the protocol. Then ONCE: `python tools/bump_kit_version.py`
+  (+ --check), the lead-package size re-record and the section re-pin (tools/record_lead_package_sizes.py
+  --write --note ..., tools/pin_constitution_sections.py --write --note ...), validate
+  + ruff. READING SUITES by callers, each with a time budget: tools/test_bug0333_integrate.py,
+  the gate_git suites (grep the callers of gate_git / its remedy), tools/test_parallel_streams.py,
+  the shared-skill contract tests, tools/test_repo_hygiene.py, tools/test_kitupdate.py
+  -k scaffold (stamp), tools/test_hooks.py::test_shared_kit_files_identical, the constitution/README
+  register tests (grep where `upkeep` is asserted as a command). Protocol section
+  ''Merge integrate'' in project_memory/staging/BUG-0333/protocol.md as you go. Do
+  not remove the worktree (the lead does after the commit). No full run, no commit,
+  no push, no BUG transitions.'
+expected_outputs:
+- the integrate stream in the main tree, every seam conflict named with its resolution;
+  one stamp; size record + section pins re-recorded once; reading suites green with
+  clock times; validate + ruff clean; the full run NOT started
+dependencies: []
+rung: opus
+effort: medium
+root_revision: 1
+status: READY
+revision: 1
+approval_ref: null
+created: '2026-09-28T16:32:45'

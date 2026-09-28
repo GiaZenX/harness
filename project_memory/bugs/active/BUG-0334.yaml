@@ -1,0 +1,37 @@
+id: BUG-0334
+title: 'Merge-Regression: `_walk` erweitert eine gequotete Tilde bzw. ein gequotetes
+  Muster ein zweites Mal -- Gate 1 und das Kit-Gate folgen `cd "~"` ins Home, bash
+  bleibt stehen (H31 wieder offen)'
+related_pr: PR-0012
+observed: 'MEASURED by the TSK-0158 gate diagnosis (project_memory/staging/TSK-0156/protocol.md
+  section ''Gate tilde diagnosis'' (from line ~390); rig C:/Offline Repos/v2-testbed/_round-scratch/TSK-0158/tilde-diag/):
+  the delivery run of .claude/hooks/test_gates.py (2026-09-28 11:24) had test_gate1_refuses_a_line_exactly_where_the_shell_would_write
+  red in 16 cells (`cd "~" ; sed -i ... team-kits/kernel/state.py` rc 0). Cause: the
+  order-7 merge rebuilt team-kits/*/hooks/gate_write_scope.py `_walk` (stream C, BUG-0323)
+  and `_walked_to` expands the unquoted text again; probe `_walk([''cd'',''~''], base)`
+  -> C:/Users/zenti (HEAD: None). NOT user patch 4 (pre-/post-patch _harness x HEAD/worktree
+  kit: red only with the worktree kit). Same class, untested: a quoted glob (`cd "d*cs"`,
+  `cd ''do[c]s''`) -- gate rc 0 with the worktree kit, rc 2 with HEAD, and bash really
+  writes the protected file. PRE-EXISTING in the kit gate itself (HEAD too): lead
+  as caller, `cd .claude ; cd "~" ; echo x > settings.json` (also `cd "../d*cs"`,
+  `cd \~`) rc 0 while bash writes .claude/settings.json.'
+expected: 'A word that carries quoting (or is not the first reading) is not tilde/glob-expanded
+  by the walk: its position is unknown and a write after it is refused (the over-refusing
+  direction), in gate 1 and in the kit gate.'
+repro: See the diagnosis rig; `cd "~" ; sed -i s/a/b/ team-kits/kernel/state.py` against
+  gate 1.
+severity: high
+acceptance_criteria:
+- id: AC-1
+  text: the 16 cells of test_gate1_refuses_a_line_exactly_where_the_shell_would_write
+    green; a test naming this bug for the quoted-glob half of gate 1 and for the kit
+    gate (tilde, glob, backslash), red on 2026.09.27-9
+source: project_memory/staging/TSK-0156/protocol.md section 'Gate tilde diagnosis'
+  (from line ~390); project_memory/staging/TSK-0158/walk-quoting-fix.diff
+limits: 'Bis zum Fix: der Lead kann mit einer absichtlich gequoteten Tilde oder einem
+  gequoteten Muster an Gate 1 vorbei schreiben; Subagenten ebenso am Kit-Gate. Nicht
+  ausgeliefert (die Regression ist uncommitted).'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-28T12:35:06'

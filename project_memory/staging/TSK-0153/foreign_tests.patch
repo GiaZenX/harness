@@ -1,0 +1,726 @@
+--- a/tools/test_hooks_v2.py
++++ b/tools/test_hooks_v2.py
+@@ -3748,8 +3748,11 @@
+                               "questions": [echoed]})
+ 
+ 
+-def marker_of(question):
+-    return re.search(r"\[APR-REQ:[0-9a-f]{32}\]", question["question"]).group(0)
++def code_of(question):
++    """The mint code of the card's approving option -- what the hook resolves a card by since
++    FR-0095 took the request id off the card (`approvals.card_mint_codes`)."""
++    (code,) = approvals.card_mint_codes(question)
++    return code
+ 
+ 
+ def test_the_kernels_own_question_passes(tmp_path):
+@@ -3768,14 +3771,14 @@
+     assert run_approval(tmp_path, ask(tmp_path, ordinary)).returncode == 0
+ 
+ 
+-@pytest.mark.parametrize("field,value", [("question", "Freigabe erbeten: darf ich? %s"),
++@pytest.mark.parametrize("field,value", [("question", "Freigabe erbeten: darf ich?"),
+                                          ("header", "Bitte")])
+ def test_a_reworded_approval_question_is_blocked(tmp_path, field, value):
+     """The model relays the question, so if it could paraphrase it, it would control what the user
+     believes they are approving. The comparison is dumb on purpose."""
+     _state, _pr, _request, question = pending(tmp_path)
+     tampered = dict(question)
+-    tampered[field] = value % marker_of(question) if "%s" in value else value
++    tampered[field] = value
+     result = run_approval(tmp_path, ask(tmp_path, tampered))
+     assert result.returncode == 2
+     assert "NOT the one the kernel generated" in result.stderr
+@@ -3783,20 +3786,18 @@
+ 
+ 
+ def test_a_tampered_option_description_is_blocked_too(tmp_path):
+-    """BUG-0271 AC-2 / PR-0011 AC-7: the manifest hash and the request's file path moved out of the
+-    question sentence into the approving option's DESCRIPTION, so that field has to be part of what
+-    the gate compares -- or the move would have taken them out of the comparison. A description
+-    with one digit of the hash changed is refused, on both events.
++    """The approving option's DESCRIPTION is part of what the gate compares, on both events -- the
++    one text beside the label a user reads before clicking. Since FR-0095 it carries no checksum or
++    path (those bind from the record), so the tamper here is one word of it.
+ 
+     RED WITHOUT the per-key option comparison in `_mismatch`: the tampered description passes.
+     """
+     _state, _pr, request, question = pending(tmp_path)
+-    shown = request["subject_manifest_hash"][:approvals.DIGEST_SHOWN]
+-    assert shown in question["options"][0]["description"], question["options"][0]
+-    assert shown not in question["question"], "the hash is back in the sentence"
++    assert request["subject_manifest_hash"][:12] not in json.dumps(question), "a checksum is on the card"
+     tampered = json.loads(json.dumps(question))
+     tampered["options"][0]["description"] = tampered["options"][0]["description"].replace(
+-        shown, shown[:-1] + ("0" if shown[-1] != "0" else "1"))
++        "verstanden", "gelesen")
++    assert tampered != question
+     result = run_approval(tmp_path, ask(tmp_path, tampered))
+     assert result.returncode == 2 and "option 0 description differs" in result.stderr, result.stderr
+     minted = run_approval(tmp_path, answered(tmp_path, tampered, approvals.approve_label(request["mint_code"]),
+@@ -3848,10 +3849,13 @@
+ 
+ 
+ def test_an_invented_request_id_is_blocked(tmp_path):
+-    """A marker naming no pending request is fail-closed, not ignored."""
++    """A mint code naming no pending request is fail-closed, not ignored (the request id left the
++    card with FR-0095; the approving label's code is what names the request now)."""
+     _state, _pr, _request, question = pending(tmp_path)
+-    tampered = dict(question, question=question["question"].replace(
+-        marker_of(question), "[APR-REQ:" + "0" * 32 + "]"))
++    invented = "000000" if code_of(question) != "000000" else "111111"
++    tampered = dict(question, options=[dict(question["options"][0],
++                                            label=approvals.approve_label(invented))]
++                    + question["options"][1:])
+     result = run_approval(tmp_path, ask(tmp_path, tampered))
+     assert result.returncode == 2
+     assert "no pending approval request" in result.stderr
+@@ -3960,8 +3964,9 @@
+ 
+ 
+ def test_the_pilots_silent_relay_now_speaks_to_the_user(tmp_path):
+-    """Pilot 3's own S3 shape (BUG-0039), replayed: the question relayed in the model's words
+-    carries no `[APR-REQ:]` marker, the user clicks `Freigeben [<code>]`, nothing mints.
++    """Pilot 3's own S3 shape (BUG-0039), replayed: the question relayed in the model's words, the
++    user clicks `Freigeben [<code>]`, nothing mints. (Since FR-0095 the label names the request, so
++    this relay is compared and refused as not the kernel's card -- said to the user either way.)
+ 
+     Before this fix that path exited 0 with EMPTY stdout, EMPTY stderr and not even an audit note —
+     the purest form of the silence. The protection is unchanged (no APR, item still DRAFT); what is
+@@ -3978,7 +3983,7 @@
+     assert state.read_item(pr["id"])["approval_ref"] is None
+     assert state.read_item(pr["id"])["status"] == "DRAFT"
+     message = to_user(result)
+-    assert "keine Freigabe entstanden" in message
++    assert "keine Freigabe" in message
+     assert approvals.NEXT_ASK_AGAIN in message      # the ONE next action, not a menu
+     assert "gate_approval" in to_model(result)
+     assert audit_notes(tmp_path), "the non-mint left no record either"
+@@ -4231,9 +4236,10 @@
+     variants = {}
+ 
+     state, pr, request, question = pending(tmp_path / "unmarked")
+-    plain = dict(question, question="Bitte gib das frei.")
+-    variants["unmarked"] = (state, pr, answered(tmp_path / "unmarked", plain,
+-                                                approvals.approve_label(request["mint_code"])))
++    # a relay in the model's own words, options included: no approving label anywhere (FR-0095)
++    plain = dict(question, question="Bitte gib das frei.",
++                 options=[{"label": "Ja", "description": "passt"}])
++    variants["unmarked"] = (state, pr, answered(tmp_path / "unmarked", plain, "Ja"))
+ 
+     state, pr, request, question = pending(tmp_path / "reworded")
+     tampered = dict(question, question="Kurz erklärt: " + question["question"])
+@@ -10226,10 +10232,12 @@
+     entire point of the rule: explicit approval means the user knew what they released."""
+     work = git_repo(tmp_path)
+     question = approve_push(work, "origin", "main", git_head(work))
+-    # the form is German since BUG-0271 (PR-0011 AC-7): the branch, the remote and the head all
+-    # stand in the sentence, in the user's words rather than as `remote/branch @ head`
+-    assert "des Zweigs „main“ nach origin" in question["question"], question["question"]
+-    assert git_head(work)[:8] in question["question"]
++    # the form is German since BUG-0271 (PR-0011 AC-7): the branch and the remote stand on the
++    # card in the user's words; the commit it binds to is a checksum and stays in the record since
++    # FR-0095 -- a moved HEAD still kills the approval (`test_the_token_is_single_use_...`)
++    assert "der Zweig „main“ wird nach „origin“ veröffentlicht" in question["question"], (
++        question["question"])
++    assert git_head(work)[:8] not in question["question"]
+ 
+ 
+ def test_the_approved_push_is_allowed_and_nothing_else_is(tmp_path):
+--- a/tools/test_hooks.py
++++ b/tools/test_hooks.py
+@@ -346,21 +346,23 @@
+         assert _run_handover(allowed).returncode == 0, allowed["tool_input"]
+ 
+ 
+-# A well-formed approval-request marker, the kernel's own shape (gate_approval MARKER_RX).
+-_APR_MARKER = "[APR-REQ:%s]" % ("a" * 32)
++# A well-formed approving label, the kernel's own shape (gate_approval APPROVE_LABEL_RX) -- what
++# an approval card is recognised by since FR-0095 took the request id off it.
++_APR_MARKER = "Freigeben [5acc16]"
+ 
+ 
+ def _scope_approval_question(marker):
+-    """An AskUserQuestion shaped like the scope-approval request, carrying `marker` in its text."""
+-    return {"questions": [{"question": "Freigabe fuer den Arbeitsbereich (Scope)? %s" % marker,
++    """An AskUserQuestion shaped like the scope-approval card; `marker` is its approving label, and
++    an empty one leaves the card with a label that approves nothing ("Ja")."""
++    return {"questions": [{"question": "Freigabe fuer den Arbeitsbereich (Scope)?",
+                            "header": "Scope",
+-                           "options": [{"label": "Freigeben [5acc16]", "description": "ja"},
++                           "options": [{"label": marker or "Ja", "description": "ja"},
+                                        {"label": "Aendern", "description": "nein"}]}]}
+ 
+ 
+ def test_handover_guard_blocks_the_scope_approval_askuserquestion_under_marker(tmp_path):
+     """BUG-0017 / TSK-0054: with the handover marker present, the AskUserQuestion that INITIATES the
+-    scope-approval flow (carries `[APR-REQ:<id>]`) is refused — the measured continuation-path gap
++    scope-approval flow (carries an approving label `Freigeben [<code>]`) is refused — the measured continuation-path gap
+     where the entry agent requested approval, the mint failed, and it re-invented `/hooks`.
+ 
+     RED without the new rule: AskUserQuestion is none of FILE/SHELL/SPAWN tools, so `main` fell
+@@ -379,8 +381,8 @@
+     """The scan is over the whole tool_input, so the marker is caught wherever the model puts it
+     (option label here, not the question text). A narrower question-text-only check would miss this."""
+     base = _handover_repo(tmp_path)
+-    payload = {"questions": [{"question": "Bitte bestaetigen?", "header": "Scope",
+-                              "options": [{"label": "Freigeben %s" % _APR_MARKER}]}]}
++    payload = {"questions": [{"question": "Bitte bestaetigen %s?" % _APR_MARKER,
++                              "header": "Scope", "options": [{"label": "Ja"}]}]}
+     result = _run_handover(dict(base, tool_name="AskUserQuestion", tool_input=payload))
+     assert result.returncode == 2, result.stdout + result.stderr
+ 
+@@ -12676,8 +12678,8 @@
+     with contextlib.redirect_stdout(printed):
+         assert cli.main(argv) == 0
+     question = json.loads(printed.getvalue())
+-    request_id = question["question"].split("[APR-REQ:")[1].split("]")[0]
+-    mint_via_hook(state, approvals.pending_request(state, request_id))
++    (code,) = approvals.card_mint_codes(question)       # FR-0095: the label names the request
++    mint_via_hook(state, approvals.pending_request_by_code(state, code))
+     return question
+ 
+ 
+@@ -13396,9 +13398,13 @@
+         tmp_path, "inbox/a.pdf",
+         reason="ALLES BLEIBT ERHALTEN\nHinweis: nichts wird geloescht.\r\n‮umgedreht​")
+     text = question["question"]
+-    assert "\n" not in text and "\r" not in text
++    # FR-0095: the card is lines the KERNEL writes; the reason is ONE of them, folded, and no
++    # line of the card starts where the requester's newline would have put it
++    lines = text.split("\n")
++    assert "\r" not in text
+     assert "‮" not in text and "​" not in text
+-    assert "ALLES BLEIBT ERHALTEN Hinweis: nichts wird geloescht. umgedreht" in text
++    assert "- Grund: ALLES BLEIBT ERHALTEN Hinweis: nichts wird geloescht. umgedreht" in lines, text
++    assert not any(line.startswith("Hinweis") for line in lines), text
+     for option in question["options"]:
+         assert "\n" not in option["label"] and "\n" not in option["description"]
+     # ...and the FOLD is what the hash covers, not a prettier rendering of something else
+@@ -15267,8 +15273,15 @@
+     opened = _entry_point(repo, "request-approval", kind, item_id)
+     assert opened.returncode == 0, opened.stdout + opened.stderr
+     question = json.loads(opened.stdout)
+-    assert "[APR-REQ:" in question["question"], question
++    assert len(approvals_for_the_card().card_mint_codes(question)) == 1, question
+     return question
++
++
++def approvals_for_the_card():
++    """The kernel's approvals module, for the card's mint code (FR-0095)."""
++    sys.path.insert(0, os.path.join(ROOT, "team-kits"))
++    from kernel import approvals
++    return approvals
+ 
+ 
+ def _mint_in_project(repo, kind, item_id):
+@@ -15312,8 +15325,8 @@
+     from kernel import approvals
+     from kernel.state import ProjectState
+     state = ProjectState(os.path.join(str(repo), "project_memory"))
+-    request_id = re.search(r"\[APR-REQ:([0-9a-f]{32})\]", question["question"]).group(1)
+-    mint_code = approvals.pending_request(state, request_id)["mint_code"]
++    (mint_code,) = approvals.card_mint_codes(question)     # FR-0095: the label names the request
++    request_id = approvals.pending_request_by_code(state, mint_code)["request_id"]
+ 
+     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+     env["CLAUDE_PROJECT_DIR"] = str(repo)
+@@ -17144,15 +17157,16 @@
+     that gate reads it as markerless (rc 0) — a guard reading markers more loosely than the gate
+     would let a malformed one buy silence from both.
+     """
+-    options = ["Freigeben [abc123]", "Ablehnen"]
+     machine = "Welchen Namen und welche E-Mail soll ich im Git eintragen?"
+-    assert _R2B_NOTE in _advice(tmp_path, machine, options)
+-    marked = "%s [APR-REQ:%s]" % (machine, "b" * 32)
+-    assert _R2B_NOTE not in _advice(tmp_path, marked, options), marked
+-    near = "%s [APR-REQ:short]" % machine
+-    assert _R2B_NOTE in _advice(tmp_path, near, options)
+-    # ...and what the marked one costs at the gate that enforces the marker, run as itself
+-    for text, expected in ((marked, 2), (near, 0)):
++    plain, marked, near = (["Ja", "Ablehnen"], ["Freigeben [abc123]", "Ablehnen"],
++                           ["Freigeben [short]", "Ablehnen"])
++    # since FR-0095 the "marker" is the approving label `Freigeben [<code>]` of an option
++    assert _R2B_NOTE in _advice(tmp_path, machine, plain)
++    assert _R2B_NOTE not in _advice(tmp_path, machine, marked), marked
++    assert _R2B_NOTE in _advice(tmp_path, machine, near)
++    # ...and what the labelled one costs at the gate that enforces the label, run as itself
++    for options, expected in ((marked, 2), (near, 0)):
++        text = machine
+         payload = _question(text, options)
+         payload["hook_event_name"] = "PreToolUse"
+         payload["cwd"] = str(tmp_path)
+@@ -17204,8 +17218,8 @@
+ 
+     for kit in KITS:
+         hooks = os.path.join(ROOT, "team-kits", kit, "hooks")
+-        assert (pattern(os.path.join(hooks, "guard_question_context.py"), "_APR_MARKER_RX")
+-                == pattern(os.path.join(hooks, "gate_approval.py"), "MARKER_RX")), kit
++        assert (pattern(os.path.join(hooks, "guard_question_context.py"), "_APPROVE_LABEL_RX")
++                == pattern(os.path.join(hooks, "gate_approval.py"), "APPROVE_LABEL_RX")), kit
+ 
+ 
+ # ---------------- the packaging block, and the exit it did not have ----------------
+--- a/tools/test_light_kit.py
++++ b/tools/test_light_kit.py
+@@ -819,52 +819,33 @@
+ 
+     from kernel import approvals
+ 
+-    listed = {approvals.VERIFICATION_KIND: ("bugs", lambda n: [
+-                  {approvals.GOAL_ITEM_FIELD: "BUG-%04d" % (n + 1), "evidence": "EVD-0001"}]),
+-              approvals.HOLE_EXCEPTION_KIND: ("holes", lambda n: [
+-                  {approvals.GOAL_ITEM_FIELD: "BUG-%04d" % (n + 1),
+-                   approvals.LISTED_BOUND_FIELD: "was stattdessen begrenzt"}])}
+-    assert set(listed) == set(approvals.OPTION_FORMS), (
+-        "a list-bound kind with no row here is a sentence nothing measures: %s"
+-        % (set(listed) ^ set(approvals.OPTION_FORMS)))
+-
+-    for kind, (key, record) in sorted(listed.items()):
++    # SINCE FR-0095 THE CARD LISTS, IT DOES NOT COUNT: every entry is a line of its own, so the
++    # numerus defect has no sentence left to live in -- and no digit may stand on the card except
++    # inside the ids. The subject is the LIST even with an item beside it (the second half of the
++    # defect). Measured over every list-bound builder, with one entry and with two.
++    from kernel.cli import manifest_parameters
++
++    list_kinds = [kind for kind, builder in approvals.LINE_MANIFEST_BUILDERS.items()
++                  if manifest_parameters(builder) and all(
++                      key in ("goals", "bugs", "holes", "items")
++                      for key in manifest_parameters(builder))]
++    assert set(list_kinds) == {approvals.PLAN_KIND, approvals.VERIFICATION_KIND,
++                               approvals.HOLE_EXCEPTION_KIND, approvals.PLAN_COVERED_KIND}
++    for kind in sorted(list_kinds):
++        key = manifest_parameters(approvals.LINE_MANIFEST_BUILDERS[kind])[0]
+         for count in (1, 2):
+-            entries = [row for n in range(count) for row in record(n)]
+-            # THE ITEM IS SET ON PURPOSE, and the revision is not: a list-bound request carries no
+-            # revision of its own, and the item is here to prove the kind's form wins over it.
++            entries = [{approvals.GOAL_ITEM_FIELD: "BUG-%04d" % (n + 1), "title": "Kasse",
++                        "revision": 1, approvals.GOAL_SCOPE_HASH_FIELD: "ab" * 32}
++                       for n in range(count)]
+             request = {"request_id": "ab" * 16, "kind": kind, "item": "PR-0001",
+                        "item_title": "Kasse mit Bon", "revision": None, "mint_code": "c0ffee",
+                        "subject_manifest": {key: entries}, "subject_manifest_hash": "de" * 32}
+-            question = approvals.build_question(request)
+-            sentence = question["question"]
+-            approving = question["options"][0]["description"]
+-
++            sentence = approvals.build_question(request)["question"]
+             assert "PR-0001" not in sentence, (kind, count, sentence)
+-            for text in (sentence, approving):
+-                if count == 1:
+-                    assert not re.search(r"\d", text.split("[APR-REQ")[0].replace("PR-0001", "")
+-                                         .replace("BUG-0001", "").replace("EVD-0001", "")), (
+-                        "the singular form still carries a digit: %r" % text)
+-                else:
+-                    assert re.search(r"(?<!\d)%d(?!\d)" % count, text), (kind, count, text)
+-            for entry in entries:
+-                assert entry[approvals.GOAL_ITEM_FIELD] in approving, (kind, approving)
+-            # ...and the card's subject is a NOUN PHRASE, because the option reads "Erteilt die
+-            # Freigabe ... FÜR <this>: <list>": a main clause there is ungrammatical German, which
+-            # is what "für 2 Lücken bleiben offen: ..." was (round 2, R4).
+-            #
+-            # WHAT IS ASSERTED IS THE SHIPPED FORM ITSELF, both numbers, and the reason is round 3:
+-            # the first attempt matched a four-verb list behind a digit, and TWO mutations that put
+-            # the original defect straight back -- the singular as a main clause ("eine Lücke
+-            # bleibt offen") and the plural with a fifth verb ("%d Lücken stehen offen") -- stayed
+-            # GREEN. A list of verbs cannot carry this claim; the sentence a non-developer reads is
+-            # the artefact under test, so the test holds the sentence. A rewording is then a red
+-            # test, which for a text the user signs is the right cost.
+-            # The LAST `für` before the colon: one kind's own LABEL carries a `für` of its own
+-            # ("Ausnahme für eine bekannte Lücke"), so the first one is the wrong split.
+-            subject = approving.split(":", 1)[0].rsplit(" für ", 1)[1]
+-            assert subject == _card_subject(kind, count), (kind, count, subject)
++            lines = sentence.split("\n\n")[1].split("\n")
++            assert lines == ["- BUG-%04d „Kasse“" % (n + 1) for n in range(count)], (kind, lines)
++            assert not re.search(r"\d", sentence.replace("BUG-0001", "").replace("BUG-0002", "")), (
++                "a digit on a list card: %r" % sentence)
+ 
+     # ...and a kind whose subject IS an item still names it
+     plain = approvals.build_question({"request_id": "ab" * 16, "kind": "scope", "item": "PR-0001",
+@@ -889,8 +870,7 @@
+ 
+     from kernel import approvals
+ 
+-    marker = re.compile(r" \[APR-REQ:[0-9a-f]{32}\]$")
+-    hexes = re.compile(r"(?<![0-9a-f])[0-9a-f]{12,}")
++    hexes = re.compile(r"(?<![0-9a-f])[0-9a-f]{8,}")
+     for kind in approvals.APR_KINDS:
+         request = {"request_id": "ab" * 16, "kind": kind, "item": None, "revision": None,
+                    "item_title": "", "mint_code": "c0ffee", "subject_manifest": {}}
+@@ -906,28 +886,22 @@
+             request["subject_manifest"][approvals.EXPIRY_FIELD] = 1_800_000_000.0
+         request["subject_manifest_hash"] = "deadbeef" * 8
+         question = approvals.build_question(request)
+-        sentence = question["question"]
+-        assert marker.search(sentence), sentence
+-        body = marker.sub("", sentence)
+-        assert body.startswith("Freigabe erbeten: %s für " % approvals.KIND_LABELS[kind]), body
++        body = question["question"]
++        # FR-0095: no request marker, no path, no checksum -- the card binds from the record
++        assert "APR-REQ" not in body and request["request_id"] not in body, body
++        assert body.startswith("Freigabe erbeten für %s\n\n" % approvals.KIND_LABELS[kind]), body
+         for enum_word in approvals.APR_KINDS:
+             assert not re.search(r"(?<![\w-])%s(?![\w-])" % re.escape(enum_word), body), (kind, enum_word, body)
+         assert "approvals/pending" not in body and "sha256" not in body, body
+-        for run in hexes.finditer(body):
+-            assert body[:run.start()].endswith("Prüfsumme "), (kind, run.group(0), body)
+-        # ...and the item stands in the sentence for every kind whose SUBJECT is that item. A kind
+-        # with its own `TARGET_FORMS` entry has a subject of its own -- a list, a manifest -- and
+-        # since BUG-0271's second half the form wins over an item standing beside it, because the
+-        # approving option binds that subject and the two texts have to be about one thing.
+-        if request["item"] and kind not in approvals.TARGET_FORMS:
+-            assert "„Kasse mit Bon“ (PR-0001)" in body and "(Revision 2)" in body, body
++        assert not hexes.search(body), (kind, body)
++        if request["item"] and not approvals._signed_records(request["subject_manifest"]):
++            assert "- PR-0001 „Kasse mit Bon“" in body, body
+         for field in request["subject_manifest"]:
+-            if builder is None or kind not in approvals.TARGET_FORMS:
++            if approvals.MANIFEST_LABELS.get(field, field) == field:
+                 assert "%s:" % field not in body, (kind, field, body)
+-        approving = question["options"][0]["description"]
+-        assert request["subject_manifest_hash"][:approvals.DIGEST_SHOWN] in approving
+-        assert "approvals/pending/%s.yaml" % request["request_id"] in approving
+-        assert approvals.KIND_LABELS[kind] in approving
++        for option in question["options"]:
++            assert request["subject_manifest_hash"][:8] not in option["description"]
++            assert "approvals/pending" not in option["description"]
+ 
+ 
+ def test_the_auditor_runs_on_the_routine_route_from_the_command_line_without_a_writable_scope(tmp_path):
+@@ -964,11 +938,11 @@
+     assert asked.returncode == 0, asked.stdout + asked.stderr
+     question = json.loads(asked.stdout)
+     sentence = question["question"]
+-    assert sentence.startswith("Freigabe erbeten: %s für „Kasse mit Bon“ (%s)"
++    assert sentence.startswith("Freigabe erbeten für %s\n\n- %s „Kasse mit Bon“"
+                                % (approvals.KIND_LABELS["routine"], pr["id"])), sentence
+     assert "Rolle: project-auditor" in sentence and "gültig bis: " in sentence, sentence
+-    request_id = sentence.rsplit("[APR-REQ:", 1)[1].rstrip("]")
+-    request = approvals.pending_request(state, request_id)
++    (code,) = approvals.card_mint_codes(question)
++    request = approvals.pending_request_by_code(state, code)
+     mint_via_hook(state, request)
+     routine = sorted(name for name in os.listdir(os.path.join(state.root, "approvals"))
+                      if name.startswith("APR-"))[-1][:-5]
+--- a/tools/test_presets.py
++++ b/tools/test_presets.py
+@@ -691,8 +691,8 @@
+     assert "danach im Team: alpha, beta" in question["question"], question["question"]
+     assert "entfernt: keine" in question["question"]
+     assert "roles:" not in question["question"] and "removes:" not in question["question"]
+-    # the option the user clicks carries the same sentence -- it is what the mint is bound to
+-    assert "danach im Team: alpha, beta" in question["options"][0]["description"]
++    # since FR-0095 the subject stands on the card's list and the options carry no subject; the
++    # card is compared character for character, so the list IS what the mint is bound to
+ 
+     _write(str(project["repo"] / ".claude" / "team_kit_roles.txt"),
+            (ROLES_MANIFEST_HEADER % (KIT, 3)) + "\nproject-manager\nalpha\nbeta\n")
+@@ -773,7 +773,9 @@
+     meets a constitution promising it does not. Whitespace in the documents is flattened first,
+     because where a kit wraps its lines is not what this measures.
+     """
+-    form = approvals.TARGET_FORMS["preset"]
++    def form(manifest):                      # the card's lines for a preset (FR-0095)
++        return "\n".join(approvals.SUBJECT_LINES["preset"](manifest))
++
+     from_alpha = presets.change_manifest(project["state"], "full")
+     rendered = form(from_alpha)
+     # what the renderer actually put in front of the user, as claims a sentence has to match
+@@ -807,7 +809,10 @@
+ 
+ 
+ def test_every_target_form_names_a_live_apr_kind(project):
+-    """Both ends of the one map in `build_question` that is an enumeration.
++    """Both ends of the one map in `build_question` that is an enumeration -- `SUBJECT_LINES` since
++    FR-0095, which replaced `TARGET_FORMS`/`OPTION_FORMS`; the list-bound kinds left the map, because
++    every list now reads through one `_entry_line` (their measurement:
++    `tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card`).
+ 
+     A form for a kind that no longer exists answers for nothing, and this map is the one place the
+     builder departs from rendering the hashed manifest key by key -- a leftover entry makes that
+@@ -815,7 +820,7 @@
+     renders is the other end: every entry here writes a sentence a user signs, so the second
+     assertion is the one that has to be edited deliberately, next to a new test like the two above.
+     """
+-    assert set(approvals.TARGET_FORMS) <= set(approvals.APR_KINDS)
++    assert set(approvals.SUBJECT_LINES) <= set(approvals.APR_KINDS)
+     # `filing_correction` joined the map in TSK-0077 (FR-0050) and brought its measurement with it:
+     # `tools/test_staging_cli.py::test_a_filing_correction_question_says_in_words_what_happens_to_
+     # the_document` is what says the rendered sentence names the document, both outcomes in words,
+@@ -835,34 +840,10 @@
+     # _covers`, plus `tools/test_approvals_dispatch.py::test_a_revision_card_shows_every_spot_and
+     # _is_never_a_count` for the half specific to it: the spots are shown in full or the request is
+     # refused, never folded into a number.
+-    # `plan` joined in TSK-0117 (FR-0074) and is the ONE form where a single answer authorises
+-    # several items, so it is the one that may least be a summary -- which is also the sentence
+-    # `H132` leans on. Its measurement arrived in the TSK-0120 merge round, where this
+-    # assertion went red because the form had come without one:
+-    # `tools/test_kernel.py::test_the_question_a_plan_asks_shows_every_goal_the_hash_covers`
+-    # asks the manifest for every goal it hashes and requires each one's id, title and revision
+-    # in the rendered sentence, and refuses a count standing in for the list.
+-    # `verification` joined in TSK-0138 (PR-0012 AC-1, DEC-0100) and is the SECOND form where one
+-    # answer authorises several items -- and the first that splits itself in two: the sentence names
+-    # the count and the APPROVING OPTION carries the list, because the list is the compared carrier
+-    # and a sentence a person has to read cannot hold twenty-odd ids with their proofs. Both halves
+-    # are measured, which is what this assertion asks for:
+-    # `tools/test_approvals_dispatch.py::test_the_batch_option_names_every_listed_bug_and_its_evidence`
+-    # requires every listed id AND the Evidence that measured it in the option and refuses them in
+-    # the sentence, and
+-    # `tools/test_approvals_dispatch.py::test_only_a_kind_with_its_own_option_form_reads_differently_in_the_two_places`
+-    # holds the other end for every form that has no option form of its own.
+-    # `hole_exception` joined in TSK-0140 (PR-0012 AC-4) as the THIRD list-bound form and the
+-    # second that splits itself in two, on the same ground: the sentence says how many gaps stay
+-    # open, the approving option carries each id WITH what bounds it. Both halves are measured --
+-    # `tools/test_approvals_dispatch.py::test_the_exception_option_names_every_listed_hole_and_its_bound`
+-    # requires every id and its bound in the option and refuses the ids in the sentence, and
+-    # `tools/test_approvals_dispatch.py::test_a_gap_without_a_bound_is_refused_from_the_exception_batch_by_name`
+-    # measures what the form is allowed to be asked about at all.
+-    assert set(approvals.TARGET_FORMS) == {"push", "preset", "filing_correction", "filing_rule",
+-                                           "document_proposal", "document_revision",
+-                                           approvals.PLAN_KIND, approvals.VERIFICATION_KIND,
+-                                           approvals.HOLE_EXCEPTION_KIND}, (
++    # `plan`, `verification` and `hole_exception` had forms here until FR-0095 (TSK-0153): a list
++    # now reads one `_entry_line` per item, whatever the kind, so they need no entry.
++    assert set(approvals.SUBJECT_LINES) == {"push", "preset", "filing_correction", "filing_rule",
++                                            "document_proposal", "document_revision"}, (
+         "a new readable form arrived without a measurement of what it renders")
+ 
+ 
+--- a/tools/test_staging_cli.py
++++ b/tools/test_staging_cli.py
+@@ -814,7 +814,7 @@
+ def test_cli_request_approval_opens_the_question_the_gate_will_pin(state, capsys):
+     """Without this command the transition gate had no counterpart at all.
+ 
+-    `create_pending_request` had no caller in the shipped tree, so no `[APR-REQ:<id>]` question
++    `create_pending_request` had no caller in the shipped tree, so no kernel-composed question
+     could exist, so nothing could ever mint -- and a gated edge would refuse forever. What is
+     asserted is the whole chain the gate needs: a pending request on disk, a question carrying
+     that request's marker, and a question BYTE-IDENTICAL to what `build_question` rebuilds from
+@@ -828,7 +828,10 @@
+     files = sorted(os.listdir(pending))
+     assert len(files) == 1, files
+     request_id = files[0][:-5]
+-    assert "[APR-REQ:%s]" % request_id in printed["question"]
++    # FR-0095: the card names its request by the approving label's code, never by its id
++    assert request_id not in printed["question"]
++    assert approvals.pending_request_by_code(
++        state, approvals.card_mint_codes(printed)[0])["request_id"] == request_id
+     stored = approvals.pending_request(state, request_id)
+     assert printed == approvals.build_question(stored)
+     # the mint code lives ONLY in the approval option's label (spec II.2 / spike S2b)
+@@ -962,9 +965,8 @@
+     Both outcomes are named as what they DO, never as the manifest key that tells them apart: a
+     reader must not have to notice that `destination` is empty to learn that a document is about to
+     be destroyed. Everything the hash covers is in the sentence -- the document, the outcome, the
+-    reason, the version, the expiry -- and the version is SHORTENED like every other digest in this
+-    question (`_render_manifest_value`), because a 64-character hex string in the middle of it is
+-    what made the `kit_update` question unreadable.
++    reason, the expiry, and that it binds THIS version of the document -- whose checksum stays in
++    the record since FR-0095 rather than on the card.
+     """
+     _document(state, "archive/1-Finanzen/2026/x.pdf")
+     moved = _correction_question(state, capsys, "--document", "archive/1-Finanzen/2026/x.pdf",
+@@ -985,8 +987,8 @@
+     from kernel import hashing
+     digest = hashing.document_content_hash(
+         os.path.join(os.path.dirname(state.root), "inbox", "a.pdf"))
+-    assert digest[:approvals.DIGEST_SHOWN] in deleted["question"]
+-    assert digest not in deleted["question"], "the full digest makes the question unreadable"
++    assert digest[:8] not in deleted["question"], "a checksum on the card (FR-0095)"
++    assert "genau die jetzige Fassung dieses Dokuments" in deleted["question"]
+ 
+ 
+ def test_a_document_the_kernel_cannot_hash_is_refused_where_the_clerk_types_it(state, capsys):
+@@ -1194,7 +1196,7 @@
+     question = json.loads(opened.stdout.decode("utf-8"))     # strict: mojibake fails here
+     assert "für" in question["question"], question["question"]
+     assert question == approvals.build_question(
+-        approvals.pending_request(state, question["question"].split("[APR-REQ:")[1][:32]))
++        approvals.pending_request_by_code(state, approvals.card_mint_codes(question)[0]))
+ 
+ 
+ def test_cli_capture_refuses_a_body_over_the_item_budget(state, capsys):
+--- a/tools/test_report.py
++++ b/tools/test_report.py
+@@ -2254,14 +2254,16 @@
+ 
+     assert cli.main(list(argv)) == 0
+     unwired = capsys.readouterr()
+-    assert "[APR-REQ:" in json.loads(unwired.out)["question"], "stdout is the question alone"
++    assert approvals.card_mint_codes(json.loads(unwired.out)), "stdout is the question alone"
+     assert approvals.APPROVAL_HOOK in unwired.err and "approve nothing" in unwired.err
+ 
+     _register_approval_hook(str(tmp_path), event=approvals.APPROVAL_MINT_EVENT)
+     assert cli.main(list(argv)) == 0
+     wired = capsys.readouterr()
+-    assert "[APR-REQ:" in json.loads(wired.out)["question"]
+-    assert wired.err == "", "a project that CAN mint is not warned about minting"
++    assert approvals.card_mint_codes(json.loads(wired.out))
++    # the one stderr line left names the request id for `withdraw-request` (FR-0095 took it off the
++    # card) -- no warning about minting
++    assert "approve nothing" not in wired.err and "withdraw-request" in wired.err, wired.err
+ 
+ 
+ def test_a_registration_that_could_not_block_still_mints(state, tmp_path):
+--- a/tools/test_office_package.py
++++ b/tools/test_office_package.py
+@@ -173,7 +173,7 @@
+ 
+     asked = harness(repo, *printed_remedy(refused))
+     assert asked.returncode == 0, asked.stdout + asked.stderr
+-    assert "[APR-REQ:" in asked.stdout, asked.stdout
++    assert "Freigeben [" in asked.stdout, asked.stdout      # the card's approving label
+ 
+     mint_the_open_request(repo)
+     done = harness(repo, command, *argv)
+--- a/tools/test_kernel.py
++++ b/tools/test_kernel.py
+@@ -1265,7 +1265,7 @@
+         approvals.filing_rule_subject_manifest(retention=None, **fields)
+     assert "retention" in str(refused.value), refused.value
+ 
+-    question = approvals._filing_rule_target_form(manifest)
++    question = "\n".join(approvals._filing_rule_lines(manifest))
+     assert "keine zählbare Frist" in question, question
+     assert "Aufbewahrung: ?" not in question, question
+ 
+@@ -2249,6 +2249,10 @@
+         if key == approvals.EXPIRY_FIELD:
+             continue            # rendered as a date by `_render_manifest_value`, not as its float
+         for shown in (value if isinstance(value, list) else [value]):
++            if approvals._is_digest(shown):
++                # FR-0095: a checksum binds from the record and stays off the card
++                assert str(shown)[:8] not in question, (key, question)
++                continue
+             rendered = approvals._render_manifest_value(key, shown)
+             assert rendered in question, (
+                 "the hash covers %s=%r and the question does not show it:\n%s"
+@@ -2285,6 +2289,10 @@
+         if key == approvals.EXPIRY_FIELD:
+             continue            # rendered as a date by `_render_manifest_value`, not as its float
+         for shown in (value if isinstance(value, list) else [value]):
++            if approvals._is_digest(shown):
++                # FR-0095: a checksum binds from the record and stays off the card
++                assert str(shown)[:8] not in question, (key, question)
++                continue
+             rendered = approvals._render_manifest_value(key, shown)
+             assert rendered in question, (
+                 "the hash covers %s=%r and the question does not show it:\n%s"
+--- a/tools/test_kitupdate.py
++++ b/tools/test_kitupdate.py
+@@ -389,12 +389,12 @@
+ 
+ 
+ def test_the_question_the_user_sees_names_both_releases_and_no_full_hash(project, capsys):
+-    """What the user judges is "this kit, from here to there" -- and the digests are shortened.
++    """What the user judges is "this kit, from here to there" -- and no digest stands on the card.
+ 
+     Both halves are the same rule: the hash covers the outcome, and the question has to be
+-    READABLE by the person who has to judge it (BUG-0041's finding). The two content hashes are
+-    128 of ~180 characters in full, so `approvals._render_manifest_value` renders any digest the
+-    way the sentence around it already renders one -- twelve characters and an ellipsis.
++    READABLE by the person who has to judge it (BUG-0041's finding). The two content hashes were
++    128 of ~180 characters in full; since FR-0095 a checksum binds from the record and is left off
++    the card (`approvals._is_digest`).
+     """
+     state = project["state"]
+     assert cli.main(["--root", state.root, "request-approval", kitupdate.KIND]) == 0
+@@ -402,7 +402,7 @@
+     assert OLD in question and NEW in question and KIT in question
+     manifest = kitupdate.change_manifest(state)
+     assert manifest["to_content"] not in question, "the full staged content hash is in the question"
+-    assert manifest["to_content"][:approvals.DIGEST_SHOWN] in question
++    assert manifest["to_content"][:8] not in question, "a checksum on the card (FR-0095)"
+ 
+ 
+ @pytest.mark.parametrize("flag", ["--kit", "--to-version", "--from-content"])
+--- a/tools/light_kit_pilot.py
++++ b/tools/light_kit_pilot.py
+@@ -227,8 +227,9 @@
+     if asked["rc"] == 0:
+         question = json.loads(asked["out"])
+         audit["question"] = question["question"]
+-        request_id = question["question"].rsplit("[APR-REQ:", 1)[1].rstrip("]")
+-        conftest.mint_via_hook(state, approvals.pending_request(state, request_id))
++        # FR-0095: the card names its request by the approving label's mint code
++        (code,) = approvals.card_mint_codes(question)
++        conftest.mint_via_hook(state, approvals.pending_request_by_code(state, code))
+         audit["root_approval_ref_after_mint"] = state.read_item(root_id).get("approval_ref")
+         created = entry("create-task", "--product-requirement", root_id, "--derives-from", root_id,
+                         "--type", "analysis", "--assigned-role", AUDIT_ROLE, "--acceptance-ref", "AC-1",
+--- a/.claude/hooks/test_gates.py
++++ b/.claude/hooks/test_gates.py
+@@ -491,10 +491,10 @@
+         return bash_payload(project, "python -B -m pytest tools/ -q", tool=tool)
+     if script == "gate_approval.py":
+         # A question that CLAIMS to be an approval for a request this project does not hold. The
+-        # marker is what makes the hook look at all (a markerless question is none of its
+-        # business, by its own docstring), and an id no pending request answers is the shortest
+-        # refusable shape -- it needs no state planted and cannot pass by accident.
+-        question = {"question": "Freigabe? [APR-REQ:%s]" % ("0" * 32), "header": "Freigabe",
++        # approving label is what makes the hook look at all (a question without one is none of its
++        # business, by its own docstring), and a mint code no pending request answers is the
++        # shortest refusable shape -- it needs no state planted and cannot pass by accident.
++        question = {"question": "Freigabe?", "header": "Freigabe",
+                     "multiSelect": False,
+                     "options": [{"label": "Freigeben [aaaaaa]", "description": "d"}]}
+         return {"hook_event_name": "PreToolUse", "tool_name": tool, "cwd": project,
+--- a/user/claude/hooks/handover_guard.py
++++ b/user/claude/hooks/handover_guard.py
+@@ -25,7 +25,8 @@
+     (`scripts/harness.py` / `kernel.cli` for anything other than a read like `doctor`/`--help`):
+     creating items, dispatching, running the lifecycle, and — BUG-0017 / TSK-0054 — an
+     AskUserQuestion that INITIATES the scope-approval flow, recognised by the kernel's
+-    approval-request marker `[APR-REQ:<id>]` in its input. These are the post-handover PM's acts:
++    approving label `Freigeben [<code>]` in its input (FR-0095 took the `[APR-REQ:<id>]` marker off
++    the card). These are the post-handover PM's acts:
+     the scope approval is requested and minted by the restarted Project Manager AFTER the restart,
+     once the kit hooks are live; here the mint would fail, and the entry agent has been measured to
+     re-invent a nonexistent `/hooks` step from that failure (docs/reviews/2026-08-12-bug0017-live-confirm.md).
+@@ -48,7 +49,7 @@
+     verb, and a file-tool write onto it. Without that, the cheapest way past this hook was to
+     switch it off — `rm .claude/HANDOVER_PENDING` and every later call is a no-op (measured).
+   * NEVER touched: reading, and NORMAL asking/answering/explaining/plan-refinement. The ONLY
+-    AskUserQuestion this hook refuses is the one carrying the approval-request marker above; every
++    AskUserQuestion this hook refuses is the one carrying the approving label above; every
+     ordinary question (including the entry gate's own "structured PM?" prompt) stays allowed. This
+     hook refuses individual TOOL calls only; it never ends the session (Read, Grep, ... stay open).
+ 
+@@ -74,9 +75,10 @@
+     -delete`, or a path assembled by a substitution. A rule that saw those would have to model the
+     file system rather than read words. Measured and pinned by
+     `test_handover_guard_marker_residue_is_named_not_closed`; L39 carries the severity.
+-  * A HALLUCINATED approval question that OMITS the marker (BUG-0017 / TSK-0054): the approval-flow
+-    refusal is keyed on the `[APR-REQ:<id>]` marker, so an approval-looking question that carries no
+-    marker cannot be told apart from an ordinary question and is allowed. Narrow BY DESIGN — the
++  * A HALLUCINATED approval question that OMITS the label (BUG-0017 / TSK-0054): the approval-flow
++    refusal is keyed on the approving label `Freigeben [<code>]` (until FR-0095 on the `[APR-REQ:<id>]`
++    marker), so an approval-looking question that carries no label cannot be told apart from an
++    ordinary question and is allowed. Narrow BY DESIGN — the
+     alternative is to model intent from free text, which would refuse the entry gate's own questions.
+     ONE live entry session has been measured relaying the kernel's approval question into
+     `tool_input` with the `[APR-REQ:<id>]` marker byte-faithful, and this hook refused it
+@@ -99,13 +101,14 @@
+ SPAWN_TOOLS = ("Task", "Agent")
+ ASK_TOOLS = ("AskUserQuestion",)
+ 
+-# The approval-request marker of the kernel's two-phase approval protocol; `gate_approval.py` is its
+-# authority (`MARKER_RX = \[APR-REQ:<32 hex>\]`). Recognised here by its literal TOKEN, not the exact
+-# id shape: the entry session has no live kernel to mint a real id, so an approval question it raises
+-# here carries an invented or malformed one — refusing the flow is the point, not validating the id.
+-# Whole-input scan (not just the question text) because the marker may sit in any field the model
+-# fills. A normal question never carries this protocol token, so this stays narrow (BUG-0017).
+-_APR_REQUEST_MARKER = re.compile(r"\[APR-REQ:")
++# The approving label of the kernel's two-phase approval protocol; `gate_approval.py` is its
++# authority (`APPROVE_LABEL_RX = Freigeben [<6 hex>]`, the mint code that names the request since
++# FR-0095 took the `[APR-REQ:<id>]` marker off the card). Recognised here by the label's SHAPE
++# anywhere in the input, not anchored to an option: the entry session has no live kernel to mint a
++# real request, so an approval question it raises carries an invented code wherever the model put
++# it -- refusing the flow is the point, not validating the code. A normal question never carries this
++# protocol token, so this stays narrow (BUG-0017).
++_APR_REQUEST_MARKER = re.compile(r"Freigeben \[[0-9a-f]{6}\]")
+ 
+ # The plan artefacts the entry gate writes by hand (global CLAUDE.md Auto-Init step 3; DEC-0032).
+ # Exact matches for the two singletons; a prefix for the root item so PR-0001.yaml (and any sidecar

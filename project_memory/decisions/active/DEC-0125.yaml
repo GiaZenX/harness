@@ -1,0 +1,38 @@
+id: DEC-0125
+title: Ein Ziel mit parallelen Arbeitszweigen wird durch den KERNEL auf einem eigenen
+  Integrationszweig vereint (kein neues Befehlszeilen-Raten im Gate); geprueft wird
+  dieser Zweig, geliefert wird nur er
+context: 'BUG-0333 (synaipse, field 2026-09-27/28): gate_git treats every `git merge`
+  naming a goal as a delivery and demands the goal''s full passing verdict first,
+  while the kit allows a second builder under one goal (DEC-0092 (2)) and says only
+  the united tree can be judged (parallel-streams SKILL.md ~:117, DEC-0063 (1)) --
+  a circle; P3 is blocked repo-wide by the any-fail fallback. The forensics'' smallest
+  fix was ''read the merge TARGET branch in the tree the command runs in'' -- that
+  is one more command-line reading (cd / -C resolution), the class that cost order
+  7''s merge four reworks (DEC-0070 rule 2: a guard reading command lines is a design
+  round, not a stream).'
+decision: '(1) A new kernel door `integrate <GOAL>` performs the uniting itself: it
+  creates (or reuses) the goal''s integration branch `integrate/<GOAL>` from the delivery
+  base and merges into it every work branch the kernel can attribute to the goal (branch
+  name carries the goal id, as gate_git already reads; or the branch recorded on the
+  goal''s leases), in a worktree the kernel names; conflicts stop it with the file
+  list and nothing half-merged left behind. No delivery verdict is needed for it:
+  nothing reaches the delivery base. (2) gate_git stays as it is for `git merge` (still
+  a delivery when it names a goal), and its refusal text names `integrate <GOAL>`
+  as the route for uniting one goal''s branches. (3) QA judges `integrate/<GOAL>`;
+  the delivery merge of that branch into the delivery base keeps today''s full verdict
+  rule. (4) The PM/parallel-streams texts say this in two sentences. (5) The masking
+  finding (an order-level pass masking a goal-level fail) and the rebase/cherry-pick/merge-tree
+  bypass are separate items for wave 1, not this fast track.'
+consequences: 'synaipse unblocks with one kit update: P2''s and P3''s branches are
+  united by `integrate`, QA judges that, delivery unchanged. No new command-line reader.
+  Cost: one kernel door + its tests; the kernel runs git (as update-kit already runs
+  file operations).'
+work:
+- PR-0012
+source: project_memory/staging/BUG-0333/forensics-2026-09-28.md; user question 2026-09-28
+  'wann ist der Bug behoben damit synaipse weiterarbeiten kann?'
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-28T12:47:46'

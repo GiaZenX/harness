@@ -1,0 +1,17 @@
+id: FR-0098
+title: 'Recherche: Modellklasse nach Aufgaben-Eigenschaften (vier Ja/Nein-Fragen)
+  statt nach Modellnamen -- wie machen es andere, welche Eigenschaften trennen die
+  Klassen belastbar, wie misst man eine Klasse'
+request_text: 'User 2026-09-28: ''Nur jetzt bleibt noch die Frage offen fuer was benutzen
+  wir Opus, fuer was Sonnet, fuer was Fable und fuer was Haiku. Oder eben andere Modelle
+  anderer Anbieter? ... Aber wie definieren wir das? Da es sehr viel Interpretationsspielraum
+  hat und ja immer neuere Modelle rauskommen.'' On the lead''s proposal (four yes/no
+  questions: steers other orders -> Giga; failed a verification -> one class up; test
+  decides and no design choice -> Kilo; else Mega; a measured class-to-model table
+  per provider): ''Ja kannst es ja nochmal recherchieren.'''
+source: user messages 2026-09-28; create_wave1_streams.py stream C (MODEL CLASS BY
+  TASK PROPERTIES); FR-0097
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-28T21:50:13'

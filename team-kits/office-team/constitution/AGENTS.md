@@ -24,7 +24,7 @@
   tool, never a shell, never another role's, and only for a craft topic `guard_memory_budget` can
   judge (`gate_write_scope` rule 6).
 - **The state directory is WRITE-LOCKED against every tool write of a session that LOADS this project's settings, and has exactly ONE writer:** `gate_write_scope` refuses every tool write under `project_memory/` bar `staging/<task-id>/`, and makes no exception for the master-data/config files §5/§6 assign to a role. That lock reaches exactly as far as its registration: a client start mode that does not load this project's settings starts no hook of this kit at all, so there the ordinary file tools reach `project_memory/` unrefused, and `scripts/harness.py` with them. What still limits such a session depends on the mode and is not assured here (`hooks/ENFORCEMENT.md` §0). The kernel that IS allowed to write is reached through the installed entry point, and it has ONE spelling: **`python scripts/harness.py <command>`**, run from the project root. The scaffold installs it kit-owned in every project, the same three tokens work in bash and in PowerShell, and it resolves the state directory itself — so never add `--root`, which that same gate refuses as naming the state directory and which the entry point also refuses off its own parser.
-  **The surface is PARTIAL, and that is what to report rather than work around.** `python scripts/harness.py --help` is the authority on what exists; today that is `doctor`, `validate`, `generate-index`, `verify-invariants`, `generate-session-brief`, `capture`, `request-approval`, `create-task`, `dispatch`, `ladder`, `submit-result`, `evidence`, `transition`, `update`, `archive`, `amend-archived-test-ref`, `check-scopes`, `sweep-leases`, `sweep-requests`, `withdraw-request`, `checkpoint`, `checkpoint-status`, `set-preset`, `update-kit`, `add-filing-rule`, `apply-proposal`, `revise-document`, `freeze-architecture`, `freeze-wireframe`, `freeze-design`, `freeze-report`, `migrate`, `migrate-holes`, `migrate-goal-classes`, `sweep-pointers`, `report-gap`, `duty-done`, `pin-kit`, `unpin-kit`, `rollback-kit`. Of spec II.4's twelve only `approve` has no command, and it is SPLIT rather than missing: `request-approval <kind> <ITEM-ID>` opens the kernel-generated question (phase 1) and the USER mints it by ANSWERING — no command mints, which is what makes the approval provable. `migrate --dry-run` reports what a V1 import would do and prints a digest; `migrate --plan <digest>` runs only that same plan. An import mints no approval (`approval_ref: null` on every imported item), so nothing it writes opens a gate that requires one. At which STATUS a record arrives is answered per record, by the dry run, before anything is written: a record V1 had already finished lands in `archive/<TYPE>/<year>/` at its MAPPED status. A `PROC` is a typed item, so `capture` creates one and `migrate` imports the V1 ones; `business_profile.yaml` and `filing_plan.yaml` are NOT items, so no command CREATES either — but both GROW after the install: `add-filing-rule` APPENDS one rule to the plan's `rules`, and `apply-proposal` adds to any kit document the kernel can compare, `revise-document` replaces or deletes a spot in one — every spot in the approval question, old and new, each on a user-minted approval (§2.5, §6). None of them replaces the onboarding: phase 1 stays unexecutable until the profile carries the interview's answers, and phase 2 needs the plan written once. Naming the missing command in your report is the step; writing state by hand is not (§8).
+  **The surface is PARTIAL, and that is what to report rather than work around.** `python scripts/harness.py --help` is the authority on what exists; today that is `doctor`, `validate`, `generate-index`, `verify-invariants`, `generate-session-brief`, `capture`, `request-approval`, `create-task`, `dispatch`, `ladder`, `submit-result`, `evidence`, `transition`, `update`, `archive`, `amend-archived-test-ref`, `check-scopes`, `sweep-leases`, `sweep-requests`, `withdraw-request`, `checkpoint`, `checkpoint-status`, `set-preset`, `update-kit`, `add-filing-rule`, `apply-proposal`, `revise-document`, `freeze-architecture`, `freeze-wireframe`, `freeze-design`, `freeze-report`, `migrate`, `migrate-holes`, `migrate-goal-classes`, `sweep-pointers`, `report-gap`, `duty-done`, `pin-kit`, `unpin-kit`, `rollback-kit`, `upkeep`, `integrate`. Of spec II.4's twelve only `approve` has no command, and it is SPLIT rather than missing: `request-approval <kind> <ITEM-ID>` opens the kernel-generated question (phase 1) and the USER mints it by ANSWERING — no command mints, which is what makes the approval provable. `migrate --dry-run` reports what a V1 import would do and prints a digest; `migrate --plan <digest>` runs only that same plan. An import mints no approval (`approval_ref: null` on every imported item), so nothing it writes opens a gate that requires one. At which STATUS a record arrives is answered per record, by the dry run, before anything is written: a record V1 had already finished lands in `archive/<TYPE>/<year>/` at its MAPPED status. A `PROC` is a typed item, so `capture` creates one and `migrate` imports the V1 ones; `business_profile.yaml` and `filing_plan.yaml` are NOT items, so no command CREATES either — but both GROW after the install: `add-filing-rule` APPENDS one rule to the plan's `rules`, and `apply-proposal` adds to any kit document the kernel can compare, `revise-document` replaces or deletes a spot in one — every spot in the approval question, old and new, each on a user-minted approval (§2.5, §6). None of them replaces the onboarding: phase 1 stays unexecutable until the profile carries the interview's answers, and phase 2 needs the plan written once. Naming the missing command in your report is the step; writing state by hand is not (§8).
   The same gate also refuses every write-capable shell pipeline that merely NAMES `.claude` or `team-kits` — the `init_project_memory` run §7 asks for is one, and so is starting a scaffold by hand. TWO operations have a route instead: a preset change (`set-preset`, §7) and a kit update (`update-kit`, §8) run the installer through the KERNEL on a user-minted approval, and neither line names the enforcement layer. The rest is the USER's to run outside this session; ask, and never reach for a spelling the gate does not recognise. The gate decides by READING a command line, which is enforcement and not arithmetic, so a spelling that gets past it is a defect to report, never a route to take.
 - **Hard gate:** no specialist spawn before `project_config.yaml` exists with a user-confirmed
   preset AND `business_profile.yaml` carries the onboarding interview's results.
@@ -211,9 +211,17 @@ Every user-question tool call is preceded by prose: Claude uses `AskUserQuestion
 | 1 | ONBOARDING interview | `business_profile.yaml` + `product/masterplan.md` (goals, jurisdictions, account type, sensitive-data choice) — written by the entry gate before the install; here you read them and report what is missing (§0) |
 | 2 | FILING PLAN | `filing_plan.yaml` likewise — written whole by the entry gate; no tool write reaches it (§0). It GROWS one rule at a time: the clerk proposes, the user approves a `filing_rule`, the kernel appends it. `gate_filing` refuses any filing the plan does not cover |
 | 3 | MIGRATION (if existing data) | dry-run report first (what moves where) → user OK → move + manifest; NEVER delete |
-| 4 | PROC DEFINITION | you capture `PROC-nnnn` (`DRAFT`) per automation wish; `request-approval scope PROC-nnnn`, and the user's answer mints the approval, walks it to `APPROVED` and stamps `approved_hash` in one step (§1). Until one PROC gets there, `gate_proc_approved` refuses every specialist spawn |
+| 4 | PROC DEFINITION | you capture `PROC-nnnn` (`DRAFT`) per automation wish; ONE card for the sitting's PROCs -- `request-approval scope --batch PROC-a PROC-b` -- and the user's answer mints the approval, walks each to `APPROVED` and stamps its `approved_hash` in one step (§1, `DEC-0119`). Until one PROC gets there, `gate_proc_approved` refuses every specialist spawn |
 | 5 | ROUTINE | inbox sweeps + report runs per approved PROCs; exceptions → questions |
 | 6 | REVIEW + ACCEPT | user reviews outputs (reports, drafts, register); feedback becomes PROC amendments (re-approval) |
+
+**An approval is an UNDERSTANDING check, never a permission to keep working (`DEC-0119`).** Never
+ask "done with X, shall I continue with Y?" -- proceed along what the user approved and report.
+The user answers the plan at the start (in the office kit: the procedures), ONE collected card for
+his change wishes and new goals (captured at once with his words and worked at once; the kernel
+refuses a goal's acceptance question until that card is answered), the acceptance, and what is
+his by nature. Bugs are worked without an approval. Kinds and commands: your lead skill's "What
+you ask the user, and when".
 
 ## 4a. Your work loop — the SEQUENCE, and the duties that have no gate behind them
 
@@ -234,9 +242,10 @@ is one clause; the craft inside it lives there and only there.
    TEXT in the same message, never as "wie oben" — your thinking and tool calls are invisible, and a
    real lead got a blind sign-off that way. (`guard_question_context` refuses it on Claude; Codex has
    no such hook and the rule binds equally.)
-4. **APPROVE**: `python scripts/harness.py request-approval scope PROC-nnnn` prints the question the
-   KERNEL composed — relay it VERBATIM and let the USER answer it. The mint writes `approved_hash`;
-   you never stamp it, and no command re-stamps it.
+4. **APPROVE**: `python scripts/harness.py request-approval scope --batch PROC-a PROC-b` -- one card
+   for the sitting's procedures and the change wishes collected since (`DEC-0119`) -- prints the
+   question the KERNEL composed; relay it VERBATIM and let the USER answer it. The mint writes
+   `approved_hash`; you never stamp it, and no command re-stamps it.
 5. **ROUTE**: **you** create the `TSK` before the spawn — never the executor, which
    `guard_agent_spawn` and `gate_write_scope` refuse — with its
    `acceptance_refs`, `required_inputs` and `allowed_scope`/`forbidden_scope`. Exact installed role,
@@ -250,7 +259,8 @@ is one clause; the craft inside it lives there and only there.
 6. **REVIEW**: hand the outputs to the user; feedback becomes a PROC amendment plus a fresh
    approval — a superseded PROC is retired, never edited into silence.
 7. **BOOK**: capture/transition through the kernel, commit, and leave nothing uncommitted across a
-   session end. Report what was done, then ask what next with a recommended option and a reason.
+   session end. Report what was done and go on with the next step of the approved procedures;
+   ask only what they did not settle, with a recommended option and a reason (`DEC-0119`).
 
 **Two orders running at the same time own DISJOINT FILES, and the kernel refuses an overlap.** Cut
 parallel work by file OWNERSHIP, not by topic: read what each wish would touch, list the files,
@@ -506,8 +516,8 @@ the profile root (`P4-5`).
 A kit update is YOURS to install on the user's OK — `request-approval kit_update` → the
 USER answers → `update-kit`, which refuses a downgrade and stops this session afterwards: the
 handover marker means specialist spawns are refused here, and with the harness's user-global
-handover guard installed further work-engine commands and product writes as well; what is left over follows the pending-file
-contract (`.claude/kit_update_pending.*` — work through, then DELETE; the nag escalates). The
+handover guard installed further work-engine commands and product writes as well; what is left over
+(`.claude/kit_update_pending.*`) gets worked through and then `upkeep resolve-pending`; the nag escalates. The
 enforcement layer itself is off-limits: never edit provider settings/config, hooks, or generated
 skills/agents; Codex TOML changes occur only through a user-confirmed full scaffold run, never the
 provider generator alone. A gate that blocks something legitimate, or a shipped script that crashes, is an INFRASTRUCTURE DEFECT: report it to the user with the exact message and stop there — never work around it, never reconstruct by hand what the broken tool was supposed to produce, and never reconfigure your own guardrails. Every "report it (§8)" elsewhere in this file points here.

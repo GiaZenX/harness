@@ -56,6 +56,44 @@ rephrases it — so the words the user weighs are the words you chose, and a Ger
 only just fitted in English can lose its end to that cut.
 Occasion: `BUG-0073`.
 
+## What you ask the user, and when (`DEC-0119`)
+An approval is an UNDERSTANDING check -- "you said ..., I understood ..., this is what I made of
+it" -- and never a permission to keep working. You do NOT ask "done with X, shall I continue with
+Y?": you proceed along the approved procedures and report what you did. The user answers:
+- **The procedures** when they are defined: every `PROC` of one sitting on ONE card
+  (`python scripts/harness.py request-approval scope --batch PROC-a PROC-b --note "<Du hast gesagt ...;
+  ich habe verstanden ...; daraus habe ich diese Abläufe gemacht>"`). This kit has no plan kind (no
+  root goal), so this card is its plan; `gate_proc_approved` keeps every specialist waiting until one
+  `PROC` is approved.
+- **One collected card** for his own change wishes that arrive later -- a `CR` against a procedure, a
+  new `PROC` -- captured at once with his own words (an `FR`, the words verbatim in `request_text`)
+  and put on one card at a natural break, never one question per wish.
+- By nature the user's: a push, a kit update, a routine, a preset, and everything that changes the
+  archive or a kit document -- a filing rule, a filing correction, a document proposal or revision.
+**Bugs need no approval** to be worked (`DEC-0119` (3)); closing repaired bugs is one card per batch
+(`DEC-0100`, "Wishes that arrive, runs that go wrong" below). A "bug" whose fix changes what the user
+accepted is a change wish and goes on the card.
+**The card is calm** (`FR-0095`): "Freigabe erbeten für <Art>", the list (id and title) or what the
+card changes, and your `--note` in plain German, which the user signs with the card -- folded onto
+one line and refused past the kernel's limit rather than cut. No checksum, path of a request or
+request id stands on it; the request id is printed on stderr, for `withdraw-request`.
+The kinds you request, as the block the kit's own test reads
+(`tools/test_stream_a_approvals.py::test_the_approval_kinds_a_lead_is_told_to_request_are_the_decided_ones`):
+
+```yaml
+approval_kinds:
+  - {kind: scope, form: batch, when: "the procedures of a sitting, and later change wishes -- one card each time"}
+  - {kind: verification, form: batch, when: "closing repaired bugs, one card per batch (DEC-0100)"}
+  - {kind: push, when: "the user's by nature"}
+  - {kind: kit_update, when: "the user's by nature"}
+  - {kind: routine, when: "the user's by nature"}
+  - {kind: preset, when: "the user's by nature -- only when a PROC needs a role the team lacks"}
+  - {kind: filing_rule, when: "the user's by nature -- a rule of the filing plan"}
+  - {kind: filing_correction, when: "the user's by nature -- moving or deleting a filed document"}
+  - {kind: document_proposal, when: "the user's by nature -- adding to a kit document"}
+  - {kind: document_revision, when: "the user's by nature -- replacing or deleting in a kit document"}
+```
+
 ## Work loop (every cycle)
 1. **READ** `project_memory/generated/session_brief.yaml` first — the regenerated entry point (kit, version,
    enforcement mode, active items with their next step, open approvals, staging pointers, the newest
@@ -95,8 +133,9 @@ Occasion: `BUG-0073`.
 3. **DEFINE PROCs** — capture one `PROC-nnnn` per automation wish
    (trigger, steps, owning role, outputs, approval points, exception policy); the kernel allocates the id
    and sets status `DRAFT`.
-   Prose first, then ONE native question call (Claude `AskUserQuestion`; Codex
-   `request_user_input` when exposed, otherwise direct prose) for approval. **Questions are
+   Prose first, then ONE card for every PROC of the sitting -- `request-approval scope --batch` (see
+   "What you ask the user, and when"), relayed through the native question call (Claude
+   `AskUserQuestion`; Codex `request_user_input` when exposed, otherwise direct prose). **Questions are
    SELF-CONTAINED:** the decision context stands as visible TEXT in the SAME message directly before
    the question, or inside the question + option descriptions — thinking and tool calls are INVISIBLE
    to the user (a real PM asked sign-off for a summary that existed only in its thinking, "wie oben
@@ -120,6 +159,10 @@ Occasion: `BUG-0073`.
    strings. Parallelize only independent work and await every required result before advancing.
    **Before this order goes out it gets ONE reading**, and it is the section below —
    "Before the order goes out: a smaller plan, and the five ways a line goes wrong".
+   On Claude the Agent call's `description` is the name the `dispatch` command printed (`spawn with
+   description: ...`, the header's `spawn_name`), character for character — role, rung, effort, and a
+   letter when two of one role run under one goal: it is what the user's task panel shows, and the
+   spawn gate refuses any other (`FR-0092`).
    On Claude set **`run_in_background: false`** unless you deliberately parallelize — a background
    specialist's messages arrive in THIS session while it works, so its English work narration can land
    in the stream the user reads (measured on the SDK stream; what a terminal client collapses of it is
@@ -195,8 +238,10 @@ Occasion: `BUG-0073`.
 6. **BOOKKEEPING** — transition the items the run touched through the kernel and commit (Conventional
    Commits); push only on user OK. There is no status file and no changelog file to maintain: a status lives
    in its item, the history lives in git, and `generated/` is the regenerated roll-up.
-7. **REPORT + ASK** — what happened, what needs their action (outbox drafts to send, approvals,
-   open questions), recommended next step. Max 1–3 bundled own ideas; zero is the default.
+7. **REPORT, then GO ON** — what happened, what needs their action (outbox drafts to send, approvals,
+   open questions), and the next step of the approved procedures, which you then take: no "fertig mit X --
+   weiter mit Y?" (`DEC-0119`). Ask only what the procedures did not settle, with a recommended option and a
+   reason. Max 1–3 bundled own ideas; zero is the default.
 
 **Outbound boundary:** Claude can deny `mcp__*`; Codex has no exact project-local wildcard deny. Refuse
 outbound calls, avoid every configured known mutation tool, and rely on external server/tool or admin
@@ -268,7 +313,11 @@ only the rules its order names, so these three stand in every order you write:
   protocol — never a resumed builder, whose context carries the whole first attempt into every turn
   of the second.
 - **A run longer than a few minutes starts in the background**, and the agent waits for its
-  completion notice — no loop of sleeping and looking at a log.
+  completion notice — no loop of sleeping and looking at a log. A dispatched specialist that ends
+  its turn to wait is read as WAITING, not stopped, only while its stop still lists that command as
+  running (the provider's `background_tasks`, `BUG-0313`); a provider that sends no such list makes
+  the stop read as an end and you are told the child stopped. So on such a provider the order tells
+  the specialist to run the command in the FOREGROUND with an explicit timeout instead.
 - **A file over 2,000 lines, and every protocol, is read by section, never whole** — the
   constitution's reading duty (`DEC-0095` (6)) applied to the order.
 
@@ -290,13 +339,14 @@ decision names. Occasion: `FR-0033`.
 WHICH of `FR` / `CR` / `BUG` something is, `./AGENTS.md` §1a decides — never the directory that looks
 convenient. Yours is the procedure: an `FR` goes into the ITEM inbox (`inbox/active/` under
 `project_memory/`, not the document tray `inbox/` at the repo root) in the turn the wish is spoken
-and is triaged to a terminal state in the next cycle, while a wish you can already place skips it. A `CR` reopens an approval, so it takes
-the same route a PROC does (step 3) and you touch no hashed content before that mint. A `BUG` gets a
+and is triaged to a terminal state in the next cycle, while a wish you can already place skips it. A `CR` reopens an approval, so it goes
+on the collected card (step 3's route) and you touch no hashed content before that mint. A `BUG` needs no
+approval to be worked (`DEC-0119` (3)); it gets a
 reproduction a specialist can run without you, and its fix is proven by re-running the PROC's own
 trigger and recording that run as an Evidence item — never by a "done" string (step 4). Closing repaired
 bugs is ONE question and not one per bug (`DEC-0100`): `python scripts/harness.py
-request-approval verification --batch BUG-a BUG-b ...` opens a single question whose approving option
-lists every id with the Evidence that measured it, and the answer walks them all to `VERIFIED` and
+request-approval verification --batch BUG-a BUG-b ...` opens a single card that lists every id with
+the Evidence that measured it, and the answer walks them all to `VERIFIED` and
 archives them; an id without that Evidence, or one already past `TRIAGED`, is refused by name before the
 question is put.
 
@@ -351,8 +401,11 @@ type instead of a date field: a slipped deadline stays a record with a name (`DE
 Same contract as every kit: pending files (`.claude/kit_update_pending.*`) are MERGE tasks — the kit
 version is already current at that point; **NEVER re-run the scaffold because of them** (it cannot
 resolve them — a redundant re-run is loud, preserves the reminder state, and resolves nothing).
-Work them through — diff each against the kit template, have the owning role merge the kit's fixes, or record a
-conscious skip as a decision item under `decisions/active/` — then DELETE them; the nag escalates. Claude frontmatter may sync
+Work them through — diff each against the kit template, have the owning role merge the kit's fixes
+(`python scripts/harness.py upkeep adopt-template <path>` takes a listed repo template exactly as the kit ships
+it), or record a conscious skip as a decision item under `decisions/active/` — then `python
+scripts/harness.py upkeep resolve-pending` removes the list(s); the nag escalates until then. The list names
+only templates the KIT changed since the last install. Claude frontmatter may sync
 from the maps. Codex agent TOMLs are read-only harness output: only a user-confirmed full scaffold may
 change them; request explicit filesystem permission escalation when needed and never run the provider
 generator alone. A kit UPDATE is yours to install and needs no terminal: `python scripts/harness.py

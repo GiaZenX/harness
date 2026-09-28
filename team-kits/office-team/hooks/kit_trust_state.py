@@ -126,10 +126,12 @@ def transition(data, actual):
             "rewrites the record. ASK THE USER TO RUN THE SCAFFOLD; `gate_write_scope` refuses a "
             "WRITE-CAPABLE command line that names the enforcement layer, and starting a script "
             "is write-capable, so this session cannot run the scaffold itself (reading the layer "
-            "is unaffected). The commonest cause is not an edit at all: a python process that imports "
-            "`.claude/kernel` without `-B` leaves a `__pycache__` inside the hashed bundle. The "
-            "scaffold prunes it, and deleting that one directory clears it too — the user's step "
-            "either way, for the same reason."
+            "is unaffected). The commonest cause is not an edit at all: a tool leftover -- a "
+            "`__pycache__`, a linter cache -- inside the hashed bundle. THAT "
+            "cause this session can remove itself: `python scripts/harness.py upkeep prune-caches` "
+            "deletes only such tool leftovers and re-measures -- if it reports a match, spawns "
+            "work again; if it does not, something other than a cache changed and the review and "
+            "scaffold above are the way."
             % (str(recorded)[:12], str(actual)[:12]))
     if current == "active":
         return None, None

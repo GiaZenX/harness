@@ -491,10 +491,10 @@ def _refusable(project, script, tool):
         return bash_payload(project, "python -B -m pytest tools/ -q", tool=tool)
     if script == "gate_approval.py":
         # A question that CLAIMS to be an approval for a request this project does not hold. The
-        # marker is what makes the hook look at all (a markerless question is none of its
-        # business, by its own docstring), and an id no pending request answers is the shortest
-        # refusable shape -- it needs no state planted and cannot pass by accident.
-        question = {"question": "Freigabe? [APR-REQ:%s]" % ("0" * 32), "header": "Freigabe",
+        # approving label is what makes the hook look at all (a question without one is none of its
+        # business, by its own docstring), and a mint code no pending request answers is the
+        # shortest refusable shape -- it needs no state planted and cannot pass by accident.
+        question = {"question": "Freigabe?", "header": "Freigabe",
                     "multiSelect": False,
                     "options": [{"label": "Freigeben [aaaaaa]", "description": "d"}]}
         return {"hook_event_name": "PreToolUse", "tool_name": tool, "cwd": project,
@@ -2655,6 +2655,44 @@ def test_gate1_refuses_a_character_the_shell_never_sees_bug_0161(project, caller
     assert rc == 0, "a CRLF line break was refused (%s): %s" % (caller, err[:300])
 
 
+@pytest.mark.parametrize("caller", [{}, {"agent_id": "sub-1", "agent_type": "harness-implementer"}])
+@pytest.mark.parametrize("line", [
+    "F=project_memory/generated/index.yaml; echo x > $F",
+    "F=project_memory/generated/index.yaml; echo x > \"$F\"",
+    "F=project_memory/generated/index.yaml; echo x >> ${F}",
+    "F=team-kits/kernel/state.py; echo x > $F",
+    "echo x > $(echo project_memory/generated/index.yaml)",
+    "echo x > `echo project_memory/generated/index.yaml`",
+])
+def test_gate1_refuses_a_redirect_into_a_variable_bug_0139(project, caller, line):
+    """BUG-0139 / H47: a redirect TARGET is always a path, and gate 1 read a word as a possible path
+    only with a separator or in program position (`_harness._could_name_a_path`) -- so `> $F` was a
+    word it did not place and did not refuse. Measured before the patch (TSK-0152 section 6): rc 0
+    for every caller, canonical state included.
+
+    DEC-0120 chose to REFUSE such a target rather than resolve it (no second copy of the kits'
+    resolver); the patch of TSK-0156 (`project_memory/staging/TSK-0156/apply_user_patch.py`) builds
+    it. Both callers, because canonical state is refused to every caller and an unplaceable word too.
+    """
+    rc, err = run(project, "gate_lead_write_scope.py", bash_payload(project, line) | caller)
+    assert rc == 2, "a redirect into a variable passed gate 1 (%s): %s" % (caller, err[:300])
+
+
+@pytest.mark.parametrize("line, tool", [
+    ("echo x > $null", "PowerShell"),
+    ("echo x 2>$null", "PowerShell"),
+    ("echo x > /dev/null 2>&1", "Bash"),
+    ("F=a; echo $F > docs/redirect-probe.txt", "Bash"),
+])
+def test_gate1_still_passes_a_redirect_with_no_expansion_in_its_target(project, line, tool):
+    """THE COUNTER-END of `test_gate1_refuses_a_redirect_into_a_variable_bug_0139`: the discard
+    device in either shell's spelling (`$null` IS an expansion, and the kits' `_null_sinks` takes it
+    out before any target is read), a descriptor duplication, and an expansion in the DATA of a
+    line whose target is a plain free path are not what DEC-0120 refuses."""
+    rc, err = run(project, "gate_lead_write_scope.py", bash_payload(project, line, tool=tool))
+    assert rc == 0, "%s line refused: %s -> %s" % (tool, line, err[:300])
+
+
 # -- the producer set is measured, and it depends on the payload (TSK-0008 B4) ------------------
 
 
@@ -3979,6 +4017,61 @@ def test_gate1_refuses_a_line_exactly_where_the_shell_would_write(project, cells
         if not refuses and rc != 0:
             wrong.append("%s: this reader follows the move here, the gate refused: %s\n%s"
                          % (label, line, err[:200]))
+    assert not wrong, "\n".join(wrong)
+
+
+# THE THREE SPECIAL CONSTRUCTS OF A SHELL PATTERN (POSIX XCU 2.13.1: `?`, `*`, a bracket
+# expression), each standing for the second letter of `docs`, the directory both the stand-in and
+# the sandbox carry. The test below asserts the host's own `glob` reads each as a pattern, so a form
+# that stopped being one fails there instead of measuring nothing.
+_PATTERN_FORMS = ("?", "*", "[o]")
+# WHERE THE QUOTING STANDS in the word -- around all of it in either quote, or around the
+# metacharacter alone. A shell removes quoting AFTER it expanded the word, so each of the three
+# keeps the pattern a literal name.
+_PATTERN_QUOTINGS = {
+    "double quotes around the word": '"d%scs"',
+    "single quotes around the word": "'d%scs'",
+    "quotes around the metacharacter only": 'd"%s"cs',
+}
+
+
+def test_gate1_does_not_expand_a_pattern_the_quoting_keeps_bug_0334(project, tmp_path):
+    """BUG-0334, the pattern half of gate 1: a QUOTED pattern names no directory a shell enters.
+
+    A shell expands a word first and removes its quoting afterwards, so `cd "d*cs"` asks for a
+    directory literally called `d*cs`, fails, and leaves the shell where it stood -- the relative
+    write behind it lands in the protected tree. The kits' `_walked_to` expanded the de-quoted text
+    a second time and followed the pattern into `docs`, so the write was allowed (order-7 merge,
+    measured rc 0 while bash rewrote the file). The tilde half of the same defect is the
+    "cd to a tilde the quoting keeps" row of `MOVES`.
+
+    BOTH COLUMNS COME FROM A REAL SHELL: every quoted line has to really write the protected file
+    (else this measures an over-refusal, not a hole) and be refused; every UNQUOTED spelling of the
+    same pattern has to really leave the tree and be ALLOWED, which is what keeps "refuse every
+    pattern" from passing this test.
+    """
+    sandbox = _sandbox(str(tmp_path), 0)
+    shell = next((candidate for candidate in _posix_shells()
+                  if _can_arbitrate(candidate, sandbox)), None)
+    assert shell is not None, (
+        "no shell on this host reaches the sandbox's protected file with %r, so what a quoted "
+        "pattern does was measured against nothing: %s" % (RELATIVE_WRITE, _posix_shells()))
+    wrong = []
+    for form in _PATTERN_FORMS:
+        assert globmodule.has_magic("d%scs" % form), "%r is no pattern to this host" % form
+        lines = [("unquoted", "cd d%scs ; %s" % (form, RELATIVE_WRITE), False)]
+        lines += [(quoting, "cd %s ; %s" % (spelling % form, RELATIVE_WRITE), True)
+                  for quoting, spelling in sorted(_PATTERN_QUOTINGS.items())]
+        for quoting, line, stays in lines:
+            writes = _changes_the_protected_file(shell, sandbox, line)
+            if writes != stays:
+                wrong.append("%s: %s %s the protected file, the case says the opposite: %s"
+                             % (quoting, shell, "writes" if writes else "does not write", line))
+            rc, err = run(project, "gate_lead_write_scope.py", bash_payload(project, line))
+            if rc != (2 if stays else 0):
+                wrong.append("%s: the gate answered rc %d where the shell %s: %s\n%s"
+                             % (quoting, rc, "stays and writes" if stays else "leaves the tree",
+                                line, err[:200]))
     assert not wrong, "\n".join(wrong)
 
 

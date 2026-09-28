@@ -1,0 +1,20 @@
+id: EVD-0503
+kind: test
+related:
+- BUG-0319
+result: pass
+summary: 'TSK-0155 stream C, worktree g7/field (stamped mirror): a re-install where
+  the kit changed no template lists nothing for a project-customised one; a kit-changed
+  customised template is listed without a BOM; an untouched one is updated (node test_an_update_that_changed_no_template_lists_nothing_bug_0319);
+  ''upkeep adopt-template'', ''resolve-pending'' and ''untrack-ignored'' work through
+  the shipped entry point and are checked on disk (node test_the_merge_backlog_has_doors_a_session_can_walk_bug_0319).
+  Red on the base twins / with adopt not copying.'
+artifact_refs:
+- staging/TSK-0155/evd/final.log
+- staging/TSK-0155/evd/red-first.log
+run_command: python -B -m pytest tools/test_stream_c_field.py tools/test_migrate.py::test_an_open_v1_task_is_imported_cancelled_bug_0317
+  -v -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:58:11'

@@ -27,7 +27,7 @@
   tool, never a shell, never another role's, and only for a craft topic `guard_memory_budget` can
   judge (`gate_write_scope` rule 6).
 - **The state directory is WRITE-LOCKED against every tool write of a session that LOADS this project's settings, and has exactly ONE writer:** `gate_write_scope` refuses every tool write under `project_memory/` bar `staging/<task-id>/`, and makes no exception for the reference files or the rendered `reports/` §6 assigns to a role. That lock reaches exactly as far as its registration: a client start mode that does not load this project's settings starts no hook of this kit at all, so there the ordinary file tools reach `project_memory/` unrefused, and `scripts/harness.py` with them. What still limits such a session depends on the mode and is not assured here (`hooks/ENFORCEMENT.md` §0). The kernel that IS allowed to write is reached through the installed entry point, and it has ONE spelling: **`python scripts/harness.py <command>`**, run from the project root. The scaffold installs it kit-owned in every project, the same three tokens work in bash and in PowerShell, and it resolves the state directory itself — so never add `--root`, which that same gate refuses as naming the state directory and which the entry point also refuses off its own parser.
-  **The surface is PARTIAL, and that is what to report rather than work around.** `python scripts/harness.py --help` is the authority on what exists; today that is `doctor`, `validate`, `generate-index`, `verify-invariants`, `generate-session-brief`, `capture`, `request-approval`, `create-task`, `dispatch`, `ladder`, `submit-result`, `evidence`, `transition`, `update`, `archive`, `amend-archived-test-ref`, `check-scopes`, `sweep-leases`, `sweep-requests`, `withdraw-request`, `checkpoint`, `checkpoint-status`, `set-preset`, `update-kit`, `add-filing-rule`, `apply-proposal`, `revise-document`, `freeze-architecture`, `freeze-wireframe`, `freeze-design`, `freeze-report`, `migrate`, `migrate-holes`, `migrate-goal-classes`, `sweep-pointers`, `report-gap`, `duty-done`, `pin-kit`, `unpin-kit`, `rollback-kit`. Of spec II.4's twelve only `approve` has no command, and it is SPLIT rather than missing: `request-approval <kind> <ITEM-ID>` opens the kernel-generated question (phase 1) and the USER mints it by ANSWERING — no command mints, which is what makes the approval provable. `migrate --dry-run` reports what a V1 import would do and prints a digest; `migrate --plan <digest>` runs only that same plan. An import mints no approval (`approval_ref: null` on every imported item), so nothing it writes opens a gate that requires one. At which STATUS a record arrives is answered per record, by the dry run, before anything is written: a record V1 had already finished lands in `archive/<TYPE>/<year>/` at its MAPPED status. What no command CREATES either way: `product/masterplan.md` and `project_config.yaml` are not typed items. WRITTEN they can be where a route says so — `set-preset` owns `project.preset`, `apply-proposal` adds to any kit document the kernel can compare, `revise-document` replaces or deletes a spot in one — every spot in the approval question, old and new, all three on a user-minted approval (§11, §6); the masterplan is prose and has neither. Naming the missing command in your report is the step; writing state by hand is not (§2.10).
+  **The surface is PARTIAL, and that is what to report rather than work around.** `python scripts/harness.py --help` is the authority on what exists; today that is `doctor`, `validate`, `generate-index`, `verify-invariants`, `generate-session-brief`, `capture`, `request-approval`, `create-task`, `dispatch`, `ladder`, `submit-result`, `evidence`, `transition`, `update`, `archive`, `amend-archived-test-ref`, `check-scopes`, `sweep-leases`, `sweep-requests`, `withdraw-request`, `checkpoint`, `checkpoint-status`, `set-preset`, `update-kit`, `add-filing-rule`, `apply-proposal`, `revise-document`, `freeze-architecture`, `freeze-wireframe`, `freeze-design`, `freeze-report`, `migrate`, `migrate-holes`, `migrate-goal-classes`, `sweep-pointers`, `report-gap`, `duty-done`, `pin-kit`, `unpin-kit`, `rollback-kit`, `upkeep`, `integrate`. Of spec II.4's twelve only `approve` has no command, and it is SPLIT rather than missing: `request-approval <kind> <ITEM-ID>` opens the kernel-generated question (phase 1) and the USER mints it by ANSWERING — no command mints, which is what makes the approval provable. `migrate --dry-run` reports what a V1 import would do and prints a digest; `migrate --plan <digest>` runs only that same plan. An import mints no approval (`approval_ref: null` on every imported item), so nothing it writes opens a gate that requires one. At which STATUS a record arrives is answered per record, by the dry run, before anything is written: a record V1 had already finished lands in `archive/<TYPE>/<year>/` at its MAPPED status. What no command CREATES either way: `product/masterplan.md` and `project_config.yaml` are not typed items. WRITTEN they can be where a route says so — `set-preset` owns `project.preset`, `apply-proposal` adds to any kit document the kernel can compare, `revise-document` replaces or deletes a spot in one — every spot in the approval question, old and new, all three on a user-minted approval (§11, §6); the masterplan is prose and has neither. Naming the missing command in your report is the step; writing state by hand is not (§2.10).
   The same gate also refuses every write-capable shell pipeline that merely NAMES `.claude` or `team-kits` — the `init_project_memory` run the startup gate asks for is one, and so is starting a scaffold by hand. TWO operations have a route instead: a preset change (`set-preset`, §11) and a kit update (`update-kit`, §15) run the installer through the KERNEL on a user-minted approval, and neither line names the enforcement layer. The rest is the USER's to run outside this session; ask, and never reach for a spelling the gate does not recognise. The gate decides by READING a command line, which is enforcement and not arithmetic, so a spelling that gets past it is a defect to report, never a route to take.
 - **Draft pickup:** if the install session left a DRAFT plan (`product/masterplan.md` + a DRAFT `RQ-nnnn`), read it and summarise it to the user — never restart discovery from zero. The ITEM you may refine, because the kernel captures items; `product/masterplan.md` you can only read and discuss, since the kernel captures typed items ONLY and nothing writes that file after the install — a wanted change of direction there is an infrastructure gap you report (§2.10), and the change itself rides on a `CR`.
 - **Hard gate:** no specialist spawn before confirmed `project_config.yaml` preset + synced provider model/effort artifacts (§11).
@@ -145,6 +145,14 @@ for each one. A goal that cannot be built as planned comes back to the user as a
 not improvised: changing its criteria ends the plan's cover for THAT goal and leaves the others
 covered (`tools/test_approvals_dispatch.py::test_a_plan_stops_covering_a_goal_the_moment_its_scope_moves`).
 
+**An approval is an UNDERSTANDING check, never a permission to keep working (`DEC-0119`).** Never
+ask "done with X, shall I continue with Y?" -- proceed along what the user approved and report.
+The user answers the plan at the start (in the office kit: the procedures), ONE collected card for
+his change wishes and new goals (captured at once with his words and worked at once; the kernel
+refuses a goal's acceptance question until that card is answered), the acceptance, and what is
+his by nature. Bugs are worked without an approval. Kinds and commands: your lead skill's "What
+you ask the user, and when".
+
 ## 5a. Your work loop — the SEQUENCE, and the duties that have no gate behind them
 
 **Your procedure document is NOT in your context.** `skills/project-manager/SKILL.md` is REGISTERED
@@ -162,9 +170,10 @@ here is one clause; the craft inside it lives there and only there.
    (`guard_question_context` refuses it on Claude. Codex has no such hook — the rule binds equally.)
 3. **PROPOSE** an `RQ` — question, motivation, the answering criteria as `acceptance_criteria`,
    `out_of_scope` — after reading the active RQs. A change to an APPROVED revision is a `CR`.
-4. **APPROVE**: `python scripts/harness.py request-approval scope RQ-nnnn` prints the question the
-   KERNEL composed — relay it VERBATIM and let the USER answer it. No command mints an approval, and
-   that is what makes one provable.
+4. **APPROVE**: `python scripts/harness.py request-approval plan` -- or, for what arrives later, the
+   collected card `request-approval scope --batch <ids>` -- prints the question the KERNEL composed;
+   relay it VERBATIM and let the USER answer it. No command mints an approval, and that is what makes
+   one provable.
 5. **PLAN** with the `methodologist` (`HYP` + `EXP`), branch `rq/RQ-nnnn-<slug>`, then the delivery
    approval. **A pre-registered EXP design is a promise:** changing it after approval is a `CR`, and
    nothing refuses an analysis you re-cut afterwards — you are the only thing standing between a
@@ -187,8 +196,9 @@ here is one clause; the craft inside it lives there and only there.
 8. **BOOK**: capture/transition through the kernel — the kernel writes `generated/` with every state
    write and this kit ships no dashboard generator (§2.3), so booking has no render step. Commit;
    leave no work uncommitted across a session end.
-9. **REPORT + ASK** what next, always with a recommended option and a reason. An idea the user
-   accepts becomes an `FR` or a Draft `RQ`, never ad-hoc work.
+9. **REPORT, then GO ON** with the next step of the approved plan -- no "weiter mit Y?" (`DEC-0119`).
+   Ask only what the plan did not settle, always with a recommended option and a reason. An idea the
+   user accepts becomes an `FR` or a Draft `RQ`, never ad-hoc work.
 10. **MEMORY**: durable craft learnings only — never items or item ids.
 
 **Two orders running at the same time own DISJOINT FILES, and the kernel refuses an overlap.** Cut
@@ -305,7 +315,8 @@ then demands is defined once, in code (§9), and a capture missing one is refuse
   `bug/BUG-nnnn-<slug>` branch (§8). It hangs from the **RQ**, the root of the tree — not the `EXP`
   that produced the number. The kernel checks only that the referenced id exists
   (`state._assert_origins_resolve` leaves the tree question to the validator), so this one is on you.
-  The proof is a regression check that FAILS before the fix and passes after.
+  The proof is a regression check that FAILS before the fix and passes after. Working it needs no
+  approval (`DEC-0119` (3)); closing repaired bugs is one card per batch (`DEC-0100`).
 
 - **And the question BEHIND that question, when the answer is No:** does the approved `RQ` still ask
   what we want answered at all? If YES, the change rides on the `CR` above and walks its own
@@ -376,10 +387,9 @@ turn the tree over.
   role's pin, its class in the declaration and the order's failed runs (the BUILD starts on
   **opus** and so do planning and the reviewer — `DEC-0095` (1)/(2); the METHOD DESIGN, this kit's
   architecture step, starts on the top rung, and a class floor never lowers a role's own pin) and
-  the EFFORT from the goal, writes both on the
+  the EFFORT from the goal (a capped top's method design: **xhigh**, `DEC-0118`), writes both on the
   lease, the header and the task item, and derives again at the spawn
-  (`kernel.dispatch.ladder_for_order`; `python scripts/harness.py ladder <TSK-ID>` shows the answer
-  without minting). The header's `rung`/`effort` are Claude's, the pair its spawn gate holds; its
+  (`python scripts/harness.py ladder <TSK-ID>` shows the answer). The header's `rung`/`effort` are Claude's, the pair its spawn gate holds; its
   `by_provider` map (`kernel.dispatch.PROVIDERS_KEY`) carries the answer for every provider this
   project is installed for, and on Codex the top is **fable** = `gpt-6-astra`. That **opus** is the class's DEFAULT and not its bottom (`DEC-0097` (1)):
   its floor is the researcher's own pin, so an order whose acceptance NAMES A TEST may be
@@ -461,9 +471,9 @@ downgrade, an edited staging and a project already waiting for a restart, runs t
 own installer and STOPS this session: the handover marker means specialist spawns are
 refused here, and with the harness's user-global handover guard installed further
 work-engine commands and product writes as well. Re-applying the SAME release is a repair, not an update,
-and stays a shell step outside this session. Left-over diverged files follow the
-pending-file contract (`.claude/kit_update_pending.*` — work through in the NEXT session,
-then DELETE; the nag escalates).
+and stays a shell step outside this session. Left-over diverged files
+(`.claude/kit_update_pending.*`) are worked through in the NEXT session and then
+`upkeep resolve-pending`; the nag escalates.
 
 ## 16. FZulG / BSFZ application layer
 

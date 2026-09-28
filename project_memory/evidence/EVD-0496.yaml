@@ -1,0 +1,19 @@
+id: EVD-0496
+kind: test
+related:
+- BUG-0322
+result: pass
+summary: 'TSK-0154 stream B, worktree g7/dispatch: the architect''s own order (its
+  role''s class starts on the top rung, DEC-0118 (1)) is leased under a large goal
+  with no accepted SR; an ACCEPTED SR counts for every goal it reaches on any path
+  (a second parent under another goal no longer voids it); the refusal names every
+  SR it examined under the goal and why it did not count. Red on base 35e929b; the
+  any-path count red under mutation M3.'
+artifact_refs:
+- staging/TSK-0154/evd/bug-0322.log
+run_command: python -B -m pytest tools/test_stream_b_order_flow.py -k bug_0322 -v
+  -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:40:42'

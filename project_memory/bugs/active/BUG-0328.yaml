@@ -1,0 +1,41 @@
+id: BUG-0328
+title: 'Rest von BUG-0326: die behaltene Lease eines wieder aufgenommenen Kindes gibt
+  der NAECHSTE Sweep frei -- das Kind laeuft danach ungebunden weiter (TSK-0158)'
+related_pr: PR-0012
+observed: 'MECHANISM: team-kits/kernel/dispatch.py -- `sweep_expired_leases` keeps
+  an expired lease only while `_held_by_a_waiting_child_locked` holds (CHILD_WAITING
+  set); `record_child_resume` clears CHILD_WAITING at the resume but leaves the lease''s
+  TTL as it was, and a lease kept past its expiry is always expired at that moment.
+  So the next sweep releases it, and the resumed child -- whose writes, resume and
+  end all find their task through the lease (`task_for_agent`) -- is unbound: BUG-0326
+  one step later. MEASURED CHAIN (TSK-0157 verify round 1, N3; re-measured TSK-0158
+  on a copy of the fixed tree, real gate processes): child waits on its own background
+  run, lease expired, sweep 1 keeps it; SubagentStart (resume) clears the mark; sweep
+  2 ''lease kept False'', status IN_PROGRESS, ''lease expired, status left standing:
+  TSK-0001''; the child''s write rc 2 ''this subagent is not bound to a task''; its
+  SubagentStop records no end; the lead''s Stop rc 0 with no finding; `dispatch` rc
+  1 ''No record says its child stopped'' (names the FAILED way out). VERDICT: not
+  built in TSK-0158 by the lead''s decision; belongs to the heartbeat work of the
+  next wave (renewing the lease at the resume is the obvious shape). Bounded: no data
+  loss; `transition <id> FAILED`, named by the dispatch refusal, drops the order to
+  the user''s approved retry.'
+expected: A resumed child keeps a lease no sweep releases while that child runs, so
+  its writes, its end and the lead's report stay bound.
+repro: tools/test_stream_b_order_flow.py `_waiting_child`, expire the lease, `sweep-leases`,
+  SubagentStart for the same agent, `sweep-leases` again -> lease file gone; the child's
+  Write -> rc 2 'not bound to a task'.
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: 'the chain wait -> sweep -> resume -> sweep leaves the resumed child bound:
+    a test naming this bug, red before the fix in a copy outside the repo'
+source: project_memory/staging/TSK-0157/verify-round-1.md (N3); project_memory/staging/TSK-0156/protocol.md
+  (Rework 2, 19:49)
+hole_number: H225
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-27T19:50:57'
+limits: Der Auftrag bleibt stehen, bis der Lead ihn auf seinen Ausweg-Status setzt;
+  dispatch und sweep-leases nennen diesen Ausweg. Kein Datenverlust; das Kind schreibt
+  ungebunden nichts (rc 2).

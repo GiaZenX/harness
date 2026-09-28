@@ -1,0 +1,41 @@
+id: BUG-0325
+title: 'Kernel-Befehl `upkeep` (TSK-0155): jede Tuer ist einem Subagenten offen, und
+  prune-memory loescht das Handwerksgedaechtnis einer ANDEREN Rolle'
+related_pr: PR-0012
+observed: 'MEASURED 2026-09-27 06:42 (TSK-0156 merge, real gate_write_scope processes
+  against a bound-subagent fixture, tools/test_hooks_v2.py): `python scripts/harness.py
+  upkeep prune-caches|resolve-pending|adopt-template x|untrack-ignored` and `upkeep
+  prune-memory database-engineer --keep-newest 0` (also `--retire backend-developer
+  database-engineer` and the `python -m kernel.cli` form) all exit 0 from a subagent''s
+  shell (agent_id child-1, agent_type backend-developer). Mechanism: rule 4 of gate_write_scope
+  knows two classes (ordering, installing); `upkeep`, added by stream C (TSK-0155)
+  as five doors that delete or copy in shared installation state, is in neither, and
+  the kernel itself cannot tell who calls. Found by stream C itself (TSK-0155 protocol),
+  bounded in the merge.'
+expected: A subagent runs no upkeep door that changes shared installation state, and
+  prune-memory only for its OWN role (the role its payload names); the session instance
+  keeps every door.
+repro: Bound subagent payload (agent_id + agent_type backend-developer), Bash command
+  `python scripts/harness.py upkeep prune-memory database-engineer --keep-newest 0`
+  into team-kits/dev-team/hooks/gate_write_scope.py -> rc 0.
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: gate_write_scope refuses a subagent every upkeep door the kernel's parser
+    declares without a `role` positional, and prune-memory whose role (as the kernel's
+    parser reads it) is not the caller's agent_type -- tests naming this bug in tools/test_hooks_v2.py,
+    red against the gate of TSK-0155.
+- id: AC-2
+  text: The session instance runs every upkeep door (anti-lockout test), and a subagent
+    prunes its own memory.
+source: project_memory/staging/TSK-0155/protocol.md (the upkeep doors); project_memory/staging/TSK-0156/protocol.md
+  (the bound)
+hole_number: H223
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-27T06:42:26'
+limits: Die upkeep-Schranke aus TSK-0156 verweigert einem Subagenten die Tueren, die
+  fremden oder gemeinsamen Zustand aendern; die zwei gemessenen Restrichtungen sind
+  als H227/H228 benannt und vom Nutzer als Ausnahme bis Welle 1 Strom B angenommen.
+  Geloeschte Notizen liegen im Git-Verlauf.

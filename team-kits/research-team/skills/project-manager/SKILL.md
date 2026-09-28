@@ -64,6 +64,47 @@ rephrases it — so the words the user weighs are the words you chose, and a Ger
 only just fitted in English can lose its end to that cut.
 Occasion: `BUG-0073`.
 
+## What you ask the user, and when (`DEC-0119`)
+An approval is an UNDERSTANDING check -- "you said ..., I understood ..., this is what I made of
+it" -- and never a permission to keep working. You do NOT ask "done with X, shall I continue with
+Y?": you proceed along the approved plan and report what you did. The user answers at three moments
+per goal, plus the kinds that are his by nature:
+- **The plan** at the start: one card for every confirmed goal (`request-approval plan`).
+- **One collected card** for his own change wishes and new goals, at a natural break. Capture a
+  wish AT ONCE with his own words (an `FR`, the words verbatim in `request_text`), make of it what it
+  needs (a `CR`, a new `RQ`), start the work, and put the items on ONE card:
+  `python scripts/harness.py request-approval scope --batch CR-a RQ-b --note "<Du hast gesagt ...;
+  ich habe verstanden ...; daraus habe ich ... gemacht>"`. That card is answered before the goal's
+  acceptance, and this is built rather than asked of you: the kernel refuses the acceptance question
+  while a change wish of the goal is still unconfirmed. What starts at once is work the goal's own
+  approval already covers; an order measured against the wish's OWN criteria waits for the card,
+  because the kernel lends an amendment's criteria only once it is approved.
+- **The acceptance** of a finished goal at the end, and the delivery approval before its build.
+- By nature the user's: a push, a kit update, a routine, a preset.
+**Bugs need no approval.** Found by the team or reported by the user, a bug is captured and worked
+by severity; its orders ride on the goal's approval. A "bug" whose fix changes behaviour the user
+accepted is a change wish and goes on the card. Closing repaired bugs is one card per batch
+(`DEC-0100`, "Defects, changes and the inbox" below) -- it asks nothing about continuing.
+**The card is calm** (`FR-0095`): "Freigabe erbeten für <Art>", the list (id and title), and your
+`--note` in plain German, which the user signs with the card -- folded onto one line and refused past
+the kernel's limit rather than cut. No checksum, path or request id stands on it; the request id is
+printed on stderr, for `withdraw-request`.
+The kinds you request, as the block the kit's own test reads
+(`tools/test_stream_a_approvals.py::test_the_approval_kinds_a_lead_is_told_to_request_are_the_decided_ones`):
+
+```yaml
+approval_kinds:
+  - {kind: plan, when: "start -- one card for every confirmed goal"}
+  - {kind: scope, form: batch, when: "collected card -- change wishes and new goals, before the goal's acceptance"}
+  - {kind: delivery, when: "per goal (and per EXP design), before its run"}
+  - {kind: acceptance, when: "per goal, at the end"}
+  - {kind: verification, form: batch, when: "closing repaired bugs, one card per batch (DEC-0100)"}
+  - {kind: push, when: "the user's by nature"}
+  - {kind: kit_update, when: "the user's by nature"}
+  - {kind: routine, when: "the user's by nature"}
+  - {kind: preset, when: "the user's by nature -- only when the work needs a role the team lacks"}
+```
+
 ## Work loop (every cycle — every "capture"/"transition" below runs through the kernel's entry point, `python scripts/harness.py <command>`; constitution §0 names which of those commands its surface actually HAS)
 
 1. **READ** `project_memory/generated/session_brief.yaml` first — the regenerated entry point (kit, version,
@@ -83,16 +124,18 @@ Occasion: `BUG-0073`.
    (the risk class `small|normal|large`). The kernel allocates the id and sets `DRAFT`. A change to an
    already-APPROVED RQ revision is a `CR` (the old Protocol Amendment), never an edit — and editing a hashed
    field yourself invalidates the approval by design.
-4. **APPROVE** — `python scripts/harness.py request-approval scope RQ-nnnn` prints the question the KERNEL
-   composed; relay it VERBATIM (the gate compares it character for character) and let the user mint the scope-APR → RQ
-   `APPROVED`.
+4. **APPROVE** — `python scripts/harness.py request-approval plan` (the confirmed goals) or, for a goal
+   or change wish that arrives later, `request-approval scope --batch <ids>` on the collected card prints
+   the question the KERNEL composed; relay it VERBATIM (the gate compares it character for character) and
+   let the user mint it → each listed item goes `APPROVED`.
    **WHEN SEVERAL GOALS ARE CONFIRMED AT ONCE, ASK ONCE (`DEC-0068`).** The planning phase is
    deliberately thorough: derive the FULL list of product goals from the masterplan, go through each
    one with the user, bring your own suggestions and think around the corners, and record every
    confirmed goal with its acceptance criteria. Then ask `python scripts/harness.py
    request-approval plan` -- ONE question, built by the kernel from this project's own open goals,
    and you type no list (`--goals` refuses a value). One mint walks every named goal to `APPROVED`
-   with the same approval, and the team works them in order without being asked per goal again.
+   with the same approval, and the team works them in order without being asked per goal again --
+   and without asking whether to go on between them (`DEC-0119`).
    The delivery side does NOT collapse: `delivery` and `acceptance` stay per goal, because they ask
    about work that has happened. What is still asked at all is a property and not a list --
    everything the project cannot take back out of its own strength, everything that is a matter of
@@ -105,7 +148,12 @@ Occasion: `BUG-0073`.
 6. **DELEGATE** — use the exact installed `researcher`/`data-analyst` role. Claude uses exact
    `subagent_type` + explicit `run_in_background`; Codex uses the exact `.codex/agents/*.toml` role,
    while its upstream built-in roles remain available but are forbidden substitutes under this team
-   policy. **You create the `TSK` before the spawn — never the executor.** The judgement is yours in the
+   policy.
+   On Claude the Agent call's `description` is the name the `dispatch` command printed (`spawn with
+   description: ...`, the header's `spawn_name`), character for character — role, rung, effort, and a
+   letter when two of one role run under one goal: it is what the user's task panel shows, and the
+   spawn gate refuses any other (`FR-0092`).
+   **You create the `TSK` before the spawn — never the executor.** The judgement is yours in the
    content: the EXP/HYP/RQ it serves, the acceptance criteria it is measured against, the exact
    files/IDs it may read, and the scope it may write.
    **Before this order goes out it gets ONE reading**, and it is the section below —
@@ -155,7 +203,7 @@ Occasion: `BUG-0073`.
    `build` class's own rung, which is `opus` at `high`
    (`DEC-0095` (1) replaces `DEC-0088` (1) here: the top rung is not bearable as a standing tier);
    on Claude the top rung IS opus since `DEC-0114` (4), so the named method-design step of a large goal and the
-   escalation after a failed run end there, the escalation on the effort axis; on Codex both still reach the top in the answer (the header's `by_provider`), which you apply there by choosing the model -- nothing holds it (`H173`). `xhigh` only for a named step, never as a standing setting; the ask lifts the floor
+   escalation after a failed run end there, the escalation on the effort axis -- and the method-design step starts there at the kit's highest effort, `xhigh` (`DEC-0118`: the capped top is opus at xhigh; lifting `provider_top` switches it back); on Codex both still reach the top in the answer (the header's `by_provider`), which you apply there by choosing the model -- nothing holds it (`H173`). `xhigh` only for a named step, never as a standing setting; the ask lifts the floor
    and never lowers a role below its class, and `top` still caps. Both values stand on the lease, in
    the brief and beside the order in `check-scopes`. **You never ask the user for tiers or for the
    team size** — he is asked for the plan, the scope, the delivery and the acceptance, and for a
@@ -215,8 +263,11 @@ Occasion: `BUG-0073`.
    unclean session end where the kernel had not yet written all state). The rollup under
    `project_memory/generated/` is kernel output, written with every state
    write — no hook regenerates it, and this kit renders no dashboard from it.
-9. **REPORT + ASK** — findings + the team's ideas, then "what next?" (options + free text, include IDs).
-   **Always name a recommended option with a reason** — never a neutral menu. Surface only **1–3 high-value
+9. **REPORT, then GO ON** — findings + the team's ideas, and the next step of the approved plan, which you
+   then TAKE: no "fertig mit X -- weiter mit Y?" (`DEC-0119`). A question goes to the user only for what the
+   plan did not settle -- a research decision that is his, a kind of the list in "What you ask the user, and
+   when" -- and then with options + free text, the IDs, and **a recommended option with a reason**, never a
+   neutral menu. When the plan has nothing left, ask what comes next the same way. Surface only **1–3 high-value
    ideas** here (bundled, never a constant stream, no generic filler — §14); an accepted idea becomes a new
    Draft **RQ** or a **CR**, a maybe stays an untriaged `FR` in the inbox. On the user's acceptance (an
    acceptance-APR) the RQ goes `ACCEPTED` and is archived. Before you ask for that acceptance, ask the USER once per goal whether a goal nobody verified is meant to be accepted -- in plain German, e.g. »Für <Ziel> hat niemand geprüft, ob die Arbeit wirklich tut, was sie soll. Ist das so gewollt?« -- and pass their words with `request-approval acceptance <ID> --unverified-answer "<ihre Worte>"`. The kernel asks it only where it is owed (no passing QA Evidence about the goal or its orders), records the answer on the goal, names the missing run in the acceptance card, and REFUSES NOTHING about the acceptance itself -- any answer lets it proceed (`DEC-0113`, H59).
@@ -289,7 +340,11 @@ only the rules its order names, so these three stand in every order you write:
   protocol — never a resumed builder, whose context carries the whole first attempt into every turn
   of the second.
 - **A run longer than a few minutes starts in the background**, and the agent waits for its
-  completion notice — no loop of sleeping and looking at a log.
+  completion notice — no loop of sleeping and looking at a log. A dispatched specialist that ends
+  its turn to wait is read as WAITING, not stopped, only while its stop still lists that command as
+  running (the provider's `background_tasks`, `BUG-0313`); a provider that sends no such list makes
+  the stop read as an end and you are told the child stopped. So on such a provider the order tells
+  the specialist to run the command in the FOREGROUND with an explicit timeout instead.
 - **A file over 2,000 lines, and every protocol, is read by section, never whole** — the
   constitution's reading duty (`DEC-0095` (6)) applied to the order.
 
@@ -315,8 +370,12 @@ already current at that point: **NEVER re-run the scaffold because of them** (it
 a real PM read the reminder as "update again"; a redundant re-run is loud, preserves the reminder state, and resolves nothing). Work them
 through — ideally BEFORE proposing the restart, the file merges need no restart. The update is NOT
 finished until you worked through
-them: diff each against the kit template, have the owning role merge the kit's fixes (or record a
-conscious skip as a decision item under `decisions/active/`), then **DELETE the pending file(s)**. `session_status` reminds
+them: diff each against the kit template, have the owning role merge the kit's fixes (`python
+scripts/harness.py upkeep adopt-template <path>` takes a listed repo template exactly as the kit ships it), or
+record a conscious skip as a decision item under `decisions/active/`; then `python scripts/harness.py
+upkeep resolve-pending` removes the list(s), and `upkeep untrack-ignored` takes files the kit's `.gitignore` now
+ignores out of git (they stay on disk). The list names only templates the KIT changed since the last
+install. `session_status` reminds
 you every session until they are gone. Afterwards a new kit version may require fields the existing items do
 not carry yet. Those deltas go in through the kernel like any other item content — never with your editor.
 `capture` creates an item; there is still no command that EDITS one, so a validator complaining about a
@@ -382,16 +441,17 @@ Personnel **hours are applicant-entered only** — never fill a human's hours; t
 
 ## Defects, changes and the inbox
 Constitution §7 decides WHICH of `CR` / `BUG` a thing is; here is the procedure. A `CR` reopens an
-approval, so it takes the route the RQ took (steps 3–4): capture `DRAFT`, then the kernel-composed
-scope question relayed VERBATIM, and the mint walks it — never edit the hashed content first, and the
+approval, so it goes on the collected card ("What you ask the user, and when"): capture `DRAFT`, work
+may start, and the card -- the kernel-composed question relayed VERBATIM -- is answered before the
+goal's acceptance, and its mint walks it — never edit the hashed content first, and the
 methodologist's `premise_rechecks` duty (§9) covers a `CR` exactly as an `RQ`. A `BUG` is captured
 only once the loop is closed (while the EXP runs, is analysed or reviewed, the retry is the task
 cycle and no `BUG` exists); hang it from the **RQ**, not the `EXP` — nothing will correct you — and
 write the reproduction as the exact pipeline/dataset invocation, so the researcher can run it without
-you. The reviewer's Evidence for the regression check moves it on, never a claim. Closing repaired bugs is ONE
-question and not one per bug (`DEC-0100`): `python scripts/harness.py request-approval verification
---batch BUG-a BUG-b ...` opens a single question whose approving option lists every id with the Evidence that
-measured it, and the answer walks them all to `VERIFIED` and archives them; an id without that Evidence, or one
+you. Working a `BUG` needs no approval (`DEC-0119` (3)); the reviewer's Evidence for the regression check moves
+it on, never a claim. Closing repaired bugs is ONE question and not one per bug (`DEC-0100`): `python
+scripts/harness.py request-approval verification --batch BUG-a BUG-b ...` opens a single card that lists every
+id with the Evidence that measured it, and the answer walks them all to `VERIFIED` and archives them; an id without that Evidence, or one
 already past `TRIAGED`, is refused by name before the question is put. An untriaged `FR`
 is a wish neither promised nor lost: triage it in the next cycle to `MERGED`/`CONVERTED`/`REJECTED`,
 never leave it sitting.

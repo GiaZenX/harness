@@ -1,0 +1,21 @@
+id: EVD-0501
+kind: test
+related:
+- BUG-0316
+result: pass
+summary: 'TSK-0155 stream C, worktree g7/field (stamped mirror): a scaffolded project
+  committed and cloned with core.autocrlf=true keeps the trusted hook_bundle_hash
+  and a .drawio.svg keeps its bytes, through the installed .gitattributes (node test_an_autocrlf_clone_keeps_the_trusted_bundle_hash_bug_0316);
+  git check-attr/check-ignore on .claude paths rc 0 at the installed write gate, git
+  rm --cached still rc 2 (node test_reading_git_attributes_of_a_protected_path_is_not_a_write_bug_0316).
+  Red without the templates / the read-only entries. Hygiene scratch-clone over-refusal
+  NOT fixed (protocol).'
+artifact_refs:
+- staging/TSK-0155/evd/final.log
+- staging/TSK-0155/evd/red-first.log
+run_command: python -B -m pytest tools/test_stream_c_field.py tools/test_migrate.py::test_an_open_v1_task_is_imported_cancelled_bug_0317
+  -v -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:57:55'

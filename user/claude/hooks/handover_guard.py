@@ -25,7 +25,8 @@ SOFT VARIANT, what it refuses and what it never touches (DEC-0032):
     (`scripts/harness.py` / `kernel.cli` for anything other than a read like `doctor`/`--help`):
     creating items, dispatching, running the lifecycle, and — BUG-0017 / TSK-0054 — an
     AskUserQuestion that INITIATES the scope-approval flow, recognised by the kernel's
-    approval-request marker `[APR-REQ:<id>]` in its input. These are the post-handover PM's acts:
+    approving label `Freigeben [<code>]` in its input (FR-0095 took the `[APR-REQ:<id>]` marker off
+    the card). These are the post-handover PM's acts:
     the scope approval is requested and minted by the restarted Project Manager AFTER the restart,
     once the kit hooks are live; here the mint would fail, and the entry agent has been measured to
     re-invent a nonexistent `/hooks` step from that failure (docs/reviews/2026-08-12-bug0017-live-confirm.md).
@@ -48,7 +49,7 @@ WHAT THE SHELL READING DOES, exactly — no more (`_handle_shell` and the helper
     verb, and a file-tool write onto it. Without that, the cheapest way past this hook was to
     switch it off — `rm .claude/HANDOVER_PENDING` and every later call is a no-op (measured).
   * NEVER touched: reading, and NORMAL asking/answering/explaining/plan-refinement. The ONLY
-    AskUserQuestion this hook refuses is the one carrying the approval-request marker above; every
+    AskUserQuestion this hook refuses is the one carrying the approving label above; every
     ordinary question (including the entry gate's own "structured PM?" prompt) stays allowed. This
     hook refuses individual TOOL calls only; it never ends the session (Read, Grep, ... stay open).
 
@@ -74,9 +75,10 @@ measured (TSK-0031/0032, chains in docs/POST_V2_WISHLIST.md L39):
     -delete`, or a path assembled by a substitution. A rule that saw those would have to model the
     file system rather than read words. Measured and pinned by
     `test_handover_guard_marker_residue_is_named_not_closed`; L39 carries the severity.
-  * A HALLUCINATED approval question that OMITS the marker (BUG-0017 / TSK-0054): the approval-flow
-    refusal is keyed on the `[APR-REQ:<id>]` marker, so an approval-looking question that carries no
-    marker cannot be told apart from an ordinary question and is allowed. Narrow BY DESIGN — the
+  * A HALLUCINATED approval question that OMITS the label (BUG-0017 / TSK-0054): the approval-flow
+    refusal is keyed on the approving label `Freigeben [<code>]` (until FR-0095 on the `[APR-REQ:<id>]`
+    marker), so an approval-looking question that carries no label cannot be told apart from an
+    ordinary question and is allowed. Narrow BY DESIGN — the
     alternative is to model intent from free text, which would refuse the entry gate's own questions.
     ONE live entry session has been measured relaying the kernel's approval question into
     `tool_input` with the `[APR-REQ:<id>]` marker byte-faithful, and this hook refused it
@@ -99,13 +101,14 @@ SHELL_TOOLS = ("Bash", "PowerShell")
 SPAWN_TOOLS = ("Task", "Agent")
 ASK_TOOLS = ("AskUserQuestion",)
 
-# The approval-request marker of the kernel's two-phase approval protocol; `gate_approval.py` is its
-# authority (`MARKER_RX = \[APR-REQ:<32 hex>\]`). Recognised here by its literal TOKEN, not the exact
-# id shape: the entry session has no live kernel to mint a real id, so an approval question it raises
-# here carries an invented or malformed one — refusing the flow is the point, not validating the id.
-# Whole-input scan (not just the question text) because the marker may sit in any field the model
-# fills. A normal question never carries this protocol token, so this stays narrow (BUG-0017).
-_APR_REQUEST_MARKER = re.compile(r"\[APR-REQ:")
+# The approving label of the kernel's two-phase approval protocol; `gate_approval.py` is its
+# authority (`APPROVE_LABEL_RX = Freigeben [<6 hex>]`, the mint code that names the request since
+# FR-0095 took the `[APR-REQ:<id>]` marker off the card). Recognised here by the label's SHAPE
+# anywhere in the input, not anchored to an option: the entry session has no live kernel to mint a
+# real request, so an approval question it raises carries an invented code wherever the model put
+# it -- refusing the flow is the point, not validating the code. A normal question never carries this
+# protocol token, so this stays narrow (BUG-0017).
+_APR_REQUEST_MARKER = re.compile(r"Freigeben \[[0-9a-f]{6}\]")
 
 # The plan artefacts the entry gate writes by hand (global CLAUDE.md Auto-Init step 3; DEC-0032).
 # Exact matches for the two singletons; a prefix for the root item so PR-0001.yaml (and any sidecar

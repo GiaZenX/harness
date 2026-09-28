@@ -176,7 +176,7 @@ def _blocked(types, verdicts):
             if entry.get("result") == types.BLOCKED_RESULT}
 
 
-def _refuse_a_run_that_never_happened(types, subject, blocked):
+def _refuse_a_run_that_never_happened(types, subject, blocked, route=""):
     """Refuse on a `blocked` verdict, and say that nothing was checked (FR-0082).
 
     THE SAME DECISION AS A FAIL and a different sentence. Both close the merge -- everything that
@@ -206,7 +206,7 @@ def _refuse_a_run_that_never_happened(types, subject, blocked):
                "--run-command \"<the command line you ran>\" --run-scope <full|selection>`); the newer "
                "verdict supersedes this one. If the run cannot be made to happen here, that is "
                "the merge arriving early — say so to the user rather than re-recording the same "
-               "block." % subject + _FROM_THE_ROOT)
+               "block." % subject + _FROM_THE_ROOT + route)
 
 
 # Every remedy below hands a blocked role a command line, and since the entry point shipped that
@@ -240,6 +240,25 @@ def _remedy(target):
             "closed on that. So archiving belongs after a newer run, not instead of one. The proof "
             "itself goes under %s/staging/<task-id>/."
             % (target or "<ITEM-ID>", _kernel.STATE_DIRNAME)) + _FROM_THE_ROOT
+
+
+# THE ROUTE A UNITING MERGE IS SENT TO (DEC-0125, BUG-0333). This gate reads every `git merge` that
+# names a goal as a delivery of it and stays that way (DEC-0125 (2)); what a role uniting one
+# goal's PARALLEL work branches needed and did not have was a legal path to the united tree QA has
+# to judge. That path is the kernel's door, which never writes the delivery base, so every verdict
+# refusal of a line that runs a merge names it. Not a softening and not a second reader of the
+# merge target: the door is a different command, and this gate still refuses the merge it refused.
+# `tools/test_bug0333_integrate.py::test_every_verdict_refusal_of_a_merge_names_the_door`
+def _uniting_route(command, goal):
+    """The sentence naming `integrate`, or "" for a line that runs no merge."""
+    if not any(invocation.runs("merge") for invocation in _compat.git_invocations(command)):
+        return ""
+    goal = goal or "<GOAL>"
+    return (" If this merge UNITES parallel work branches of one goal rather than delivering it, "
+            "this gate will not open it for that: `python scripts/harness.py integrate %s` unites "
+            "every branch named after the goal on `integrate/%s` in a worktree of its own -- never "
+            "on the delivery base, so no verdict is needed for it. QA judges that branch, and its "
+            "merge into the base is the delivery this gate judges." % (goal, goal))
 
 
 def _refuse_a_status_no_delivery_can_follow(state, types, target):
@@ -479,7 +498,7 @@ def _say_what_stays_outstanding(target, outstanding):
     sys.stderr.write("[team-kit note] %s\n" % message)
 
 
-def _refuse_unless_the_item_is_green(types, target, verdicts, publishing=False):
+def _refuse_unless_the_item_is_green(types, target, verdicts, publishing=False, route=""):
     """The main rule for ONE item: a current verdict of EVERY delivery-judging kind, none a fail.
 
     "Every kind" is `types.QA_EVIDENCE_KINDS`, asked of the kernel at run time. Not a tuple here,
@@ -512,9 +531,9 @@ def _refuse_unless_the_item_is_green(types, target, verdicts, publishing=False):
             "the current QA verdict is not a pass — %s. A newer Evidence of the same kind "
             "supersedes an older one, so this is what QA says about the work RIGHT NOW."
             % _describe(target, failing),
-            remedy=_remedy(target))
+            remedy=_remedy(target) + route)
     if blocked:
-        _refuse_a_run_that_never_happened(types, target, blocked)
+        _refuse_a_run_that_never_happened(types, target, blocked, route)
     if not verdicts:
         _kernel.block(
             HOOK,
@@ -525,7 +544,7 @@ def _refuse_unless_the_item_is_green(types, target, verdicts, publishing=False):
                    "item: `python scripts/harness.py evidence --kind <test|review|acceptance> --result pass "
                    "--related %s --summary ... --artifact-ref <path to the raw proof> "
                    "--run-command \"<the command line you ran>\" --run-scope <full|selection>`." % target
-                   + _FROM_THE_ROOT)
+                   + _FROM_THE_ROOT + route)
     unanswered = sorted(set(types.QA_EVIDENCE_KINDS) - set(verdicts))
     # A WORK-BRANCH PUSH IS NOT A DELIVERY (BUG-0081). Only the kinds whose subject does not exist
     # until the work is published stand down, and only for a push -- a failing or blocked verdict
@@ -549,10 +568,10 @@ def _refuse_unless_the_item_is_green(types, target, verdicts, publishing=False):
                    "--artifact-ref <path to the raw proof> --run-command \"<the command line you ran>\" "
                    "--run-scope <full|selection>`. A kind that cannot be answered yet is "
                    "the merge arriving early; it is not this gate to route around." % target
-                   + _FROM_THE_ROOT)
+                   + _FROM_THE_ROOT + route)
 
 
-def _refuse_unless_nothing_is_failing(types, by_subject):
+def _refuse_unless_nothing_is_failing(types, by_subject, route=""):
     """The fallback for a merge that named no item: no OPEN failure anywhere in the store.
 
     Per (item, kind), never collapsed to one newest-per-kind for the whole project. Collapsing
@@ -579,11 +598,11 @@ def _refuse_unless_nothing_is_failing(types, by_subject):
                    "(`python scripts/harness.py evidence --kind <test|review|acceptance> --result pass --related "
                    "<ITEM-ID> --summary ... --artifact-ref <path to the raw proof> "
                    "--run-command \"<the command line you ran>\" --run-scope <full|selection>`)."
-                   + _FROM_THE_ROOT)
+                   + _FROM_THE_ROOT + route)
     # The same order as the named case, and the same reason: a measured defect outranks a check
     # that never ran. `subject` here is whatever the Evidence named, since this branch has no item.
     for subject in sorted(blocked):
-        _refuse_a_run_that_never_happened(types, subject, blocked[subject])
+        _refuse_a_run_that_never_happened(types, subject, blocked[subject], route)
     if not by_subject:
         _kernel.block(
             HOOK,
@@ -595,7 +614,7 @@ def _refuse_unless_nothing_is_failing(types, by_subject):
                    "--related <ITEM-ID> --summary ... --artifact-ref <path to the raw proof> "
                    "--run-command \"<the command line you ran>\" --run-scope <full|selection>`; "
                    "name the item in the branch too, so the next merge is judged on it alone."
-                   + _FROM_THE_ROOT)
+                   + _FROM_THE_ROOT + route)
 
 
 def main():
@@ -652,9 +671,10 @@ def main():
         publishing = _publishes_a_work_branch(command, targets, repo_root)
         for target in targets:
             _refuse_unless_the_item_is_green(types, target, report.qa_verdicts(state, target),
-                                             publishing)
+                                             publishing, _uniting_route(command, target))
     else:
-        _refuse_unless_nothing_is_failing(types, report.qa_verdicts_by_subject(state))
+        _refuse_unless_nothing_is_failing(types, report.qa_verdicts_by_subject(state),
+                                          _uniting_route(command, None))
     sys.exit(0)
 
 

@@ -1,0 +1,8 @@
+# Paths whose BYTES the team kit hashes. Git must hand them back exactly as they were committed:
+# with `core.autocrlf=true` a fresh Windows clone rewrote two `.md` files of the hook bundle to
+# CRLF, the recorded trust hash no longer matched, and every specialist spawn was refused
+# (BUG-0316). `-text` turns line-ending conversion off for these paths in both directions.
+.claude/hooks/** -text
+.claude/kernel/** -text
+# frozen design diagrams: their companion records the file's hash (`diagram_hash`)
+*.drawio.svg -text

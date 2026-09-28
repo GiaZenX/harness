@@ -1,0 +1,28 @@
+id: BUG-0333
+title: 'Feld: Sperre im Kreis -- die Schutzregel verlangt eine bestandene Pruefung
+  des zusammengefuehrten Stands, verbietet aber das Zusammenfuehren paralleler Arbeitszweige
+  desselben Ziels vor dieser Pruefung (synaipse P2/P3 stehen)'
+related_pr: PR-0012
+observed: 'REPORTED by the synaipse-unified PM, relayed by the user 2026-09-28: ''Die
+  Schutzregel verlangt eine bestandene Pruefung des zusammengefuehrten Stands, verbietet
+  aber gleichzeitig das Zusammenfuehren paralleler Arbeitszweige ... Die Pruefung
+  braucht genau diesen zusammengefuehrten Stand. Dadurch stehen P3 und die naechsten
+  P2-Schritte.'' The PM refuses a rebase/cherry-pick workaround and proposes one branch
+  per goal until a kit fix. Forensics (rule source, session, repo) pending.'
+expected: A goal built in parallel branches has a legal path to one verified merged
+  state (e.g. an integration branch the verification runs on, or merge-then-verify
+  with the gate reading the verification of the merged digest) -- no circular refusal.
+repro: 'Pending forensics: staging/BUG-field-merge-deadlock (see the lead''s round
+  log).'
+severity: high
+acceptance_criteria:
+- id: AC-1
+  text: a goal with two parallel branches reaches a verified merged state through
+    the kit's own path -- a test naming this bug, red on 2026.09.27-9
+source: synaipse-unified PM message relayed by the user 2026-09-28
+limits: 'Im Feld blockiert: P3 und die naechsten P2-Schritte in synaipse stehen. Begrenzt:
+  ein Arbeitszweig pro Ziel umgeht die Sperre ohne Regelbruch, kostet aber Parallelitaet.'
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-28T10:19:54'

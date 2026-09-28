@@ -2015,6 +2015,12 @@ Für Runde 4 ebenso je Mechanik zurückgebaut: Leerzeilen-Ersatz statt Löschung
 → `help_flag_in_a_quoted_value`, `dash_h_in_a_quoted_value` rc 0 statt 2 und der Fehlalarm
 `git commit -m "… (…) … python … capture"` rc 2 statt 0.
 
+**Nachtrag 2026-09-26 (TSK-0153, FR-0095):** die Freigabe-Karte trägt keinen `[APR-REQ:]`-Marker
+mehr. Der Guard (`user/claude/hooks/handover_guard.py`, außerhalb des Auftragsbereichs von TSK-0153)
+schlüsselt deshalb ab dem Merge auf das Freigabe-Label `Freigeben [<code>]`; der Patch dafür liegt
+in `project_memory/staging/TSK-0153/foreign_tests.patch`. OHNE diesen Patch verweigert der Guard die
+Karte unter einem Übergabe-Marker nicht mehr — Stream A darf nicht ohne ihn gemergt werden.
+
 **Runde 5 (TSK-0054, BUG-0017) — die Approval-Frage-Verweigerung fängt nur den TREUEN Marker-Relay.**
 Der Guard verweigert jetzt zusätzlich eine `AskUserQuestion`, deren `tool_input` den Approval-Marker
 trägt (`_APR_REQUEST_MARKER = \[APR-REQ:`), damit die Einstiegssitzung den Scope-Approval-Weg nicht
@@ -2323,7 +2329,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H10](docs/holes/H10.md) | BUG-0102 | ACCEPTED_EXCEPTION | Codehälften ohne rote Mutation — ZWEI GESCHLOSSEN, keine erschöpfende Suche |
 | [H11](docs/holes/H11.md) | BUG-0103 | ACCEPTED_EXCEPTION | Ein Interpreter führt Code aus, den kein Gate lesen kann (neu, Preis des Fixes zu F2) |
 | [H12](docs/holes/H12.md) | BUG-0104 | ACCEPTED_EXCEPTION | Ein Subagent kann sich die Ausnahme von Gate 2 selbst ausstellen |
-| [H13](docs/holes/H13.md) | BUG-0105 | TRIAGED | Der Produzent ist als DATEI geschützt, nicht als Verzeichnis |
+| [H13](docs/holes/H13.md) | BUG-0105 | VERIFIED | Der Produzent ist als DATEI geschützt, nicht als Verzeichnis |
 | [H14](docs/holes/H14.md) | BUG-0106 | ACCEPTED_EXCEPTION | Gate 3 druckt den Befehl, der es aufhebt |
 | [H15](docs/holes/H15.md) | BUG-0107 | VERIFIED | Gate 1 hängt jetzt an privaten Helfern eines Kit-Hooks (neu, Preis desselben Fixes) |
 | [H16](docs/holes/H16.md) | BUG-0108 | ACCEPTED_EXCEPTION | Der Pfad steht in einer Variablen, das Gate liest den Text (neu, TSK-0008) |
@@ -2379,7 +2385,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H66](docs/holes/H66.md) | BUG-0158 | VERIFIED | `shell_readings` sagt „jede Lesart" zu und liefert nur die POSIX-Lesart — offen, Loch, vorbestehend (benannt TSK-0083) |
 | [H67](docs/holes/H67.md) | BUG-0159 | VERIFIED | Köder und Geschwister werden nur befragt, wenn dieselbe Zeile schon blockiert — offen, Loch, vorbestehend (benannt TSK-0083) |
 | [H68](docs/holes/H68.md) | BUG-0160 | VERIFIED | Zwei Schreibweisen, die verweigert werden, ohne zu schreiben — offen, Über-Verweigerung, naheliegender Fix gemessen falsch (TSK-0083) |
-| [H69](docs/holes/H69.md) | BUG-0161 | TRIAGED | Die Gates dieses Repos erben die halbe CR-Härtung der Kits — offen, Werkbank, `DEC-0022` (TSK-0084) |
+| [H69](docs/holes/H69.md) | BUG-0161 | VERIFIED | Die Gates dieses Repos erben die halbe CR-Härtung der Kits — offen, Werkbank, `DEC-0022` (TSK-0084) |
 | [H70](docs/holes/H70.md) | BUG-0162 | VERIFIED | Der Vollständigkeits-Draht des Ledger-Gates fragt nach MUSTERN, also sieht er eine Ausnahme ohne Muster nicht — offen, Messlücke des Instruments (TSK-0083/TSK-0084) |
 | [H71](docs/holes/H71.md) | BUG-0163 | VERIFIED | Was der Leser der Merge-Rückstandsliste NICHT entscheiden kann — offen, vier gemessene Grenzen (TSK-0086) |
 | [H72](docs/holes/H72.md) | BUG-0164 | ACCEPTED_EXCEPTION | Was die Vier-Augen-Wand NICHT bindet — offen, gemessene Grenzen der Zweitlesungs-Mechanik (TSK-0087) |
@@ -2451,7 +2457,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H147](docs/holes/H147.md) | BUG-0230 | ACCEPTED_EXCEPTION | Welche Datums-Schreibweisen ein Meilenstein annimmt, entscheidet der Interpreter (neu, TSK-0117 Nacharbeit 1, DEC-0064) |
 | [H148](docs/holes/H148.md) | BUG-0231 | VERIFIED | Eine Naht kann noch immer breiter sein als das, was zwei Aufträge wirklich teilen (neu, TSK-0117 Nacharbeit 1, DEC-0062) |
 | [H150](docs/holes/H150.md) | BUG-0232 | VERIFIED | Ein Verzeichniswechsel, den niemand ausrechnen kann, ließ die Fege-Basis stehen (neu, Merge-Prüfung TSK-0120, N1) |
-| [H151](docs/holes/H151.md) | BUG-0233 | TRIAGED | Die Erklärung, auf der Gate 5 entscheidet, liegt ausserhalb seines eigenen Schutzbereichs (neu, TSK-0121, PR-0004 AC-1) |
+| [H151](docs/holes/H151.md) | BUG-0233 | VERIFIED | Die Erklärung, auf der Gate 5 entscheidet, liegt ausserhalb seines eigenen Schutzbereichs (neu, TSK-0121, PR-0004 AC-1) |
 | [H152](docs/holes/H152.md) | BUG-0234 | ACCEPTED_EXCEPTION | Was eine Option dem Läufer antut, entscheidet kein Text (neu, TSK-0121; nach Prüfung 1 und 2 korrigiert) |
 | [H153](docs/holes/H153.md) | BUG-0235 | ACCEPTED_EXCEPTION | Was der Leser nicht platzieren kann, und was er gar nicht erst sieht (neu, TSK-0121; nach Prüfung 3 erweitert) |
 | [H154](docs/holes/H154.md) | BUG-0236 | VERIFIED | Die Migrationstuer schreibt einen Endzustand ohne die Evidenz, die die Kante verlangt (neu, TSK-0122) |
@@ -2482,7 +2488,7 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | H179 | BUG-0261 | ACCEPTED_EXCEPTION | Ein bestandener Test, der einen Fehler NENNT, sagt nicht, dass der Fehler weg ist -- 106 gemessene Bugs ohne Urteil |
 | H180 | BUG-0262 | VERIFIED | Ein zweiter Zeitmess-Test faellt auf einem beschaeftigten Host rot statt zu ueberspringen -- dieselbe Klasse wie BUG-0033, anderer Test |
 | H181 | BUG-0263 | VERIFIED | The repo-wide test-pointer check pairs backticks running across a whole file, so ONE code fence blinds it for everything below: 48 files, 39 citations, judged by nothing |
-| H182 | BUG-0264 | OPEN | Four schedule claims survive in the enforcement layer that AC-1 cleaned everywhere else: .claude/hooks/gate_spawn_needs_item.py and .claude/hooks/_harness.py still say the watchers 'run on a weekly schedule', no test reads them, and the reworded watcher definitions now POINT at them (new, TSK-0130, PR-0010 AC-1, DEC-0084) |
+| H182 | BUG-0264 | VERIFIED | Four schedule claims survive in the enforcement layer that AC-1 cleaned everywhere else: .claude/hooks/gate_spawn_needs_item.py and .claude/hooks/_harness.py still say the watchers 'run on a weekly schedule', no test reads them, and the reworded watcher definitions now POINT at them (new, TSK-0130, PR-0010 AC-1, DEC-0084) |
 | H183 | BUG-0265 | VERIFIED | Der Zeiger-Sweep liest in einem Projekt mit installiertem Kit die Skript-Verzeichnisse gar nicht -- auch das eigene Skript des Projekts nicht |
 | H184 | BUG-0266 | VERIFIED | The project-auditor routine is REMINDED but cannot be DISPATCHED on its own route: `request-approval` offers twelve kinds and neither `routine` nor `analysis`, so the only walkable way to run the auditor is an ordinary work order with a writable allowed_scope -- measured as a process on a scaffolded dev pilot (new, TSK-0130, DEC-0084 (2)(b), confirms H111 four weeks on) |
 | H185 | BUG-0268 | VERIFIED | CLAUDE.md sagt "die vier Gates dieses Repos", registriert sind fuenf -- und die Datei ist fuer jede Rolle verbotener Bereich |
@@ -2520,7 +2526,15 @@ Jedes Loch ist ein Item (`BUG` mit `hole_number`) und wird dort gelesen. Wo die 
 | [H217](docs/holes/H217.md) | BUG-0301 | VERIFIED | Der Beweis-Vokabular-Leser entschuldigt eine ganze Spanne, sobald irgendwo vor dem nächsten Backtick eine berechnete Flagge (`--%s`) steht -- eine echte Auslassung daneben bleibt stumm |
 | [H218](docs/holes/H218.md) | BUG-0303 | VERIFIED | Die Befreiung vom Architektenschritt fragt den TYP des Ursprungs, nicht den WERT -- ein BUG mit leerer Kriterienliste befreit, und eine Referenz, die nur an der WURZEL existiert, loest am Spawn auf (zweite Restklasse von H155/BUG-0237) |
 | [H219](docs/holes/H219.md) | BUG-0304 | VERIFIED | H214-Rest: die Ein-Aufruf-Form 'Datei schreiben und ausführen' bleibt offen, wenn der Läufer hinter einem Präfixwort steht, die Datei per Umleitung in den Interpreter geht oder eine Substitution sie an eval reicht |
-| H220 | BUG-0305 | OPEN | Über-Verweigerung der Schreiben-und-Ausführen-Regel: eine reine LESE-Stufe mit unbekanntem Kommandowort (`sudo -u me cat tools/ci.sh ; bash tools/ci.sh`) gilt als Schreiber, und der Satz behauptet 'this line WRITES tools/ci.sh' |
-| H221 | BUG-0308 | OPEN | Die Buchfuehrung der Sprosse kennt nur Claude: `lease_rung`/`lease_effort` am Auftrag und damit die Sprossen-Verteilung und die Runden-bis-PASS je Sprosse zaehlen auf einem Codex-Projekt die Claude-Antwort, nicht die, nach der der Codex-Lead gearbeitet hat (Rest von TSK-0151 V1) |
+| H220 | BUG-0305 | VERIFIED | Über-Verweigerung der Schreiben-und-Ausführen-Regel: eine reine LESE-Stufe mit unbekanntem Kommandowort (`sudo -u me cat tools/ci.sh ; bash tools/ci.sh`) gilt als Schreiber, und der Satz behauptet 'this line WRITES tools/ci.sh' |
+| H221 | BUG-0308 | VERIFIED | Die Buchfuehrung der Sprosse kennt nur Claude: `lease_rung`/`lease_effort` am Auftrag und damit die Sprossen-Verteilung und die Runden-bis-PASS je Sprosse zaehlen auf einem Codex-Projekt die Claude-Antwort, nicht die, nach der der Codex-Lead gearbeitet hat (Rest von TSK-0151 V1) |
 | H222 | BUG-0312 | OPEN | Archivtür (DEC-0117): eine Wegwerf-Testdatei außerhalb des Zustandsordners wird als neuer Knoten angenommen |
+| H223 | BUG-0325 | OPEN | Kernel-Befehl `upkeep` (TSK-0155): jede Tuer ist einem Subagenten offen, und prune-memory loescht das Handwerksgedaechtnis einer ANDEREN Rolle |
+| H224 | BUG-0327 | OPEN | Ueber-Verweigerung aus H223/BUG-0325: ein Subagent bekommt `upkeep ... --help` verweigert -- auch die echte Hilfe-Frage, weil das Gate nicht weiss, ob die Shell das `--help` ueberhaupt uebergibt (TSK-0158) |
+| H225 | BUG-0328 | OPEN | Rest von BUG-0326: die behaltene Lease eines wieder aufgenommenen Kindes gibt der NAECHSTE Sweep frei -- das Kind laeuft danach ungebunden weiter (TSK-0158) |
+| H226 | BUG-0329 | OPEN | Die behaltene Lease eines wartenden Kindes gibt ihren Spawn-Buchstaben frei: ein zweiter Auftrag derselben Rolle unter demselben Ziel bekommt denselben Buchstaben und denselben sichtbaren Namen (FR-0092, TSK-0158) |
+| H227 | BUG-0331 | ACCEPTED_EXCEPTION | upkeep-Schranke, gelingende Richtung: ein Wort, das die Shell in mehrere Argumente aufteilt, verschiebt die Rollenposition -- das Gate liest die eigene Rolle, der Kernel eine fremde |
+| H228 | BUG-0332 | ACCEPTED_EXCEPTION | Regel-4-Leser: kommt das Befehlswort selbst (upkeep, dispatch, ...) erst aus einer Shell-Erweiterung oder einer PowerShell-Array-Uebergabe, erkennt das Gate keinen reservierten Befehl und laesst durch |
+| H229 | BUG-0335 | OPEN | Kit-Gate: der Verzeichnis-Walk nimmt jeden cd/pushd/popd als gelungen an -- auch wenn die Shell stehen bleibt (Ziel fehlt, Muster trifft nichts/zwei, zwei Operanden, -n/+N, leerer Stapel) |
+| H230 | BUG-0337 | OPEN | Git-Verlauf ohne Merge: rebase, cherry-pick und merge-tree/commit-tree sieht die Liefer-Regel nicht -- eine Umgehung der Pruef-Pflicht vor der Lieferung |
 

@@ -926,9 +926,9 @@ if [ -d "$KIT/templates/repo" ]; then
     # was the kit's own (BUG-0068). Strip CR from both sides before comparing (the .ps1 twin's
     # Get-NormalizedSha256 does the same).
     elif ! cmp -s <(tr -d "$CR" < "$KIT/templates/repo/$rel") <(tr -d "$CR" < "$dst"); then
-      # copy-if-absent keeps the project's version — but say so, or a kit fix (e.g. quality.py)
-      # silently never reaches existing projects while the update reads as "applied".
-      echo "  [kept] repo: $rel (differs from the kit template - review/merge manually)"
+      # copy-if-absent keeps the project's version -- WHETHER that is a merge task is decided (and
+      # said) by `kernel.kitupdate.repo_templates_cli` below, against what the kit shipped last
+      # time (BUG-0319).
       kept_list+=("$rel")
     fi
   done < <(cd "$KIT/templates/repo" && find . -type f -not -path '*/__pycache__/*' \
@@ -940,34 +940,17 @@ fi
 # (`scripts/`, `tools/`) -- which also excluded a project's own script lying beside the kit's, and
 # no finding said so. Written unconditionally, empty list included: "no file" and "no entries"
 # print the same and mean the opposite things, and the reassuring one would be the wrong default.
-# The JSON is built by the interpreter this run already validated, not by string concatenation
-# here: a path is data, and a shell-quoted JSON writer is one backslash away from a manifest no
-# reader can parse. THE SOURCE IS BYTE-IDENTICAL IN BOTH TWINS, and it carries neither a double
-# quote nor a backslash for a measured reason: PowerShell strips double quotes and mangles
-# backslashes when it hands a string to a native executable, so the first cut of this line reached
-# `python` as `open(sys.argv[1], w, encoding=utf-8, newline=\n)` -- a SyntaxError the .ps1 twin
-# then walked past, because a failing native call does not stop a PowerShell script by itself.
-# `chr(10)` is there instead of an escape for the same reason; the twin checks its exit status.
-"$PYBIN" -c "import json, sys
-record = json.dumps({'kit': sys.argv[2], 'repo_files': sorted(sys.argv[3:])}, indent=2) + chr(10)
-open(sys.argv[1], 'wb').write(record.encode('utf-8'))
-" "$REPO/.claude/kit_repo_files.json" "$TEAM" ${shipped_list[@]+"${shipped_list[@]}"}
-echo "  [ok] .claude/kit_repo_files.json (${#shipped_list[@]} file(s) this kit places in the project)"
-PEND="$REPO/.claude/kit_update_pending.repo"
-STATE="$REPO/.claude/kit_update_pending.state"
-if [ ${#kept_list[@]} -gt 0 ]; then
-  mkdir -p "$REPO/.claude"
-  {
-    echo "# Repo templates this project customised that ALSO changed in kit $TEAM $(no_cr head -n 1 "$KIT/VERSION" 2>/dev/null) (line-ending style ignored) -- the PM works each through the normal loop: merge the wanted kit fix, or record a conscious skip as a decision item (decisions/active/), then DELETE this file. session_status reminds every session until it is gone. Only PROJECT-CUSTOMISABLE templates appear here; the scripts the KIT owns (listed in the installer's repo_kit_owned.txt, each with the reason it is there -- the enforcement layer, the entry point, the money reader) are refreshed by the installer on every run and never land on this list, so nothing here needs a route a session forbids (BUG-0068)."
-    printf -- "- %s\n" "${kept_list[@]}"
-  } > "$PEND"
-  # fresh REAL update -> fresh nag counter; a same-version re-run must NOT reset the
-  # escalation (audit: "updating again just to be safe" kept the backlog forever young)
-  if [ "$SAME_VERSION" != "1" ]; then rm -f "$STATE"; fi
-  echo "  [!] ${#kept_list[@]} diverged repo file(s) -> .claude/kit_update_pending.repo (merge or consciously skip, then delete it)"
-else
-  rm -f "$PEND"
-fi
+# ONE KERNEL FUNCTION writes the record for both twins, and the pending list with it (BUG-0319):
+# `kernel.kitupdate.repo_templates_cli` decides which kept template the KIT changed (against the
+# hashes the record carries from last time), writes both files as UTF-8 without a byte-order mark,
+# and keeps the nag counter across a same-version re-run. A path is data, and a shell-quoted JSON
+# writer is one backslash away from a manifest no reader can parse.
+mkdir -p "$REPO/.claude"
+PYTHONPATH="$PREFLIGHT_PATH" "$PYBIN" -B -c 'import sys
+from kernel import kitupdate
+sys.exit(kitupdate.repo_templates_cli(sys.argv[1:]))' "$REPO" "$KIT" "$SAME_VERSION" \
+  --shipped ${shipped_list[@]+"${shipped_list[@]}"} --kept ${kept_list[@]+"${kept_list[@]}"} \
+  || { echo "Could not write .claude/kit_repo_files.json / the pending list" >&2; exit 1; }
 
 # BUG-0016 handover marker (DEC-0032): set it LAST, when the install has otherwise succeeded, so
 # the global `~/.claude/hooks/handover_guard.py` refuses product-code writes and further derivation

@@ -1,0 +1,44 @@
+id: BUG-0327
+title: 'Ueber-Verweigerung aus H223/BUG-0325: ein Subagent bekommt `upkeep ... --help`
+  verweigert -- auch die echte Hilfe-Frage, weil das Gate nicht weiss, ob die Shell
+  das `--help` ueberhaupt uebergibt (TSK-0158)'
+related_pr: PR-0012
+observed: 'MECHANISM: team-kits/{dev,office,research}-team/hooks/gate_write_scope.py
+  `_upkeep_refusal` reads a subagent''s upkeep line with the kernel''s own parser
+  and refuses EVERY SystemExit, the clean one (argparse answering -h/--help) included.
+  The gate''s words are not the shell''s argv: a `--help` behind `<<<`, `<<`, `<>`
+  or inside `$(...)` / `<(...)` is read by the gate and never handed to the kernel.
+  MEASURED CHAIN (TSK-0157 verify round 1, N1; re-measured TSK-0158 in a copy outside
+  the repo): with rework 1''s clean-exit pass, `python scripts/harness.py upkeep prune-memory
+  database-engineer --keep-newest 0 <<< --help` from a bound backend-developer subagent
+  -> rc 0 (7 of 9 spellings), and a real bash with a stand-in scripts/harness.py received
+  [''upkeep'',''prune-memory'',''database-engineer'',''--keep-newest'',''0''] -- the
+  kernel would have pruned ANOTHER role''s memory. The pass was taken out again (TSK-0158);
+  its price, measured: `python scripts/harness.py upkeep --help` and `upkeep prune-memory
+  -h` from a subagent -> rc 2 ''its arguments do not parse''. VERDICT: over-refusal
+  in the FAILING direction. It is NOT ''no gap'': the SUCCEEDING direction (a word
+  the shell splits shifts the role position; gate rc 0, kernel reads another role)
+  is open and filed as BUG-0331 (TSK-0158 verify round 1, finding A). Not closable
+  inside the gate by re-parsing: the gate''s word list and the shell''s argv part
+  in both directions (`<(...)` ADDS a word, `<<<` removes one), so any re-parse is
+  still a guess about the line; the lead moved the question to stream B of the next
+  wave, which replaces command-line guessing.'
+expected: A subagent can ask an upkeep door for its usage, while a `--help` the shell
+  does not pass still opens no door.
+repro: Bound subagent payload (agent_id child-1, agent_type backend-developer), Bash
+  command `python scripts/harness.py upkeep --help` into team-kits/dev-team/hooks/gate_write_scope.py
+  -> rc 2.
+severity: low
+acceptance_criteria:
+- id: AC-1
+  text: a subagent's plain `upkeep <door> --help` passes, and every spelling of tools/test_hooks_v2.py::test_a_help_word_the_shell_does_not_hand_over_opens_no_upkeep_door_bug_0325
+    stays rc 2
+source: project_memory/staging/TSK-0157/verify-round-1.md (N1); project_memory/staging/TSK-0156/protocol.md
+  (Rework 2)
+hole_number: H224
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-27T19:50:47'
+limits: 'Nur Ueber-Verweigerung: ein Subagent kann die Hilfe eines upkeep-Befehls
+  nicht lesen; der Lead kann es, und keine Tuer oeffnet sich dadurch.'

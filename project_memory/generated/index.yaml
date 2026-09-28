@@ -1,4 +1,4 @@
-generated_at: '2026-09-26T21:37:29'
+generated_at: '2026-09-28T22:32:48'
 items:
 - id: APR-0001
   type: APR
@@ -480,6 +480,12 @@ items:
   status: null
   revision: null
   approval_ref: null
+- id: APR-0081
+  type: APR
+  title: null
+  status: null
+  revision: null
+  approval_ref: null
 - id: BUG-0069
   type: BUG
   title: GitHub CI is red on every push -- the delivery suite passes locally but fails
@@ -623,6 +629,90 @@ items:
   title: 'Die Fehlschlag-Klasse (DEC-0107) kann der pruefenden Rolle nie gelingen:
     waehrend IN_PROGRESS verweigert der Kernel (''nur fuer einen FAILED-Lauf''), nach
     FAILED verweigert gate_dispatch (keine Lease mehr beim Pruefer)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0325
+  type: BUG
+  title: 'Kernel-Befehl `upkeep` (TSK-0155): jede Tuer ist einem Subagenten offen,
+    und prune-memory loescht das Handwerksgedaechtnis einer ANDEREN Rolle'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0326
+  type: BUG
+  title: Ein Kind wartet auf seinen eigenen Hintergrundlauf; fegt die Leitung dann
+    seine Lease, bleibt CHILD_WAITING fuer immer am Task stehen und dispatch schickt
+    die Leitung in ein Warten ohne Ende
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0327
+  type: BUG
+  title: 'Ueber-Verweigerung aus H223/BUG-0325: ein Subagent bekommt `upkeep ... --help`
+    verweigert -- auch die echte Hilfe-Frage, weil das Gate nicht weiss, ob die Shell
+    das `--help` ueberhaupt uebergibt (TSK-0158)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0328
+  type: BUG
+  title: 'Rest von BUG-0326: die behaltene Lease eines wieder aufgenommenen Kindes
+    gibt der NAECHSTE Sweep frei -- das Kind laeuft danach ungebunden weiter (TSK-0158)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0329
+  type: BUG
+  title: 'Die behaltene Lease eines wartenden Kindes gibt ihren Spawn-Buchstaben frei:
+    ein zweiter Auftrag derselben Rolle unter demselben Ziel bekommt denselben Buchstaben
+    und denselben sichtbaren Namen (FR-0092, TSK-0158)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0330
+  type: BUG
+  title: Der Zeiger-Pruefer uebersieht tote Testzeiger in Dateien, deren Code selbst
+    Backticks enthaelt (holes.py:216 zeigt auf einen Test, der in test_kernel.py steht)
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0333
+  type: BUG
+  title: 'Feld: Sperre im Kreis -- die Schutzregel verlangt eine bestandene Pruefung
+    des zusammengefuehrten Stands, verbietet aber das Zusammenfuehren paralleler Arbeitszweige
+    desselben Ziels vor dieser Pruefung (synaipse P2/P3 stehen)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0334
+  type: BUG
+  title: 'Merge-Regression: `_walk` erweitert eine gequotete Tilde bzw. ein gequotetes
+    Muster ein zweites Mal -- Gate 1 und das Kit-Gate folgen `cd "~"` ins Home, bash
+    bleibt stehen (H31 wieder offen)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0335
+  type: BUG
+  title: 'Kit-Gate: der Verzeichnis-Walk nimmt jeden cd/pushd/popd als gelungen an
+    -- auch wenn die Shell stehen bleibt (Ziel fehlt, Muster trifft nichts/zwei, zwei
+    Operanden, -n/+N, leerer Stapel)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0336
+  type: BUG
+  title: Ein bestandenes Pruefurteil ueber EINEN Auftrag ueberdeckt ein durchgefallenes
+    Urteil ueber das ganze Ziel -- das Merge-/Liefer-Gate liest je Art nur das neueste
+    Urteil, Auftrag oder Ziel egal
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: BUG-0337
+  type: BUG
+  title: 'Git-Verlauf ohne Merge: rebase, cherry-pick und merge-tree/commit-tree sieht
+    die Liefer-Regel nicht -- eine Umgehung der Pruef-Pflicht vor der Lieferung'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -1528,6 +1618,92 @@ items:
   title: 'Rueckschau Order 6 (TSK-0152): der Gesamtlauf kommt NACH dem PASS des Pruefers;
     Pfade werden aufgeloest verglichen, nie als Text; der erste Bauer ist der teuerste
     Kontext -- FR-0093 wirkt gemessen'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0122
+  type: DEC
+  title: 'FR-0092 praezisiert DEC-0092 (1): der sichtbare Spawn-Name (`description`,
+    vom Dispatch-Kopf als `spawn_description` vorgegeben) gehoert zur geschlossenen
+    Menge der Spawn-/Lease-Felder -- ein NAME, kein Begruendungsfeld'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0123
+  type: DEC
+  title: 'Abnahme am ENDE als Rundgang (praezisiert DEC-0119 (2)): waehrend der Entwicklung
+    keine ''fertig -- Freigabe?''-Fragen; wenn wirklich alles fertig ist, geht der
+    PM PR, CR, FR und BUG Stueck fuer Stueck durch, zeigt je Eintrag, dass und wie
+    es umgesetzt ist, und der Nutzer gibt einzeln frei'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0124
+  type: DEC
+  title: 'Plan V2.5 freigegeben: vom bremsenden zum effizienten Agentensystem -- Befehlszeilen-Raten
+    ersetzt durch Kernel-Schreibprotokoll + Kontrolle danach, Modellklasse (Kilo/Mega/Giga)
+    und Denktiefe getrennt mit Begruendung aus fester Liste, Watcher breiter, Lebenszeichen
+    statt Polling, feste Groessengrenzen, parallele Bloecke; in Wellen parallel umgesetzt'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0125
+  type: DEC
+  title: Ein Ziel mit parallelen Arbeitszweigen wird durch den KERNEL auf einem eigenen
+    Integrationszweig vereint (kein neues Befehlszeilen-Raten im Gate); geprueft wird
+    dieser Zweig, geliefert wird nur er
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0126
+  type: DEC
+  title: Modell-Aliase bleiben ohne Versionsnummer (immer das neueste Modell einer
+    Familie); gemessen wird, WOFUER ein Modell taugt, und der PM waehlt die Kombination
+    -- der Messbeleg aus DEC-0124 gilt fuer den Wechsel einer Klasse auf eine andere
+    Modellfamilie, nicht fuer ein Versionsupdate hinter demselben Alias
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0127
+  type: DEC
+  title: 'Denktiefe je Rolle: PM, Architekt und Designer (erster Entwurf) auf xhigh
+    -- sie legen die Details und damit die Genauigkeit fest; Bauer mit klarer Vorgabe
+    und Test auf medium; hochgestuft wird bei Bedarf; der PM-xhigh-Default wird gemessen'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0128
+  type: DEC
+  title: 'Stufen: Opus und Fable auf ZWEI Stufen -- Giga = Opus xhigh, Tera = Fable,
+    selten und nur mit gemessenem Vorteil (teuer); Haiku bleibt fuer Code gesperrt,
+    Haiku 5.5 wird fuer eine Nicht-Code-Routineklasse (Recherche-Zusammenfassung,
+    Berichte) gemessen, sobald es erscheint'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0129
+  type: DEC
+  title: 'Modellklasse = nur das Modell (Groessenstufe), unabhaengig vom Effort: Milli
+    < Kilo (Haiku) < Mega (Sonnet) < Giga (Opus) < Tera (Fable) < Peta; Effort ist
+    eine eigene Achse; Anbieter mit weniger Modellen werden ehrlich eingestuft'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0130
+  type: DEC
+  title: 'Modellklassen nach FR-0098: Codex baut mit Sol (Mega) auf high bis Astra
+    (Tera) gemessen ist; Fable kommt nach dem dritten Fehlschlag nicht automatisch
+    -- erst neu schneiden, Fable nur mit Messbeleg; Klassenfragen: Boden -> Kilo ->
+    Mega -> sonst Giga'
+  status: VALID
+  revision: 1
+  approval_ref: null
+- id: DEC-0131
+  type: DEC
+  title: Die Modell-Zuordnung (Klasse x Effort je Rolle) aendert sich nur in Abstimmung
+    mit dem Nutzer, nur wenn ein neues Modell erscheint, und immer nach einer gezielten
+    Messung auf einem festen Pruefstand; das Kosten-Nutzen-Verhaeltnis entscheidet,
+    nicht der Name
   status: VALID
   revision: 1
   approval_ref: null
@@ -4333,6 +4509,126 @@ items:
   status: null
   revision: 1
   approval_ref: null
+- id: EVD-0491
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0492
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0493
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0494
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0495
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0496
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0497
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0498
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0499
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0500
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0501
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0502
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0503
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0504
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0505
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0506
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0507
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0508
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0509
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
+- id: EVD-0510
+  type: EVD
+  title: null
+  status: null
+  revision: 1
+  approval_ref: null
 - id: FR-0002
   type: FR
   title: Acht Uebernahmen aus einem echten Betrieb ins Office-Kit
@@ -4469,6 +4765,22 @@ items:
   title: 'So autonom wie moeglich freigeben: EIN Ja zum Projekt deckt alles darunter;
     was unterwegs neu entsteht (CR, BUG, neues Ziel), sammelt der PM und fragt EINMAL
     als Sammel-Freigabe -- nie neun Einzelfragen hintereinander'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: FR-0097
+  type: FR
+  title: 'Recherche: welche Denktiefe (effort) fuer welche Rolle -- Planer (PM/Architekt/Designer)
+    hoch fuer die Festlegung der Details, Bauer eher mittel, Pruefer hoch? Grundlage
+    fuer Strom C (zwei Achsen)'
+  status: OPEN
+  revision: 1
+  approval_ref: null
+- id: FR-0098
+  type: FR
+  title: 'Recherche: Modellklasse nach Aufgaben-Eigenschaften (vier Ja/Nein-Fragen)
+    statt nach Modellnamen -- wie machen es andere, welche Eigenschaften trennen die
+    Klassen belastbar, wie misst man eine Klasse'
   status: OPEN
   revision: 1
   approval_ref: null
@@ -4618,5 +4930,71 @@ items:
   type: TSK
   title: null
   status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0153
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0154
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0155
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0156
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0157
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0158
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0159
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0160
+  type: TSK
+  title: null
+  status: READY
+  revision: 1
+  approval_ref: null
+- id: TSK-0161
+  type: TSK
+  title: null
+  status: CANCELLED
+  revision: 1
+  approval_ref: null
+- id: TSK-0162
+  type: TSK
+  title: null
+  status: READY
+  revision: 1
+  approval_ref: null
+- id: TSK-0163
+  type: TSK
+  title: null
+  status: READY
   revision: 1
   approval_ref: null

@@ -1,0 +1,38 @@
+id: DEC-0123
+title: 'Abnahme am ENDE als Rundgang (praezisiert DEC-0119 (2)): waehrend der Entwicklung
+  keine ''fertig -- Freigabe?''-Fragen; wenn wirklich alles fertig ist, geht der PM
+  PR, CR, FR und BUG Stueck fuer Stueck durch, zeigt je Eintrag, dass und wie es umgesetzt
+  ist, und der Nutzer gibt einzeln frei'
+context: 'USER 2026-09-27 ~07:0x: ''Was mich auch stoert, ist, dass er mich um Freigabe
+  bittet, wenn er was erledigt hat, als Abnahme. An sich ist das ja korrekt, aber
+  er soll alles abarbeiten und dann, wenn wirklich alles fertig ist, step by step
+  die PR, CR, FR, BUG durchgehen und zeigen, dass es implementiert ist, damit ich
+  es Stueck fuer Stueck freigeben kann. Nicht waehrend dem Entwickeln immer wieder
+  fragen "Freigabe?"'' DEC-0119 (2) had kept ''the acceptance of a finished goal at
+  the end'' without saying WHEN a goal''s acceptance is asked when several goals run;
+  the field (synaipse) and this repo (a verification click after each order) both
+  ask per finished piece.'
+decision: '(1) NO acceptance, delivery or verification question while work of the
+  approved plan is still open: finished items wait in their delivered state. (2) THE
+  WALKTHROUGH: when the plan''s work is done (or the user asks for it), the PM walks
+  the finished items ONE BY ONE -- goal (PR), then its CRs, FRs and BUGs -- and for
+  each shows what was asked (the user''s words / the criteria), what was built, and
+  the proof (the test or the screen/screenshot, the verifier''s verdict), then asks
+  for THAT item; the user accepts, rejects or asks for a change per item. (3) Bugs
+  the team fixed inside a goal ride with the goal''s walkthrough as one list, not
+  one question each (DEC-0119 (3): no approval to START them). (4) The collected understanding
+  card for change wishes (DEC-0119 (4)) stays as it is. (5) This repo''s lead follows
+  the same rule: verification clicks are collected and asked at the end of a goal,
+  not after each order. (6) Built in the kits'' PM/lead texts and, where a kernel
+  path asks too early, in the kernel (a walkthrough command that lists the delivered
+  items in order with their proofs) -- the next order after order 7''s merge.'
+consequences: 'The user answers during development only the understanding card; at
+  the end he reviews item by item with the proof in front of him. Cost: delivered
+  items wait longer for their formal close -- harmless, the work continues.'
+work:
+- PR-0012
+source: user message 2026-09-27; DEC-0119; synaipse approvals measurement 2026-09-26
+status: VALID
+revision: 1
+approval_ref: null
+created: '2026-09-27T08:04:56'

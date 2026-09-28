@@ -1,0 +1,164 @@
+id: TSK-0155
+product_requirement: PR-0012
+derives_from: BUG-0310
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-1
+allowed_scope:
+- team-kits/kernel/hashing.py
+- team-kits/kernel/kitupdate.py
+- team-kits/kernel/migrate.py
+- team-kits/kernel/presets.py
+- team-kits/kernel/layout.py
+- team-kits/kernel/cli.py
+- team-kits/scaffold_team.ps1
+- team-kits/scaffold_team.sh
+- team-kits/write_kit_state.py
+- team-kits/*/templates/**
+- install.ps1
+- install.sh
+- team-kits/dev-team/hooks/gate_shell_hygiene.py
+- team-kits/dev-team/hooks/guard_memory_budget.py
+- team-kits/dev-team/hooks/gate_write_scope.py
+- team-kits/dev-team/hooks/kit_trust_state.py
+- team-kits/dev-team/hooks/session_status.py
+- team-kits/dev-team/hooks/_compat.py
+- team-kits/dev-team/hooks/_kernel.py
+- team-kits/office-team/hooks/gate_shell_hygiene.py
+- team-kits/office-team/hooks/guard_memory_budget.py
+- team-kits/office-team/hooks/gate_write_scope.py
+- team-kits/office-team/hooks/kit_trust_state.py
+- team-kits/office-team/hooks/session_status.py
+- team-kits/office-team/hooks/_compat.py
+- team-kits/office-team/hooks/_kernel.py
+- team-kits/research-team/hooks/gate_shell_hygiene.py
+- team-kits/research-team/hooks/guard_memory_budget.py
+- team-kits/research-team/hooks/gate_write_scope.py
+- team-kits/research-team/hooks/kit_trust_state.py
+- team-kits/research-team/hooks/session_status.py
+- team-kits/research-team/hooks/_compat.py
+- team-kits/research-team/hooks/_kernel.py
+- team-kits/*/skills/**
+- team-kits/*/constitution/**
+- README.md
+- tools/test_stream_c_*.py
+- tools/test_kitupdate.py
+- tools/test_migrate.py
+- tools/test_hashing*.py
+- docs/**
+forbidden_scope:
+- .claude/**
+- ladder.yaml
+- project_memory/**
+- radar/**
+- team-kits/*/ladder.yaml
+- team-kits/dev-team/hooks/gate_approval.py
+- team-kits/dev-team/hooks/gate_dispatch.py
+- team-kits/dev-team/hooks/gate_subagent_output.py
+- team-kits/dev-team/hooks/guard_agent_spawn.py
+- team-kits/dev-team/hooks/guard_question_context.py
+- team-kits/dev-team/hooks/notify_agent_events.py
+- team-kits/kernel/approvals.py
+- team-kits/kernel/board.py
+- team-kits/kernel/checkpoints.py
+- team-kits/kernel/dispatch.py
+- team-kits/kernel/report.py
+- team-kits/kernel/schemas.py
+- team-kits/kernel/sdk_approval.py
+- team-kits/kernel/state.py
+- team-kits/model_tiers.yaml
+- team-kits/office-team/hooks/gate_approval.py
+- team-kits/office-team/hooks/gate_dispatch.py
+- team-kits/office-team/hooks/gate_subagent_output.py
+- team-kits/office-team/hooks/guard_agent_spawn.py
+- team-kits/office-team/hooks/guard_question_context.py
+- team-kits/office-team/hooks/notify_agent_events.py
+- team-kits/research-team/hooks/gate_approval.py
+- team-kits/research-team/hooks/gate_dispatch.py
+- team-kits/research-team/hooks/gate_subagent_output.py
+- team-kits/research-team/hooks/guard_agent_spawn.py
+- team-kits/research-team/hooks/guard_question_context.py
+- team-kits/research-team/hooks/notify_agent_events.py
+- tools/test_approval*.py
+- tools/test_approvals*.py
+- tools/test_dispatch*.py
+- tools/test_kernel.py
+- tools/test_ladder.py
+- tools/test_stream_a_*.py
+- tools/test_stream_b_*.py
+required_inputs:
+- 'STREAM C (field repairs) of order 7, base commit 35e929b. WORK IN YOUR WORKTREE
+  C:/Offline Repos/v2-testbed/_worktrees/g7-field on branch g7/field (the lead created
+  it); the main repo C:/Offline Repos/AgentAndSkills is read-only for you except its
+  project_memory/staging/(this task id)/ and the kernel commands. Two other streams
+  run at the same time in their own worktrees -- their files are in your forbidden_scope.
+  SHARED FILES (git merges distinct hunks; touch ONLY your section, say every hunk
+  in the protocol): team-kits/kernel/cli.py (A: request-approval; B: create-task/dispatch/ladder/checkpoint;
+  C: doctor/update-kit/new doors), the kits'' project-manager / office-manager / research-lead
+  SKILL.md and constitution/AGENTS.md (A: approval passages; B: order, cost-line and
+  slicing passages; C: kit-update and memory passages), README.md command list, hooks/_compat.py
+  and hooks/_kernel.py (add NEW functions, do not rewrite existing ones). Existing
+  test files: add new test functions at the end or put new tests in a new file.'
+- 'BUG-0310 (a route caches bytecode into the installed .claude/kernel -> bundle ''changed'',
+  spawns refused; make every importer covered, e.g. sys.dont_write_bytecode at the
+  kernel package import, AND a session-side door that prunes transient caches under
+  the bundle and re-checks the hash -- deleting a cache never adds code). BUG-0311
+  (update-kit over a directory where a file is expected: empty -> remove and continue,
+  non-empty -> refuse with the remedy). BUG-0316 (hook_bundle_hash / diagram_hash
+  break on autocrlf CRLF checkouts; the kit ships no .gitattributes for hashed paths;
+  read-only git check-attr/check-ignore refused; a scratch-clone checkout read as
+  a branch switch). BUG-0319 (kit-update merge backlog has no doors: resolve the pending
+  list, adopt a kit template for a listed path, untrack paths the kit now ignores;
+  the list reports project-vs-template divergence as a kit change; BOM). BUG-0317
+  (V1->V2 migration imports undispatchable tasks). BUG-0320 (gate_shell_hygiene: a
+  QA order''s own compose project is uncleanable, and the user''s consent cannot be
+  registered). BUG-0323 (craft memory: a shell write after `cd` into the memory dir
+  unseen; an over-budget memory cannot be pruned).'
+- 'RULES: DEC-0100 (a bug closes on a test that NAMES it), DEC-0116 (structural contracts,
+  the path that runs, no free-text readers), DEC-0121 (resolved paths; a new kernel
+  command joins its registers -- status-writer bound, board regeneration list, command-surface
+  listings; protocol as you go), DEC-0080 rule 2 (run every suite that READS a rule
+  you change, each as its own selection, listed in the protocol), DEC-0102 (2)/(4).
+  Kit hooks are mirrored x3 (dev/office/research) byte-identical unless KIT_SPECIFIC_HOOKS
+  names the reason.'
+- 'COST + PROCESS (FR-0093 as corrected by BUG-0313''s finding): long commands in
+  the BACKGROUND with a completion wait are for YOU, not for any agent you might start;
+  one pytest at a time; read files over 2,000 lines by section; NO stamp and NO full
+  run in a stream (the merge does both, DEC-0121 (1)); red-first in a .git-less copy
+  under C:/Offline Repos/v2-testbed/_round-scratch/(this task id)/; clock read for
+  every time you write; protocol as you go in project_memory/staging/(this task id)/protocol.md
+  (the MAIN repo''s staging, not the worktree''s).'
+- 'STATE: through the MAIN repo''s kernel only (`PYTHONPATH=team-kits python -B -m
+  kernel.cli --root "C:/Offline Repos/AgentAndSkills/project_memory" ...` from the
+  main repo); an EVD per closed bug naming its node, recorded from the worktree''s
+  run; no BUG transitions; no commit on feat/harness-v2, no push, no mint. Commit
+  your work on YOUR stream branch in YOUR worktree (git commit there is yours; the
+  merge takes the branch).'
+expected_outputs:
+- each of BUG-0310, 0311, 0316, 0317, 0319, 0320, 0323 closed on the running path
+  with a test naming it, red-first; the new doors joined to their registers (DEC-0121
+  (3)); installer/scaffold changes run once in a scratch project under the round-scratch
+  folder (PowerShell; POSIX side by reading if no shell)
+- protocol with every shared-file hunk named (file, section, why), the reading suites
+  with results and clock times, the stream branch's final commit id
+dependencies: []
+rung: opus
+effort: high
+root_revision: 1
+status: CANCELLED
+revision: 1
+approval_ref: null
+created: '2026-09-26T21:38:28'
+seam_scope:
+- README.md
+- docs/**
+- team-kits/*/skills/**
+- team-kits/*/constitution/**
+- team-kits/kernel/cli.py
+- team-kits/dev-team/hooks/_compat.py
+- team-kits/dev-team/hooks/_kernel.py
+- team-kits/office-team/hooks/_compat.py
+- team-kits/office-team/hooks/_kernel.py
+- team-kits/research-team/hooks/_compat.py
+- team-kits/research-team/hooks/_kernel.py

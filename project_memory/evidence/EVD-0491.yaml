@@ -1,0 +1,19 @@
+id: EVD-0491
+kind: test
+related:
+- BUG-0313
+result: pass
+summary: 'TSK-0154 stream B, worktree g7/dispatch (staged, unstamped): a child that
+  ends its turn waiting on its own background run is read as WAITING while its SubagentStop''s
+  background_tasks still runs that command; the lead''s turn end is not refused with
+  FAILED; the resume (SubagentStart of the bound agent) and the real end afterwards
+  are still reported. Red on base 35e929b (2026.09.26-5); the attribution counter-test
+  is red under mutation M2b.'
+artifact_refs:
+- staging/TSK-0154/evd/bug-0313.log
+run_command: python -B -m pytest tools/test_stream_b_order_flow.py -k bug_0313 -v
+  -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:40:02'

@@ -1,0 +1,39 @@
+id: BUG-0332
+title: 'Regel-4-Leser: kommt das Befehlswort selbst (upkeep, dispatch, ...) erst aus
+  einer Shell-Erweiterung oder einer PowerShell-Array-Uebergabe, erkennt das Gate
+  keinen reservierten Befehl und laesst durch'
+related_pr: PR-0012
+observed: 'MECHANISM: team-kits/{dev,office,research}-team/hooks/gate_write_scope.py
+  `_reserved_command` (from ~:1238) reads the first positional from the GATE''s words.
+  When the shell produces the subcommand word itself (an expansion at that position,
+  or PowerShell splatting the whole argv as an array), the gate sees no reserved command
+  and `_upkeep_refusal` answers ''''. Not H227 (no shifted role position) and not
+  L43 (which names sh -c / bash -c / eval wrappers). MEASURED CHAIN (TSK-0158 verify
+  round 1, log C:/Offline Repos/v2-testbed/_round-scratch/TSK-0158-verify/logs-n1.txt;
+  reported in round 2): one bash and one PowerShell form, gate rc 0, the kernel''s
+  parser on the real shell''s argv reads cmd=upkeep action=prune-memory role=database-engineer.
+  REACH: `_reserved_command` is the one reader for every rule-4 class, so dispatch
+  / install-type commands are likely reached too (read, not measured). Present since
+  rule 4, not introduced by TSK-0158. VERDICT: open; closing belongs to wave 1 stream
+  B of plan V2.5 (kernel write log + after-check, no command-line guessing), same
+  as H227.'
+expected: No command-line spelling lets a subagent run a reserved kernel door; enforced
+  where the kernel acts.
+repro: See the verifier's rig under _round-scratch/TSK-0158-verify/ (spellings kept
+  there).
+severity: medium
+acceptance_criteria:
+- id: AC-1
+  text: the measured bash and PowerShell forms no longer reach a reserved door from
+    a subagent -- a test naming this bug, red on 2026.09.27-9
+source: TSK-0158 verify round 2 (staging/TSK-0158/verify-round-2.md)
+limits: 'Offen bis Welle 1 Strom B. Begrenzt: ein Subagent braucht eine absichtlich
+  verdrehte Schreibweise; betroffen sind Kernel-Tueren (Aufraeumen, Bestellen), nicht
+  die Projektakte selbst, die weiter nur der Kernel schreibt; alles liegt im Git-Verlauf.'
+hole_number: H228
+status: ACCEPTED_EXCEPTION
+revision: 1
+approval_ref: APR-0081
+created: '2026-09-27T21:16:27'
+approved_hash: e58784fb8eff3d7ef11cb35785ca451fa5b1828ad6e82b0e02fe6cd85ac9c666
+closed_at: '2026-09-27T22:42:50'

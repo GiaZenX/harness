@@ -1,0 +1,19 @@
+id: EVD-0492
+kind: test
+related:
+- BUG-0314
+result: pass
+summary: 'TSK-0154 stream B, worktree g7/dispatch (staged, unstamped): the run starts
+  at the child''s bind (SubagentStart), so a foreground self-path child books its
+  own result; a swept lease leaves the started run IN_PROGRESS and bookable; an expired
+  lease of a started run says it stays IN_PROGRESS and is leased again where it stands
+  when its child''s end is recorded, and refused while the child is waiting or has
+  no recorded end. All four red on base 35e929b.'
+artifact_refs:
+- staging/TSK-0154/evd/bug-0314.log
+run_command: python -B -m pytest tools/test_stream_b_order_flow.py -k bug_0314 -v
+  -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:40:15'

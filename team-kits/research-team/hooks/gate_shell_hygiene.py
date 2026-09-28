@@ -271,10 +271,10 @@ def _foreign_designations(root, ours, head, segment):
     """
     found = []
     for name in _option_values(head, "--project-name", "-p"):
-        if name.lower() not in ours:
+        if not _is_ours(name, ours):
             found.append((name, "named by `-p`/`--project-name`"))
     environment = _environment_project(segment)
-    if environment and environment.lower() not in ours:
+    if environment and not _is_ours(environment, ours):
         found.append((environment, "set through %s in this command" % _PROJECT_NAME_ENV))
     for value in _option_values(head, "--project-directory"):
         if not _inside(root, value):
@@ -299,6 +299,26 @@ def _compose_project_of(root, name):
             value = (out.stdout or "").strip()
             return value if value and value != "<no value>" else ""
     return None
+
+
+# THIS REPO'S OWN TEST STACKS (BUG-0320). A QA order that isolates a test in a compose project of
+# its own (`-p qa-tsk0431`) made its leftovers foreign to this gate, so ~8 GB stayed on the daemon
+# and nobody in the session could remove them. A project named `<one of ours><MARK><anything>` is
+# this repo's by construction -- the name is DERIVED from ours, so no other checkout produces it
+# unless its directory is itself named that way, which is the residue this convention accepts.
+# The kits' QA/DevOps guidance names the convention; a name outside it stays foreign.
+OWN_TEST_PROJECT_MARK = "-test-"
+
+
+def _is_ours(name, ours):
+    """Is this compose project one of this repo's -- its own name, or a test stack derived from it?
+
+    `tools/test_stream_c_field.py::test_a_test_stack_named_by_the_convention_is_cleanable_bug_0320`
+    """
+    low = str(name or "").lower()
+    return low in ours or any(
+        low.startswith(own + OWN_TEST_PROJECT_MARK) and len(low) > len(own + OWN_TEST_PROJECT_MARK)
+        for own in ours)
 
 
 def _our_compose_projects(root):
@@ -375,12 +395,14 @@ def _check_docker(root, command):
                 "(devops SKILL §3)." % (designation, how, "/".join(sorted(ours))),
                 remedy="run compose inside this repo, against this repo's own compose file and "
                        "without a foreign project name, or ask the user explicitly before touching "
-                       "anything else on the daemon.")
+                       "anything else on the daemon. A test stack of THIS repo is named "
+                       "`%s%s<anything>` -- such a project is cleanable from here."
+                       % (sorted(ours)[0] if ours else "<repo>", OWN_TEST_PROJECT_MARK))
         for target in _docker_targets(tokens):
             project = _compose_project_of(root, target)
             if project is None:
                 continue    # no daemon, or no such object: the command will fail on its own
-            if project.lower() not in ours:
+            if not _is_ours(project, ours):
                 _kernel.block(
                     HOOK,
                     "%r belongs to compose project %r, not to this repo (%s). Foreign Docker "
@@ -389,7 +411,10 @@ def _check_docker(root, command):
                     "project's production database exactly here (devops SKILL §3)."
                     % (target, project or "<none>", "/".join(sorted(ours))),
                     remedy="act on this project's own containers, or ask the user explicitly "
-                           "before touching anything else on the daemon.")
+                           "before touching anything else on the daemon. A test stack of THIS "
+                           "repo is named `%s%s<anything>` -- such a project is cleanable from "
+                           "here." % (sorted(ours)[0] if ours else "<repo>",
+                                      OWN_TEST_PROJECT_MARK))
 
 
 def _switches_branch(invocation):

@@ -58,14 +58,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _audit
 import _compat
 
-# The kernel's approval marker, in its own spelling rather than imported: `gate_approval` is where
-# it belongs and where it is enforced, but that module loads the kernel bridge and exits 2 when it
-# cannot -- importing it here would turn this stdlib-only guard into one that can fail closed on a
-# question it was only going to look at. So it is a SECOND statement of one constant, and pinned
-# equal to the first instead of trusted -- by
-# `test_the_guard_and_the_gate_spell_the_approval_marker_the_same`, which reads both patterns out of
-# the two shipped files. What a drift would cost is in `main`, where the exemption is applied.
-_APR_MARKER_RX = re.compile(r"\[APR-REQ:([0-9a-f]{32})\]", re.ASCII)
+# The kernel's approving label (`approvals.approve_label`), in its own spelling rather than
+# imported: `gate_approval` is where it is enforced, but that module loads the kernel bridge and
+# exits 2 when it cannot -- importing it here would turn this stdlib-only guard into one that can
+# fail closed on a question it was only going to look at. So it is a further statement of one
+# constant, pinned equal to the kernel's instead of trusted -- by
+# `tools/test_stream_a_approvals.py::test_every_reader_of_the_approve_label_spells_it_as_the_kernel_writes_it`.
+# What a drift would cost is in `main`, where the exemption is applied.
+_APPROVE_LABEL_RX = re.compile(r"\AFreigeben \[([0-9a-f]{6})\]\Z", re.ASCII)
 
 # References to context OUTSIDE the question itself (German + English variants seen in real
 # transcripts). Deliberately narrow: "wie besprochen" (the user SAW that dialogue) stays legal,
@@ -235,22 +235,23 @@ def main():
                 mine.append(str(o.get("label") or ""))
                 mine.append(str(o.get("description") or ""))
         texts.extend(mine)
-        # ADVICE IS ABOUT WORDING, AND A MARKED QUESTION HAS NONE OF ITS OWN. `[APR-REQ:<id>]` says
-        # the kernel composed this text; the PM must relay it character for character and
-        # `gate_approval` refuses it on this same event if one moved. Advising a reword there is
-        # advice that mints nothing, silently (pilot 3, B15).
+        # ADVICE IS ABOUT WORDING, AND AN APPROVAL CARD HAS NONE OF ITS OWN. An approving option
+        # `Freigeben [<code>]` says the kernel composed this text; the PM must relay it character
+        # for character and `gate_approval` refuses it on this same event if one moved. Advising a
+        # reword there is advice that mints nothing, silently (pilot 3, B15).
         # WHAT IS MEASURED AND WHAT IS NOT, because this was written the other way round once: the
         # false alarm was real on R2b's FIRST cut, where the kernel's push question tripped it on
         # the word `push`; after that word moved to the two-hit tier, NO question the kernel builds
         # trips any heuristic here -- measured over every kind that has a manifest. So this branch
         # protects the next wording, not today's, and what stays live is the half below: the marker
         # cannot be worn to buy silence.
-        # NOT A BYPASS, and that is the marker's doing rather than this exemption's: a question that
+        # NOT A BYPASS, and that is the label's doing rather than this exemption's: a question that
         # wears one to buy silence is a question `gate_approval` blocks, because no pending request
-        # matches it -- measured rc 2. The two readers must agree on what a marker IS, though: a
-        # near-miss (`[APR-REQ:short]`) is markerless to that gate, so it must be markerless here
-        # (`test_the_advice_exemption_uses_gate_approvals_own_marker`).
-        if not _APR_MARKER_RX.search(mine[0]):
+        # matches it. The two readers must agree on what the label IS, though: a near-miss is no
+        # approval question to that gate, so it must be none here -- the pattern pin named above.
+        labelled = any(isinstance(o, dict) and _APPROVE_LABEL_RX.match(str(o.get("label") or ""))
+                       for o in (q.get("options") or []))
+        if not labelled:
             advisable.extend(mine)
     hits = sorted({m.group(0) for t in texts for m in _INVISIBLE_REF_RX.finditer(t)})
     if not hits:

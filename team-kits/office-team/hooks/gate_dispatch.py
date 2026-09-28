@@ -6,7 +6,9 @@ would let the halves drift:
 
   PreToolUse(Bash|PowerShell)   refuse a FAIL CLASSIFICATION written by anybody but the bound
                                 child of the judging class (DEC-0107) -- a shell question answered
-                                here because who is running is read off the leases this gate writes
+                                here because who is running is read off the leases this gate writes;
+                                and remember a bound child's BACKGROUND command on its lease, so its
+                                stop can be read as a wait (BUG-0313)
   PreToolUse(Agent|Task)        reconcile claims that never produced a child; refuse while the
                                 installed enforcement bundle is not the one this project recorded
                                 trust for (`_kernel.bundle_trust`); then validate the
@@ -15,13 +17,16 @@ would let the halves drift:
                                 lease hand the model the fact-based checkpoint (DEC-0092 (3)) as
                                 context on the allowed call -- a mirror, never a refusal
   SubagentStart(*)              bind that lease to the child's agent_id (gate layer 3 needs the
-                                agent_id -> task mapping while the child is still running)
+                                agent_id -> task mapping while the child is still running) and
+                                move the task to IN_PROGRESS (BUG-0314); for an agent already
+                                bound, record the RESUME the provider signals this way
   PostToolUse(Agent|Task)       the spawn STARTED: re-verify the header, bind the agent_id
                                 authoritatively (here the header and the agentId arrive
-                                together), and move the task to IN_PROGRESS
+                                together), and move the task to IN_PROGRESS if the bind did not
   PostToolUseFailure(Agent|Task) the spawn did NOT start: return the task to READY at once and
                                 close the bind window — an ACCELERATOR, not the guarantee
-  SubagentStop()                record that this dispatch's child has STOPPED, so the end of a
+  SubagentStop()                record that this dispatch's child has STOPPED -- or is WAITING on
+                                its own background run (BUG-0313) -- so the end of a
                                 later turn has a RECORD to read where it otherwise has only a
                                 status that says IN_PROGRESS either way (BUG-0058)
   Stop()                        reconcile again at the end of the turn, so a claim that produced
@@ -397,11 +402,38 @@ def _refuse_a_classification_the_judged_role_wrote(data):
             event="PreToolUse", remedy=remedy)
 
 
+def _remember_a_background_run(data):
+    """A bound child started a command in the BACKGROUND: remember the command on its lease, so its
+    later stop can be read as a WAIT while the provider still runs it (BUG-0313,
+    `dispatch.CHILD_WAITING`). A record, never a refusal: a failure here costs the attribution
+    and nothing else, so it is noted and the call goes on.
+    `tools/test_stream_b_order_flow.py::test_a_child_waiting_on_its_own_background_run_is_not_reported_stopped_bug_0313`
+    """
+    # Named `shell_input` because only a SHELL call's input is acted on here; the spawn surface this
+    # gate judges is the Agent call's `tool_input`, and that name is what this reads:
+    # `tools/test_light_kit.py::_tool_input_keys_the_gate_reads`
+    shell_input = data.get("tool_input") or {}
+    if shell_input.get("run_in_background") is not True or not _compat.calling_subagent(data):
+        return                                   # the ordinary call pays two dictionary reads
+    try:
+        dispatch = _kernel.kernel_module("dispatch")
+        if data.get("tool_name") not in dispatch.COMMAND_TOOLS:
+            return
+        state = _state_for_recording(data)
+        if state is not None:
+            dispatch.record_background_start(state, data.get("agent_id"),
+                                             shell_input.get("command"))
+    except Exception as exc:  # noqa: BLE001 -- a lost record must not become a refused command
+        _kernel.record_note(HOOK, "a background run was not remembered (%s: %s); a stop of this "
+                                  "child will read as an end" % (type(exc).__name__, exc))
+
+
 def handle_pre_tool_use(data):
     # TWO tool classes reach this event, and the shell one is here rather than in a
     # gate of its own because the question it answers is a dispatch question: which
     # role is running, read off the leases this gate writes.
     _refuse_a_classification_the_judged_role_wrote(data)
+    _remember_a_background_run(data)
     if data.get("tool_name") not in SPAWN_TOOLS:
         sys.exit(0)
     # AFTER the bundle reading, and that order was measured rather than chosen: mid-way through an
@@ -432,10 +464,13 @@ def handle_pre_tool_use(data):
         # 2026-09-05: it arrives here when the lead passes it, and it overrides the role's pin);
         # the kernel holds it against the rung the lease derived -- `dispatch.spawn_model_refusal`
         # says when its absence is fine and when it is not.
+        # `description` is the name the provider's task panel shows, measured on this event's
+        # payload; the lease composed the one it must be (FR-0092, `dispatch.spawn_name_refusal`).
         verified = dispatch.validate_dispatch(state, header, tool_input.get("subagent_type"),
                                               claim=True, prompt_id=data.get("prompt_id"),
                                               session_id=data.get("session_id"),
-                                              spawn_model=tool_input.get("model"))
+                                              spawn_model=tool_input.get("model"),
+                                              spawn_description=tool_input.get("description"))
     except dispatch.DispatchError as exc:
         _kernel.block(HOOK, "specialist spawn refused.\n%s" % exc, event="PreToolUse")
     _mirror_the_builder_start(state, dispatch, verified)
@@ -520,9 +555,15 @@ def handle_subagent_start(data):
     if state is None:
         sys.exit(0)
     dispatch = _kernel.kernel_module("dispatch")
+    # A START OF AN AGENT ALREADY BOUND IS A RESUME, measured (staging/TSK-0154/protocol.md): the
+    # provider fires SubagentStart again for the same agent_id when a background run it waited on
+    # completes, or when the lead messages it. Its recorded end stops being true here.
+    if dispatch.record_child_resume(state, data.get("agent_id")):
+        sys.exit(0)
     try:
+        # The bind is where the run starts (BUG-0314): the session id rides along for the task.
         dispatch.bind_agent_by_role(state, data.get("agent_id"), data.get("agent_type"),
-                                    data.get("prompt_id"))
+                                    data.get("prompt_id"), session_id=data.get("session_id"))
     except dispatch.NoPendingDispatch:
         sys.exit(0)
     except dispatch.DispatchError as exc:
@@ -575,6 +616,12 @@ def handle_post_tool_use(data):
     if state is None:
         sys.exit(0)
     dispatch = _kernel.kernel_module("dispatch")
+    try:
+        named = dispatch.parse_header(str((data.get("tool_input") or {}).get("prompt") or ""))
+    except dispatch.DispatchError:
+        sys.exit(0)                       # not a dispatched spawn -- nothing of ours to record
+    if dispatch.run_is_booked(state, named["task_id"]):
+        sys.exit(0)                       # a foreground self-path child booked itself (BUG-0314)
     header = _verified_header(data, state, dispatch, "PostToolUse")
     if header is None:
         sys.exit(0)
@@ -650,7 +697,11 @@ def handle_subagent_stop(data):
         sys.exit(0)
     dispatch = _kernel.kernel_module("dispatch")
     try:
-        dispatch.record_child_end(state, data.get("agent_id"), data.get("agent_type"))
+        # `background_tasks` is the provider's live list on this very stop (measured,
+        # staging/TSK-0154/protocol.md): a child whose own background run is still in it is
+        # WAITING, not over (BUG-0313).
+        dispatch.record_child_end(state, data.get("agent_id"), data.get("agent_type"),
+                                  data.get("background_tasks"))
     except dispatch.DispatchError as exc:
         _report("this subagent's stop was not attributed to a dispatch, so the end of the turn "
                 "will not name that task as idle.\n%s" % exc)

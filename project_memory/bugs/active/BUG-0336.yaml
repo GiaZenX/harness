@@ -1,0 +1,28 @@
+id: BUG-0336
+title: Ein bestandenes Pruefurteil ueber EINEN Auftrag ueberdeckt ein durchgefallenes
+  Urteil ueber das ganze Ziel -- das Merge-/Liefer-Gate liest je Art nur das neueste
+  Urteil, Auftrag oder Ziel egal
+related_pr: PR-0012
+observed: 'READ in synaipse forensics (BUG-0333, section 5): gate_git reads task-level
+  verdicts as goal verdicts (team-kits/kernel/report.py ~:1870, parent lookup) and
+  the newest verdict per kind wins; a full review+test pass on one order of PR-0020
+  (TSK-0472 or TSK-0488) would open a delivery merge of the whole goal, and a later
+  passing order verdict would mask PR-0021''s failing goal verdict EVD-0078. Read,
+  not driven.'
+expected: A delivery merge of a goal rests on verdicts about the GOAL (or its united
+  tree), and a failing goal verdict is not superseded by a passing verdict on one
+  of its orders.
+repro: 'Two EVDs: goal acceptance fail, then an order-level full pass of the same
+  kind -> the gate''s verdict reading for the goal.'
+severity: high
+acceptance_criteria:
+- id: AC-1
+  text: an order-level pass does not mask a goal-level fail for a delivery merge --
+    a test naming this bug, red on 2026.09.27-9
+source: project_memory/staging/BUG-0333/forensics-2026-09-28.md
+limits: Offen; im Feld noch nicht ausgenutzt (der synaipse-PM hat den Weg bewusst
+  nicht genommen).
+status: OPEN
+revision: 1
+approval_ref: null
+created: '2026-09-28T19:14:39'

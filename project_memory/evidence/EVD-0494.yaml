@@ -1,0 +1,18 @@
+id: EVD-0494
+kind: test
+related:
+- BUG-0318
+result: pass
+summary: 'TSK-0154 stream B, worktree g7/dispatch: create-task (and capture TSK) print
+  [cut] fact lines naming DEC-0087/0088 for a second open build order under one goal
+  and for a QA order on a one-output change, rc unchanged; the session brief''s lease_distribution
+  carries orders_per_goal, verifier_share, parallel_candidates (via check-scopes)
+  and a cut_line bounded for the byte budget. Red on base 35e929b.'
+artifact_refs:
+- staging/TSK-0154/evd/bug-0318.log
+run_command: python -B -m pytest tools/test_stream_b_order_flow.py -k bug_0318 -v
+  -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:40:27'

@@ -277,7 +277,11 @@ genügt nicht.
    (Request-ID, Item, Revision, Content-Hash, APR-Art, Ablaufzeit) und **erzeugt die
    vollständige strukturierte Freigabefrage deterministisch selbst** — inkl. der Optionen und
    des Markers `[APR-REQ:<request_id>]` im Fragetext. Pro Freigabe genau EINE Frage mit den
-   Optionen **Freigeben / Ändern / Ablehnen**.
+   Optionen **Freigeben / Ändern / Ablehnen**. *Stand seit FR-0095 (TSK-0153, 2026-09-26): die
+   Frage ist eine ruhige Karte ohne Request-ID, Pfad und Prüfsumme; die Hooks finden die Anfrage
+   über den Mint-Code im Freigabe-Label (`approvals.pending_request_by_code`), und „markiert“ heißt
+   im Folgenden: mit Freigabe-Label `Freigeben [<code>]` (oder mit der ersten Kartenzeile
+   `approvals.CARD_PREFIX`, dann über den genauen Kartentext gefunden).*
 2. Ein **PreToolUse-Hook auf `AskUserQuestion`** behandelt NUR markierte Fragen als
    Freigabefragen und verlangt für sie **exakte Übereinstimmung** von Fragetext, Header UND
    allen Optionen mit der Kernel-generierten Frage (String-Gleichheit, keine semantische
@@ -448,8 +452,8 @@ Eine Session, die den Lock nicht erhält, wartet/retryt — sie überspringt nie
 **Dispatch mit Lease (kein direktes IN_PROGRESS aus dem PreToolUse-Hook):**
 READY → kurzlebige Dispatch-Lease mit Nonce und **TTL** → Header
 `HARNESS_DISPATCH {"task_id":"TSK-0042","root_revision":3,"lease":"<nonce>"}`.
-Lebenszyklus: PreToolUse validiert die Lease; PostToolUse auf den Spawn: Erfolg →
-IN_PROGRESS, Fehlschlag → sofort zurück auf READY; verwaiste Lease → nach TTL automatisch
+Lebenszyklus: PreToolUse validiert die Lease; die Bindung des Kindes (SubagentStart) oder
+PostToolUse auf den Spawn, was zuerst kommt (BUG-0314): Erfolg → IN_PROGRESS, Fehlschlag → sofort zurück auf READY; verwaiste Lease → nach TTL automatisch
 READY (kein Task bleibt durch abgebrochene Agentenstarts hängen). Das Gate parst
 AUSSCHLIESSLICH den Header, nie freie Prompt-Prosa. Ein paralleler zweiter Claim wird
 blockiert. Beim Dispatch bindet der Kernel zusätzlich `lease → agent_id` (Hook-Payloads

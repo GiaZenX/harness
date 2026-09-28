@@ -1,0 +1,20 @@
+id: EVD-0499
+kind: test
+related:
+- BUG-0310
+result: pass
+summary: 'TSK-0155 stream C, worktree g7/field (staged at 00:57, run in its stamped
+  .git-less mirror): installed kernel package writes no bytecode for any importer
+  without -B (node test_importing_the_installed_kernel_without_b_writes_no_bytecode_bug_0310),
+  and ''upkeep prune-caches'' removes only tool leftovers and the installed _kernel.bundle_trust
+  is no longer withdrawn; a planted .py stays and rc 1 (node test_a_session_prunes_bundle_caches_and_the_spawn_check_trusts_again_bug_0310).
+  Red on base 35e929b / under mutation (evd/red-first.log).'
+artifact_refs:
+- staging/TSK-0155/evd/final.log
+- staging/TSK-0155/evd/red-first.log
+run_command: python -B -m pytest tools/test_stream_c_field.py tools/test_migrate.py::test_an_open_v1_task_is_imported_cancelled_bug_0317
+  -v -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:57:40'

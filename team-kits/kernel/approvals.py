@@ -4,8 +4,9 @@ A manual `approved_by: user` proves nothing. The kernel:
 1. writes an immutable PENDING request (request_id, item, revision,
    content hash, kind, expiry, per-request MINT CODE) and generates the
    COMPLETE approval question deterministically -- text, header AND the three
-   options, marker `[APR-REQ:<id>]` in the text
-2. the PreToolUse hook (phase 2) enforces exact string equality of marked
+   options; the request is found again by the mint code in the approving label
+   (`pending_request_by_code`), since FR-0095 took the request id out of the text
+2. the PreToolUse hook (phase 2) enforces exact string equality of approval
    questions against `build_question`
 3. `mint` creates the APR ONLY when the answer equals the kernel-generated
    approval label VERBATIM, including its per-request mint code
@@ -104,12 +105,12 @@ KIND_LABELS = {
     "hole_exception": "Ausnahme für eine bekannte Lücke",
     "verification": "Abschluss behobener Fehler",
 }
-# THE MANIFEST KEYS IN THE USER'S WORDS, for the kinds whose manifest the generic branch of
-# `build_question` renders key by key (a routine, an analysis, a kit update; every kind with a
-# `TARGET_FORMS` entry writes its own sentence). A key this table does not know is rendered under
-# its own name -- and `tools/test_light_kit.py::test_no_approval_question_shows_an_english_enum_word_a_hash_or_a_path`
-# renders every kind and refuses an English key in the sentence, so a new manifest key arrives
-# here or turns that test red.
+# THE MANIFEST KEYS IN THE USER'S WORDS, for the card lines that render a manifest key by key (a
+# routine, an analysis, a kit update -- `_manifest_lines`; every kind with a `SUBJECT_LINES` entry
+# writes its own) and for the keys a list record carries beside its id (`_entry_line`). A key this
+# table does not know is rendered under its own name -- and
+# `tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card` renders every kind and
+# refuses an English key on the card, so a new manifest key arrives here or turns that test red.
 MANIFEST_LABELS = {
     "role": "Rolle",
     "scope": "Lesebereich",
@@ -117,6 +118,9 @@ MANIFEST_LABELS = {
     "trigger": "Auslöser",
     "cadence": "Takt",
     "expires": "gültig bis",
+    # the two keys a signed list record carries beside its id (`_entry_line`)
+    "evidence": "gemessen durch",
+    "bound": "was stattdessen begrenzt",
     "question": "Frage",
     "expected_result": "erwartetes Ergebnis",
     "tasks": "Aufträge",
@@ -127,6 +131,13 @@ MANIFEST_LABELS = {
     "to_content": "neuer Inhalt (Prüfsumme)",
     UNVERIFIED_MISSING_FIELD: "ohne Nachweis geblieben",
     UNVERIFIED_ANSWER_FIELD: "Antwort des Nutzers dazu",
+    # the list key of each list-bound kind: its entries read as `_entry_line`s, and the key itself
+    # only shows when a list holds something that is not an item record
+    # (`tools/test_stream_a_approvals.py::test_every_key_a_formless_line_builder_writes_has_a_label`)
+    "goals": "Ziele",
+    "bugs": "Fehler",
+    "holes": "Lücken",
+    "items": "Punkte",
 }
 # WHAT MUST STAND IN THE SENTENCE AND NOT ONLY IN THE OPTION, as a property of the FIELD rather
 # than a list per kind: a manifest key whose value WARNS about the subject instead of describing
@@ -182,10 +193,9 @@ PLAN_COVERED_KIND = "scope"
 VERIFICATION_KIND = "verification"
 # HOW MANY ITEMS ONE QUESTION MAY CARRY, and the number is a MEASUREMENT of the mint rather than a
 # taste. TWO bounds meet here and the smaller one wins:
-#   * READABILITY of the compared carrier -- the ids and their evidence ride in the APPROVING
-#     OPTION's description (`_verification_option_form`), because that is the text `gate_approval`
-#     compares character for character, so the whole list has to survive the provider's echo of one
-#     option description. An entry is `BUG-nnnn (EVD-nnnn)`, ~20 characters.
+#   * READABILITY of the card -- every entry is one line of the question (`_entry_line`), which
+#     `gate_approval` compares character for character, so the whole list has to survive the
+#     provider's echo and a reader's attention.
 #   * THE KERNEL LOCK'S CLOCK, which is the binding one: the whole walk runs inside ONE held lock
 #     (`ProjectState(lock_ttl=...)`), and a run that outlives that TTL can have its lock broken as
 #     stale by another kernel process -- `KernelLock.release` then raises `LockLost` over writes
@@ -283,14 +293,25 @@ ROUTINE_MANIFEST_FIELDS = (ROUTINE_ROLE_FIELD, "scope", "trigger", "cadence")
 # there (the only tamper-evident copy), `mint` carries it into the APR as a display value, and the
 # approval question renders it. Five readers of one key, spelled once.
 EXPIRY_FIELD = "expires"
+# THE ASSISTANT'S OWN WORDS ON THE CARD (FR-0095, DEC-0119 (6)): what the PM explains the request
+# means, typed on the `request-approval` line. It stands in the question the user reads, so the gate's
+# character-for-character comparison already binds it to the answer; the request also stores its
+# hash and `mint` copies that hash onto the approval, so `consumed_request` refuses a record whose
+# note was rewritten after the click. NOT in `subject_manifest`: every reader that recomputes an
+# item's manifest (`assert_apr_in_force`, `mint`, `live_line_approval`) would stop matching.
+# `tools/test_stream_a_approvals.py::test_the_assistants_note_is_signed_and_a_rewritten_note_grants_nothing`
+NOTE_FIELD = "note"
+NOTE_HASH_FIELD = "note_hash"
+# How long a note may be. REFUSED past it rather than cut: a cut note would show the user a sentence
+# that stops where the machine decided, and the words are the PM's to shorten.
+NOTE_LIMIT = 700
+# How much of an item's title a card line shows; the full title stays on the item.
+TITLE_SHOWN = 100
 _CHANGE_LABEL = "Ändern"
 _REJECT_LABEL = "Ablehnen"
-# HOW MUCH OF A HASH A HUMAN IS SHOWN, in one place: `build_question` prints this many characters
-# of the subject-manifest hash, and `_render_manifest_value` shortens a hashed VALUE to the same
-# length so one question does not show two conventions. A digest is recognised by BEING one --
-# hex, and at least as long as the shortest algorithm anything here uses (sha1) -- rather than by
-# the field name carrying it, which would be a list that the next hashed field is missing from.
-DIGEST_SHOWN = 12
+# WHAT A CHECKSUM LOOKS LIKE, so the card can leave it out (FR-0095, `_is_digest`): hex, and at
+# least as long as the shortest algorithm anything here uses (sha1) -- recognised by BEING one rather
+# than by the field name carrying it, which would be a list the next hashed field is missing from.
 _DIGEST = re.compile(r"\A[0-9a-f]{40,}\Z")
 
 # THE TWO EXITS FROM A REFUSED MINT, in the language of the person who clicked. A branch picks the
@@ -308,6 +329,20 @@ NEXT_START_OVER = ("Dein Assistent muss den Freigabe-Vorgang neu starten; diese 
 def approve_label(mint_code: str) -> str:
     """The ONE answer string that mints -- entropy-carrying by design."""
     return "Freigeben [%s]" % mint_code
+
+
+# THE LABEL AS A PATTERN, and it is what a hook recognises an approval question BY since FR-0095 took
+# the request id out of the text the user reads: the mint code in this label is the one machine token
+# left on the card, and `pending_request_by_code` resolves it back to its request. Two stdlib-only
+# copies live in the kits' `gate_approval.py` and `guard_question_context.py`; all three are held
+# equal to `approve_label` by
+# `tools/test_stream_a_approvals.py::test_every_reader_of_the_approve_label_spells_it_as_the_kernel_writes_it`.
+APPROVE_LABEL_RX = re.compile(r"\AFreigeben \[([0-9a-f]{6})\]\Z", re.ASCII)
+# THE CARD'S FIRST LINE, up to the kind (`build_question`). What a card DRESSED as the kernel's is
+# recognised by when its approving option was relabelled -- the gate then finds the request by the
+# card's exact text (`pending_request_by_text`) and refuses the difference before the user sees it.
+# The gates' stdlib copy is pinned by the same test as the label.
+CARD_PREFIX = "Freigabe erbeten für "
 
 # WHICH TRANSITION AN APPROVAL COMMITS, per (item_type, kind). Read forwards it is the status
 # side-effect of a successful mint -- everything else only sets approval_ref (spec II.2/II.3).
@@ -1042,7 +1077,7 @@ def plan_subject_manifest(goals) -> dict:
     """The subject of a plan approval: the confirmed goal list, whole.
 
     ONE KEY, and it holds the list rather than a count or a digest of it: what the user signs has
-    to be what the question shows (`_plan_target_form` renders every entry), and a plan
+    to be what the question shows (`_entry_line` renders every entry), and a plan
     approval that hashed only a summary would let the list change under a matching hash.
 
     A PLAN WITH NO OPEN GOAL IS REFUSED, at the builder, before anybody is asked to sign it: an
@@ -1064,18 +1099,6 @@ def plan_subject_manifest(goals) -> dict:
     return {"goals": goals}
 
 
-def _plan_target_form(manifest: dict) -> str:
-    """The plan as the user reads it: EVERY goal by id and title, never a count.
-
-    The same rule a revision card follows (`_document_revision_target_form`): this is the one
-    approval whose whole point is that one answer covers several items, so a question saying
-    "10 Ziele" would be asking for a signature on a number.
-    """
-    goals = manifest.get("goals") or []
-    return "den Plan aus %s" % "; ".join(
-        "%s „%s“ (Revision %s)" % (goal.get(GOAL_ITEM_FIELD), goal.get("title") or "ohne Titel",
-                                   goal.get("revision"))
-        for goal in goals)
 
 
 def batch_closing_types(kind: str) -> frozenset:
@@ -1277,13 +1300,14 @@ def proofs_naming(state: ProjectState, item_ids, proof: str) -> dict:
 def batch_walk_end(item_type: str, kind: str) -> str:
     """The status a batch mint of `kind` walks a listed item of `item_type` TO.
 
-    THREE ANSWERS, and the first one is what the second batch kind needed (PR-0012 AC-4): an edge
+    FOUR ANSWERS, and the first one is what the second batch kind needed (PR-0012 AC-4): an edge
     whose target is NOT ON THE TYPE'S CHAIN ends there and nowhere further. `BUG`'s
     `ACCEPTED_EXCEPTION` is that case -- a terminal beside the chain, reachable only from TRIAGED
     (`backlog_types`) -- so a batch of accepted exceptions walks to it and stops. Reading the
     confirming end for it would have walked a gap the user ACCEPTED to VERIFIED, i.e. said the gap
     was measured gone, which is the opposite statement.
 
+    Then the batch that is its own per-item kind (`scope --batch`) -- see the branch below.
     Otherwise: the type's CONFIRMING end when it has one (`backlog_types.confirming_edge` -- for
     `BUG` that is VERIFIED), the approved edge's own target when it has none. Derived, because the
     two halves of the walk have different guards and only the derivation keeps them honest: the
@@ -1294,6 +1318,14 @@ def batch_walk_end(item_type: str, kind: str) -> str:
     """
     target = APPROVAL_TRANSITIONS[(item_type, kind)][1]
     if target not in AUTOMATA[item_type].chain:
+        return target
+    # A BATCH THAT IS ITS OWN PER-ITEM QUESTION ASKED FOR SEVERAL ITEMS (`scope --batch`, FR-0096)
+    # walks exactly the edge that question commits and stops: each entry is bound to that kind's own
+    # content (`content_question(kind) == kind`), and nothing it signs says the work is DONE. Only a
+    # stand-in that borrows another kind's content to close (`verification`) walks on to the
+    # confirming end. Reading the confirming end here would have walked a bug the user only
+    # understood to VERIFIED -- `tools/test_stream_a_approvals.py::test_a_collected_scope_card_walks_each_entry_across_its_own_edge_and_no_further`
+    if content_question(kind) == kind:
         return target
     confirming = confirming_edge(item_type)
     return confirming[1] if confirming else target
@@ -1345,6 +1377,7 @@ def verification_batch(state: ProjectState, item_ids) -> list:
         verdict = naming.get(item_id, {})
         records.append({
             GOAL_ITEM_FIELD: item_id,
+            "title": str(item.get("title") or ""),
             "revision": item.get("revision"),
             GOAL_SCOPE_HASH_FIELD: listed_content_hash(item),
             LISTED_EVIDENCE_FIELD: str(verdict.get("id") or ""),
@@ -1384,80 +1417,16 @@ def verification_subject_manifest(bugs) -> dict:
     return {"bugs": bugs}
 
 
-def _listed_entry(record) -> str:
-    """One entry of a list-bound subject as the user reads it in the approving option.
-
-    Tolerant of a record that is not one, and deliberately so: this text is composed from a STORED
-    manifest, so a request written before a key existed -- or by anything but the builder -- must
-    still render a question rather than raise out of the gate that was about to compare it.
-    """
-    if not isinstance(record, dict):
-        return str(record)
-    proof = record.get(LISTED_EVIDENCE_FIELD)
-    return ("%s (%s)" % (record.get(GOAL_ITEM_FIELD), proof) if proof
-            else str(record.get(GOAL_ITEM_FIELD)))
 
 
-def _numerus(count: int, one: str, many: str) -> str:
-    """The German sentence for this count -- the singular form, or the plural with the number.
-
-    A LIST-BOUND APPROVAL CAN CARRY EXACTLY ONE ENTRY, and German does not let a number stand in
-    front of a plural noun for it: "diese 1 Fehler" and "1 Lücken bleiben offen" are what the
-    surface printed, in the very sentence a non-developer has to judge -- which is the whole of
-    BUG-0271. Both forms are written out by the caller because only the caller knows the nouns;
-    what is shared is the rule that the SINGULAR carries no digit at all, which is what
-    `tools/test_light_kit.py::test_a_list_bound_question_reads_in_the_right_numerus_and_names_the_same_subject_as_its_card`
-    measures.
-    """
-    return one if count == 1 else many % count
-
-
-def _verification_target_form(manifest: dict) -> str:
-    """The batch as the SENTENCE names it: how many defects, and where their list stands.
-
-    The opposite choice to `_plan_target_form`, and on a measured ground rather than a preference:
-    a plan carries a handful of goals and the sentence can hold them, while a verification batch
-    carries up to `BATCH_LIMIT` ids WITH their evidence ids. Both texts are compared character for
-    character by `gate_approval`, and the one that has to survive the provider's echo whole is the
-    approving option -- so the list rides there (`_verification_option_form`) and the sentence says
-    how many and where to look. The user is not asked to sign a number: the option beside the
-    sentence is the thing that mints, and it names every id.
-    """
-    bugs = manifest.get("bugs") or []
-    return _numerus(
-        len(bugs),
-        "diesen einen Fehler mit dem Testlauf, der ihn misst — welcher das ist, steht in der "
-        "Freigabe-Option darunter",
-        "diese %d Fehler, jeder mit dem Testlauf, der ihn misst — welche das sind, steht "
-        "Eintrag für Eintrag in der Freigabe-Option darunter")
-
-
-def _verification_option_form(manifest: dict) -> str:
-    """The batch as the APPROVING OPTION carries it: every id with the Evidence that measured it.
-
-    This is the compared carrier (`build_question`'s option description, `gate_approval._mismatch`
-    walks every option key), so a relay that drops one id or renames one Evidence changes the text
-    and nothing mints. `tools/test_hooks_v2.py::test_a_tampered_option_description_is_blocked_too`
-    is that comparison; what this function owes is that every listed id is IN the text at all,
-    which is `tools/test_approvals_dispatch.py::test_the_batch_option_names_every_listed_bug_and_its_evidence`.
-    """
-    bugs = manifest.get("bugs") or []
-    listed = "; ".join(_listed_entry(record) for record in bugs)
-    return "%s: %s" % (_numerus(len(bugs), "einen gemessen behobenen Fehler",
-                                "%d gemessen behobene Fehler"), listed)
-
-
-# HOW MUCH OF A GAP'S BOUND RIDES IN THE COMPARED OPTION. The option description is the text
-# `gate_approval` compares character for character and the provider has to echo whole, and a
-# `limits` sentence in this store runs to ~450 characters -- ten of them unabridged is a wall
-# nobody reads and a long echo to compare. So the option carries the bound CUT to this width (the
-# fold is `_one_line`'s, which is the same one `--reason` goes through), and the sentence beside it
-# says where the full one stands. The FULL text is inside the hash either way, through
-# `listed_content_hash(item, HOLE_EXCEPTION_KIND)`: a bound edited past the kernel kills the
-# acceptance whether or not the edit is inside the shown part.
+# HOW MUCH OF A GAP'S BOUND ITS CARD LINE SHOWS. A `limits` sentence in this store runs to ~450
+# characters -- ten of them unabridged is a wall nobody reads -- so the line carries the bound CUT
+# to this width (the fold is `_one_line`'s, the same one `--reason` goes through). The FULL text is
+# inside the hash either way, through `listed_content_hash(item, HOLE_EXCEPTION_KIND)`: a bound
+# edited past the kernel kills the acceptance whether or not the edit is inside the shown part.
 HOLE_BOUND_SHOWN = 150
-# WHAT THE USER READS BESIDE EACH ID, spelled once because two readers need it: the builder writes
-# it into the record and the option form prints it.
+# WHAT THE USER READS BESIDE EACH ID, spelled once: the builder writes it into the record and
+# `_entry_line` says it under its label.
 LISTED_BOUND_FIELD = "bound"
 
 
@@ -1536,6 +1505,7 @@ def hole_exception_batch(state: ProjectState, item_ids) -> list:
             continue
         records.append({
             GOAL_ITEM_FIELD: item_id,
+            "title": str(item.get("title") or ""),
             "revision": item.get("revision"),
             GOAL_SCOPE_HASH_FIELD: listed_content_hash(item, HOLE_EXCEPTION_KIND),
             LISTED_BOUND_FIELD: bound,
@@ -1580,40 +1550,101 @@ def hole_exception_subject_manifest(holes) -> dict:
     return {"holes": holes}
 
 
-def _hole_exception_target_form(manifest: dict) -> str:
-    """The batch as the SENTENCE names it -- `_verification_target_form`'s reason, one step louder.
 
-    What the user is about to sign is that these gaps STAY OPEN, so the sentence says that in plain
-    words rather than counting records, and points at the option where each one stands with its
-    bound.
+
+def scope_batch(state: ProjectState, item_ids) -> list:
+    """The items ONE collected understanding card asks about (FR-0096, DEC-0119 (2)/(4)).
+
+    `hole_exception_batch`'s shape, for the question a per-item `scope` approval asks: every entry is
+    bound to its OWN scope hash (`listed_content_hash`), so the card covers exactly as much of each
+    item as its own approval would, and `_assert_the_list_covers` re-asks that hash whenever the
+    approval is used. What differs from the two closing batches is the walk -- see `batch_walk_end`.
+
+    REFUSED AS A WHOLE AND BY NAME before the question exists (`batch_walk_blockers`): an id of a
+    type no scope approval commits an edge for, an item already past its scope edge (a DONE one
+    authorises nothing any more), an item that is gone. The count is `BATCH_LIMIT`, refused at the
+    builder. `tools/test_stream_a_approvals.py::test_a_collected_scope_card_refuses_a_done_item_a_foreign_type_and_an_eleventh_id`
     """
-    holes = manifest.get("holes") or []
-    return _numerus(
-        len(holes),
-        "diese eine gemessene Lücke, die damit offen bleibt — mit dem, was an die Stelle des "
-        "Schutzes tritt; welche das ist, steht in der Freigabe-Option darunter",
-        "diese %d gemessenen Lücken, die damit offen bleiben — je mit dem, was an die Stelle "
-        "des Schutzes tritt; welche das sind, steht Eintrag für Eintrag in der Freigabe-Option "
-        "darunter")
+    ids = [str(one) for one in (item_ids or [])]
+    duplicates = sorted({one for one in ids if ids.count(one) > 1})
+    if duplicates:
+        raise ApprovalError(
+            "a batch names %s twice -- an item cannot be approved two times by one answer. "
+            "Remedy: list every id once." % ", ".join(duplicates),
+            user_text="Es wurde keine Freigabe erteilt: in der Liste steht derselbe Eintrag "
+                      "mehrfach. " + NEXT_START_OVER)
+    blockers = batch_walk_blockers(state, PLAN_COVERED_KIND, ids)
+    if blockers:
+        raise ApprovalError(
+            "%d of %d listed items cannot be approved by this card, so the question is not asked: "
+            "%s" % (len(blockers), len(ids), " | ".join(blockers)),
+            user_text="Es wurde keine Freigabe erteilt: %d der %d Einträge in der Liste können so "
+                      "nicht freigegeben werden — dein Assistent muss sie aus der Liste nehmen. %s"
+                      % (len(blockers), len(ids), NEXT_START_OVER))
+    records = []
+    for item_id in ids:
+        item = state.read_item(item_id)
+        records.append({
+            GOAL_ITEM_FIELD: item_id,
+            "title": str(item.get("title") or ""),
+            "revision": item.get("revision"),
+            GOAL_SCOPE_HASH_FIELD: listed_content_hash(item),
+        })
+    return sorted(records, key=lambda record: record[GOAL_ITEM_FIELD])
 
 
-def _hole_exception_option_form(manifest: dict) -> str:
-    """The batch as the APPROVING OPTION carries it: every id with the bound it stands on.
+def scope_batch_subject_manifest(items) -> dict:
+    """The subject of a collected scope card: the listed items, each with its own scope hash.
 
-    The compared carrier (`build_question`'s option description, `gate_approval._mismatch` walks
-    every option key), so a relay that drops one id or rewrites one bound changes the text and
-    nothing mints. What this function owes is that every listed id and its bound are IN the text at
-    all: `tools/test_approvals_dispatch.py::test_the_exception_option_names_every_listed_hole_and_its_bound`
+    `verification_subject_manifest`'s two refusals, for its two reasons: an EMPTY list is a
+    permission bound to no item, and more than `BATCH_LIMIT` is a card nobody reads through.
     """
-    holes = manifest.get("holes") or []
-    listed = "; ".join("%s (%s)" % (record.get(GOAL_ITEM_FIELD), record.get(LISTED_BOUND_FIELD))
-                       if isinstance(record, dict) else str(record) for record in holes)
-    # A NOUN PHRASE, like its twin above -- the card reads "Erteilt die Freigabe ... FÜR <this>",
-    # so a main clause lands inside a prepositional phrase: "für 2 Lücken bleiben offen: ..." is
-    # what the surface printed (round 2 of TSK-0141's verification, R4). The numerus is the same
-    # rule as everywhere else here.
-    return "%s: %s" % (_numerus(len(holes), "eine Lücke, die offen bleibt",
-                                "%d Lücken, die offen bleiben"), listed)
+    items = [dict(record) for record in (items or []) if isinstance(record, dict)]
+    if not items:
+        raise ApprovalError(
+            "a collected scope card approves the items it lists and this one lists none. Remedy: "
+            "name the ids on --batch -- an approval bound to an empty list would approve nothing "
+            "and still be minted.",
+            user_text="Es wurde keine Freigabe erteilt: die Liste ist leer. " + NEXT_START_OVER)
+    if len(items) > BATCH_LIMIT:
+        raise ApprovalError(
+            "a batch carries at most %d items and this one carries %d -- refused at the builder. "
+            "Remedy: cut the list into batches of %d and ask one question per batch."
+            % (BATCH_LIMIT, len(items), BATCH_LIMIT),
+            user_text="Es wurde keine Freigabe erteilt: die Liste ist zu lang, um sie in einer "
+                      "Frage zu lesen. " + NEXT_START_OVER)
+    return {"items": items}
+
+
+def unanswered_change_wishes(state: ProjectState, goal_id: str) -> list:
+    """The goal's change wishes whose understanding card is still unanswered -- ids, sorted.
+
+    DEC-0119 (4): work on a user's change wish may start at once, and the collected card about it
+    must be answered BEFORE the goal's acceptance. A change wish is an AMENDMENT of the goal
+    (`backlog_types.AMENDMENT_TYPES`, the types that name the revision they amend) that binds
+    directly to it (`PARENT_FIELDS`) and still stands in the source status of its own scope edge --
+    i.e. nobody has signed what the PM made of it. A wish the user turned down is closed by its own
+    terminal transition and drops out here.
+    `tools/test_stream_a_approvals.py::test_an_acceptance_is_not_asked_while_a_change_wish_of_the_goal_is_unconfirmed`
+    """
+    from .backlog_types import AMENDMENT_TYPES, PARENT_FIELDS, field_elements
+
+    waiting = []
+    for item_type in sorted(AMENDMENT_TYPES):
+        edge = APPROVAL_TRANSITIONS.get((item_type, PLAN_COVERED_KIND))
+        if edge is None:
+            continue
+        for stem, path in state.iter_active_items(item_type):
+            try:
+                item = state._read_yaml(path)
+            except Exception:  # noqa: BLE001 -- an unreadable file is no wish; validate reports it
+                continue
+            if not isinstance(item, dict) or item.get("status") != edge[0]:
+                continue
+            if any(str(one) == goal_id for field in PARENT_FIELDS.get(item_type, ())
+                   for one in field_elements(item.get(field))):
+                waiting.append(str(item.get("id") or stem))
+    return sorted(waiting)
 
 
 def routine_subject_manifest(role: str, scope: str, trigger: str, cadence: str) -> dict:
@@ -1637,7 +1668,10 @@ LINE_MANIFEST_BUILDERS = {"push": push_subject_manifest, "preset": preset_subjec
                           "document_revision": document_revision_subject_manifest,
                           PLAN_KIND: plan_subject_manifest,
                           VERIFICATION_KIND: verification_subject_manifest,
-                          HOLE_EXCEPTION_KIND: hole_exception_subject_manifest}
+                          HOLE_EXCEPTION_KIND: hole_exception_subject_manifest,
+                          # the ONE kind that is item-derived AND has a list form: `cli` routes a
+                          # line with --batch here and a line with an id to `item_subject_manifest`
+                          PLAN_COVERED_KIND: scope_batch_subject_manifest}
 
 # How long an approval minted from a command-line manifest stays valid, FOR THE KINDS THAT CARRY A
 # CLOCK AT ALL. Which those are is `EXPIRING_KINDS` and the caller asks it (`cli`, the
@@ -1854,15 +1888,8 @@ def listed_items(request: dict) -> tuple:
     what `consumed_request` proves provenance from, so the list walked here is the list the user
     signed rather than a copy anybody could edit afterwards.
     """
-    listed = []
-    for value in (request.get("subject_manifest") or {}).values():
-        if not isinstance(value, (list, tuple)):
-            continue
-        for record in value:
-            if (isinstance(record, dict) and record.get(GOAL_ITEM_FIELD)
-                    and record.get(GOAL_SCOPE_HASH_FIELD)):
-                listed.append(str(record[GOAL_ITEM_FIELD]))
-    return tuple(listed)
+    return tuple(str(record[GOAL_ITEM_FIELD])
+                 for record in _signed_records(request.get("subject_manifest") or {}))
 
 
 def _assert_the_list_covers(request: dict, item: dict) -> None:
@@ -1981,7 +2008,8 @@ def assert_apr_in_force(state: ProjectState, apr: dict, item: dict) -> dict:
     # provenance first: an approval that cannot show its minted request is not a user approval at
     # all, whatever else it says (spec II.12)
     request = consumed_request(state, apr)
-    if listed_items(request):
+    listed = listed_items(request)
+    if listed:
         # AN APPROVAL BOUND TO A LIST, NOT TO ONE ITEM (`plan` FR-0074, `verification` PR-0012), so
         # the item test is the one below and the content test is inside it -- each listed item's own
         # scope hash. Everything else about "in force" is the same for both shapes, which is why
@@ -1999,7 +2027,11 @@ def assert_apr_in_force(state: ProjectState, apr: dict, item: dict) -> dict:
             "approval %s expired (spec II.10a: an expired approval blocks). Remedy: renew the "
             "approval." % apr_ref)
     kind = apr.get("kind")
-    if kind in ("scope", "acceptance", "delivery"):
+    # NOT FOR A LIST: its hash is the list's, and each entry's own content was just checked above.
+    # Asked of every approval before `scope --batch` existed, it refused the one list-bound kind that
+    # shares a name with an item-derived one (FR-0096) --
+    # `tools/test_stream_a_approvals.py::test_a_collected_scope_card_walks_each_entry_across_its_own_edge_and_no_further`
+    if not listed and kind in ("scope", "acceptance", "delivery"):
         current = subject_manifest_hash(item_subject_manifest(item, kind))
         if current != apr.get("subject_manifest_hash"):
             raise ApprovalError(
@@ -2346,6 +2378,61 @@ def _record_the_unverified_answer(state: ProjectState, item: dict, answer) -> di
     return state._record_the_unverified_answer_locked(item["id"], given, missing)
 
 
+def _note_hash(note) -> str:
+    """The hash that binds the assistant's note (`NOTE_FIELD`) -- one spelling for writer and reader."""
+    return subject_manifest_hash({NOTE_FIELD: str(note or "")})
+
+
+def _requests_in(state: ProjectState, directory: str):
+    """Every readable request record in one of the request directories -- unreadable ones skipped,
+    because each caller here asks "is there one that matches", never "is the store sound"."""
+    if not os.path.isdir(directory):
+        return
+    for name in sorted(os.listdir(directory)):
+        if not name.endswith(".yaml"):
+            continue
+        try:
+            record = state._read_yaml(os.path.join(directory, name))
+        except Exception:  # noqa: BLE001 -- an unreadable request matches nothing
+            continue
+        if isinstance(record, dict):
+            yield record
+
+
+def _fresh_mint_code(state: ProjectState) -> str:
+    """A mint code no OPEN request carries, so the code on a card names exactly one request.
+
+    Six hex characters are the entropy the S2b finding needs against free text; they are not
+    unique by themselves, and since FR-0095 the hooks resolve a card BY this code
+    (`pending_request_by_code`). A clash is re-rolled here rather than refused there.
+    """
+    taken = {str(record.get("mint_code")) for record in _requests_in(state, _pending_dir(state))}
+    while True:
+        code = uuid.uuid4().hex[:6]
+        if code not in taken:
+            return code
+
+
+def _assert_no_change_wish_waits(state: ProjectState, goal_id: str) -> None:
+    """Refuse the acceptance question while a change wish of the goal is unconfirmed (DEC-0119 (4)).
+
+    The card that says "you said ..., I understood ..., I made these items of it" is answered
+    before the goal's acceptance -- not before the work starts. `unanswered_change_wishes` is the
+    reader; this is the one place that holds the acceptance to it.
+    """
+    waiting = unanswered_change_wishes(state, goal_id)
+    if waiting:
+        raise ApprovalError(
+            "%s still has change wish(es) whose understanding card the user has not answered: %s "
+            "-- DEC-0119 (4) asks that card before the goal's acceptance. Remedy: `request-approval "
+            "scope --batch %s --note \"<was du verstanden hast>\"` and relay it; a wish the user "
+            "turned down is closed with `transition <ID> REJECTED`, then ask the acceptance again."
+            % (goal_id, ", ".join(waiting), " ".join(waiting)),
+            user_text="Die Abnahme wird noch nicht gefragt: zu diesem Ziel gibt es Änderungswünsche, "
+                      "die du noch nicht bestätigt hast. Dein Assistent legt sie dir zuerst auf einer "
+                      "Karte vor.")
+
+
 def create_pending_request(
     state: ProjectState,
     kind: str,
@@ -2354,6 +2441,7 @@ def create_pending_request(
     ttl_seconds: float = 24 * 3600.0,
     approval_expires: float = None,
     unverified_answer: str = None,
+    note: str = None,
 ) -> dict:
     """Phase 1 of the protocol: persist the immutable pending request.
 
@@ -2364,6 +2452,9 @@ def create_pending_request(
 
     `unverified_answer` is the user's own words about a goal nobody verified, and it is read on
     the `acceptance` kind alone -- see `_record_the_unverified_answer` (DEC-0113).
+
+    `note` is the assistant's explanation the card shows under the list (`NOTE_FIELD`), folded onto
+    one line and REFUSED past `NOTE_LIMIT` rather than cut.
     """
     if kind not in APR_KINDS:
         raise ApprovalError(
@@ -2381,6 +2472,12 @@ def create_pending_request(
             "expired routine approval blocks the dispatch). Remedy: pass "
             "approval_expires=<epoch seconds>." % kind
         )
+    note = " ".join(str(note or "").split())
+    if len(note) > NOTE_LIMIT:
+        raise ApprovalError(
+            "the note is %d characters and a card carries at most %d -- refused rather than cut, "
+            "because a cut note shows the user a sentence that stops where the machine decided. "
+            "Remedy: say it shorter." % (len(note), NOTE_LIMIT))
     if approval_expires is not None and kind not in EXPIRING_KINDS:
         raise ApprovalError(
             "only %s approvals carry an expiry (spec II.2); kind %r does not. "
@@ -2393,6 +2490,7 @@ def create_pending_request(
         if item_id is not None:
             item = state.read_item(item_id)
             if kind == "acceptance":
+                _assert_no_change_wish_waits(state, item_id)
                 # BEFORE the manifest and before the revision is read, because this may WRITE the
                 # goal: a manifest built first would name a revision and a field set the stored
                 # item no longer has, and the mint's re-check would then kill the approval the
@@ -2446,260 +2544,208 @@ def create_pending_request(
             "subject_manifest_hash": subject_manifest_hash(manifest),
             "created": _now_iso(),
             "expires_at_epoch": time.time() + ttl_seconds,
-            # entropy that lives ONLY in the approval option label (S2b)
-            "mint_code": uuid.uuid4().hex[:6],
+            # entropy that lives ONLY in the approval option label (S2b) -- and, since FR-0095, the
+            # handle the hooks find this request by, so it is unique among the open ones
+            "mint_code": _fresh_mint_code(state),
         }
+        if note:
+            request[NOTE_FIELD] = note
+            request[NOTE_HASH_FIELD] = _note_hash(note)
         state._write_yaml_atomic(_request_path(state, request["request_id"]), request)
         return request
 
 
-def _render_manifest_value(field: str, value) -> str:
-    """One manifest value as the user reads it in the approval question.
+def _render_expiry(value) -> str:
+    """An expiry as the user reads it: `25.09.2026, 14:30 UTC` (FR-0090).
 
-    A list is joined rather than repr'd (`['a', 'b']` in a sentence a human has to judge is
-    noise), and a missing value is shown as missing rather than as `None`.
-
-    The EXPIRY is rendered as a date, in UTC. As an epoch float it is the one field a human
-    cannot judge at all, and it is the field that decides how long a standing spawn permission
-    lasts. UTC rather than local time because this string is compared CHARACTER FOR CHARACTER by
-    the PreToolUse gate, in a different process: a machine whose timezone changed between the
-    request and the answer would otherwise render a different question and the approval could not
-    be completed.
-
-    A DIGEST IS SHORTENED, for the expiry's reason and to the same length the sentence around it
-    already uses for one: `build_question` prints the subject-manifest hash as twelve characters
-    and an ellipsis, so a hashed VALUE reading out in full made the question unreadable exactly
-    where a non-technical user has to judge it -- measured on the `kit_update` manifest, whose two
-    content hashes are 128 of its ~180 characters. It is a property of the value, not a list of
-    fields that carry one, and it is deterministic, which is all the PreToolUse comparison needs.
-    The full value stays in the pending request the question names.
+    UTC and NAMED, because the gate rebuilds the card in another process and compares it character
+    for character -- a local clock would let a timezone change between question and answer make
+    the two differ, and an unnamed UTC time sits up to two hours beside the user's own clock.
+    `tools/test_stream_a_approvals.py::test_an_expiry_reads_as_a_german_date_with_its_zone_named`
     """
+    try:
+        return time.strftime("%d.%m.%Y, %H:%M UTC", time.gmtime(float(value)))
+    except (TypeError, ValueError, OSError, OverflowError):
+        return "unlesbar (%r)" % (value,)
+
+
+def _render_manifest_value(field: str, value) -> str:
+    """One manifest value as a card line shows it: a list joined, a missing value as `-`, the
+    expiry as a date (`_render_expiry`)."""
     if field == EXPIRY_FIELD:
-        try:
-            return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(float(value)))
-        except (TypeError, ValueError, OSError, OverflowError):
-            return "unreadable (%r)" % (value,)
+        return _render_expiry(value)
     if isinstance(value, (list, tuple)):
         return " / ".join(str(entry) for entry in value) or "-"
     if value is None:
         return "-"
-    return "%s…" % str(value)[:DIGEST_SHOWN] if _DIGEST.match(str(value)) else str(value)
+    return str(value)
 
 
-def _push_target_form(manifest: dict) -> str:
-    """A push approval as the human reads it: WHAT gets published, and where.
+def _is_digest(value) -> bool:
+    """A checksum, recognised by BEING one (hex, at least sha1 long) rather than by its field name.
 
-    The generic target would read "push" and the human would be asked to authorise publishing
-    without being told what. The manifest is already in the request and is hash-covered, so naming
-    it here is deterministic (the PreToolUse gate compares this text character for character) and it
-    is the whole point of the rule: "explizite Userfreigabe" means the user knew what they released.
+    FR-0095: a checksum stays in the record the approval binds, never in the text the user reads.
+    A property of the value, so the next hashed field needs no entry anywhere.
     """
-    # in the user's words (BUG-0271): what leaves the machine, from which branch, to where
-    return "den Stand %s des Zweigs „%s“ nach %s" % (str(manifest.get("head", "?"))[:8],
-                                                     manifest.get("branch", "?"),
-                                                     manifest.get("remote", "?"))
+    return bool(_DIGEST.match(str(value)))
 
 
-def _preset_target_form(manifest: dict) -> str:
-    """A preset change as the person deciding it reads it: the team AFTERWARDS, and what goes.
+def _fold(text, limit) -> str:
+    """One line, cut to `limit` with an ellipsis -- for a title, which the item keeps in full."""
+    text = " ".join(str(text or "").split())
+    return text if len(text) <= limit else text[:limit - 1].rstrip() + "…"
 
-    THE GENERIC FORM WAS LITERALLY TRUE AND STILL MISREAD (FR-0027). It rendered the manifest's own
-    keys -- `[preset: duo, removes: -, roles: <six names>]` -- and on the upgrade solo->duo most of
-    those names are already installed, so a non-technical user reads a list of arrivals and a dash.
-    Named as the team the project HAS afterwards, the same list is what the approval actually
-    guarantees, and "entfernt" is the half a preset NAME hides completely.
 
-    WHAT IT DELIBERATELY DOES NOT SAY IS WHICH ROLES ARE NEW (DEC-0048), and that is not a wording
-    choice. The added set is the target minus what is installed, and WHICH OF THE TARGET ROLES ARE
-    ALREADY INSTALLED is the one thing the hashed manifest does not carry. The removed ones it does:
-    `removes` is derived from the installation too (`kernel.presets._plan`), so the hash moves with
-    the installed state -- just not with the part a delta would be computed from.
+def _manifest_lines(manifest: dict) -> list:
+    """Every hashed key of a manifest as `Bezeichnung: Wert`, sorted -- the honest default card.
 
-    Measured against the shipped dev-team presets: `duo` requested from a solo installation and from
-    one that has all the target roles but two produces the SAME subject_manifest_hash while the
-    added set differs, and `set-preset` accepts that one approval in either state
-    (`test_the_added_roles_are_not_what_a_preset_approval_binds` measures both halves -- the
-    manifest, and a real minted approval that still applies after the installation moved). A delta
-    printed here would be the one sentence in this question the user signs and the hash does not
-    cover.
+    WHAT THE HASH COVERS IS WHAT THE USER IS SHOWN, minus two things that are not for reading: a
+    checksum (`_is_digest`) and the expiry, which every card closes with in one place
+    (`_card_lines`). A key `MANIFEST_LABELS` does not know stands under its own name --
+    `tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card` refuses that, so a new
+    key arrives in the table or goes red.
     """
-    return ("die Rollen-Aufstellung '%s' -- danach im Team: %s; entfernt: %s"
-            % (str(manifest.get("preset") or "?"),
-               ", ".join(str(role) for role in (manifest.get("roles") or [])) or "keine",
-               ", ".join(str(role) for role in (manifest.get("removes") or [])) or "keine"))
+    return ["%s: %s" % (MANIFEST_LABELS.get(field, field),
+                        _render_manifest_value(field, manifest[field]))
+            for field in sorted(manifest)
+            if field != EXPIRY_FIELD and field not in SPOKEN_MANIFEST_FIELDS
+            and not _is_digest(manifest[field])]
 
 
-def _filing_correction_target_form(manifest: dict) -> str:
-    """A filing correction as the person deciding it reads it: what happens to which document.
+def _item_records(manifest: dict) -> list:
+    """The records of a manifest's lists that name an ITEM, signed or not -- what a card lists."""
+    records = []
+    for value in (manifest or {}).values():
+        if not isinstance(value, (list, tuple)):
+            continue
+        records.extend(record for record in value
+                       if isinstance(record, dict) and record.get(GOAL_ITEM_FIELD))
+    return records
 
-    THE AUDIENCE IS BUG-0041's, and this is the question with the sharpest consequence any of these
-    forms carries -- the other side of it is a business document that is gone. So the two outcomes
-    are named as what they DO ("wird verschoben nach", "wird gelöscht und ist danach weg") and
-    never as the manifest key that distinguishes them (`destination`, empty or not), which would
-    ask a non-technical user to notice an absence.
 
-    EVERY HASHED KEY IS RENDERED, which is more than `_push_target_form` and `_preset_target_form`
-    manage and is the point of the form existing here at all: the document, the outcome, the reason
-    the user was given, the FASSUNG the approval binds (shortened by `_render_manifest_value` like
-    every other digest in this question), and the expiry the kernel put into the manifest itself.
-    So there is no sentence in this question the hash does not cover, and no key in the hash the
-    question does not show -- DEC-0048's rule, taken in its constructive direction.
+def _signed_records(manifest: dict) -> list:
+    """The records of a manifest that are signed statements about an ITEM -- see `listed_items`."""
+    return [record for record in _item_records(manifest) if record.get(GOAL_SCOPE_HASH_FIELD)]
 
-    The bracket states what the approval is worth and no more: it covers this version of this
-    document, and only until its clock runs out. It does NOT promise the command can be run only
-    once -- a command that FAILS leaves the document where it was, and there the approval still
-    stands. Everything after the outcome is inside ONE bracket because `build_question` puts this
-    text into the middle of two sentences of its own; a form built out of full stops read as
-    fragments in both of them.
+
+# The keys of a signed record that bind rather than describe: the card names the item by id and
+# title and says every OTHER key in words (`_entry_line`).
+_BINDING_RECORD_KEYS = frozenset((GOAL_ITEM_FIELD, "title", "revision", GOAL_SCOPE_HASH_FIELD))
+
+
+def _entry_line(record: dict) -> str:
+    """One listed item as its card line: `ID „Kurztitel“`, then what the record says beside it.
+
+    ONE READER FOR EVERY LIST-BOUND KIND (`plan`, `verification`, `hole_exception`, `scope --batch`)
+    rather than a form per kind: the proof a closed bug stands on (DEC-0100 (2)) and the bound an
+    accepted gap stands on are just further keys of the record, spoken with their German label.
     """
-    document = manifest.get("document") or "?"
+    title = _fold(record.get("title"), TITLE_SHOWN)
+    line = "%s „%s“" % (record[GOAL_ITEM_FIELD], title) if title else str(record[GOAL_ITEM_FIELD])
+    extra = ["%s: %s" % (MANIFEST_LABELS.get(key, key), _render_manifest_value(key, record[key]))
+             for key in sorted(record)
+             if key not in _BINDING_RECORD_KEYS and record[key] not in (None, "")]
+    return "%s — %s" % (line, "; ".join(extra)) if extra else line
+
+
+def _item_line(request: dict) -> str:
+    """The item as its card line: `ID „Kurztitel“`, or the id alone for a request stored before
+    titles travelled in it (BUG-0271)."""
+    title = _fold(request.get("item_title"), TITLE_SHOWN)
+    return "%s „%s“" % (request["item"], title) if title else str(request["item"])
+
+
+def _push_lines(manifest: dict) -> list:
+    """A push as what leaves the machine: which branch, to where. The commit it is bound to stays
+    in the record -- a moved HEAD kills the approval (`push_subject_manifest`)."""
+    return ["der Zweig „%s“ wird nach „%s“ veröffentlicht" % (manifest.get("branch") or "?",
+                                                             manifest.get("remote") or "?"),
+            "gilt nur für den jetzigen Stand dieses Zweigs"]
+
+
+def _preset_lines(manifest: dict) -> list:
+    """The team AFTERWARDS and what goes -- never which roles are new, because which target roles
+    are already installed is the one thing the hash does not bind (DEC-0048, FR-0027;
+    `test_the_added_roles_are_not_what_a_preset_approval_binds`)."""
+    return ["Rollen-Aufstellung „%s“" % (manifest.get("preset") or "?"),
+            "danach im Team: %s" % (", ".join(str(r) for r in (manifest.get("roles") or []))
+                                    or "keine"),
+            "entfernt: %s" % (", ".join(str(r) for r in (manifest.get("removes") or [])) or "keine")]
+
+
+def _filing_correction_lines(manifest: dict) -> list:
+    """What happens to which document, named as what it DOES (BUG-0041): moved, or deleted and
+    gone. The version it binds is the record's checksum; the card says that it binds one."""
     destination = manifest.get("destination") or ""
-    reason = manifest.get("reason") or "kein Grund angegeben"
     outcome = ("wird verschoben nach »%s«" % destination if destination
                else "wird GELÖSCHT und ist danach weg")
-    return ("eine Korrektur der Ablage: das Dokument »%s« %s (Grund: %s; die Freigabe gilt nur für "
-            "genau diese Fassung des Dokuments, Prüfsumme %s, und nur bis %s)"
-            % (document, outcome, reason,
-               _render_manifest_value("content", manifest.get("content")),
-               _render_manifest_value(EXPIRY_FIELD, manifest.get(EXPIRY_FIELD))))
+    return ["das Dokument »%s« %s" % (manifest.get("document") or "?", outcome),
+            "Grund: %s" % (manifest.get("reason") or "kein Grund angegeben"),
+            "gilt nur für genau die jetzige Fassung dieses Dokuments"]
 
 
-# WHICH KINDS GET A FORM BUILT FOR READING, keyed by kind because that is what such a form belongs
-# to: each of these manifests is a different subject, and the readable shape of one says nothing
-# about another. The generic branch in `build_question` renders the manifest's own keys and stays
-# the honest default for every kind with no entry here -- so an entry may only ever shorten the
-# distance between what the hash covers and what the user reads, never add to it.
-# `test_every_target_form_names_a_live_apr_kind` keeps an entry from outliving its kind.
-def _filing_rule_target_form(manifest: dict) -> str:
-    """A new Aktenplan rule as the person deciding it reads it: what lands where, named how, kept.
-
-    THE AUDIENCE IS BUG-0041's, and this question is the one that decides where every FUTURE
-    document of a class goes -- so it is written as what will happen ("werden ab jetzt … abgelegt")
-    rather than as the five manifest keys that say it. EVERY hashed key is rendered, including the
-    id (the handle an amendment later names) and the expiry the kernel put into the manifest
-    itself: no sentence here the hash does not cover, no key in the hash this does not show.
-
-    The bracket states what the approval is worth and no more: ONE rule ADDED to the plan. It does
-    not change an existing rule and it files no document -- `gate_filing` still decides every move
-    against the plan as it then stands, which is what makes this a small permission rather than a
-    standing one.
-    """
-    return ("eine neue Regel im Ablageplan (%s): %s werden ab jetzt unter »%s« abgelegt und nach "
-            "dem Muster »%s« benannt, Aufbewahrung: %s (Grund: %s; die Freigabe FÜGT diese eine "
-            "Regel HINZU, ändert keine bestehende und legt selbst kein Dokument ab, und sie gilt "
-            "nur bis %s)"
+def _filing_rule_lines(manifest: dict) -> list:
+    """A new Aktenplan rule as what will happen to every future document of its classes."""
+    retention = ("keine zählbare Frist" if "retention" in manifest and not manifest["retention"]
+                 else manifest.get("retention") or "?")      # BUG-0213: empty reads as a decision
+    return ["neue Regel „%s“ im Ablageplan: %s werden ab jetzt unter »%s« abgelegt"
             % (manifest.get("rule_id") or "?",
                ", ".join(manifest.get("document_types") or []) or "Dokumente",
-               manifest.get("path_template") or "?",
-               manifest.get("filename_template") or "?",
-               # The empty retention is the plan's second honest form and it has to READ like a
-               # decision, not like a missing answer -- the question is what the user signs
-               # (BUG-0213). `?` stays for a manifest that carries no key at all.
-               ("keine zählbare Frist" if "retention" in manifest and not manifest["retention"]
-                else manifest.get("retention") or "?"),
-               manifest.get("reason") or "kein Grund angegeben",
-               _render_manifest_value(EXPIRY_FIELD, manifest.get(EXPIRY_FIELD))))
+               manifest.get("path_template") or "?"),
+            "benannt nach dem Muster »%s«" % (manifest.get("filename_template") or "?"),
+            "Aufbewahrung: %s" % retention,
+            "Grund: %s" % (manifest.get("reason") or "kein Grund angegeben"),
+            "die Freigabe FÜGT diese eine Regel HINZU, ändert keine bestehende und legt selbst "
+            "kein Dokument ab"]
 
 
-def _document_proposal_target_form(manifest: dict) -> str:
-    """A staged proposal as the person deciding it reads it: which document gains what, and why.
+def _document_proposal_lines(manifest: dict) -> list:
+    """A staged addition: which document gains what, and the limit of what the card shows.
 
-    THE AUDIENCE IS BUG-0041's, and what this question replaces is that user COPYING the staged file
-    into the document by hand, four times in one day (BUG-0071). So it is written as what will
-    happen to which file, EVERY hashed key is rendered -- both paths, every change descriptor, the
-    reason, both checksums and the expiry the kernel put into the manifest -- and no sentence here
-    is one the hash does not cover.
-
-    THE BRACKET SAYS WHAT THE APPROVAL IS WORTH AND NO MORE, and one clause of it is a LIMIT rather
-    than a reassurance. THE LIMIT IS NARROWER THAN IT READ, and that correction is the point of this
-    paragraph: it holds for ENTRIES ADDED TO A LIST and for nothing else. `documents.compare` shows
-    a newly FILLED field and a NEW KEY with their value, and a new COMMENT in its wording; only a
-    list is summarised as a count, because showing every field of every added record would put the
-    file into the card. The sentence used to say "WELCHE Werte hinzukommen" about all of them, so
-    one card could carry `tone: gefüllt mit <sentence>` two lines above a clause telling the user
-    that no value is in this question -- an untrue reassurance standing beside the very value it
-    denied (verifier finding F2, measured on one card).
-
-    WHAT IS NOT UNDER THAT LIMIT IS PROSE, and it is now said in the same clause rather than after
-    it. A comment the proposal ADDS stands in the list above in full (folded like every other
-    descriptor), because these documents are read by roles as instructions: verifier finding B2
-    staged a legitimate fill plus a comment line addressed to "JEDE ROLLE, DIE DIESE DATEI LIEST",
-    and the card named the fill and nothing else. A record in a list the user can look up in the
-    file; a word written to steer the next reader has to be in the question that authorises it.
-
-    Both directions are measured by
-    `tools/test_kernel.py::test_the_card_only_claims_a_value_is_missing_where_the_value_really_is`.
+    The limit line is a LIMIT, not a reassurance, and it is exactly as narrow as it is true: only
+    entries ADDED TO A LIST stand in the proposal file instead of here (verifier findings F2/B2;
+    `tools/test_kernel.py::test_the_card_only_claims_a_value_is_missing_where_the_value_really_is`).
     """
-    return ("eine Ergänzung des Dokuments »%s« aus dem Vorschlag »%s«: %s (Grund: %s; die Freigabe "
-            "FÜGT nur HINZU -- sie ändert nichts Bestehendes und löscht nichts, auch keinen "
-            "Kommentar; sie gilt für genau diese Fassung des Dokuments (Prüfsumme %s) und genau "
-            "diesen Vorschlag (Prüfsumme %s), und nur bis %s. WELCHE EINTRÄGE zu einer Liste "
-            "hinzukommen, steht in der Vorschlagsdatei und nicht in dieser Frage -- die Freigabe "
-            "bindet deren Prüfsumme; alles andere, was neu ist, steht oben im Wortlaut: ein neu "
-            "GEFÜLLTES Feld, ein NEUER Schlüssel und ein neu hinzukommender KOMMENTAR, weil ein "
-            "Satz in so einer Datei von jeder Rolle gelesen wird, die damit arbeitet)"
-            % (manifest.get("kit_document") or "?", manifest.get("proposal") or "?",
-               ", ".join(manifest.get("changes") or []) or "nichts",
-               manifest.get("reason") or "kein Grund angegeben",
-               _render_manifest_value("base", manifest.get("base")),
-               _render_manifest_value("proposed", manifest.get("proposed")),
-               _render_manifest_value(EXPIRY_FIELD, manifest.get(EXPIRY_FIELD))))
+    return (["Ergänzung des Dokuments »%s« aus dem Vorschlag »%s«"
+             % (manifest.get("kit_document") or "?", manifest.get("proposal") or "?")]
+            + ["neu: %s" % change for change in (manifest.get("changes") or [])]
+            + ["Grund: %s" % (manifest.get("reason") or "kein Grund angegeben"),
+               "die Freigabe FÜGT nur HINZU -- sie ändert nichts Bestehendes und löscht nichts, "
+               "auch keinen Kommentar",
+               "WELCHE EINTRÄGE zu einer Liste hinzukommen, steht in der Vorschlagsdatei und "
+               "nicht in dieser Frage; alles andere, was neu ist, steht hier im Wortlaut: ein neu "
+               "GEFÜLLTES Feld, ein NEUER Schlüssel und ein neu hinzukommender KOMMENTAR",
+               "gilt nur für genau die jetzige Fassung des Dokuments und genau diesen Vorschlag"])
 
 
-def _document_revision_target_form(manifest: dict) -> str:
-    """A staged revision as the person deciding it reads it: what is UNSAID, then what changes.
-
-    THE DELETIONS COME FIRST AND ARE NAMED AS SUCH. A replaced value still leaves a value in the
-    document that the user can look at afterwards; a deleted one exists nowhere any more -- there
-    is no second copy and no revision number to go back to. That is the loudness FR-0067 asks for,
-    and it is structure rather than tone: the card reads the deletions out of their own key of the
-    manifest, so a spot cannot be quietly filed under the softer heading.
-
-    EVERY SPOT STANDS IN THE QUESTION, in full and never as a number. That is this card's whole
-    reason to exist -- the additive card may name a place because nothing is being unsaid, and
-    here it would ask the user to sign the disappearance of a sentence they were never shown. Both
-    halves are measured:
-    `tools/test_approvals_dispatch.py::test_a_revision_card_shows_every_spot_and_is_never_a_count`
-    for the order and the refusal over the bound, and
-    `tools/test_kernel.py::test_the_question_a_document_revision_asks_shows_every_field_the_hash_covers`
-    for the rule that nothing the hash binds may be missing from the sentence.
-    """
-    deletions = manifest.get("deletions") or []
-    replacements = manifest.get("replacements") or []
-    additions = manifest.get("additions") or []
-    return ("eine Überarbeitung des Dokuments »%s« aus dem Vorschlag »%s«: %s%s%s (Grund: %s; "
-            "diese Freigabe ist die einzige, die etwas ÜBERSCHREIBT oder LÖSCHT, was in dem "
-            "Dokument schon steht -- was gelöscht wird, steht danach nirgendwo mehr, und jede "
-            "betroffene Stelle steht oben im Wortlaut, alt und neu, niemals als Anzahl. Sie gilt "
-            "für genau diese Fassung des Dokuments (Prüfsumme %s) und genau diesen Vorschlag "
-            "(Prüfsumme %s), und nur bis %s)"
-            % (manifest.get("kit_document") or "?", manifest.get("proposal") or "?",
-               ("GELÖSCHT WIRD: %s. " % "; ".join(deletions)) if deletions else "",
-               ("ERSETZT WIRD: %s. " % "; ".join(replacements)) if replacements else "",
-               ("Außerdem kommt hinzu: %s." % "; ".join(additions)) if additions else "",
-               manifest.get("reason") or "kein Grund angegeben",
-               _render_manifest_value("base", manifest.get("base")),
-               _render_manifest_value("proposed", manifest.get("proposed")),
-               _render_manifest_value(EXPIRY_FIELD, manifest.get(EXPIRY_FIELD))))
+def _document_revision_lines(manifest: dict) -> list:
+    """A staged revision: what is UNSAID first, then what changes -- every spot in full, never a
+    count (FR-0067; `test_a_revision_card_shows_every_spot_and_is_never_a_count`)."""
+    return (["Überarbeitung des Dokuments »%s« aus dem Vorschlag »%s«"
+             % (manifest.get("kit_document") or "?", manifest.get("proposal") or "?")]
+            # one line per KIND of change, its spots joined as the planner wrote them: a
+            # replacement is two descriptors (the old wording and the new one) of ONE spot
+            + ["%s: %s" % (heading, "; ".join(manifest.get(key) or []))
+               for heading, key in (("GELÖSCHT WIRD", "deletions"),
+                                    ("ERSETZT WIRD", "replacements"),
+                                    ("außerdem neu", "additions"))
+               if manifest.get(key)]
+            + ["Grund: %s" % (manifest.get("reason") or "kein Grund angegeben"),
+               "diese Freigabe ist die einzige, die etwas ÜBERSCHREIBT oder LÖSCHT, was in dem "
+               "Dokument schon steht -- was gelöscht wird, steht danach nirgendwo mehr",
+               "gilt nur für genau die jetzige Fassung des Dokuments und genau diesen Vorschlag"])
 
 
-TARGET_FORMS = {"push": _push_target_form, "preset": _preset_target_form,
-                PLAN_KIND: _plan_target_form,
-                "filing_correction": _filing_correction_target_form,
-                "filing_rule": _filing_rule_target_form,
-                "document_proposal": _document_proposal_target_form,
-                "document_revision": _document_revision_target_form,
-                VERIFICATION_KIND: _verification_target_form,
-                HOLE_EXCEPTION_KIND: _hole_exception_target_form}
-# WHERE A SUBJECT IS TOO LONG FOR THE SENTENCE, and what carries it instead. `build_question` puts
-# the sentence's target into the approving option too, which is right for every kind whose subject
-# fits in one line; a kind listed here renders a SECOND, fuller form for the option -- the text
-# `gate_approval` compares character for character -- while the sentence stays readable. A kind
-# absent from this table renders one text in both places, exactly as before, which is what
-# `tools/test_approvals_dispatch.py::test_only_a_kind_with_its_own_option_form_reads_differently_in_the_two_places`
-# holds from both ends.
-OPTION_FORMS = {VERIFICATION_KIND: _verification_option_form,
-                HOLE_EXCEPTION_KIND: _hole_exception_option_form}
+# THE KINDS WHOSE SUBJECT IS A MANIFEST WITH A SHAPE OF ITS OWN, keyed by kind because that is what
+# such a shape belongs to. Every other item-less kind reads through `_manifest_lines`, every item
+# through `_item_line`, every list through `_entry_line`. `tools/test_stream_a_approvals.py::
+# test_every_kind_reads_as_a_calm_card` renders every kind, so an entry here that outlives its kind or
+# a kind that reads badly without one shows there.
+SUBJECT_LINES = {"push": _push_lines, "preset": _preset_lines,
+                 "filing_correction": _filing_correction_lines,
+                 "filing_rule": _filing_rule_lines,
+                 "document_proposal": _document_proposal_lines,
+                 "document_revision": _document_revision_lines}
 
 
 def kind_label(kind: str) -> str:
@@ -2716,103 +2762,74 @@ def kind_label(kind: str) -> str:
                       "Programm die Bezeichnung in Klartext. " + NEXT_START_OVER) from None
 
 
-def _item_target(request: dict) -> str:
-    """The item as the user reads it: its title in quotation marks with the id behind it, or the id
-    alone for a request stored before titles travelled in it."""
-    title = str(request.get("item_title") or "")
-    return "„%s“ (%s)" % (title, request["item"]) if title else str(request["item"])
+def _card_lines(request: dict) -> list:
+    """The list under the card's first line: what is being approved, one line per thing.
+
+    THREE SHAPES OF SUBJECT, asked of the request rather than of the kind's name: a manifest that
+    lists signed item records is a LIST (one `_entry_line` each -- the list wins over an item
+    standing beside it, BUG-0271's two-subjects finding); a request with an item names it
+    (`_item_line`), and a kind whose manifest is NOT the item's own content (a routine) says that
+    manifest too; an item-less kind reads its manifest (`SUBJECT_LINES`, else `_manifest_lines`).
+    A WARNING the manifest carries (`SPOKEN_MANIFEST_FIELDS`, DEC-0113) is always a line of its own
+    (`_manifest_lines` leaves it out so it is said once), and every time-boxed card closes with its
+    expiry.
+    An item-less card lists an UNSIGNED item record too (`_item_records`): what binds is the
+    record's own hash, not the card's reading of it, and `_manifest_lines` would otherwise show the
+    record as a Python dict under its English key
+    (`tools/test_stream_a_approvals.py::test_an_unsigned_item_record_reads_as_a_list_line`). With an
+    item beside it, only a signed list wins, so an item's own content never replaces its line.
+    """
+    kind = request["kind"]
+    manifest = request.get("subject_manifest") or {}
+    records = _signed_records(manifest) or ([] if request.get("item")
+                                            else _item_records(manifest))
+    if records:
+        lines = [_entry_line(record) for record in records]
+    elif request.get("item"):
+        lines = [_item_line(request)]
+        if kind not in item_derived_kinds():
+            lines += _manifest_lines(manifest)
+    else:
+        form = SUBJECT_LINES.get(kind)
+        lines = form(manifest) if form is not None else _manifest_lines(manifest)
+    spoken = ["ACHTUNG — %s: %s" % (MANIFEST_LABELS.get(field, field),
+                                   _render_manifest_value(field, manifest[field]))
+              for field in sorted(SPOKEN_MANIFEST_FIELDS) if field in manifest]
+    lines += spoken
+    if EXPIRY_FIELD in manifest:
+        lines.append("%s: %s" % (MANIFEST_LABELS[EXPIRY_FIELD],
+                                 _render_expiry(manifest[EXPIRY_FIELD])))
+    return lines
 
 
 def build_question(request: dict) -> dict:
-    """The COMPLETE approval question, deterministic from the request alone.
+    """The COMPLETE approval question -- the calm card (FR-0095) -- deterministic from the request.
 
-    The model must relay this verbatim; the PreToolUse hook enforces string
-    equality of question text, header AND all options for marked questions.
+    The model must relay this verbatim; `gate_approval` compares question text, header AND every
+    option character for character, rebuilt from the stored request in another process.
 
-    WHAT STANDS IN THE SENTENCE AND WHAT MOVED OUT OF IT (BUG-0271, PR-0011 AC-7): the sentence
-    names the kind in plain words (`KIND_LABELS`), the item by its title (`_item_target`) or the
-    manifest with German labels (`MANIFEST_LABELS`), the revision, and the request marker the
-    gate resolves the request by -- the one machine token that cannot leave, because
-    `gate_approval.MARKER_RX` reads it off the question. The manifest hash and the request's file
-    path moved into the DESCRIPTION of the approving option, where the same gate still compares
-    them character for character (`_mismatch` walks every option key) --
-    `tools/test_hooks_v2.py::test_a_tampered_option_description_is_blocked_too`.
+    WHAT THE USER READS: `Freigabe erbeten für <Art>`, the list of what is approved (`_card_lines`),
+    and the assistant's own explanation (`NOTE_FIELD`) marked as the assistant's. WHAT LEFT THE READ
+    TEXT: the request id, the request's path and every checksum -- they bind from the record, and
+    the one machine token left on the card is the mint code in the approving label, which is what
+    the hooks resolve the request by (`pending_request_by_code`).
+    `tools/test_stream_a_approvals.py::test_every_kind_reads_as_a_calm_card`
     """
     label = kind_label(request["kind"])
-    target = _item_target(request) if request["item"] else label
-    # THE KIND'S OWN FORM WINS OVER AN ITEM STANDING BESIDE IT (BUG-0271, round 1 of TSK-0141's
-    # verification). This asked "is there an item" first, so a request of a LIST-BOUND kind that
-    # carried one described THE ITEM in the sentence while the approving option bound THE LIST --
-    # two different subjects in one question, and the option is the thing that mints. A kind with
-    # an entry in `TARGET_FORMS` has a form because its subject is not an item; asking the table
-    # first is what keeps the two texts about one thing.
-    # `tools/test_light_kit.py::test_a_list_bound_question_reads_in_the_right_numerus_and_names_the_same_subject_as_its_card`
-    form = TARGET_FORMS.get(request["kind"])
-    if form is not None:
-        target = form(request.get("subject_manifest") or {})
-    elif request["kind"] == ROUTINE_KIND or request["item"] is None:
-        # WHAT THE HASH COVERS IS WHAT THE USER IS SHOWN, and the condition is that property rather
-        # than the kinds it happens to hold for today. A request whose subject is a MANIFEST -- a
-        # routine permission hanging from an item it is not about, or any kind with no item at all
-        # -- renders that manifest, because the generic line would otherwise ask the user to sign a
-        # bare kind name. This used to name `routine` alone, so every future item-less kind
-        # inherited the bare line; `preset` is the one that would have asked a non-technical user
-        # to approve the word "team" (BUG-0041). A kind with an entry in `TARGET_FORMS` never
-        # reaches here, which is why this branch may widen without changing those questions.
-        # A routine approval is a STANDING, recurring spawn permission, and
-        # what the dispatch route binds it to is the manifest -- the role first of all. Asked as
-        # "Freigabe erbeten: routine für PR-0001" the user was signing a role they were never
-        # shown, for a period they were never shown either.
-        # EVERY KEY OF THE HASHED MANIFEST is rendered, sorted, rather than the four of
-        # `ROUTINE_MANIFEST_FIELDS`: those are what a CALLER must provide, while the manifest also
-        # carries the expiry the kernel adds -- and for a time-boxed permission that is the field
-        # the user most needs to judge. Reading the manifest itself makes "what the hash covers"
-        # literally what is shown, and a key added on either side appears with no second edit.
-        # Deterministic from the request alone, which the PreToolUse gate needs (it rebuilds this
-        # text and compares it character for character), and it carries no mint code -- that lives
-        # only in the option label.
-        manifest = request.get("subject_manifest") or {}
-        rendered = "[%s]" % ", ".join(
-            "%s: %s" % (MANIFEST_LABELS.get(field, field), _render_manifest_value(field, manifest[field]))
-            for field in sorted(manifest))
-        # The kind is already the first half of the sentence this goes into, so an item-less
-        # request shows the manifest ALONE -- naming the kind again in front of it says the word
-        # twice and reads like a machine to the person who has to judge it. With an item, the
-        # item stays in front of the manifest: that is what a routine approval hangs from.
-        target = ("%s %s" % (target, rendered)) if request["item"] else rendered
-    # A WARNING THE SENTENCE SAYS ITSELF (`SPOKEN_MANIFEST_FIELDS`), appended to whatever target
-    # the branches above produced -- so it reaches the kinds that name an item as well as the ones
-    # that render their manifest. A kind whose generic branch already rendered the whole manifest
-    # would say it twice, which is why the fields already IN the target are dropped here.
-    spoken = ["%s: %s" % (MANIFEST_LABELS.get(field, field),
-                          _render_manifest_value(field, (request.get("subject_manifest") or {})[field]))
-              for field in sorted(SPOKEN_MANIFEST_FIELDS)
-              if field in (request.get("subject_manifest") or {})]
-    spoken = [entry for entry in spoken if entry not in target]
-    if spoken:
-        target = "%s -- ACHTUNG: %s" % (target, "; ".join(spoken))
-    revision = ("" if request["revision"] is None
-                else " (Revision %s)" % request["revision"])
-    question = "Freigabe erbeten: %s für %s%s. [APR-REQ:%s]" % (
-        label, target, revision, request["request_id"])
-    # THE OPTION MAY CARRY MORE THAN THE SENTENCE (`OPTION_FORMS`), never less: it is the compared
-    # carrier of everything a sentence a human has to read cannot hold -- the manifest hash and the
-    # request's path already, and for a list-bound subject the list itself.
-    option_form = OPTION_FORMS.get(request["kind"])
-    option_target = (option_form(request.get("subject_manifest") or {})
-                     if option_form is not None else target)
+    parts = [CARD_PREFIX + label,
+             "\n".join("- %s" % line for line in _card_lines(request))]
+    note = request.get(NOTE_FIELD)
+    if note:
+        parts.append("Erklärung deines Assistenten: %s" % note)
     return {
-        "question": question,
+        "question": "\n\n".join(parts),
         "header": "Freigabe",
         "multiSelect": False,
         "options": [
             {
                 "label": approve_label(request["mint_code"]),
-                "description": "Erteilt die Freigabe „%s“ für %s in exakt dieser Fassung -- nur "
-                "diese Option prägt sie. Gebunden an Prüfsumme %s… (Anfrage "
-                "approvals/pending/%s.yaml)."
-                % (label, option_target, request["subject_manifest_hash"][:DIGEST_SHOWN],
-                   request["request_id"]),
+                "description": "Ja -- so habe ich es verstanden, und so gebe ich es frei. Nur "
+                               "diese Antwort erteilt die Freigabe.",
             },
             {
                 "label": _CHANGE_LABEL,
@@ -2984,7 +3001,9 @@ def approval_card(apr: dict, state: ProjectState = None) -> str:
         except (ApprovalError, StateError, OSError):
             listed = ()
         if listed:
-            subject = "die %d Einträge ihrer Liste" % len(listed)
+            # the singular carries no digit (BUG-0271: "die 1 Einträge" is what a batch of one read)
+            subject = ("den einen Eintrag ihrer Liste" if len(listed) == 1
+                       else "die %d Einträge ihrer Liste" % len(listed))
     return "Freigabe %s (%s) für %s. %s" % (
         apr.get("id"), apr.get("kind"), subject or "keinen Vorgang", origin)
 
@@ -3406,6 +3425,10 @@ def mint(state: ProjectState, request_id: str, answer: str) -> dict:
             EXPIRY_FIELD: (request.get("subject_manifest") or {}).get(EXPIRY_FIELD),
             "revoked": False,
         }
+        if request.get(NOTE_HASH_FIELD):
+            # WHAT THE ASSISTANT SAID ON THE CARD, as its hash -- `consumed_request` holds the two
+            # together, so a note rewritten after the click grants nothing (`NOTE_FIELD`)
+            apr[NOTE_HASH_FIELD] = request[NOTE_HASH_FIELD]
         state._write_yaml_atomic(
             os.path.join(state.root, "approvals", apr_id + ".yaml"), apr
         )
@@ -3793,10 +3816,10 @@ def withdraw_request(state: ProjectState, request_id: str, reason: str) -> dict:
 def pending_request(state: ProjectState, request_id: str, now=None) -> dict:
     """A PENDING approval request, or ApprovalError — the reader the hooks use.
 
-    The PreToolUse(AskUserQuestion) gate resolves `[APR-REQ:<id>]` back to its
-    request and rebuilds `build_question(request)` for the string comparison, so
-    that lookup needs one public, fail-closed home rather than a hook reaching
-    into a private path helper. The TTL check lives here too, for the same reason.
+    `pending_request_by_code` resolves a card's mint code to a request id and ends
+    here, so the lookup the hooks rely on has one public, fail-closed home rather
+    than a hook reaching into a private path helper. The TTL check lives here too,
+    for the same reason.
 
     `now` is handed straight to `has_expired`; left out, the wall clock answers. Its reason is
     that function's, not this one's.
@@ -3830,6 +3853,67 @@ def pending_request(state: ProjectState, request_id: str, now=None) -> dict:
                       "geantwortet hast. " + NEXT_START_OVER
         )
     return request
+
+
+def pending_request_by_code(state: ProjectState, mint_code: str, now=None) -> dict:
+    """The PENDING request a card's mint code names, or ApprovalError -- what the hooks resolve by.
+
+    FR-0095 took the request id out of the text the user reads; the approving label's code is the
+    one machine token left on the card, and `_fresh_mint_code` keeps it unique among the open
+    requests. A code that names no open request is told apart the way `pending_request` tells it
+    apart -- answered, revoked, withdrawn, or gone -- by finding the request it belonged to.
+    `tools/test_stream_a_approvals.py::test_a_card_is_found_by_its_mint_code_and_an_answered_one_says_so`
+    """
+    code = str(mint_code or "")
+    matches = [record for record in _requests_in(state, _pending_dir(state))
+               if str(record.get("mint_code")) == code]
+    if len(matches) > 1:
+        raise ApprovalError(
+            "%d pending requests carry the mint code %s, so the card does not name one -- "
+            "fail-closed. Remedy: withdraw them and ask again (`withdraw-request`)."
+            % (len(matches), code),
+            user_text="Es wurde keine Freigabe erteilt: die Frage lässt sich keiner einzelnen "
+                      "Anfrage zuordnen. " + NEXT_START_OVER)
+    if matches:
+        return pending_request(state, str(matches[0].get("request_id")), now)
+    for directory in (_consumed_dir(state), _revoked_dir(state), _withdrawn_dir(state)):
+        gone = [record for record in _requests_in(state, directory)
+                if str(record.get("mint_code")) == code]
+        if len(gone) == 1:
+            return pending_request(state, str(gone[0].get("request_id")), now)
+    raise ApprovalError(
+        "no pending approval request carries the mint code %s (%s). Remedy: run the kernel "
+        "approval flow again -- an invented code never mints." % (code, _ends_a_request_can_have()),
+        user_text="Es wurde keine Freigabe erteilt: zu dieser Frage ist keine Freigabe-Anfrage mehr "
+                  "offen — sie ist abgelaufen oder wurde nie angelegt. " + NEXT_START_OVER)
+
+
+def pending_request_by_text(state: ProjectState, text: str, now=None):
+    """The OPEN request whose card reads exactly `text`, or None -- the fallback for a card whose
+    approving option was relabelled, so the gate can still name what differs (`CARD_PREFIX`)."""
+    for request in open_requests(state, now):
+        try:
+            if build_question(request)["question"] == text:
+                return request
+        except ApprovalError:
+            continue
+    return None
+
+
+def card_mint_codes(question) -> tuple:
+    """The mint codes of this question's approving options, sorted -- () when it has none.
+
+    What makes a question an APPROVAL question since FR-0095: an option labelled exactly as
+    `approve_label` writes it. A question without one cannot mint whatever it says, so it is none of
+    the approval gate's business -- the asymmetry the marker used to carry. More than one code is a
+    card that names no single request, and the caller refuses it.
+    """
+    options = question.get("options") if isinstance(question, dict) else None
+    return tuple(sorted({match.group(1)
+                         for option in (options if isinstance(options, list) else [])
+                         if isinstance(option, dict)
+                         for match in [APPROVE_LABEL_RX.match(str(option.get("label") or ""))]
+                         if match}))
 
 
 def open_requests(state: ProjectState, now=None) -> list:
@@ -3957,7 +4041,8 @@ def consumed_request(state: ProjectState, apr: dict) -> dict:
                       "die Form, in der er angelegt wird. Er wird als unbrauchbar behandelt, nicht "
                       "als Zustimmung.",
         )
-    for field in ("mint_code", "subject_manifest_hash", "kind", "item", "revision"):
+    for field in ("mint_code", "subject_manifest_hash", "kind", "item", "revision",
+                  NOTE_HASH_FIELD):
         if request.get(field) != apr.get(field):
             raise ApprovalError(
                 "approval %s disagrees with its minted request on %s -- the "
@@ -3982,6 +4067,17 @@ def consumed_request(state: ProjectState, apr: dict) -> dict:
             user_text="Es wurde keine Freigabe erteilt: der Nachweis zu dieser Freigabe passt "
                       "nicht mehr zu seiner eigenen Pruefsumme, wurde also nach deiner Zustimmung "
                       "veraendert. Es wird neu gefragt.",
+        )
+    # ...AND THE ASSISTANT'S WORDS THE USER READ ON THE CARD (FR-0095), recomputed for the same
+    # reason: both stored hashes survive an edit of the note itself
+    if ((request.get(NOTE_FIELD) or request.get(NOTE_HASH_FIELD))
+            and _note_hash(request.get(NOTE_FIELD)) != request.get(NOTE_HASH_FIELD)):
+        raise ApprovalError(
+            "consumed request %s carries a note that does not hash to its recorded note hash -- "
+            "the words the user read were changed after the answer, so the approval grants nothing "
+            "(fail-closed). Remedy: re-run the approval flow." % request_id,
+            user_text="Es wurde keine Freigabe erteilt: die Erklärung, die du zu dieser Freigabe "
+                      "gelesen hast, wurde danach verändert. Es wird neu gefragt.",
         )
     return request
 

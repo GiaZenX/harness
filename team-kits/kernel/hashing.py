@@ -153,6 +153,27 @@ def prune_transient(*roots):
                     os.remove(os.path.join(current, name))
 
 
+def transient_entries(root: str):
+    """The tool leftovers `prune_transient` would take out of `root`, as relative posix names.
+
+    The same walk and the same two conditions, asked without deleting -- so a door that prunes can
+    say what it removed, and a caller can tell "nothing to prune" from "pruned". A cache directory
+    is one entry (its contents go with it), exactly as the prune treats it.
+    """
+    found = []
+    if not os.path.isdir(root):
+        return found
+    for current, dirs, files in os.walk(root, topdown=True):
+        for name in sorted(dirs):
+            if name in TRANSIENT_DIRS:
+                found.append(os.path.relpath(os.path.join(current, name), root).replace(os.sep, "/"))
+        dirs[:] = [name for name in dirs if name not in TRANSIENT_DIRS]
+        for name in sorted(files):
+            if name.endswith(BYTECODE_SUFFIXES):
+                found.append(os.path.relpath(os.path.join(current, name), root).replace(os.sep, "/"))
+    return sorted(found)
+
+
 def is_kit_dir(path: str) -> bool:
     """Is this `team-kits/` entry a KIT — a team of its own — rather than shared harness input?
 

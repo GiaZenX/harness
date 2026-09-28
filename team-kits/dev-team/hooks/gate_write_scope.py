@@ -38,9 +38,10 @@ it, and not a second time here, where the last widening of it left this table a 
                             `python scripts/harness.py doctor` from reporting that capability
                             green.
                          4. a SUBAGENT may not run the harness commands that ORDER work, nor the
-                            ones that INSTALL THE ENFORCEMENT LAYER. Two derived classes, one
-                            rule: see `_ORDERING_COMMANDS` and `_INSTALLING_COMMANDS` for what
-                            each is and how narrow it is. The constitution row the first makes
+                            ones that INSTALL THE ENFORCEMENT LAYER, nor an `upkeep` door but
+                            the one on its own role's memory. Three classes, one rule: see
+                            `_ORDERING_COMMANDS`, `_INSTALLING_COMMANDS` and `_UPKEEP_COMMANDS`
+                            for what each is and how narrow it is. The constitution row the first makes
                             true is the DELEGATE/ROUTE step of every kit's work loop, which
                             reserves creating the `TSK` to the lead.
                          5. the LEAD lands no production code through a shell REDIRECT. Same file
@@ -805,6 +806,9 @@ def _has_write_flag(verb, tokens):
 _READ_ONLY_GIT = frozenset((
     "diff", "log", "show", "status", "grep", "ls-files", "blame", "cat-file", "rev-parse",
     "describe", "shortlog", "config", "add",
+    # the two attribute/ignore QUERIES: they print how git reads a path and write nothing
+    # (BUG-0316 -- refused on a protected path while a session checked its `.gitattributes`)
+    "check-attr", "check-ignore",
 ))
 # git's global options that CONSUME an argument -- without skipping them, `git -C project_memory
 # log` read the subcommand as "project_memory"
@@ -1186,6 +1190,16 @@ _ORDERING_COMMANDS = {"create-task": (), "capture": ("tsk",), "dispatch": ()}
 # derives it. A command that shelled out to the scaffold on its own would be outside the
 # derivation — the same boundary `_ORDERING_COMMANDS` has against a hand-written task.
 _INSTALLING_COMMANDS = {"set-preset": (), "update-kit": ()}
+
+# ...AND THE THIRD, which neither sees: the `upkeep` doors (BUG-0325/H223). Each deletes or copies
+# in INSTALLATION state -- the enforcement bundle's caches, the kit-update backlog, a template, the
+# git index -- which the whole project runs on, so running one is the orchestrator's act; and
+# `prune-memory` deletes a ROLE's craft memory, which is the caller's own only when that role is the
+# caller's. WHICH doors are role-bound is not listed here either: `_upkeep_refusal` asks the
+# KERNEL'S PARSER what the line means, and a door is role-bound when that parse carries a `role`.
+# The name is the kernel's (`kitupdate.UPKEEP_COMMAND`), pinned by
+# `tools/test_hooks_v2.py::test_the_upkeep_batteries_are_not_empty_and_match_the_gates_command_name`.
+_UPKEEP_COMMANDS = {"upkeep": ()}
 # `os.path.basename(kernel.cli.ENTRY_POINT)` and the module spelling of the same CLI, taken from
 # `_compat` because `gate_dispatch` asks the same question since DEC-0107 and two copies of one
 # name are how two readers drift apart. Why the hooks keep the name at all rather than reading it
@@ -1248,6 +1262,67 @@ def _reserved_command(stage, reserved):
         return command
     if len(positional) > 1 and positional[1].lower() in qualifiers:
         return "%s %s" % (command, positional[1].lower())
+    return ""
+
+
+def _upkeep_refusal(stage, data):
+    """Why a SUBAGENT may not run the `upkeep` door this stage invokes, or "" (rule 4, BUG-0325).
+
+    THE LINE IS READ BY THE KERNEL'S OWN PARSER (over the words this gate reads, which need not be
+    the shell's -- H227 below), not by position: `upkeep prune-memory --retire
+    <own role> <other role>` puts the caller's role where a reader of positionals looks and the
+    other role where argparse looks, and argparse is what runs. A line that parser does not run
+    to the end is refused as well -- the words read here may not be the words the shell hands
+    over, and a parse this gate cannot make is not one it may approve. That holds for a parse that
+    ends CLEANLY too: the `--help` that ended it may be a word the shell never passes (`<<< --help`,
+    `$(: --help)`), and then the kernel opens the door (TSK-0157 verify round 1, N1). The price, a
+    subagent's real `--help` refused, is a named over-refusal in the hole list (BUG-0327).
+    The other direction is OPEN: a parse that SUCCEEDS can still read other words than the shell
+    hands over -- a word the shell splits into several arguments shifts the role position, so this
+    gate reads the caller's role and the kernel another (H227, BUG-0331; closing it belongs to the
+    next wave's protection-layer stream).
+    Parsing prints nothing: the parser's usage text would land on this hook's own output channels.
+    `tools/test_hooks_v2.py::test_a_subagent_cannot_prune_another_roles_memory_bug_0325`
+    `tools/test_hooks_v2.py::test_a_help_word_the_shell_does_not_hand_over_opens_no_upkeep_door_bug_0325`
+    `tools/test_hooks_v2.py::test_an_upkeep_help_line_is_refused_and_no_parse_prints_on_the_hooks_channels`
+
+    A REDIRECTION IS THE SHELL'S and is gone before the kernel sees its arguments, so the operator
+    and the word it consumes are dropped (the kits' own shapes, `_REDIRECT_RX` and
+    `_INPUT_REDIRECT_RX`). A descriptor in front of an operator (`2>&1`) is a word of its own to the
+    lexer and stays in: it makes the parse fail and the line is refused, the over-refusing
+    direction -- dropping every digit word would also drop `--keep-newest 2 > log`'s count.
+    `tools/test_hooks_v2.py::test_a_subagent_still_prunes_its_own_memory`
+    """
+    if not _reserved_command(stage, _UPKEEP_COMMANDS):
+        return ""
+    import contextlib
+    import io
+    argv, consumed = [], False
+    for token in _harness_argv(stage):
+        operator = _operator(token)
+        if consumed:
+            consumed = False
+        elif _REDIRECT_RX.match(operator) or _INPUT_REDIRECT_RX.match(operator):
+            consumed = True
+        else:
+            argv.append(str(token))
+    try:
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            args = _kernel.kernel_module("cli").build_parser().parse_args(argv)
+    except SystemExit:
+        return ("its arguments do not parse as the kernel would read them (%s), so which door it "
+                "opens is not known here" % " ".join(argv))
+    except Exception as exc:  # noqa: BLE001 -- no kernel, no parse: fail-closed
+        return "the kernel's parser could not be asked (%s)" % exc
+    role = getattr(args, "role", None)
+    action = getattr(args, "upkeep_action", "?")
+    if role is None:
+        return ("`upkeep %s` changes SHARED installation state the whole project runs on"
+                % action)
+    own = str(data.get("agent_type") or "").strip()
+    if not own or str(role) != own:
+        return ("`upkeep %s %s` deletes the craft memory of %s, and this caller's own role is %s"
+                % (action, role, role, own or "not named in its payload"))
     return ""
 
 
@@ -1533,8 +1608,53 @@ def _only_reads_staging(pipeline, stages):
                for token in named)
 
 
-def _walk(pipeline, cwd):
-    """The working directory a `cd`/`pushd`/`popd` leaves us in, or None when it is unknown.
+def _position(absolute, root):
+    """Where an ABSOLUTE directory lies, in the spelling `_walk` tracks, or None.
+
+    Repo-relative inside the repo ("" is the root), `../`-led outside it, and the absolute path
+    itself where no relative spelling exists (another drive). RESOLVED AT BOTH ENDS (DEC-0121
+    (2)): a junction or a differently spelled root must not decide where a directory lies.
+    """
+    try:
+        real = os.path.realpath(absolute)
+        real_root = os.path.realpath(root)
+    except (OSError, ValueError):
+        return None
+    try:
+        rel = os.path.relpath(real, real_root).replace("\\", "/")
+    except ValueError:
+        return real.replace("\\", "/")            # another drive
+    return "" if rel == "." else rel
+
+
+def _absolute_readings(target, root):
+    """The absolute directories an absolute-looking `cd` word can reach HERE, or None if relative.
+
+    () means absolute but not placeable (`~user` a shell resolves from its own state). A POSIX
+    absolute path on a Windows host has TWO readings, and the gate cannot tell which shell will run
+    it: Git Bash, which the provider's Bash tool is on Windows, mounts drive `c` at `/c/`, while a
+    Windows program reads the same word on the current drive. `_walk` takes the reading that lands
+    in a protected tree, the same doctrine as for quoting.
+    """
+    if target.startswith("~"):
+        expanded = os.path.expanduser(target)
+        return () if expanded.startswith("~") else (expanded,)
+    if os.name == "nt":
+        if len(target) > 1 and target[1] == ":" or target.startswith("//"):
+            return (target,)
+        if target.startswith("/"):
+            drive = os.path.splitdrive(os.path.realpath(root))[0]
+            parts = target.split("/")
+            readings = [drive + target]
+            if len(parts) > 1 and len(parts[1]) == 1 and parts[1].isalpha():
+                readings.insert(0, "%s:/%s" % (parts[1].upper(), "/".join(parts[2:])))
+            return tuple(readings)
+        return None
+    return (target,) if target.startswith("/") else None
+
+
+def _walk(pipeline, cwd, root=None, moves=None, assignments=None):
+    """The working directory a `cd`/`pushd`/`popd` leaves us in, or None when it is UNKNOWN.
 
     Tracking the PATH rather than a depth, because the two cheaper models each got a real case
     wrong: a boolean could not tell "left the tree" from "went deeper into it", and a depth counter
@@ -1543,36 +1663,234 @@ def _walk(pipeline, cwd):
     (`cd project_memory/../src` counted as entering). A path answers all three by construction:
     whether we are inside a protected tree is then the same question the direct-naming check asks.
 
-    None means "somewhere we cannot name" -- an absolute target, a bare `cd`, `cd -`, or `popd`.
-    Conservatively treated as outside: over-blocking every command after a `popd` would refuse
-    ordinary work, and the direct-naming check still covers anything that spells the path out.
+    AN ABSOLUTE TARGET IS PLACED, and it used to be treated as "outside" (BUG-0323): a specialist
+    ran `cd "C:/…/.claude/agent-memory/<role>"` and then appended to `MEMORY.md` by a relative
+    name, and nothing on the write's pipeline named the layer. The position is now computed
+    (`_absolute_readings`, `_position`), so the append is judged inside `.claude`, and so is
+    `cd ..` out of the root and back in. `moves` carries `pushd`'s stack and `cd -`'s previous
+    position across the pipelines of one line.
+
+    None means a position NOBODY on this line states: `cd -` with no earlier move of this line to
+    return to, a `~user`, a `$VAR` the line does not assign, a `$(…)`. `handle_shell` refuses a
+    write-capable pipeline after such a move -- the H20 class of this repo's own gate -- because
+    from there a relative word can name any file. It used to be treated as "outside".
+
+    A MOVE LANDS WHERE THE SHELL MAY REALLY BE, and that can be more than one place (BUG-0335,
+    `_landings`): a move that can fail keeps the position it started from as a landing, and every
+    landing is carried to the next move in `moves`. A `popd` WITH NOTHING PUSHED ON THIS LINE has
+    two: bash fails it and stays, and an EARLIER call may have pushed the line start -- what that
+    call pushed is not visible to this reader, so a pop onto another entry of it is the residue this
+    gate had before (it read every pop as "outside"). A pop onto what this line pushed leaves the
+    tree it walked into:
+    `tools/test_hooks.py::test_every_directory_verb_moves_this_gates_base_and_no_other_word_does`
+
+    THE TWO-ARGUMENT CALL (`root` omitted) STANDS ON AN ABSOLUTE DIRECTORY and answers one, or None.
+    Its caller is outside the kits: the repo that builds them borrows this reader for its own gate 1
+    (`.claude/hooks/_harness.py`, `WorkingDirectory._resolve`), and when this signature grew
+    `root`/`moves` every relative `cd` there crashed the gate into a fail-closed refusal (TSK-0156
+    merge). The walk is the same one, rooted at that directory.
+    `.claude/hooks/test_gates.py::test_gate1_comes_back_out_of_a_group_it_walked_into`
+    """
+    if root is None:
+        position = _walk(pipeline, "", cwd, {}, assignments)
+        if position is None or os.path.isabs(position):
+            return position
+        return os.path.normpath(os.path.join(cwd, position)).replace("\\", "/")
+    starts = [cwd] + [one for one in moves.pop("also", []) if one != cwd]
+    landings = _landings(pipeline, starts, root, moves, assignments or {})
+    position = _chosen(landings)
+    if position is not None:
+        moves["also"] = [one for one in dict.fromkeys(landings) if one != position]
+    else:
+        moves.pop("stack", None)
+        moves["unseen"] = True
+    return position
+
+
+def _chosen(landings):
+    """The position `_walk` answers with: one in a protected tree if any landing is, else the first.
+
+    A landing nobody on the line states (None) makes the answer None unless a protected one is
+    there, which refuses the write anyway -- the doctrine `_walked_to` states for readings.
+    """
+    protected = [one for one in landings if one is not None
+                 and (_ENFORCEMENT_RX.search(one) or _STATE_RX.search(one))]
+    if protected:
+        return protected[0]
+    if None in landings or not landings:
+        return None
+    return landings[0]
+
+
+def _operands(pipeline):
+    """(words, descriptors) a directory verb receives, or None when a word IN FRONT of it decides.
+
+    What the shell hands the verb is what stands after it up to the end of its stage, without the
+    redirections, which belong to the shell. A word in front of the verb that is not grouping
+    punctuation is a command of its own -- `env cd ..` never reaches the builtin, `command cd ..`
+    does -- and which of the two it is, is not readable here: the definition
+    `.claude/hooks/_harness.py` (`WorkingDirectory.follow`) applies for this repo's own gate.
+
+    `descriptors` are the digit words standing right before a redirection. The tokeniser hands
+    `2>/dev/null` and `2 >/dev/null` back alike, so such a word is a file descriptor to one reading
+    and a second operand to the other -- `_landings` keeps both.
+    """
+    index, _word = _command_word_at(pipeline)
+    if index is None or any(_operator(token) not in ("(", "{") for token in pipeline[:index]):
+        return None
+    out, descriptors, skip = [], [], False
+    rest = pipeline[index + 1:]
+    for position, token in enumerate(rest):
+        text = _operator(token)
+        if skip:
+            skip = False
+            continue
+        if text in ("|", ")", "}", "&"):
+            break
+        if _REDIRECT_RX.match(text) or _INPUT_REDIRECT_RX.match(text):
+            skip = True
+            continue
+        following = _operator(rest[position + 1]) if position + 1 < len(rest) else ""
+        if text.isdigit() and (_REDIRECT_RX.match(following) or _INPUT_REDIRECT_RX.match(following)):
+            descriptors.append(token)
+        out.append(token)
+    return out, descriptors
+
+
+def _landings(pipeline, starts, root, moves, assignments):
+    """Every position this move may leave the shell on, from every position it may stand on.
+
+    A MOVE THE SHELL MAY NOT PERFORM GIVES NO KNOWN POSITION (BUG-0335). The walk used to take the
+    named target of every `cd`/`pushd`/`popd` as reached, and a shell whose move FAILS stays where
+    it stood: `cd .claude ; cd ../nope ; echo x > settings.json` passed every registered hook of a
+    scaffolded project while bash overwrote the file that decides which hooks run. So a move lands
+    in one of two ways, and both are kept:
+
+      * the shell STAYS where a move can fail -- a target that is no directory at gate time (it
+        does not exist, it is a file, a pattern matched nothing or more than one entry), more
+        than one operand, and a pop onto a stack this line never filled;
+      * the position is UNKNOWN (None) where this reader cannot account for the words: an option
+        (`pushd -n`, `+N`/`-N`, `cd -L`), a word in front of the verb, and a stack or a `cd -`
+        that depends on WHICH of several positions the shell holds.
+
+    Every position the shell may hold is carried to the next move (`moves["also"]`), because
+    choosing one is how the walk got it wrong: after `mkdir x ; cd x` the target is right, after a
+    failed `cd` the start is, and a later relative move from the wrong one names another tree. The
+    protected landing wins (`_chosen`), so the direction is refusing; `mkdir x ; cd x` costs nothing,
+    because neither landing is protected.
+
+    THE PRICE is over-refusal where a move OUT of a protected tree has a reading that fails: a word
+    in front of the verb that does reach the builtin (`command cd ..`), `cd .. 2>/dev/null` (the
+    `2` is a second operand to one reading), and on Windows a POSIX absolute target, whose Windows
+    reading does not exist. The tree stays a landing, and the write after it is refused.
+    `tools/test_hooks_v2.py::test_the_walk_takes_no_move_the_shell_may_not_perform_bug_0335`
     """
     verb = _stage_verb(pipeline)
-    if _DIRECTORY_VERBS.get(verb) == "pop":
-        return None
-    args = [t for t in pipeline[1:] if not t.startswith("-")]
-    if not args or args[0] == "-":
-        return None  # bare `cd` (home) or `cd -` (previous)
-    # OF THE READINGS THIS WORD HAS, THE ONE THAT LANDS IN A PROTECTED TREE. Same doctrine as
-    # `_names`: the text does not say which shell runs it, and a gate that is unsure must see the
-    # reading that matters — `cd .cl\\aude` really enters the enforcement layer in a POSIX shell,
-    # and reading it as an ordinary directory name armed nothing for the write that followed.
-    readings = _readings(args[0])
-    target = next((r for r in readings
-                   if _ENFORCEMENT_RX.search(r) or _STATE_RX.search(r)), readings[0])
-    target = target.replace("\\", "/")
-    if (target.startswith("/") or target.startswith("~")
-            or (len(target) > 1 and target[1] == ":")):
-        return None  # absolute: outside anything we can reason about relatively
-    segments = [] if cwd is None else [p for p in cwd.split("/") if p]
-    for segment in [p for p in target.split("/") if p not in ("", ".")]:
-        if segment == "..":
-            if not segments:
-                return None  # walked out above the point we were tracking from
-            segments.pop()
-        else:
-            segments.append(segment)
-    return "/".join(segments)
+    kind = _DIRECTORY_VERBS.get(verb)
+    operands = _operands(pipeline)
+    if operands is None:
+        return [None]
+    words, descriptors = operands
+    if words and str(words[0]) == "--":
+        words = words[1:]           # the end of the options; a bare `cd --` goes home
+    elif words and str(words[0]).startswith(("-", "+")) and str(words[0]) != "-":
+        return [None]
+    if len(words) > 1:
+        # More than one operand is an error the shell stays on; a descriptor read as an operand
+        # is the one list that has a second reading, with a single target.
+        target = [one for one in words if not any(one is other for other in descriptors)]
+        if kind == "pop" or len(target) != 1:
+            return list(starts)
+        verb_word = _command_word_at(pipeline)[1]
+        return list(starts) + _landings([verb_word, target[0]], starts, root, moves, assignments)
+    single = len(starts) == 1
+    previous = starts[0] if single else None
+    stack = moves.get("stack", [])
+    if kind == "pop":
+        if words or not single:
+            return [None]
+        moves["previous"] = previous
+        if stack:
+            return [stack.pop()]
+        # An empty stack: bash fails the pop and stays, while an EARLIER call may have pushed the
+        # line start -- see `_walk`.
+        return [previous] if moves.get("unseen") else [previous, moves.get("start", "")]
+    if not words:
+        if kind == "push":
+            return [None]        # a bare pushd swaps with a stack entry this line never made
+        landings = [_position(os.path.expanduser("~"), root)]     # a bare `cd` goes home
+    elif str(words[0]) == "-":
+        landings = [moves.get("previous")] if single else [None]
+    else:
+        landings = []
+        for start in starts:
+            landings.extend(_walked_to(words[0], start, root, assignments))
+    if kind == "push":
+        if not single:
+            return [None]
+        moves.setdefault("stack", []).append(previous)
+    moves["previous"] = previous
+    return landings
+
+
+def _walked_to(word, cwd, root, assignments):
+    """Where `cd <word>` from `cwd` may land -- see `_walk` and `_landings`; None for a reading
+    that cannot be placed. The positions come back as a list, and `_chosen` picks the answer.
+
+    OF THE READINGS THIS WORD HAS, THE ONE THAT LANDS IN A PROTECTED TREE WINS (`_chosen`). Same doctrine as
+    `_names`: the text does not say which shell runs it, and a gate that is unsure must see the
+    reading that matters — `cd .cl\\aude` really enters the enforcement layer in a POSIX shell,
+    and reading it as an ordinary directory name armed nothing for the write that followed. A
+    reading that cannot be placed at all makes the whole word unknown unless another reading
+    already lands in a protected tree.
+
+    A TILDE OR A PATTERN UNDER QUOTING IS NOT EXPANDED HERE (BUG-0334), because a shell expands a
+    word FIRST and removes its quoting AFTERWARDS, and the readings are the result of the second
+    step: `cd "~"` and `cd "d*cs"` leave bash where it stood, while this walk answered the home
+    directory and `docs` (the order-7 merge reopened H31 that way in the repo's own gate, which
+    borrows this walk; this gate's own walk passed `cd "~"`, `cd \\~` and a quoted pattern before
+    it, measured against the HEAD of 2026-09-28). Where the
+    quoting stood is not kept -- `spliced` says only that the word carries some, and every reading
+    after the first is the word with an escape character taken out -- so such a reading names a
+    place nobody on the line states (None), the refusing direction. Its price is over-refusal, and
+    it has two sources. A partly quoted word: `cd ~/"My Dir"` goes home in a shell and gives the
+    position up here. And PowerShell as a whole: it resolves a tilde and a wildcard in its
+    provider, after its own quote removal, so a quoted `Set-Location` target of that kind moves
+    PowerShell and is given up here all the same.
+    `tools/test_hooks_v2.py::test_the_scope_gate_does_not_expand_a_tilde_or_pattern_the_quoting_keeps_bug_0334`
+    `tools/test_hooks_v2.py::test_the_scope_gate_gives_up_a_quoted_powershell_move_the_price_of_bug_0334`
+    `.claude/hooks/test_gates.py::test_gate1_does_not_expand_a_pattern_the_quoting_keeps_bug_0334`
+    """
+    candidates = []
+    quoted = bool(getattr(word, "spliced", False))
+    for index, reading in enumerate(_readings(word)):
+        text = _resolve(str(reading), assignments).replace("\\", "/")
+        if "$" in text or "`" in text:
+            candidates.append(None)
+            continue
+        unexpandable = quoted or index > 0
+        if unexpandable and text.startswith("~"):
+            candidates.append(None)
+            continue
+        absolute = _absolute_readings(text, root)
+        if absolute is not None:
+            candidates.extend([_position(one, root) for one in absolute] or [None])
+            if not all(os.path.isdir(one) for one in absolute):
+                candidates.append(cwd)          # the shell stays -- see `_landings`
+            continue
+        if cwd is None:
+            candidates.append(None)
+            continue
+        base = os.path.join(os.path.realpath(root), cwd.replace("/", os.sep))
+        expanded = _glob_readings(text, base)
+        if unexpandable and expanded:
+            candidates.append(None)
+            continue
+        targets = [os.path.normpath(os.path.join(base, one)) for one in (expanded or (text,))]
+        candidates.extend(_position(one, root) for one in targets)
+        if len(targets) > 1 or not os.path.isdir(targets[0]):
+            candidates.append(cwd)              # the shell stays -- see `_landings`
+    return candidates
 
 
 def _inside(rx, cwd):
@@ -1943,6 +2261,7 @@ def handle_shell(data):
     # `IGNORECASE` pattern — see `_repo_relative`.
     root = _kernel.find_repo_root(data.get("cwd"))
     cwd = _repo_relative(data.get("cwd") or ".", root, fold=False)[0] or ""
+    moves = {"start": cwd}      # `pushd`'s stack and `cd -`'s previous position -- see `_walk`
     # WHICH SHELL decides which redirect targets keep the bytes — see `_null_sinks`.
     sinks = _null_sinks(data.get("tool_name"))
     # WHO IS ASKING (rule 4). One definition for the whole kit — `_compat.calling_subagent` carries
@@ -1999,6 +2318,16 @@ def handle_shell(data):
                         remedy="hand it BACK: name it in `followups` of your result envelope and "
                                "let the lead run it. The approval you may already hold stays "
                                "valid — nothing about it is spent by this refusal.")
+                upkeep = stage and _upkeep_refusal(stage, data)
+                if upkeep:
+                    _kernel.block(
+                        HOOK,
+                        "%s, and this call comes from a subagent (%s). An upkeep door that "
+                        "changes what the whole project or another role runs on is the "
+                        "orchestrator's act (BUG-0325)." % (upkeep, caller),
+                        remedy="hand it BACK: name it in `followups` of your result envelope and "
+                               "let the lead run it. Your OWN role's memory you prune yourself: "
+                               "`upkeep prune-memory <your role> ...`, spelled plainly.")
         verbs_read_only = all(_stage_is_read_only(stage) for stage in stages if stage)
         redirects = _redirect_targets(pipeline, sinks)
         if lead:
@@ -2063,11 +2392,22 @@ def handle_shell(data):
                         "non-canonical proposal goes into the task's own proposal area (spec "
                         "II.4), which is the one place under the state directory a tool write "
                         "reaches.")
+        if cwd is None and writes:
+            # BUG-0323: see `_walk` -- from a position no word of this line states, a relative
+            # word can name any file, the enforcement layer and the state directory included.
+            _refuse(pipeline, "a file from a position this gate could not follow",
+                    "An earlier move on this line (`cd -`, a `~user`, a `$VAR` the line "
+                    "does not assign, a `$(...)`) left the shell somewhere nothing on the line "
+                    "states, so a relative name here may be canonical state or the enforcement "
+                    "layer.",
+                    "spell the directory you move to -- relative to where you stand or "
+                    "absolutely (`cd \"C:/...\"`, `cd /c/...` on Git Bash) -- or name the files "
+                    "you write by their full path.")
         if _stage_verb(pipeline) in _DIRECTORY_VERBS:
             # everything after `cd project_memory` is inside it, and the later pipelines no longer
             # NAME it -- that shape walked straight past a path-only check. Mirrored for the
             # enforcement layer, whose `cd .claude && cp -r hooks /tmp` had no carry-over at all.
-            cwd = _walk(pipeline, cwd)
+            cwd = _walk(pipeline, cwd, root, moves, assignments)
     if _INLINE_KERNEL_RX.search(code_view):
         _kernel.block(
             HOOK,

@@ -1,0 +1,57 @@
+id: TSK-0161
+product_requirement: PR-0012
+derives_from: BUG-0334
+type: implementation
+assigned_role: harness-implementer
+acceptance_refs:
+- AC-1
+allowed_scope:
+- team-kits/**
+- tools/**
+- docs/**
+- .claude/hooks/test_gates.py
+forbidden_scope:
+- .claude/settings.json
+- .claude/hooks/gate_*.py
+- .claude/hooks/_harness.py
+- .claude/agents/**
+- project_memory/**
+- radar/**
+- team-kits/kernel/integrate*.py
+- team-kits/dev-team/hooks/gate_git.py
+required_inputs:
+- 'CONTINUES TSK-0159 (CANCELLED for re-planning after its verifier''s FAIL; its fix
+  stays uncommitted in the main tree, stamp 2026.09.28-1 -- do NOT redo it). Read
+  project_memory/staging/TSK-0159/verify-round-1.md by section. THE LEAD''S DECISION
+  (no more investment in the old walk than the delivery needs; wave 1 stream B replaces
+  it): (B2, BLOCKING) add the row `cd ../d\*cs` (and `cd ../do\[c]s`) to `_QUOTED_EXPANSION_MOVES`
+  in tools/test_hooks_v2.py and show it RED with the verifier''s mutation glob-quoted-only,
+  green on the package; (B3) the `_walked_to` docstring names the PowerShell price
+  as a property (PowerShell resolves ~ and wildcards at provider level regardless
+  of quoting, so a quoted Set-Location target is refused too), mirrored x3; (B4) tools/test_hooks_v2.py:7431-7432
+  names the property (''the rows whose shell stays'') instead of a count; (B1) do
+  NOT fix the walk -- it is captured as BUG-0335 (hole). MEASURE its limit instead:
+  in a scaffolded dev-team project (use the verifier''s chain.py as a start), overwrite
+  .claude/settings.json by the chain, then check whether the kit detects it -- the
+  bundle/installed-files hash check at the next specialist spawn (dispatch) and at
+  session start (session_status / update-kit check): quote the refusal or say it is
+  NOT detected. Report the measured sentence for the hole''s `limits` (the lead writes
+  it through the kernel). Also fix the `_walk` docstring sentence on popd (:1678-1682)
+  so it names the empty-stack case as part of BUG-0335 (rule 3). ONE stamp at the
+  end; reading suites: tools/test_hooks_v2.py -k "bug_0334 or walk or cd or tilde
+  or position", tools/test_repo_hygiene.py -k pointer, validate + ruff; each with
+  a time budget. Protocol section ''Rework 4'' in project_memory/staging/TSK-0156/protocol.md
+  as you go. No full run, no commit, no push, no BUG transitions.'
+expected_outputs:
+- 'rework 4: B2 row red-first (glob-quoted-only) and green; B3/B4 texts; the popd
+  docstring sentence; BUG-0335''s limit MEASURED (detected by which check, or not);
+  one stamp; reading suites green with clock times; validate + ruff clean; the full
+  run NOT started'
+dependencies: []
+rung: opus
+effort: high
+root_revision: 1
+status: CANCELLED
+revision: 1
+approval_ref: null
+created: '2026-09-28T14:31:09'

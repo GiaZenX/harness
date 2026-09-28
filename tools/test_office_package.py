@@ -173,7 +173,7 @@ def test_every_remedy_the_kernel_prints_for_a_document_write_is_a_line_the_kerne
 
     asked = harness(repo, *printed_remedy(refused))
     assert asked.returncode == 0, asked.stdout + asked.stderr
-    assert "[APR-REQ:" in asked.stdout, asked.stdout
+    assert "Freigeben [" in asked.stdout, asked.stdout      # the card's approving label
 
     mint_the_open_request(repo)
     done = harness(repo, command, *argv)

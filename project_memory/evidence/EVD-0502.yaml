@@ -1,0 +1,20 @@
+id: EVD-0502
+kind: test
+related:
+- BUG-0317
+result: pass
+summary: 'TSK-0155 stream C, worktree g7/field (stamped mirror): an open V1 task whose
+  fields translate is written, walked to CANCELLED through the automaton and archived,
+  with legacy_fields.cancelled_on_import and dependencies [] (V1 value kept in the
+  record copy) (node tools/test_migrate.py::test_an_open_v1_task_is_imported_cancelled_bug_0317).
+  Red with the cancel marking disabled. test_migrate.py 147 passed in the worktree
+  itself.'
+artifact_refs:
+- staging/TSK-0155/evd/final.log
+- staging/TSK-0155/evd/red-first.log
+run_command: python -B -m pytest tools/test_stream_c_field.py tools/test_migrate.py::test_an_open_v1_task_is_imported_cancelled_bug_0317
+  -v -p no:cacheprovider
+run_scope: selection
+revision: 1
+approval_ref: null
+created: '2026-09-27T00:57:57'

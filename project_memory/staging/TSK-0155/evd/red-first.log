@@ -1,0 +1,15 @@
+0310-door       RED | 1 failed in 11.95s | E       AssertionError: removed 0 tool leftover(s) from the enforcement bundle
+0310-import     RED | 1 failed in 1.85s | E       AssertionError: ['__pycache__\\__init__.cpython-313.pyc', '__pycache__\\backlog_types.cpython-313.pyc', '__pycache__\\hashing.cpython-313.pyc']
+0311            RED | 2 failed in 150.93s (0:02:30) | E       AssertionError: NOTE: kit 'dev-team' is already at the staged version -- re-applying managed files/roles only. This does NOT resolve .claude/kit_update_
+0316-checkattr  RED | 1 failed in 8.12s | E           AssertionError: git check-attr -a -- .claude/hooks/_kernel.py
+0316-clone      RED | 1 failed in 9.99s | E       AssertionError: assert 'ca62bddcd9e5...ed60a94d58b06' == '4ffb44c70a47...3133870e34c7a'
+0317            RED | 1 failed in 2.87s | E       AssertionError: an open V1 order was left as a live V2 order
+0319-doors      RED | 1 failed in 12.95s | E           AssertionError: assert b'# Project l...omised here\n' == b'# Project l... kit change\n'
+0319-list       RED | 1 failed in 12.56s | E       AssertionError: ﻿# Repo templates this project customised that ALSO changed in kit dev-team version: 2026.09.27-2 (line-ending style ignored) -- the PM 
+0320            RED | 1 failed in 7.66s | E       AssertionError: [team-kit gate_shell_hygiene] this command designates compose project 'project-test-tsk0431' (named by `-p`/`--project-name`), which is 
+0323-dangling   RED | 1 failed in 8.70s | E       AssertionError: the dangling line survived the prune
+0323-door       RED | 1 failed in 8.84s | E       AssertionError: ['topic-000.md', 'topic-001.md', 'topic-002.md', 'topic-003.md', 'topic-004.md', 'topic-005.md', ...]
+0323-gate       RED | 1 failed in 8.32s | E           AssertionError: ('cd "C:/Users/zenti/AppData/Local/Temp/pytest-of-zenti/pytest-16169/test_a_shell_write_after_an_ab0/project/.claude/agent-memory/ba
+0323-stem       RED | 1 failed in 1.74s | E           AssertionError: dev-team polices the index stems ('memory',); the prune door protects 'index'
+mirror restored
+exit 0
